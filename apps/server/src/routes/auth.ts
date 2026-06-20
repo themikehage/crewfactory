@@ -14,7 +14,9 @@ authRouter.post("/login", zValidator("json", LoginSchema), async (c) => {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
-  const valid = await bcrypt.compare(password, process.env.AUTH_PASSWORD_HASH!);
+  const hashB64 = process.env.AUTH_PASSWORD_HASH!;
+  const hash = Buffer.from(hashB64, "base64").toString("utf-8");
+  const valid = await bcrypt.compare(password, hash);
   if (!valid) {
     return c.json({ error: "Invalid credentials" }, 401);
   }
@@ -29,10 +31,12 @@ authRouter.post("/login", zValidator("json", LoginSchema), async (c) => {
 });
 
 authRouter.get("/debug", (c) => {
+  const hashB64 = process.env.AUTH_PASSWORD_HASH ?? "";
+  const hash = hashB64 ? Buffer.from(hashB64, "base64").toString("utf-8") : "";
   return c.json({
     username: process.env.AUTH_USERNAME ?? "NOT_SET",
-    hashPrefix: (process.env.AUTH_PASSWORD_HASH ?? "").slice(0, 30),
-    hashLength: (process.env.AUTH_PASSWORD_HASH ?? "").length,
+    hashB64Len: hashB64.length,
+    hashDecodedLen: hash.length,
   });
 });
 
