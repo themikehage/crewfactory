@@ -18,6 +18,7 @@ interface Props {
 export function ChatArea({ sessionId }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
@@ -76,11 +77,17 @@ export function ChatArea({ sessionId }: Props) {
       });
     });
 
+    const unsubError = subscribe("agent_error", (data: unknown) => {
+      const evt = data as Record<string, unknown>;
+      setError(String(evt.error ?? "Unknown error"));
+    });
+
     return () => {
       unsubStart();
       unsubEnd();
       unsubMsg();
       unsubMsgEnd();
+      unsubError();
     };
   }, [sessionId, subscribe]);
 
@@ -117,6 +124,12 @@ export function ChatArea({ sessionId }: Props) {
         {connected ? "Connected" : "Reconnecting..."}
         {streaming && <span className="ml-2 text-accent">Streaming...</span>}
       </div>
+      {error && (
+        <div className="px-3 sm:px-4 py-2 bg-error/10 border-b border-error/20 text-error text-xs">
+          {error}
+          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+        </div>
+      )}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
           <MessageList messages={messages} />

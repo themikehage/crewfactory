@@ -36,6 +36,11 @@ export function useWebSocket(sessionId: string | null): WebSocketState {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
+        if (data.type === "auth_error") {
+          setConnected(false);
+          ws.close();
+          return;
+        }
         const cbs = handlersRef.current.get(data.type);
         cbs?.forEach((cb) => cb(data));
 
