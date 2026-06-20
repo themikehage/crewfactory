@@ -28,6 +28,14 @@ authRouter.post("/login", zValidator("json", LoginSchema), async (c) => {
   return c.json({ token, user: { username } });
 });
 
+authRouter.get("/debug", (c) => {
+  return c.json({
+    username: process.env.AUTH_USERNAME ?? "NOT_SET",
+    hashPrefix: (process.env.AUTH_PASSWORD_HASH ?? "").slice(0, 30),
+    hashLength: (process.env.AUTH_PASSWORD_HASH ?? "").length,
+  });
+});
+
 authRouter.get("/me", authMiddleware, (c) => {
   const payload = getAuthPayload(c);
   return c.json({ user: payload });
