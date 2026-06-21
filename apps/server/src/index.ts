@@ -39,7 +39,9 @@ app.get("/favicon.ico", serveStatic({ path: "./public/favicon.ico" }));
 const port = parseInt(process.env.PORT ?? "3000");
 
 const server = Bun.serve({
-  fetch: app.fetch,
+  fetch(req, server) {
+    return app.fetch(req, {}, server as unknown as Parameters<typeof app.fetch>[2]);
+  },
   port,
   websocket,
 });

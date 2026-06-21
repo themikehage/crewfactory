@@ -10,6 +10,7 @@ interface PiWebSocket extends WSContext {
 
 let wsCounter = 0;
 const userMap = new Map<string, AuthPayload>();
+const wsSubscriptions = new Map<string, () => void>();
 
 function safeSend(ws: { send: (data: string) => void }, data: string) {
   try {
@@ -25,6 +26,11 @@ export function onOpen(_evt: Event, _ws: WSContext) {
 export function onClose(_evt: any, _ws: WSContext) {
   const ws = _ws as unknown as PiWebSocket;
   userMap.delete(ws.wsId);
+  const unsub = wsSubscriptions.get(ws.wsId);
+  if (unsub) {
+    unsub();
+    wsSubscriptions.delete(ws.wsId);
+  }
 }
 
 export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSContext) {
@@ -48,6 +54,25 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
         process.env.JWT_SECRET!
       ) as AuthPayload;
       userMap.set(ws.wsId, user);
+
+      const sessionId = data.sessionId as string;
+      if (sessionId) {
+        const existingUnsub = wsSubscriptions.get(ws.wsId);
+        if (existingUnsub) {
+          existingUnsub();
+        }
+
+        const session = await piSessionManager.getOrCreateSession(
+          user.username,
+          sessionId
+        );
+
+        const unsub = session.subscribe((agentEvent) => {
+          safeSend(ws, JSON.stringify(agentEvent));
+        });
+        wsSubscriptions.set(ws.wsId, unsub);
+      }
+
       safeSend(ws, JSON.stringify({ type: "auth_success", wsId: ws.wsId }));
     } catch {
       safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid token" }));
@@ -114,10 +139,6 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       }
     }
 
-    const unsubscribe = session.subscribe((agentEvent) => {
-      safeSend(ws, JSON.stringify(agentEvent));
-    });
-
     try {
       await session.prompt(message);
     } catch (error) {
@@ -126,8 +147,6 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
         JSON.stringify({ type: "agent_error", sessionId, error: String(error) })
       );
     }
-
-    unsubscribe();
   }
 
   if (data.type === "steer") {
