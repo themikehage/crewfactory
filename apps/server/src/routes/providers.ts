@@ -104,7 +104,6 @@ providersRouter.delete("/:id/key", (c) => {
     piSessionManager.getUserContext(username);
 
     authStorage.remove(providerId);
-    authStorage.removeRuntimeApiKey(providerId);
     modelRegistry.refresh();
 
     const authStatus = buildAuthStatus(authStorage, providerId);

@@ -42,28 +42,6 @@ class PiSessionManager {
     const authStorage = AuthStorage.create(`${userDir}/auth.json`);
     const modelRegistry = ModelRegistry.create(authStorage);
 
-    const envKeyMap: Record<string, string> = {
-      ANTHROPIC_API_KEY: "anthropic",
-      OPENAI_API_KEY: "openai",
-      GEMINI_API_KEY: "google",
-      DEEPSEEK_API_KEY: "deepseek",
-      GROQ_API_KEY: "groq",
-      MISTRAL_API_KEY: "mistral",
-      OPENROUTER_API_KEY: "openrouter",
-      XAI_API_KEY: "xai",
-      CEREBRAS_API_KEY: "cerebras",
-      HUGGINGFACE_API_KEY: "huggingface",
-      FIREWORKS_API_KEY: "fireworks",
-      TOGETHER_API_KEY: "together",
-    };
-
-    for (const [envVar, provider] of Object.entries(envKeyMap)) {
-      const key = process.env[envVar];
-      if (key) {
-        authStorage.setRuntimeApiKey(provider, key);
-      }
-    }
-
     modelRegistry.refresh();
 
     const ctx: UserContext = { authStorage, modelRegistry };
