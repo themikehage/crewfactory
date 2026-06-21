@@ -10,12 +10,34 @@ interface ContentBlock {
   arguments?: Record<string, unknown>;
 }
 
+interface MessageUsage {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  totalTokens?: number;
+  cost?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    total?: number;
+  };
+}
+
 interface Message {
   role: string;
   content: string | ContentBlock[] | ContentBlock;
   toolName?: string;
   isError?: boolean;
   isStreaming?: boolean;
+  api?: string;
+  provider?: string;
+  model?: string;
+  usage?: MessageUsage;
+  stopReason?: string;
+  timestamp?: number;
+  responseId?: string;
 }
 
 interface Props {
@@ -130,6 +152,32 @@ export const MessageList: FC<Props> = ({ messages }) => {
               <div className={clsx(msg.role === "user" ? "text-inherit" : "text-text-primary")}>
                 {renderContent(msg)}
               </div>
+              {msg.role === "assistant" && (msg.provider || msg.model || msg.usage) && (
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 pt-1.5 border-t border-surface-hover/30 text-[10px] text-text-secondary/50 font-mono">
+                  {msg.provider && (
+                    <span>
+                      provider: <span className="text-text-secondary/80">{msg.provider}</span>
+                    </span>
+                  )}
+                  {msg.model && (
+                    <span>
+                      • model: <span className="text-text-secondary/80">{msg.model}</span>
+                    </span>
+                  )}
+                  {msg.usage && (
+                    <>
+                      <span>
+                        • tokens: <span className="text-text-secondary/80">{msg.usage.totalTokens || (msg.usage.input + msg.usage.output)}</span>
+                      </span>
+                      {msg.usage.cost?.total !== undefined && (
+                        <span>
+                          • cost: <span className="text-text-secondary/80">${msg.usage.cost.total.toFixed(6)}</span>
+                        </span>
+                      )}
+                    </>
+                  )}
+                </div>
+              )}
               {msg.isStreaming && (
                 <span className="inline-block w-2 h-4 ml-1 bg-accent animate-pulse" />
               )}

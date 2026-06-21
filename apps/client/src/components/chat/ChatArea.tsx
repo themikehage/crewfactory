@@ -3,12 +3,34 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageList } from "./MessageList";
 import { InputArea } from "./InputArea";
 
+interface MessageUsage {
+  input: number;
+  output: number;
+  cacheRead?: number;
+  cacheWrite?: number;
+  totalTokens?: number;
+  cost?: {
+    input?: number;
+    output?: number;
+    cacheRead?: number;
+    cacheWrite?: number;
+    total?: number;
+  };
+}
+
 interface Message {
   role: "user" | "assistant" | "tool_result" | "system";
   content: string | Array<{ type: string; text?: string; thinking?: string; name?: string; arguments?: Record<string, unknown> }>;
   toolName?: string;
   isError?: boolean;
   isStreaming?: boolean;
+  api?: string;
+  provider?: string;
+  model?: string;
+  usage?: MessageUsage;
+  stopReason?: string;
+  timestamp?: number;
+  responseId?: string;
 }
 
 interface Props {
