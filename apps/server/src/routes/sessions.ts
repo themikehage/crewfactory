@@ -160,25 +160,4 @@ sessionsRouter.post(
   }
 );
 
-sessionsRouter.get("/:id/files/*", async (c) => {
-  const sessionId = c.req.param("id");
-  const filePath = c.req.param("*");
-  const { username } = getAuthPayload(c);
 
-  if (!filePath) {
-    return c.notFound();
-  }
-
-  if (filePath.includes("..")) {
-    return c.text("Forbidden", 403);
-  }
-
-  const absolutePath = `/tmp/pi-web-users/${username}/sessions/${sessionId}/${filePath}`;
-  const file = Bun.file(absolutePath);
-  const exists = await file.exists();
-  if (!exists) {
-    return c.notFound();
-  }
-
-  return c.body(file.stream());
-});

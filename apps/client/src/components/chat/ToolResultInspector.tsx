@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
 
@@ -9,8 +9,88 @@ interface Props {
   sessionId: string | null;
 }
 
-// Parses results for HTML documents
-function isHtml(text: string): boolean {
+interface FileMarker {
+  title: string;
+  url: string;
+  type: "image" | "html" | "other";
+}
+
+function resolveSessionUrl(rawUrl: string, sessionId: string | null): string {
+  if (!rawUrl) return "";
+
+  if (rawUrl.startsWith("data:") || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
+    return rawUrl;
+  }
+
+  if (sessionId && (rawUrl.includes("/tmp/") || rawUrl.includes("C:\\tmp\\") || rawUrl.includes("C:/tmp/"))) {
+    const sessionMarker = `sessions/${sessionId}/`;
+    const idx = rawUrl.indexOf(sessionMarker);
+    if (idx !== -1) {
+      const relativePath = rawUrl.substring(idx + sessionMarker.length);
+      return `/api/sessions/${sessionId}/files/${relativePath.replace(/\\/g, "/")}`;
+    }
+
+    const match = rawUrl.match(/sessions\/([a-zA-Z0-9-]+)\/(.+)/);
+    if (match) {
+      return `/api/sessions/${match[1]}/files/${match[2].replace(/\\/g, "/")}`;
+    }
+
+    const baseName = rawUrl.split(/[\\/]/).pop();
+    if (baseName) {
+      return `/api/sessions/${sessionId}/files/${baseName}`;
+    }
+  }
+
+  return rawUrl;
+}
+
+function getFileType(url: string): "image" | "html" | "other" {
+  const ext = url.split(".").pop()?.toLowerCase() ?? "";
+  if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext)) return "image";
+  if (["html", "htm"].includes(ext)) return "html";
+  return "other";
+}
+
+export function extractFileMarkers(text: string): FileMarker[] {
+  if (typeof text !== "string") return [];
+
+  const markers: FileMarker[] = [];
+
+  // Match: === Title ===\npath/url (any extension)
+  const markerRegex = /===\s*([^\n]+?)\s*===\s*\n(https?:\/\/[^\s]+|[\w/\\:.-]+\.\w+)/gi;
+  let match;
+  while ((match = markerRegex.exec(text)) !== null) {
+    const title = match[1].trim();
+    const url = match[2].trim();
+    if (!markers.some((m) => m.url === url)) {
+      markers.push({ title, url, type: getFileType(url) });
+    }
+  }
+
+  // Any standalone image URLs
+  const urlRegex = /(https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|gif|svg))/gi;
+  const rawMatches = text.match(urlRegex) ?? [];
+  for (const url of rawMatches) {
+    if (!markers.some((m) => m.url === url)) {
+      markers.push({ title: "", url, type: "image" });
+    }
+  }
+
+  // Local filesystem paths with image extensions
+  const localImageRegex = /(?:[a-zA-Z]:[\\/]|[\/])(?:[\w.-]+[\\/])+\w+\.(?:jpg|jpeg|png|webp|gif|svg)/gi;
+  const localMatches = text.match(localImageRegex) ?? [];
+  for (const path of localMatches) {
+    if (!markers.some((m) => m.url === path)) {
+      const fileName = path.split(/[\\/]/).pop();
+      markers.push({ url: path, title: fileName ?? "", type: "image" });
+    }
+  }
+
+  return markers;
+}
+
+// Legacy exports for backward compat
+export function isHtml(text: string): boolean {
   if (typeof text !== "string") return false;
   const trimmed = text.trim();
   return (
@@ -20,39 +100,93 @@ function isHtml(text: string): boolean {
   );
 }
 
-// Parses result text to extract image URLs and headers
-function extractImages(text: string): Array<{ url: string; title?: string }> {
-  if (typeof text !== "string") return [];
+export function extractImages(text: string): Array<{ url: string; title?: string }> {
+  return extractFileMarkers(text)
+    .filter((m) => m.type === "image")
+    .map((m) => ({ url: m.url, title: m.title }));
+}
 
-  const images: Array<{ url: string; title?: string }> = [];
+export function HtmlFileFetcher({ url, title, sessionId }: { url: string; title: string; sessionId: string | null }) {
+  const [html, setHtml] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Match: === Title.jpg ===\nhttp://...
-  const markerRegex = /===\s*([^\n]+?)\s*===\s*\n(https?:\/\/[^\s]+|[\w/\\:.-]+\.(?:jpg|jpeg|png|webp|gif))/gi;
-  let match;
-  while ((match = markerRegex.exec(text)) !== null) {
-    images.push({ title: match[1], url: match[2] });
+  const resolvedUrl = resolveSessionUrl(url, sessionId);
+
+  useEffect(() => {
+    let cancelled = false;
+    setLoading(true);
+    setError(null);
+
+    const token = localStorage.getItem("token");
+    fetch(resolvedUrl, {
+      headers: resolvedUrl.startsWith("/api/") && token
+        ? { Authorization: `Bearer ${token}` }
+        : {},
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.text();
+      })
+      .then((content) => {
+        if (!cancelled) {
+          setHtml(content);
+          setLoading(false);
+        }
+      })
+      .catch((err) => {
+        if (!cancelled) {
+          setError(err.message);
+          setLoading(false);
+        }
+      });
+
+    return () => { cancelled = true; };
+  }, [resolvedUrl]);
+
+  if (loading) {
+    return (
+      <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-text-secondary font-sans bg-surface rounded-lg border border-surface-hover">
+        <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+        Loading {title || "HTML file"}...
+      </div>
+    );
   }
 
-  // Also match any raw images listed: file: ... or image: ...
-  const urlRegex = /(https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|gif))/gi;
-  const rawMatches = text.match(urlRegex) ?? [];
-  for (const url of rawMatches) {
-    if (!images.some((img) => img.url === url)) {
-      images.push({ url });
-    }
+  if (error) {
+    return (
+      <div className="px-3 py-2 text-[11px] text-error font-sans bg-surface rounded-lg border border-error/30">
+        Error loading {title || "HTML file"}: {error}
+      </div>
+    );
   }
 
-  // Local filesystem path matching (e.g. C:\tmp\...)
-  const localRegex = /(?:[a-zA-Z]:[\\/]|[\/])(?:[\w.-]+[\\/])+\w+\.(?:jpg|jpeg|png|webp|gif)/gi;
-  const localMatches = text.match(localRegex) ?? [];
-  for (const path of localMatches) {
-    if (!images.some((img) => img.url === path)) {
-      const fileName = path.split(/[\\/]/).pop();
-      images.push({ url: path, title: fileName });
-    }
+  if (html) {
+    return <HtmlPreview html={html} />;
   }
 
-  return images;
+  return null;
+}
+
+function MediaRenderer({ markers, sessionId }: { markers: FileMarker[]; sessionId: string | null }) {
+  const imageMarkers = markers.filter((m) => m.type === "image");
+  const htmlMarkers = markers.filter((m) => m.type === "html");
+
+  if (markers.length === 0) return null;
+
+  return (
+    <div className="space-y-3">
+      {htmlMarkers.map((m, i) => (
+        <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} />
+      ))}
+      {imageMarkers.length > 0 && (
+        <ImageGrid
+          images={imageMarkers.map((m) => ({ url: m.url, title: m.title }))}
+          sessionId={sessionId}
+        />
+      )}
+    </div>
+  );
 }
 
 export function ToolResultInspector({ toolName, args, result, sessionId }: Props) {
@@ -62,8 +196,10 @@ export function ToolResultInspector({ toolName, args, result, sessionId }: Props
     ? result
     : JSON.stringify(result, null, 2) ?? "";
 
-  const images = extractImages(resultStr);
+  const markers = extractFileMarkers(resultStr);
   const htmlOutput = isHtml(resultStr) ? resultStr : null;
+  const hasInlineHtml = htmlOutput !== null;
+  const hasMediaMarkers = markers.length > 0;
 
   return (
     <div className="w-full my-1 rounded-lg border border-surface-hover bg-surface overflow-hidden text-xs font-sans">
@@ -101,21 +237,14 @@ export function ToolResultInspector({ toolName, args, result, sessionId }: Props
           )}
 
           <div className="p-3 space-y-3">
-            {htmlOutput ? (
+            {hasInlineHtml ? (
               <HtmlPreview html={htmlOutput} />
+            ) : hasMediaMarkers ? (
+              <MediaRenderer markers={markers} sessionId={sessionId} />
             ) : (
               <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-[#171717]/40 p-2.5 rounded-md max-h-96 overflow-y-auto">
                 {resultStr}
               </pre>
-            )}
-
-            {images.length > 0 && (
-              <div className="pt-2">
-                <div className="text-[10px] font-semibold text-text-secondary/70 uppercase tracking-wider mb-1.5">
-                  Extracted Images
-                </div>
-                <ImageGrid images={images} sessionId={sessionId} />
-              </div>
             )}
           </div>
         </div>

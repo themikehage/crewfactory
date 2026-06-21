@@ -2,7 +2,8 @@ import { type FC } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import { RichMarkdown } from "./RichMarkdown";
-import { ToolResultInspector } from "./ToolResultInspector";
+import { ToolResultInspector, isHtml, extractFileMarkers, HtmlFileFetcher } from "./ToolResultInspector";
+import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
 
 interface ContentBlock {
@@ -115,6 +116,30 @@ function renderContent(msg: Message, sessionId: string | null) {
     if (msg.role === "user") {
       return <p className="whitespace-pre-wrap break-words font-sans">{content}</p>;
     }
+
+    const htmlOutput = isHtml(content) ? content : null;
+    const markers = extractFileMarkers(content);
+    const imageMarkers = markers.filter((m) => m.type === "image");
+    const htmlMarkers = markers.filter((m) => m.type === "html");
+
+    if (htmlOutput || markers.length > 0) {
+      return (
+        <div className="space-y-3">
+          {htmlOutput && <HtmlPreview html={htmlOutput} />}
+          {htmlMarkers.map((m, i) => (
+            <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} />
+          ))}
+          {imageMarkers.length > 0 && (
+            <ImageGrid
+              images={imageMarkers.map((m) => ({ url: m.url, title: m.title }))}
+              sessionId={sessionId}
+            />
+          )}
+          {!htmlOutput && <RichMarkdown content={content} />}
+        </div>
+      );
+    }
+
     return <RichMarkdown content={content} />;
   }
 
