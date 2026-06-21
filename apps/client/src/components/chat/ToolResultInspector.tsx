@@ -9,7 +9,6 @@ interface Props {
   sessionId: string | null;
 }
 
-// Parses results for HTML documents
 function isHtml(text: string): boolean {
   if (typeof text !== "string") return false;
   const trimmed = text.trim();
@@ -20,20 +19,17 @@ function isHtml(text: string): boolean {
   );
 }
 
-// Parses result text to extract image URLs and headers
 function extractImages(text: string): Array<{ url: string; title?: string }> {
   if (typeof text !== "string") return [];
 
   const images: Array<{ url: string; title?: string }> = [];
 
-  // Match: === Title.jpg ===\nhttp://...
   const markerRegex = /===\s*([^\n]+?)\s*===\s*\n(https?:\/\/[^\s]+|[\w/\\:.-]+\.(?:jpg|jpeg|png|webp|gif))/gi;
   let match;
   while ((match = markerRegex.exec(text)) !== null) {
     images.push({ title: match[1], url: match[2] });
   }
 
-  // Also match any raw images listed: file: ... or image: ...
   const urlRegex = /(https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|gif))/gi;
   const rawMatches = text.match(urlRegex) ?? [];
   for (const url of rawMatches) {
@@ -42,7 +38,6 @@ function extractImages(text: string): Array<{ url: string; title?: string }> {
     }
   }
 
-  // Local filesystem path matching (e.g. C:\tmp\...)
   const localRegex = /(?:[a-zA-Z]:[\\/]|[\/])(?:[\w.-]+[\\/])+\w+\.(?:jpg|jpeg|png|webp|gif)/gi;
   const localMatches = text.match(localRegex) ?? [];
   for (const path of localMatches) {
@@ -61,57 +56,63 @@ export function ToolResultInspector({ toolName, args, result, sessionId }: Props
   const resultStr = typeof result === "string"
     ? result
     : JSON.stringify(result, null, 2) ?? "";
-  const isLarge = resultStr.length > 300;
-  const displayResult = expanded || !isLarge ? resultStr : resultStr.substring(0, 300) + "...";
 
   const images = extractImages(resultStr);
   const htmlOutput = isHtml(resultStr) ? resultStr : null;
 
   return (
-    <div className="my-3 rounded-lg border border-surface-hover bg-surface overflow-hidden text-xs font-sans">
-      <div className="bg-surface-hover/30 px-3 py-2 border-b border-surface-hover flex justify-between items-center">
-        <div className="flex items-center gap-2">
-          <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-          <span className="font-mono font-semibold text-text-primary">{toolName}</span>
-          <span className="text-[10px] text-text-secondary/70">executed</span>
+    <div className="w-full my-1 rounded-md border border-surface-hover bg-surface overflow-hidden text-xs font-sans">
+      <button
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-2.5 py-1 bg-surface-hover/20 hover:bg-surface-hover/40 transition-colors text-left select-none cursor-pointer"
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
+          <span className="font-mono font-semibold text-text-primary truncate">{toolName}</span>
+          <span className="text-[10px] text-text-secondary/50 flex-shrink-0">tool output</span>
         </div>
-      </div>
+        <svg
+          width="12"
+          height="12"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          className={`text-text-secondary transition-transform duration-200 flex-shrink-0 ml-2 ${
+            expanded ? "rotate-180" : ""
+          }`}
+        >
+          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </button>
 
-      {args && Object.keys(args).length > 0 && (
-        <div className="px-3 py-1.5 bg-[#171717]/40 border-b border-surface-hover/40 text-[10px] text-text-secondary font-mono">
-          <span className="text-text-secondary/50">params:</span>{" "}
-          {JSON.stringify(args)}
-        </div>
-      )}
+      {expanded && (
+        <div className="border-t border-surface-hover">
+          {args && Object.keys(args).length > 0 && (
+            <div className="px-2.5 py-1.5 bg-[#171717]/40 border-b border-surface-hover/40 text-[10px] text-text-secondary font-mono break-all">
+              <span className="text-text-secondary/50">params:</span>{" "}
+              {JSON.stringify(args)}
+            </div>
+          )}
 
-      <div className="p-3">
-        {htmlOutput ? (
-          <HtmlPreview html={htmlOutput} />
-        ) : (
-          <div>
-            <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-[#171717]/40 p-2.5 rounded-md">
-              {displayResult}
-            </pre>
-            {isLarge && (
-              <button
-                onClick={() => setExpanded(!expanded)}
-                className="mt-2 text-accent hover:underline text-[10px] font-semibold cursor-pointer"
-              >
-                {expanded ? "Show Less" : "Expand Tool Output"}
-              </button>
+          <div className="p-2.5 space-y-2">
+            {htmlOutput ? (
+              <HtmlPreview html={htmlOutput} />
+            ) : (
+              <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-[#171717]/40 p-2 rounded-md max-h-96 overflow-y-auto">
+                {resultStr || <span className="text-text-secondary/40 italic">empty response</span>}
+              </pre>
+            )}
+
+            {images.length > 0 && (
+              <div className="pt-1">
+                <div className="text-[10px] font-semibold text-text-secondary/70 uppercase tracking-wider mb-1.5">
+                  Extracted Images
+                </div>
+                <ImageGrid images={images} sessionId={sessionId} />
+              </div>
             )}
           </div>
-        )}
-
-        {images.length > 0 && (
-          <div className="mt-3">
-            <div className="text-[10px] font-semibold text-text-secondary/70 uppercase tracking-wider mb-1.5">
-              Extracted Images
-            </div>
-            <ImageGrid images={images} sessionId={sessionId} />
-          </div>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
