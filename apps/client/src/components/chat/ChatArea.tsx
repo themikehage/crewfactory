@@ -31,6 +31,9 @@ interface Message {
   stopReason?: string;
   timestamp?: number;
   responseId?: string;
+  id?: string;
+  parentId?: string | null;
+  siblings?: string[];
 }
 
 interface Props {
@@ -44,6 +47,21 @@ export function ChatArea({ sessionId }: Props) {
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
+  const loadMessages = useCallback(async () => {
+    if (!sessionId) {
+      setMessages([]);
+      return;
+    }
+    const token = localStorage.getItem("token");
+    const res = await fetch(`/api/sessions/${sessionId}/messages`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (res.ok) {
+      const data = await res.json();
+      setMessages(data.messages ?? []);
+    }
+  }, [sessionId]);
+
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
@@ -54,16 +72,6 @@ export function ChatArea({ sessionId }: Props) {
       return;
     }
 
-    const loadMessages = async () => {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setMessages(data.messages ?? []);
-      }
-    };
     loadMessages();
 
     const unsubStart = subscribe("agent_start", () => {
@@ -129,6 +137,29 @@ export function ChatArea({ sessionId }: Props) {
     send({ type: "abort", sessionId });
   }, [sessionId, send]);
 
+  const handleNavigate = useCallback(async (targetId: string) => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sessions/${sessionId}/navigate`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ targetId }),
+      });
+      if (res.ok) {
+        await loadMessages();
+      } else {
+        const data = await res.json();
+        setError(data.error || "Failed to switch conversation branch");
+      }
+    } catch (err) {
+      setError(String(err));
+    }
+  }, [sessionId, loadMessages]);
+
   if (!sessionId) {
     return (
       <div className="h-full flex items-center justify-center text-text-secondary">
@@ -154,7 +185,7 @@ export function ChatArea({ sessionId }: Props) {
       )}
       <div className="flex-1 overflow-y-auto min-h-0">
         <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <MessageList messages={messages} />
+          <MessageList messages={messages} onNavigate={handleNavigate} />
           <div ref={messagesEndRef} />
         </div>
       </div>

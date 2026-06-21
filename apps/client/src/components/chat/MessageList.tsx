@@ -38,10 +38,14 @@ interface Message {
   stopReason?: string;
   timestamp?: number;
   responseId?: string;
+  id?: string;
+  parentId?: string | null;
+  siblings?: string[];
 }
 
 interface Props {
   messages: Message[];
+  onNavigate?: (targetId: string) => void;
 }
 
 function renderBlock(block: ContentBlock | string | unknown, i: number) {
@@ -116,7 +120,7 @@ function renderContent(msg: Message) {
   return null;
 }
 
-export const MessageList: FC<Props> = ({ messages }) => {
+export const MessageList: FC<Props> = ({ messages, onNavigate }) => {
   if (messages.length === 0) {
     return (
       <div className="flex items-center justify-center h-64 text-text-secondary text-sm">
@@ -180,6 +184,56 @@ export const MessageList: FC<Props> = ({ messages }) => {
               )}
               {msg.isStreaming && (
                 <span className="inline-block w-2 h-4 ml-1 bg-accent animate-pulse" />
+              )}
+              {msg.siblings && msg.siblings.length > 1 && msg.id && onNavigate && (
+                <div
+                  className={clsx(
+                    "flex items-center gap-1.5 mt-2 pt-1.5 border-t select-none text-[10px] font-mono",
+                    msg.role === "user"
+                      ? "border-bg/10 text-bg/60"
+                      : "border-surface-hover/30 text-text-secondary/40"
+                  )}
+                >
+                  <button
+                    onClick={() => {
+                      const idx = msg.siblings!.indexOf(msg.id!);
+                      if (idx > 0) onNavigate(msg.siblings![idx - 1]);
+                    }}
+                    disabled={msg.siblings.indexOf(msg.id) === 0}
+                    className={clsx(
+                      "p-0.5 rounded transition-colors",
+                      msg.siblings.indexOf(msg.id) > 0
+                        ? msg.role === "user"
+                          ? "hover:bg-bg/10 hover:text-bg text-bg/80 cursor-pointer"
+                          : "hover:bg-surface-hover hover:text-text-primary text-text-secondary/80 cursor-pointer"
+                        : "opacity-30 cursor-not-allowed"
+                    )}
+                    title="Previous version"
+                  >
+                    ←
+                  </button>
+                  <span>
+                    {msg.siblings.indexOf(msg.id) + 1} / {msg.siblings.length}
+                  </span>
+                  <button
+                    onClick={() => {
+                      const idx = msg.siblings!.indexOf(msg.id!);
+                      if (idx < msg.siblings!.length - 1) onNavigate(msg.siblings![idx + 1]);
+                    }}
+                    disabled={msg.siblings.indexOf(msg.id) === msg.siblings.length - 1}
+                    className={clsx(
+                      "p-0.5 rounded transition-colors",
+                      msg.siblings.indexOf(msg.id) < msg.siblings.length - 1
+                        ? msg.role === "user"
+                          ? "hover:bg-bg/10 hover:text-bg text-bg/80 cursor-pointer"
+                          : "hover:bg-surface-hover hover:text-text-primary text-text-secondary/80 cursor-pointer"
+                        : "opacity-30 cursor-not-allowed"
+                    )}
+                    title="Next version"
+                  >
+                    →
+                  </button>
+                </div>
               )}
             </div>
           </motion.div>

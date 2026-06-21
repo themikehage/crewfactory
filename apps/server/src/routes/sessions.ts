@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
+import { z } from "zod";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { piSessionManager } from "../pi/session-manager";
 import { CreateSessionSchema, PromptSchema, ModelSettingsSchema } from "shared";
@@ -56,8 +57,57 @@ sessionsRouter.get("/:id/messages", async (c) => {
     return c.json({ messages: [] });
   }
 
-  return c.json({ messages: session.messages });
+  const activeMessages = session.messages;
+  const allEntries = session.sessionManager.getEntries();
+
+  const childrenByParent = new Map<string | null, string[]>();
+  for (const entry of allEntries) {
+    const parentId = entry.parentId;
+    if (!childrenByParent.has(parentId)) {
+      childrenByParent.set(parentId, []);
+    }
+    if (entry.type === "message") {
+      childrenByParent.get(parentId)!.push(entry.id);
+    }
+  }
+
+  const enrichedMessages = activeMessages.map((msg: any) => {
+    const entry = allEntries.find((e: any) => e.type === "message" && e.message && (e.message.id === msg.id || e.id === msg.id));
+    const parentId = entry ? entry.parentId : null;
+    const siblings = childrenByParent.get(parentId) ?? [msg.id || entry?.id];
+
+    return {
+      ...msg,
+      id: entry?.id || msg.id,
+      parentId,
+      siblings,
+    };
+  });
+
+  return c.json({ messages: enrichedMessages });
 });
+
+sessionsRouter.post(
+  "/:id/navigate",
+  zValidator("json", z.object({ targetId: z.string() })),
+  async (c) => {
+    const sessionId = c.req.param("id");
+    const { targetId } = c.req.valid("json");
+    const { username } = getAuthPayload(c);
+
+    const session = piSessionManager.getSession(username, sessionId);
+    if (!session) {
+      return c.json({ error: "Session not found" }, 404);
+    }
+
+    try {
+      const result = await session.navigateTree(targetId, { summarize: false });
+      return c.json({ success: true, editorText: result.editorText });
+    } catch (error) {
+      return c.json({ success: false, error: String(error) }, 500);
+    }
+  }
+);
 
 sessionsRouter.post("/:id/abort", async (c) => {
   const sessionId = c.req.param("id");
