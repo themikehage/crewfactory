@@ -86,3 +86,20 @@ curl -s "$COOLIFY_URL/api/v1/deployments?application_uuid=nb0ee5mtnrx195nrw9aa3o
 - For persistent sessions, add a volume mount for /tmp/pi-web-users
 - Server serves client static files from ./public directory
 - Health check at /api/health
+
+## Agent Visual Guidelines (Live Previews & Image Parsing)
+To leverage the UI's built-in parsing and preview capabilities:
+- **Live HTML Preview**: When generating web interfaces, pages, mockups, or responsive HTML layouts, format your response as a full HTML document starting with `<!DOCTYPE html>` or `<html>`. The UI will render this content in the Live Visual Preview tab automatically.
+- **Images and Charts**: When generating graphs, charts, diagrams, or plots:
+  1. Save them into the workspace session files directory.
+  2. Output the path or URL using the exact pattern below:
+     ```
+     === [title] ===
+     [file path or URL]
+     ```
+     Example:
+     ```
+     === monthly_revenue.png ===
+     monthly_revenue.png
+     ```
+     The UI will automatically extract these paths, fetch them via the session file endpoints, and display them in a visual gallery grid below the tool output.

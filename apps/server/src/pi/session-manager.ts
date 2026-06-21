@@ -3,6 +3,7 @@ import {
   AuthStorage,
   ModelRegistry,
   SessionManager,
+  DefaultResourceLoader,
   type AgentSession,
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
@@ -66,11 +67,29 @@ class PiSessionManager {
 
     const { authStorage, modelRegistry } = this.getUserContext(username);
 
+    const resourceLoader = new DefaultResourceLoader({
+      cwd: sessionDir,
+      agentDir: userDir,
+      authStorage,
+      appendSystemPrompt: [
+        `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
+        `- When generating web pages, HTML layouts, mockups, or visual documents, always output them as complete HTML files starting with "<!DOCTYPE html>" or "<html>" to enable a live browser-based preview.\n` +
+        `- When generating plots, charts, diagrams, or images, save them to a file and output their file paths or URLs on a separate line using this exact format:\n` +
+        `=== [title] ===\n` +
+        `[file path or URL]\n` +
+        `Example: === output.png ===\n` +
+        `assets/output.png\n` +
+        `This enables the UI to automatically parse and render them in a gallery grid.\n`
+      ]
+    });
+    await resourceLoader.reload();
+
     const { session } = await createAgentSession({
       cwd: sessionDir,
       sessionManager: SessionManager.create(sessionDir),
       authStorage,
       modelRegistry,
+      resourceLoader,
     });
 
     const unsubscribe = session.subscribe(() => {});
