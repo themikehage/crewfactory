@@ -70,7 +70,6 @@ class PiSessionManager {
     const resourceLoader = new DefaultResourceLoader({
       cwd: sessionDir,
       agentDir: userDir,
-      authStorage,
       appendSystemPrompt: [
         `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
         `- When generating web pages, HTML layouts, mockups, or visual documents, always output them as complete HTML files starting with "<!DOCTYPE html>" or "<html>" to enable a live browser-based preview.\n` +
