@@ -1,18 +1,12 @@
-import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/pages/LoginPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { useRouter } from "@/hooks/useRouter";
 import { ChatLayout } from "./ChatLayout";
 
 export function AppRouter() {
   const { token, user, loading } = useAuth();
-  const [page, setPage] = useState<"chat" | "settings">("chat");
-
-  useEffect(() => {
-    const handler = () => setPage("settings");
-    window.addEventListener("navigate-settings", handler);
-    return () => window.removeEventListener("navigate-settings", handler);
-  }, []);
+  const { route, navigate } = useRouter();
 
   if (loading) {
     return (
@@ -26,9 +20,9 @@ export function AppRouter() {
     return <LoginPage />;
   }
 
-  if (page === "settings") {
-    return <SettingsPage onClose={() => setPage("chat")} />;
+  if (route.page === "settings") {
+    return <SettingsPage onClose={() => navigate("/")} />;
   }
 
-  return <ChatLayout onOpenSettings={() => setPage("settings")} />;
+  return <ChatLayout sessionId={route.sessionId} />;
 }

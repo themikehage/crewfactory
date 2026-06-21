@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { useRouter } from "@/hooks/useRouter";
 
 interface ProviderInfo {
   id: string;
@@ -34,6 +35,7 @@ export function ModelSelector({ sessionId }: Props) {
   const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<SelectedModel | null>(selected);
+  const { navigate } = useRouter();
 
   useEffect(() => {
     selectedRef.current = selected;
@@ -195,11 +197,9 @@ export function ModelSelector({ sessionId }: Props) {
                   </button>
                 ))}
               </div>
-              <a
-                href="/settings"
-                onClick={(e) => {
-                  e.preventDefault();
-                  window.dispatchEvent(new CustomEvent("navigate-settings"));
+              <button
+                onClick={() => {
+                  navigate("/settings");
                   setOpen(false);
                 }}
                 className="w-full flex items-center gap-2 px-3 py-2 text-xs text-accent hover:bg-surface-hover transition-colors border-t border-surface-hover"
@@ -208,7 +208,7 @@ export function ModelSelector({ sessionId }: Props) {
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                 </svg>
                 Connect more providers
-              </a>
+              </button>
             </>
           )}
         </div>

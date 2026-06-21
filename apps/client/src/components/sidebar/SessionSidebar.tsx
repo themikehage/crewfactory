@@ -55,9 +55,10 @@ export function SessionSidebar({ activeSessionId, onSelectSession, onNewSession 
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
-      setSessions((prev) => prev.filter((s) => s.id !== id));
+      const remaining = sessions.filter((s) => s.id !== id);
+      setSessions(remaining);
       if (activeSessionId === id) {
-        onSelectSession(sessions[0]?.id ?? "");
+        onSelectSession(remaining[0]?.id ?? "");
       }
     },
     [activeSessionId, onSelectSession, sessions]
@@ -96,8 +97,8 @@ export function SessionSidebar({ activeSessionId, onSelectSession, onNewSession 
                 e.stopPropagation();
                 deleteSession(s.id);
               }}
-              className="absolute right-2 top-1/2 -translate-y-1/2 opacity-0 group-hover:opacity-100
-                         text-text-secondary hover:text-error transition-all p-1 text-xs"
+              className="absolute right-2 top-1/2 -translate-y-1/2
+                         text-text-secondary hover:text-error transition-colors p-1 text-xs opacity-40 hover:opacity-100"
             >
               <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
                 <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="2" fill="none" />

@@ -1,26 +1,35 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
+import { useRouter } from "@/hooks/useRouter";
 import { useState, useCallback } from "react";
 
 interface Props {
-  onOpenSettings: () => void;
+  sessionId: string | null;
 }
 
-export function ChatLayout({ onOpenSettings }: Props) {
+export function ChatLayout({ sessionId }: Props) {
   const { user, logout } = useAuth();
-  const [activeSessionId, setActiveSessionId] = useState<string | null>(null);
+  const { navigate } = useRouter();
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const handleSelectSession = useCallback((id: string) => {
-    setActiveSessionId(id);
+    if (id) {
+      navigate(`/session/${id}`);
+    } else {
+      navigate("/");
+    }
     setSidebarOpen(false);
-  }, []);
+  }, [navigate]);
 
   const handleNewSession = useCallback((id: string) => {
-    setActiveSessionId(id);
+    navigate(`/session/${id}`);
     setSidebarOpen(false);
-  }, []);
+  }, [navigate]);
+
+  const handleOpenSettings = useCallback(() => {
+    navigate("/settings");
+  }, [navigate]);
 
   return (
     <div className="h-dvh flex flex-col bg-bg">
@@ -38,7 +47,7 @@ export function ChatLayout({ onOpenSettings }: Props) {
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <button
-            onClick={onOpenSettings}
+            onClick={handleOpenSettings}
             className="text-text-secondary hover:text-text-primary transition-colors p-1"
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="sm:w-[18px] sm:h-[18px]">
@@ -67,15 +76,15 @@ export function ChatLayout({ onOpenSettings }: Props) {
           } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-surface bg-bg transition-transform duration-200`}
         >
           <SessionSidebar
-            activeSessionId={activeSessionId}
+            activeSessionId={sessionId}
             onSelectSession={handleSelectSession}
             onNewSession={handleNewSession}
           />
         </aside>
         <main className="flex-1 min-w-0">
           <ChatArea
-            key={activeSessionId}
-            sessionId={activeSessionId}
+            key={sessionId}
+            sessionId={sessionId}
           />
         </main>
       </div>
