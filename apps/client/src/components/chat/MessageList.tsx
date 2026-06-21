@@ -12,7 +12,7 @@ interface ContentBlock {
 
 interface Message {
   role: string;
-  content: string | ContentBlock[];
+  content: string | ContentBlock[] | ContentBlock;
   toolName?: string;
   isError?: boolean;
   isStreaming?: boolean;
@@ -22,48 +22,76 @@ interface Props {
   messages: Message[];
 }
 
-function renderContent(msg: Message) {
-  if (typeof msg.content === "string") {
-    return <p className="whitespace-pre-wrap break-words">{msg.content}</p>;
+function renderBlock(block: ContentBlock | string | unknown, i: number) {
+  if (typeof block === "string") {
+    return (
+      <p key={i} className="whitespace-pre-wrap break-words mb-1">
+        {block}
+      </p>
+    );
   }
 
-  return (msg.content as ContentBlock[]).map((block, i) => {
-    if (block.type === "text") {
+  if (block && typeof block === "object") {
+    const b = block as ContentBlock;
+    if (b.type === "text") {
       return (
         <p key={i} className="whitespace-pre-wrap break-words mb-1">
-          {block.text}
+          {b.text}
         </p>
       );
     }
-    if (block.type === "thinking") {
+    if (b.type === "thinking") {
       return (
         <details key={i} className="mb-2">
           <summary className="text-text-secondary text-sm cursor-pointer hover:text-text-primary transition-colors">
             Thinking...
           </summary>
           <p className="mt-1 text-text-secondary/70 text-sm whitespace-pre-wrap border-l-2 border-surface-hover pl-3 ml-1">
-            {block.thinking}
+            {b.thinking}
           </p>
         </details>
       );
     }
-    if (block.type === "toolCall") {
+    if (b.type === "toolCall") {
       return (
         <div
           key={i}
           className="my-2 px-3 py-2 bg-surface rounded-lg border border-surface-hover"
         >
-          <div className="text-accent text-sm font-mono">{block.name}</div>
-          {block.arguments && (
+          <div className="text-accent text-sm font-mono">{b.name}</div>
+          {b.arguments && (
             <pre className="text-text-secondary text-xs mt-1 overflow-x-auto">
-              {JSON.stringify(block.arguments, null, 2)}
+              {JSON.stringify(b.arguments, null, 2)}
             </pre>
           )}
         </div>
       );
     }
-    return null;
-  });
+  }
+
+  return (
+    <pre key={i} className="text-xs overflow-x-auto text-error">
+      {JSON.stringify(block, null, 2)}
+    </pre>
+  );
+}
+
+function renderContent(msg: Message) {
+  const content = msg.content;
+
+  if (typeof content === "string") {
+    return <p className="whitespace-pre-wrap break-words">{content}</p>;
+  }
+
+  if (Array.isArray(content)) {
+    return content.map((block, i) => renderBlock(block, i));
+  }
+
+  if (content && typeof content === "object") {
+    return renderBlock(content as ContentBlock, 0);
+  }
+
+  return null;
 }
 
 export const MessageList: FC<Props> = ({ messages }) => {
@@ -99,11 +127,9 @@ export const MessageList: FC<Props> = ({ messages }) => {
                 msg.isError && "border border-error/50"
               )}
             >
-              {msg.role === "user" ? (
-                <p className="whitespace-pre-wrap break-words">{msg.content as string}</p>
-              ) : (
-                <div className="text-text-primary">{renderContent(msg)}</div>
-              )}
+              <div className={clsx(msg.role === "user" ? "text-inherit" : "text-text-primary")}>
+                {renderContent(msg)}
+              </div>
               {msg.isStreaming && (
                 <span className="inline-block w-2 h-4 ml-1 bg-accent animate-pulse" />
               )}
