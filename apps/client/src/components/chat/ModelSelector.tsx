@@ -31,7 +31,13 @@ export function ModelSelector({ sessionId }: Props) {
   });
   const [open, setOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const selectedRef = useRef<SelectedModel | null>(selected);
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -61,28 +67,53 @@ export function ModelSelector({ sessionId }: Props) {
     }
   }, [open]);
 
-  const handleSelectModel = useCallback(
-    async (provider: string, modelId: string, modelName: string) => {
-      const newSelection: SelectedModel = { provider, modelId, modelName };
-      setSelected(newSelection);
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
-      setOpen(false);
-      setActiveProvider(null);
-
-      if (!sessionId) return;
+  const applyModelToSession = useCallback(
+    async (model: SelectedModel, sid: string) => {
       const token = localStorage.getItem("token");
       try {
-        await fetch(`/api/sessions/${sessionId}/model`, {
+        const res = await fetch(`/api/sessions/${sid}/model`, {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ provider, modelId, thinkingLevel: "medium" }),
+          body: JSON.stringify({
+            provider: model.provider,
+            modelId: model.modelId,
+            thinkingLevel: "medium",
+          }),
         });
-      } catch {}
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          setError(data.error ?? "Failed to set model");
+        } else {
+          setError(null);
+        }
+      } catch {
+        setError("Failed to set model");
+      }
     },
-    [sessionId]
+    []
+  );
+
+  useEffect(() => {
+    if (!sessionId || !selectedRef.current) return;
+    applyModelToSession(selectedRef.current, sessionId);
+  }, [sessionId, applyModelToSession]);
+
+  const handleSelectModel = useCallback(
+    async (provider: string, modelId: string, modelName: string) => {
+      const newSelection: SelectedModel = { provider, modelId, modelName };
+      setSelected(newSelection);
+      selectedRef.current = newSelection;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
+      setOpen(false);
+      setActiveProvider(null);
+
+      if (!sessionId) return;
+      await applyModelToSession(newSelection, sessionId);
+    },
+    [sessionId, applyModelToSession]
   );
 
   const currentProvider = activeProvider
@@ -104,6 +135,9 @@ export function ModelSelector({ sessionId }: Props) {
         <span className="truncate max-w-[200px]">
           {selected ? selected.modelName : "Select model"}
         </span>
+        {error && (
+          <span className="text-error ml-1" title={error}>!</span>
+        )}
         <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${open ? "rotate-180" : ""}`}>
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>

@@ -8,6 +8,14 @@ export const providersRouter = new Hono();
 
 providersRouter.use("/*", authMiddleware);
 
+function buildAuthStatus(
+  authStorage: ReturnType<typeof piSessionManager.getUserContext>["authStorage"],
+  provider: string
+) {
+  const base = authStorage.getAuthStatus(provider);
+  return { ...base, configured: authStorage.hasAuth(provider) };
+}
+
 providersRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
   const { authStorage, modelRegistry } =
@@ -18,7 +26,7 @@ providersRouter.get("/", (c) => {
     string,
     {
       name: string;
-      authStatus: ReturnType<typeof authStorage.getAuthStatus>;
+      authStatus: ReturnType<typeof buildAuthStatus>;
       models: Array<{ id: string; name: string; reasoning: boolean }>;
     }
   >();
@@ -28,7 +36,7 @@ providersRouter.get("/", (c) => {
     if (!providersMap.has(provider)) {
       providersMap.set(provider, {
         name: modelRegistry.getProviderDisplayName(provider),
-        authStatus: authStorage.getAuthStatus(provider),
+        authStatus: buildAuthStatus(authStorage, provider),
         models: [],
       });
     }
@@ -84,7 +92,7 @@ providersRouter.post(
     authStorage.set(providerId, { type: "api_key", key: apiKey });
     modelRegistry.refresh();
 
-    const authStatus = authStorage.getAuthStatus(providerId);
+    const authStatus = buildAuthStatus(authStorage, providerId);
     return c.json({ success: true, authStatus });
   }
 );
@@ -95,10 +103,10 @@ providersRouter.delete("/:id/key", (c) => {
   const { authStorage, modelRegistry } =
     piSessionManager.getUserContext(username);
 
-  authStorage.remove(providerId);
-  authStorage.removeRuntimeApiKey(providerId);
-  modelRegistry.refresh();
+    authStorage.remove(providerId);
+    authStorage.removeRuntimeApiKey(providerId);
+    modelRegistry.refresh();
 
-  const authStatus = authStorage.getAuthStatus(providerId);
-  return c.json({ success: true, authStatus });
+    const authStatus = buildAuthStatus(authStorage, providerId);
+    return c.json({ success: true, authStatus });
 });

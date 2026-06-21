@@ -68,6 +68,34 @@ export async function onMessage(evt: MessageEvent<string>, _ws: unknown) {
       sessionId
     );
 
+    if (session.isStreaming) {
+      try {
+        await session.prompt(message, { streamingBehavior: "followUp" });
+      } catch (error) {
+        safeSend(
+          wsRaw,
+          JSON.stringify({ type: "agent_error", sessionId, error: String(error) })
+        );
+      }
+      return;
+    }
+
+    const { modelRegistry } = piSessionManager.getUserContext(user.username);
+    if (!session.model || !modelRegistry.hasConfiguredAuth(session.model)) {
+      const available = modelRegistry.getAvailable();
+      if (available.length > 0) {
+        try {
+          await session.setModel(available[0]);
+        } catch (error) {
+          safeSend(
+            wsRaw,
+            JSON.stringify({ type: "agent_error", sessionId, error: String(error) })
+          );
+          return;
+        }
+      }
+    }
+
     const unsubscribe = session.subscribe((agentEvent) => {
       safeSend(wsRaw, JSON.stringify(agentEvent));
     });
