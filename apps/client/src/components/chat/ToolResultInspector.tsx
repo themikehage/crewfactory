@@ -58,9 +58,11 @@ function extractImages(text: string): Array<{ url: string; title?: string }> {
 export function ToolResultInspector({ toolName, args, result, sessionId }: Props) {
   const [expanded, setExpanded] = useState(false);
 
-  const resultStr = typeof result === "string" ? result : JSON.stringify(result, null, 2);
+  const resultStr = typeof result === "string"
+    ? result
+    : JSON.stringify(result, null, 2) ?? "";
   const isLarge = resultStr.length > 300;
-  const displayResult = expanded ? resultStr : resultStr.substring(0, 300) + "...";
+  const displayResult = expanded || !isLarge ? resultStr : resultStr.substring(0, 300) + "...";
 
   const images = extractImages(resultStr);
   const htmlOutput = isHtml(resultStr) ? resultStr : null;
