@@ -1,3 +1,5 @@
+import { openInWorkspace } from "./workspace";
+
 function getExt(name: string) {
   return name.split(".").pop()?.toLowerCase() ?? "";
 }
@@ -32,10 +34,14 @@ export function FindResult({ text }: Props) {
   return (
     <div className="space-y-0.5">
       {files.map((file, i) => (
-        <div key={i} className="flex items-center gap-1.5 py-0.5">
+        <button
+          key={i}
+          onClick={() => openInWorkspace(file)}
+          className="flex items-center gap-1.5 py-0.5 hover:bg-surface-hover/40 rounded px-1 -mx-1 transition-colors cursor-pointer w-full text-left"
+        >
           <FileIcon name={file} />
-          <span className="font-mono text-[11px] text-accent/80">{file}</span>
-        </div>
+          <span className="font-mono text-[11px] text-accent/80 hover:underline underline-offset-2">{file}</span>
+        </button>
       ))}
     </div>
   );

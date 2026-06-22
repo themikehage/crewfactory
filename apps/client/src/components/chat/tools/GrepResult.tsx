@@ -1,3 +1,5 @@
+import { openInWorkspace } from "./workspace";
+
 interface GrepLine {
   type: "match" | "context";
   file: string;
@@ -59,13 +61,17 @@ export function GrepResult({ text, args }: Props) {
         const fileMatches = fileLines.filter(l => l.type === "match").length;
         return (
           <div key={file} className="rounded-md overflow-hidden border border-surface-hover/40">
-            <div className="flex items-center gap-2 px-3 py-1 bg-surface border-b border-surface-hover/40">
+            <button
+              key={file}
+              onClick={() => openInWorkspace(file)}
+              className="flex items-center gap-2 px-3 py-1 bg-surface border-b border-surface-hover/40 w-full text-left hover:bg-surface-hover/40 transition-colors cursor-pointer"
+            >
               <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className="text-accent/60 flex-shrink-0">
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
               </svg>
               <span className="text-accent/80 text-[10px]">{file}</span>
               <span className="ml-auto text-text-secondary/40 text-[9px]">{fileMatches} match{fileMatches !== 1 ? "es" : ""}</span>
-            </div>
+            </button>
             <div className="divide-y divide-surface-hover/20">
               {fileLines.map((line, i) => {
                 const isMatch = line.type === "match";

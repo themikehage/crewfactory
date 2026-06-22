@@ -59,7 +59,7 @@ export function WorkspaceFileEditor({ file, onSave }: Props) {
       setDirty(false);
       setSaveStatus("idle");
       setErrorMsg("");
-      setActiveTab("code");
+      setActiveTab(isHtml ? "preview" : "code");
       setIsFullscreen(false);
     } else {
       setContent("");

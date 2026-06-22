@@ -170,7 +170,7 @@ function ToolBody({ toolName, args, result }: { toolName: string; args: Record<s
     case "find": return <FindResult text={text} />;
     case "write": return <WriteResult text={text} isError={result.isError} />;
     case "read": return <ReadResult content={result.content} args={args} />;
-    case "edit": return <EditResult text={text} details={result.details} isError={result.isError} />;
+    case "edit": return <EditResult text={text} filePath={(args.path as string) || undefined} details={result.details} isError={result.isError} />;
     case "grep": return <GrepResult text={text} args={args} />;
     case "bash": return <BashResult text={text} command={(args.command as string) || ""} isError={result.isError} />;
     default:

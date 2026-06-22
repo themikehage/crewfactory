@@ -1,3 +1,5 @@
+import { openInWorkspace } from "./workspace";
+
 interface Props {
   text: string;
   isError: boolean;
@@ -29,7 +31,12 @@ export function WriteResult({ text, isError }: Props) {
         <span className="text-success text-xs font-semibold">Written</span>
       </div>
       {path && (
-        <span className="font-mono text-[11px] text-accent/80 truncate">{path}</span>
+        <button
+          onClick={() => openInWorkspace(path)}
+          className="font-mono text-[11px] text-accent/80 hover:underline underline-offset-2 truncate cursor-pointer hover:text-accent transition-colors"
+        >
+          {path}
+        </button>
       )}
       {bytes !== null && (
         <span className="text-[10px] text-text-secondary/50 ml-auto flex-shrink-0 font-mono">

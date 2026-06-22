@@ -1,3 +1,5 @@
+import { openInWorkspace } from "./workspace";
+
 interface DiffLine {
   type: "add" | "remove" | "context" | "hunk";
   lineNum?: number;
@@ -38,6 +40,7 @@ function parseDiff(diff: string): DiffLine[] {
 
 interface Props {
   text: string;
+  filePath?: string;
   details?: {
     diff?: string;
     patch?: string;
@@ -46,7 +49,7 @@ interface Props {
   isError: boolean;
 }
 
-export function EditResult({ text, details, isError }: Props) {
+export function EditResult({ text, filePath, details, isError }: Props) {
   if (isError) {
     return (
       <div className="flex items-center gap-2 text-error text-xs font-mono">
@@ -59,14 +62,35 @@ export function EditResult({ text, details, isError }: Props) {
   }
 
   if (!details?.diff) {
-    return <p className="text-success text-xs font-mono">{text}</p>;
+    return (
+      <div className="space-y-1.5">
+        {filePath && (
+          <button
+            onClick={() => openInWorkspace(filePath)}
+            className="font-mono text-[11px] text-accent/70 hover:text-accent hover:underline underline-offset-2 transition-colors cursor-pointer block"
+          >
+            {filePath}
+          </button>
+        )}
+        <p className="text-success text-xs font-mono">{text}</p>
+      </div>
+    );
   }
 
   const lines = parseDiff(details.diff);
 
   return (
-    <div className="w-full font-mono text-[11px] rounded-md overflow-hidden border border-surface-hover/40">
-      {lines.map((line, i) => {
+    <div className="w-full space-y-1.5">
+      {filePath && (
+        <button
+          onClick={() => openInWorkspace(filePath)}
+          className="font-mono text-[11px] text-accent/70 hover:text-accent hover:underline underline-offset-2 transition-colors cursor-pointer block"
+        >
+          {filePath}
+        </button>
+      )}
+      <div className="font-mono text-[11px] rounded-md overflow-hidden border border-surface-hover/40">
+        {lines.map((line, i) => {
         if (line.type === "hunk") {
           return (
             <div key={i} className="px-3 py-0.5 bg-accent/5 text-accent/50 text-[10px]">
@@ -99,6 +123,7 @@ export function EditResult({ text, details, isError }: Props) {
           </div>
         );
       })}
+      </div>
     </div>
   );
 }

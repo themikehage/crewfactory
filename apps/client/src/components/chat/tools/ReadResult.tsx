@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { openInWorkspace } from "./workspace";
 
 interface ContentBlock {
   type: string;
@@ -59,9 +60,14 @@ export function ReadResult({ content, args }: Props) {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-1.5 text-[10px] text-text-secondary/50 font-mono">
-        <span>{lang}</span>
-        <span>{lines.length} lines</span>
+      <div className="flex items-center justify-between mb-1.5 text-[10px] font-mono">
+        <button
+          onClick={() => path && openInWorkspace(path)}
+          className="text-accent/60 hover:text-accent hover:underline underline-offset-2 transition-colors cursor-pointer"
+        >
+          {lang}
+        </button>
+        <span className="text-text-secondary/50">{lines.length} lines</span>
       </div>
       <pre className="text-[11px] font-mono leading-relaxed text-text-secondary whitespace-pre-wrap break-all bg-[#0a0a0a]/60 p-3 rounded-md max-h-64 overflow-y-auto border border-surface-hover/40">
         {text}

@@ -1,3 +1,5 @@
+import { openInWorkspace } from "./workspace";
+
 function getExtColor(name: string): string {
   if (name.endsWith("/")) return "text-accent";
   const ext = name.split(".").pop()?.toLowerCase() ?? "";
@@ -50,12 +52,16 @@ export function LsResult({ text }: Props) {
         const isDir = entry.endsWith("/");
         const name = entry;
         return (
-          <div key={i} className="flex items-center gap-1.5 py-0.5 min-w-0">
+          <button
+            key={i}
+            onClick={() => openInWorkspace(name)}
+            className="flex items-center gap-1.5 py-0.5 min-w-0 hover:bg-surface-hover/40 rounded px-1 -mx-1 transition-colors cursor-pointer w-full text-left"
+          >
             {isDir ? <FolderIcon /> : <FileIcon name={name} />}
-            <span className={`font-mono text-[11px] truncate ${getExtColor(name)}`}>
+            <span className={`font-mono text-[11px] truncate ${getExtColor(name)} hover:underline underline-offset-2`}>
               {name}
             </span>
-          </div>
+          </button>
         );
       })}
     </div>
