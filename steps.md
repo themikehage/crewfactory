@@ -66,3 +66,10 @@
 - [x] 10.2 Implement frontend SkillsSelector in Chat Input
 - [x] 10.3 Implement API route for global workspace skills
 - [x] 10.4 Implement standalone Skills Library page
+
+## Phase 11: Persistent User Workspace
+- [x] 11.1 Shared file schema types
+- [x] 11.2 Run agent CWD in user-level workspace folder
+- [x] 11.3 Workspace file operations API (GET, PUT, POST, DELETE, PATCH)
+- [x] 11.4 Collapsible Workspace Explorer panel and code editor inside front web
+
