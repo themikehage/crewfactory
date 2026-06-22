@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 
 interface Props {
   sessionId: string | null;
@@ -13,6 +13,17 @@ export function ChatLayout({ sessionId, onNavigate }: Props) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [workspaceOpen, setWorkspaceOpen] = useState(false);
+
+  // Auto-open workspace panel when a file link is clicked in chat messages
+  useEffect(() => {
+    const handleOpenWorkspace = () => {
+      setWorkspaceOpen(true);
+    };
+    window.addEventListener("openWorkspaceFile", handleOpenWorkspace);
+    return () => {
+      window.removeEventListener("openWorkspaceFile", handleOpenWorkspace);
+    };
+  }, []);
 
   const handleSelectSession = useCallback((id: string) => {
     if (id) {

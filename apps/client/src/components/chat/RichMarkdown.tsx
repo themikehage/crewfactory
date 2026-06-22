@@ -1,3 +1,4 @@
+import { useMemo } from "react";
 import ReactMarkdown from "react-markdown";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
@@ -6,7 +7,29 @@ interface Props {
   content: string;
 }
 
+function replaceWorkspacePathsWithLinks(text: string): string {
+  if (typeof text !== "string") return text;
+
+  // Match absolute workspace paths on windows or unix format
+  const winRegex = /[a-zA-Z]:\\tmp\\pi-web-users\\[a-zA-Z0-9_-]+\\workspace\\([a-zA-Z0-9_./\\-~%@$#+!]+)/gi;
+  const nixRegex = /(?:[a-zA-Z]:)?\/tmp\/pi-web-users\/[a-zA-Z0-9_-]+\/workspace\/([a-zA-Z0-9_./\\-~%@$#+!]+)/gi;
+
+  let result = text.replace(winRegex, (_, relPath) => {
+    const cleaned = relPath.replace(/\\/g, "/");
+    return `[${cleaned}](workspace-file://${cleaned})`;
+  });
+
+  result = result.replace(nixRegex, (_, relPath) => {
+    const cleaned = relPath.replace(/\\/g, "/");
+    return `[${cleaned}](workspace-file://${cleaned})`;
+  });
+
+  return result;
+}
+
 export function RichMarkdown({ content }: Props) {
+  const processedContent = useMemo(() => replaceWorkspacePathsWithLinks(content), [content]);
+
   return (
     <div className="prose prose-invert max-w-none text-xs sm:text-sm leading-relaxed font-sans">
       <ReactMarkdown
@@ -78,9 +101,33 @@ export function RichMarkdown({ content }: Props) {
               </blockquote>
             );
           },
+          a({ href, children, ...props }) {
+            if (href?.startsWith("workspace-file://")) {
+              const relPath = href.substring("workspace-file://".length);
+              return (
+                <button
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    window.dispatchEvent(
+                      new CustomEvent("openWorkspaceFile", { detail: { path: relPath } })
+                    );
+                  }}
+                  className="text-accent hover:underline font-mono bg-accent/5 hover:bg-accent/10 px-1.5 py-0.5 rounded transition-all inline cursor-pointer text-xs"
+                >
+                  {children}
+                </button>
+              );
+            }
+            return (
+              <a href={href} className="text-accent hover:underline" {...props}>
+                {children}
+              </a>
+            );
+          },
         }}
       >
-        {content}
+        {processedContent}
       </ReactMarkdown>
     </div>
   );

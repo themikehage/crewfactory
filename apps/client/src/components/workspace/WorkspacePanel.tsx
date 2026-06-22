@@ -83,7 +83,6 @@ export function WorkspacePanel({ onClose }: Props) {
       window.removeEventListener("workspaceUpdated", reloadWorkspace);
     };
   }, [reloadWorkspace]);
-
   // Handle expanding/collapsing folders
   const handleToggleExpand = useCallback(
     async (path: string) => {
@@ -130,6 +129,46 @@ export function WorkspacePanel({ onClose }: Props) {
     },
     []
   );
+
+  // Listen for file-click events from Chat messages to open files in editor
+  useEffect(() => {
+    const handleOpenFile = (e: Event) => {
+      const customEvt = e as CustomEvent<{ path: string }>;
+      const targetPath = customEvt.detail.path;
+      if (targetPath) {
+        // Expand parent directories if any
+        if (targetPath.includes("/")) {
+          const parts = targetPath.split("/");
+          let current = "";
+          setExpandedPaths((prev) => {
+            const next = new Set(prev);
+            for (let i = 0; i < parts.length - 1; i++) {
+              current = current ? `${current}/${parts[i]}` : parts[i];
+              next.add(current);
+              // Load if not loaded yet
+              if (!pathContents[current]) {
+                loadWorkspace(current);
+              }
+            }
+            return next;
+          });
+        }
+
+        // Open the file in editor
+        handleSelectFile({
+          name: targetPath.split("/").pop() || "",
+          path: targetPath,
+          isDirectory: false,
+          size: 0,
+          lastModified: new Date().toISOString(),
+        });
+      }
+    };
+    window.addEventListener("openWorkspaceFile", handleOpenFile);
+    return () => {
+      window.removeEventListener("openWorkspaceFile", handleOpenFile);
+    };
+  }, [pathContents, loadWorkspace, handleSelectFile]);
 
   // Save modified text file content
   const handleSaveFile = useCallback(
