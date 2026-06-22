@@ -64,6 +64,12 @@
 - Auto-continuation loop (Supervisor) running asynchronously in server background
 - Premium sliding Tasks side panel with shimmers, pulse spinners, and expanded task execution output logs
 
+### Integrations Hub
+- Dynamic and fully customizable integrations catalog configured per user on the server
+- Automatic integration status detection linked with existing user-level environment variables
+- Repository-specific context variables linked dynamically to resources (GitHub repos, Coolify applications, Neon databases, Vercel projects)
+- Dynamic Quick Action buttons triggering custom workflows with variable replacements sent as chat prompts to the agent
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -91,6 +97,10 @@
 | POST | /api/sessions/:id/tasks/run | Start/resume the supervisor loop |
 | POST | /api/sessions/:id/tasks/pause | Pause execution and abort active stream |
 | POST | /api/sessions/:id/tasks/reset | Reset all steps to pending and clear logs |
+| GET | /api/integrations/templates | List all configured integration templates |
+| POST | /api/integrations/templates | Update or define new integrations and custom quick actions |
+| GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
+| POST | /api/integrations/bindings/:repoName | Update repository linkages for active repository |
 | WS | /ws | WebSocket for real-time streaming |
 | GET | /api/health | Health check |
 
@@ -109,6 +119,7 @@ packages/shared/  Shared Zod schemas and types
 - `routes/providers.ts` — Dynamic provider configuration API
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
 - `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints
+- `routes/integrations.ts` — REST API for dynamic user-level integration templates and project bindings.
 - `ws/handler.ts` — WebSocket auth via JWT, streaming via session.subscribe()
 - `middleware/auth.ts` — JWT verification middleware for REST routes
 
@@ -116,11 +127,13 @@ packages/shared/  Shared Zod schemas and types
 - `pages/DashboardPage.tsx` — Initial view: lists repos, creates/clones Git projects, accesses global workspace.
 - `hooks/useWebSocket.ts` — WebSocket client with auto-reconnect, event subscription
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
-- `pages/SettingsPage.tsx` — Provider management with API key add/remove
+- `pages/SettingsPage.tsx` — Provider, global env variables, and Integrations Hub template editor.
 - `components/layout/AppRouter.tsx` — Routing logic with repo context state (global vs repo mode). Persists active context in localStorage.
 - `components/layout/ChatLayout.tsx` — Mobile-first layout with collapsible sidebar
 - `components/layout/MainLayout.tsx` — App shell with context-aware header (back to Dashboard button) and scoped SessionSidebar.
-- `components/chat/ChatArea.tsx` — Message list, streaming state, error display, layout structure with side-by-side tasks queue
-- `components/chat/TasksPanel.tsx` — Premium task drawer component displaying subtasks, logs, and controls
+- `components/chat/ChatArea.tsx` — Message list, streaming state, error display, layout structure with side-by-side right drawer.
+- `components/chat/RightDrawer.tsx` — Tabbed panel drawer container hosting Tasks and Infrastructure panels.
+- `components/chat/TasksPanel.tsx` — Checklist component displaying subtasks, logs, and controls.
+- `components/chat/InfrastructurePanel.tsx` — Renders input fields for repository mappings and quick action triggers.
 - `components/sidebar/SessionSidebar.tsx` — Filters sessions by active `repoName`; creates sessions with correct context.
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active repo via `?repo=` query param.

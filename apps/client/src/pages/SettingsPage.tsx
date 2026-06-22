@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import type { IntegrationTemplate, QuickAction } from "shared";
 
 interface ProviderInfo {
   id: string;
@@ -24,10 +25,30 @@ export function SettingsPage() {
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvVal, setNewEnvVal] = useState("");
   const [savingEnv, setSavingEnv] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "providers" | "env">("providers");
+  const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations">("providers");
   const [isDevView, setIsDevView] = useState(false);
   const [bulkEnvText, setBulkEnvText] = useState("");
   const [isRevealed, setIsRevealed] = useState(false);
+
+  const [templates, setTemplates] = useState<IntegrationTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [templatesError, setTemplatesError] = useState("");
+  const [isConfiguringEnv, setIsConfiguringEnv] = useState<{ integrationId: string; envVar: string } | null>(null);
+  const [configuringEnvVal, setConfiguringEnvVal] = useState("");
+  const [savingConfigEnv, setSavingConfigEnv] = useState(false);
+
+  const [isAddingIntegration, setIsAddingIntegration] = useState(false);
+  const [newIntegrationId, setNewIntegrationId] = useState("");
+  const [newIntegrationName, setNewIntegrationName] = useState("");
+  const [newIntegrationDesc, setNewIntegrationDesc] = useState("");
+  const [newIntegrationEnvVars, setNewIntegrationEnvVars] = useState("");
+  const [newIntegrationRepoVars, setNewIntegrationRepoVars] = useState("");
+
+  const [isAddingAction, setIsAddingAction] = useState<string | null>(null);
+  const [newActionId, setNewActionId] = useState("");
+  const [newActionName, setNewActionName] = useState("");
+  const [newActionPrompt, setNewActionPrompt] = useState("");
+  const [newActionDesc, setNewActionDesc] = useState("");
 
   const token = localStorage.getItem("token");
 
@@ -66,10 +87,26 @@ export function SettingsPage() {
     }
   }, [token]);
 
+  const fetchTemplates = useCallback(async () => {
+    try {
+      const res = await fetch("/api/integrations/templates", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load integration templates");
+      const data = await res.json();
+      setTemplates(data.templates ?? []);
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : "Error loading templates");
+    } finally {
+      setTemplatesLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchProviders();
     fetchEnvVars();
-  }, [fetchProviders, fetchEnvVars]);
+    fetchTemplates();
+  }, [fetchProviders, fetchEnvVars, fetchTemplates]);
 
   const handleSaveEnvVar = async () => {
     const formattedKey = newEnvKey.trim().toUpperCase();
@@ -247,9 +284,125 @@ export function SettingsPage() {
     }
   };
 
+  const handleSaveTemplates = async (updatedTemplates: IntegrationTemplate[]) => {
+    try {
+      const res = await fetch("/api/integrations/templates", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ templates: updatedTemplates }),
+      });
+      if (!res.ok) throw new Error("Failed to save integrations");
+      await fetchTemplates();
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : "Error saving integrations");
+    }
+  };
+
+  const handleSaveConfigEnv = async () => {
+    if (!isConfiguringEnv) return;
+    const { envVar } = isConfiguringEnv;
+    const formattedKey = envVar.trim().toUpperCase();
+    if (!configuringEnvVal.trim()) return;
+
+    setSavingConfigEnv(true);
+    try {
+      const res = await fetch("/api/env", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ key: formattedKey, value: configuringEnvVal }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to save environment variable");
+      }
+      setConfiguringEnvVal("");
+      setIsConfiguringEnv(null);
+      await fetchEnvVars();
+    } catch (err) {
+      setTemplatesError(err instanceof Error ? err.message : "Error saving environment variable");
+    } finally {
+      setSavingConfigEnv(false);
+    }
+  };
+
+  const handleCreateIntegration = async () => {
+    if (!newIntegrationId.trim() || !newIntegrationName.trim()) return;
+    const newIntegration: IntegrationTemplate = {
+      id: newIntegrationId.trim().toLowerCase(),
+      name: newIntegrationName.trim(),
+      description: newIntegrationDesc.trim() || undefined,
+      requiredEnvVars: newIntegrationEnvVars.split(",").map(v => v.trim().toUpperCase()).filter(Boolean),
+      requiredRepoVars: newIntegrationRepoVars.split(",").map(v => v.trim()).filter(Boolean),
+      actions: []
+    };
+
+    const updated = [...templates, newIntegration];
+    await handleSaveTemplates(updated);
+
+    setNewIntegrationId("");
+    setNewIntegrationName("");
+    setNewIntegrationDesc("");
+    setNewIntegrationEnvVars("");
+    setNewIntegrationRepoVars("");
+    setIsAddingIntegration(false);
+  };
+
+  const handleDeleteIntegration = async (integrationId: string) => {
+    const updated = templates.filter(t => t.id !== integrationId);
+    await handleSaveTemplates(updated);
+  };
+
+  const handleAddAction = async (integrationId: string) => {
+    if (!newActionId.trim() || !newActionName.trim() || !newActionPrompt.trim()) return;
+    const newAction: QuickAction = {
+      id: newActionId.trim(),
+      name: newActionName.trim(),
+      prompt: newActionPrompt.trim(),
+      description: newActionDesc.trim() || undefined
+    };
+
+    const updated = templates.map(t => {
+      if (t.id === integrationId) {
+        return {
+          ...t,
+          actions: [...t.actions, newAction]
+        };
+      }
+      return t;
+    });
+
+    await handleSaveTemplates(updated);
+
+    setNewActionId("");
+    setNewActionName("");
+    setNewActionPrompt("");
+    setNewActionDesc("");
+    setIsAddingAction(null);
+  };
+
+  const handleDeleteAction = async (integrationId: string, actionId: string) => {
+    const updated = templates.map(t => {
+      if (t.id === integrationId) {
+        return {
+          ...t,
+          actions: t.actions.filter(a => a.id !== actionId)
+        };
+      }
+      return t;
+    });
+    await handleSaveTemplates(updated);
+  };
+
   const tabs = [
     { id: "providers", label: "LLM Providers" },
     { id: "env", label: "Env Variables" },
+    { id: "integrations", label: "Integrations Hub" },
     { id: "general", label: "General & Account" },
   ] as const;
 
@@ -551,6 +704,143 @@ export function SettingsPage() {
               )}
             </div>
           )}
+
+          {activeTab === "integrations" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-text-primary font-semibold text-base">Integrations Hub</h2>
+                  <p className="text-text-secondary text-[11px] mt-0.5">
+                    Connect infrastructure providers dynamically and customize workflow-specific quick actions.
+                  </p>
+                </div>
+                <button
+                  onClick={() => setIsAddingIntegration(true)}
+                  className="text-xs bg-accent text-bg font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity flex-shrink-0 cursor-pointer"
+                >
+                  Add Custom Integration
+                </button>
+              </div>
+
+              {templatesError && (
+                <p className="text-error text-sm p-3 bg-surface rounded-lg">{templatesError}</p>
+              )}
+
+              {templatesLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : templates.length === 0 ? (
+                <div className="bg-surface rounded-lg p-6 text-center border border-surface-hover/10">
+                  <p className="text-text-secondary text-sm">No integrations defined.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {templates.map((integration) => {
+                    const isConnected = integration.requiredEnvVars.every((reqVar) =>
+                      envVars.some((ev) => ev.key === reqVar && ev.value !== "")
+                    );
+
+                    return (
+                      <div key={integration.id} className="bg-surface rounded-lg border border-surface-hover/30 overflow-hidden">
+                        <div className="p-4 bg-surface-hover/10 border-b border-surface-hover/30 flex items-center justify-between">
+                          <div>
+                            <div className="flex items-center gap-2">
+                              <h3 className="text-text-primary text-sm font-semibold">{integration.name}</h3>
+                              <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                                isConnected ? "bg-success/10 text-success border border-success/20" : "bg-warning/10 text-warning border border-warning/20"
+                              }`}>
+                                {isConnected ? "Connected" : "Disconnected"}
+                              </span>
+                            </div>
+                            {integration.description && (
+                              <p className="text-text-secondary text-[11px] mt-1">{integration.description}</p>
+                            )}
+                          </div>
+                          <button
+                            onClick={() => handleDeleteIntegration(integration.id)}
+                            className="text-xs text-text-secondary hover:text-error transition-colors px-2 py-1 font-semibold cursor-pointer"
+                          >
+                            Delete
+                          </button>
+                        </div>
+
+                        <div className="p-4 space-y-4">
+                          <div>
+                            <h4 className="text-text-secondary text-xs font-semibold uppercase tracking-wider mb-2">Required Credentials</h4>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {integration.requiredEnvVars.map((envVar) => {
+                                const configured = envVars.some((ev) => ev.key === envVar);
+                                return (
+                                  <div key={envVar} className="bg-bg/40 rounded-lg p-2 flex items-center justify-between border border-surface-hover/20">
+                                    <span className="text-xs font-mono text-text-primary">{envVar}</span>
+                                    <button
+                                      onClick={() => {
+                                        setIsConfiguringEnv({ integrationId: integration.id, envVar });
+                                        setConfiguringEnvVal("");
+                                      }}
+                                      className={`text-[10px] px-2.5 py-1 rounded transition-colors font-semibold cursor-pointer ${
+                                        configured ? "bg-surface-hover hover:bg-surface-hover/80 text-text-secondary hover:text-text-primary" : "bg-accent/10 hover:bg-accent/25 text-accent"
+                                      }`}
+                                    >
+                                      {configured ? "Update Key" : "Set Key"}
+                                    </button>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+
+                          <div>
+                            <div className="flex items-center justify-between mb-2">
+                              <h4 className="text-text-secondary text-xs font-semibold uppercase tracking-wider">Quick Actions</h4>
+                              <button
+                                onClick={() => {
+                                  setIsAddingAction(integration.id);
+                                  setNewActionId("");
+                                  setNewActionName("");
+                                  setNewActionPrompt("");
+                                  setNewActionDesc("");
+                                }}
+                                className="text-[10px] text-accent hover:underline font-semibold cursor-pointer"
+                              >
+                                + Add Action
+                              </button>
+                            </div>
+                            {integration.actions.length === 0 ? (
+                              <p className="text-text-secondary text-[11px]">No actions defined for this integration.</p>
+                            ) : (
+                              <div className="space-y-2">
+                                {integration.actions.map((action) => (
+                                  <div key={action.id} className="bg-bg/40 border border-surface-hover/20 rounded-lg p-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                                    <div className="min-w-0">
+                                      <div className="text-text-primary text-xs font-semibold">{action.name}</div>
+                                      {action.description && (
+                                        <p className="text-text-secondary text-[10px] mt-0.5">{action.description}</p>
+                                      )}
+                                      <div className="text-[10px] text-accent font-mono mt-1 truncate bg-bg/50 px-2 py-0.5 rounded border border-surface-hover/10 max-w-lg">
+                                        {action.prompt}
+                                      </div>
+                                    </div>
+                                    <button
+                                      onClick={() => handleDeleteAction(integration.id, action.id)}
+                                      className="text-[10px] text-text-secondary hover:text-error transition-colors px-2 py-1 flex-shrink-0 font-semibold cursor-pointer text-left sm:text-right"
+                                    >
+                                      Remove
+                                    </button>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
         </div>
       </div>
 
@@ -647,6 +937,196 @@ export function SettingsPage() {
                            hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
               >
                 {savingEnv ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isConfiguringEnv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface rounded-lg w-full max-w-sm p-4 sm:p-6 space-y-4 border border-surface-hover/30">
+            <h3 className="text-text-primary font-semibold text-sm">
+              Configure {isConfiguringEnv.envVar}
+            </h3>
+            <input
+              type="password"
+              value={configuringEnvVal}
+              onChange={(e) => setConfiguringEnvVal(e.target.value)}
+              placeholder="Enter value"
+              autoFocus
+              className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                         text-text-primary placeholder-text-secondary outline-none
+                         focus:border-accent transition-colors text-sm"
+              onKeyDown={(e) => {
+                if (e.key === "Enter") handleSaveConfigEnv();
+                if (e.key === "Escape") setIsConfiguringEnv(null);
+              }}
+            />
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setIsConfiguringEnv(null)}
+                className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveConfigEnv}
+                disabled={savingConfigEnv || !configuringEnvVal.trim()}
+                className="px-4 py-2 text-sm bg-accent text-bg font-semibold rounded-lg
+                           hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+              >
+                {savingConfigEnv ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAddingIntegration && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface rounded-lg w-full max-w-md p-4 sm:p-6 space-y-4 border border-surface-hover/30">
+            <h3 className="text-text-primary font-semibold text-sm">Add Custom Integration</h3>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Integration ID</label>
+                <input
+                  type="text"
+                  value={newIntegrationId}
+                  onChange={(e) => setNewIntegrationId(e.target.value)}
+                  placeholder="dokploy"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newIntegrationName}
+                  onChange={(e) => setNewIntegrationName(e.target.value)}
+                  placeholder="Dokploy"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Description</label>
+                <input
+                  type="text"
+                  value={newIntegrationDesc}
+                  onChange={(e) => setNewIntegrationDesc(e.target.value)}
+                  placeholder="Manage self-hosted servers..."
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Required Env Variables (comma-separated)</label>
+                <input
+                  type="text"
+                  value={newIntegrationEnvVars}
+                  onChange={(e) => setNewIntegrationEnvVars(e.target.value)}
+                  placeholder="DOKPLOY_API_KEY, DOKPLOY_URL"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Required Repo Context Variables (comma-separated)</label>
+                <input
+                  type="text"
+                  value={newIntegrationRepoVars}
+                  onChange={(e) => setNewIntegrationRepoVars(e.target.value)}
+                  placeholder="dokployAppId"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm font-mono"
+                />
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setIsAddingIntegration(false)}
+                className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateIntegration}
+                disabled={!newIntegrationId.trim() || !newIntegrationName.trim()}
+                className="px-4 py-2 text-sm bg-accent text-bg font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+              >
+                Create
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAddingAction && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface rounded-lg w-full max-w-md p-4 sm:p-6 space-y-4 border border-surface-hover/30">
+            <h3 className="text-text-primary font-semibold text-sm">Add Quick Action</h3>
+            <div className="space-y-3 text-xs">
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Action ID</label>
+                <input
+                  type="text"
+                  value={newActionId}
+                  onChange={(e) => setNewActionId(e.target.value)}
+                  placeholder="deploy_prod"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm font-mono"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Name</label>
+                <input
+                  type="text"
+                  value={newActionName}
+                  onChange={(e) => setNewActionName(e.target.value)}
+                  placeholder="Deploy to Production"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Description</label>
+                <input
+                  type="text"
+                  value={newActionDesc}
+                  onChange={(e) => setNewActionDesc(e.target.value)}
+                  placeholder="Trigger full deployment..."
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Prompt Template</label>
+                <textarea
+                  value={newActionPrompt}
+                  onChange={(e) => setNewActionPrompt(e.target.value)}
+                  placeholder="Deploy application using appId: {dokployAppId}."
+                  rows={3}
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none focus:border-accent transition-colors text-sm font-mono"
+                />
+                <p className="text-[10px] text-text-secondary mt-1">Use braces to enclose repo-specific context variables (e.g. &#123;dokployAppId&#125;).</p>
+              </div>
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setIsAddingAction(null)}
+                className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleAddAction(isAddingAction)}
+                disabled={!newActionId.trim() || !newActionName.trim() || !newActionPrompt.trim()}
+                className="px-4 py-2 text-sm bg-accent text-bg font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+              >
+                Add Action
               </button>
             </div>
           </div>

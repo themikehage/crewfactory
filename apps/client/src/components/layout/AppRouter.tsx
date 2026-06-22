@@ -77,7 +77,11 @@ export function AppRouter() {
         <WorkspacePanel key={activeRepoName || "global"} activeRepoName={activeRepoName} />
       )}
       {route.page === "chat" && (
-        <ChatArea key={`${route.sessionId}-${activeRepoName}`} sessionId={route.sessionId} />
+        <ChatArea
+          key={`${route.sessionId}-${activeRepoName}`}
+          sessionId={route.sessionId}
+          activeRepoName={activeRepoName}
+        />
       )}
     </MainLayout>
   );

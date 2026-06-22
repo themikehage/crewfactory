@@ -10,6 +10,7 @@ interface Props {
   onReset: () => Promise<void>;
   onDecompose: (objective: string) => Promise<void>;
   onUpdateTasks: (tasks: Task[]) => Promise<void>;
+  isEmbedded?: boolean;
 }
 
 export function TasksPanel({
@@ -20,6 +21,7 @@ export function TasksPanel({
   onReset,
   onDecompose,
   onUpdateTasks,
+  isEmbedded = false,
 }: Props) {
   const { tasks, currentTaskId, status, error } = tasksState;
 
@@ -145,34 +147,8 @@ export function TasksPanel({
     }
   };
 
-  return (
-    <motion.div
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="w-85 sm:w-96 flex flex-col h-full bg-surface border-l border-surface-hover flex-shrink-0 relative z-10"
-    >
-      {/* Header */}
-      <div className="h-10 sm:h-12 border-b border-surface-hover flex items-center justify-between px-4 flex-shrink-0 bg-bg/50 backdrop-blur-xs">
-        <div className="flex items-center gap-2">
-          <span className="font-display font-bold text-sm text-text-primary">
-            Task Queue
-          </span>
-          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-        </div>
-        <button
-          onClick={onClose}
-          className="text-text-secondary hover:text-text-primary p-1 cursor-pointer transition-colors"
-          title="Close tasks panel"
-        >
-          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-          </svg>
-        </button>
-      </div>
-
-      {/* Control Bar */}
+  const renderContent = () => (
+    <>
       {tasks.length > 0 && status !== "decomposing" && (
         <div className="p-3 border-b border-surface-hover flex items-center justify-between bg-bg/20 flex-shrink-0">
           <div className="text-[11px] text-text-secondary font-medium">
@@ -217,7 +193,6 @@ export function TasksPanel({
         </div>
       )}
 
-      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto p-4 min-h-0">
         {error && (
           <div className="mb-4 p-3 bg-error/10 border border-error/20 rounded-lg text-error text-xs flex flex-col gap-1">
@@ -232,7 +207,6 @@ export function TasksPanel({
         )}
 
         {status === "decomposing" ? (
-          /* Decomposing skeletal shimmer */
           <div className="space-y-4">
             <div className="text-center py-4 text-xs text-text-secondary font-medium animate-pulse">
               Analyzing repository files and generating subtasks...
@@ -246,7 +220,6 @@ export function TasksPanel({
             ))}
           </div>
         ) : tasks.length === 0 ? (
-          /* Empty / Objective setup screen */
           <div className="space-y-4">
             <div className="text-center py-6 text-xs text-text-secondary leading-relaxed">
               No active steps in this session queue. Generate a structured step plan using AI decomposition, or add steps manually.
@@ -290,7 +263,6 @@ export function TasksPanel({
             </button>
           </div>
         ) : (
-          /* Step Checklist View */
           <div className="space-y-3">
             {tasks.map((task, index) => {
               const isExpanded = expandedTaskId === task.id;
@@ -307,7 +279,6 @@ export function TasksPanel({
                       : "border-surface-hover"
                   }`}
                 >
-                  {/* Step Card Header */}
                   <div
                     onClick={() => handleToggleExpand(task.id)}
                     className="p-3 flex items-center justify-between cursor-pointer select-none hover:bg-bg/15 transition-colors gap-3"
@@ -336,11 +307,9 @@ export function TasksPanel({
                     </div>
                   </div>
 
-                  {/* Expanded Step Body */}
                   {isExpanded && (
                     <div className="p-3 border-t border-surface-hover bg-surface/10 space-y-3">
                       {isEditing ? (
-                        /* Edit Step Mode */
                         <div className="space-y-2">
                           <input
                             type="text"
@@ -371,7 +340,6 @@ export function TasksPanel({
                           </div>
                         </div>
                       ) : (
-                        /* View Step Mode */
                         <div className="space-y-3">
                           <div className="space-y-1">
                             <div className="text-[9px] uppercase font-bold text-text-secondary/60 tracking-wider">
@@ -448,7 +416,6 @@ export function TasksPanel({
               );
             })}
 
-            {/* Manual Step Creator Drawer / Row */}
             {newStep ? (
               <div className="p-3 bg-bg/40 border border-surface-hover rounded-lg space-y-2">
                 <input
@@ -493,6 +460,43 @@ export function TasksPanel({
           </div>
         )}
       </div>
+    </>
+  );
+
+  if (isEmbedded) {
+    return (
+      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+        {renderContent()}
+      </div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ x: "100%" }}
+      animate={{ x: 0 }}
+      exit={{ x: "100%" }}
+      transition={{ duration: 0.2, ease: "easeInOut" }}
+      className="w-85 sm:w-96 flex flex-col h-full bg-surface border-l border-surface-hover flex-shrink-0 relative z-10"
+    >
+      <div className="h-10 sm:h-12 border-b border-surface-hover flex items-center justify-between px-4 flex-shrink-0 bg-bg/50 backdrop-blur-xs">
+        <div className="flex items-center gap-2">
+          <span className="font-display font-bold text-sm text-text-primary">
+            Task Queue
+          </span>
+          <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+        </div>
+        <button
+          onClick={onClose}
+          className="text-text-secondary hover:text-text-primary p-1 cursor-pointer transition-colors"
+          title="Close tasks panel"
+        >
+          <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+          </svg>
+        </button>
+      </div>
+      {renderContent()}
     </motion.div>
   );
 }

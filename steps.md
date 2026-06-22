@@ -110,3 +110,14 @@
 - [x] 14.5 Client layout updates: disable message composition in `InputArea.tsx` during task runner execution
 - [x] 14.6 Client `TasksPanel.tsx` drawer rendering checklist, log code blocks, and controllers
 - [x] 14.7 Client `ChatArea.tsx` layout and toggle button integration
+
+---
+
+## Phase 15: Integrations Hub (Declarative Infrastructure Operations)
+- [x] 15.1 Shared schemas: QuickAction, IntegrationTemplate, SaveTemplates, and RepoBindings
+- [x] 15.2 Server router: CRUD endpoints under `/api/integrations/templates` and `/api/integrations/bindings`
+- [x] 15.3 Server persistence: User-level storage mapped in `/tmp/pi-web-users/{username}/integrations.json`
+- [x] 15.4 Client settings: Tab rendering with status connection indicator, credentials update, and template custom editing
+- [x] 15.5 Client workspace: Dual-tab RightDrawer container with sliding toggle integration
+- [x] 15.6 Client panel: InfrastructurePanel rendering active bindings form and dynamic Quick Action prompt buttons
+

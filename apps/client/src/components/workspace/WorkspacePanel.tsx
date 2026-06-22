@@ -321,7 +321,7 @@ export function WorkspacePanel({ activeRepoName }: Props) {
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-[#0b0f19] border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1 rounded text-xs transition-all font-sans"
+              className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1 rounded text-xs transition-all font-sans"
             />
           </div>
 

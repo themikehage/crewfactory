@@ -126,11 +126,11 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
   )}${repoQuery}`;
 
   return (
-    <div className="h-full flex flex-col bg-[#0b0f19] border-t border-surface sm:border-t-0 sm:border-l border-surface">
+    <div className="h-full flex flex-col bg-bg border-t border-surface sm:border-t-0 sm:border-l border-surface">
       {/* Fullscreen HTML Preview Overlay */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 bg-[#0b0f19] flex flex-col font-sans select-none animate-fade-in">
-          <div className="h-10 px-4 border-b border-surface flex items-center justify-between bg-[#0d1321] flex-shrink-0">
+        <div className="fixed inset-0 z-50 bg-bg flex flex-col font-sans select-none animate-fade-in">
+          <div className="h-10 px-4 border-b border-surface flex items-center justify-between bg-bg flex-shrink-0">
             <span className="text-xs font-mono font-semibold text-text-primary truncate">
               Fullscreen Preview - {file.name}
             </span>
@@ -162,7 +162,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
       )}
 
       {/* Editor Header Bar */}
-      <div className="h-9 px-3 border-b border-surface flex items-center justify-between flex-shrink-0 bg-[#0d1321]/80">
+      <div className="h-9 px-3 border-b border-surface flex items-center justify-between flex-shrink-0 bg-bg/80">
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-mono font-semibold text-text-primary truncate max-w-[100px] sm:max-w-none">
             {file.name}
@@ -173,7 +173,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
 
           {/* HTML Tab Switcher */}
           {isHtml && (
-            <div className="flex bg-[#0b0f19] rounded p-0.5 border border-surface ml-2">
+            <div className="flex bg-bg rounded p-0.5 border border-surface ml-2">
               <button
                 onClick={() => setActiveTab("code")}
                 className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageList } from "./MessageList";
 import { InputArea } from "./InputArea";
-import { TasksPanel } from "./TasksPanel";
+import { RightDrawer } from "./RightDrawer";
 import { AnimatePresence } from "framer-motion";
 import type { Task, TaskRunnerState } from "shared";
 
@@ -52,14 +52,15 @@ interface Message {
 
 interface Props {
   sessionId: string | null;
+  activeRepoName: string | null;
 }
 
-export function ChatArea({ sessionId }: Props) {
+export function ChatArea({ sessionId, activeRepoName }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sandboxTools, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
-  const [tasksPanelOpen, setTasksPanelOpen] = useState(false);
+  const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
@@ -351,12 +352,12 @@ export function ChatArea({ sessionId }: Props) {
               {getSandboxLabel(sandboxTools).label}
             </span>
             <button
-              onClick={() => setTasksPanelOpen(!tasksPanelOpen)}
+              onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
               className={`px-2 py-0.5 border border-surface hover:border-accent hover:text-accent rounded cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold ${
-                tasksPanelOpen ? "text-accent border-accent bg-accent/10" : ""
+                rightDrawerOpen ? "text-accent border-accent bg-accent/10" : ""
               }`}
             >
-              Tasks
+              Ops & Tasks
             </button>
           </span>
         </div>
@@ -383,15 +384,17 @@ export function ChatArea({ sessionId }: Props) {
       </div>
 
       <AnimatePresence>
-        {tasksPanelOpen && (
-          <TasksPanel
+        {rightDrawerOpen && (
+          <RightDrawer
+            activeRepoName={activeRepoName}
             tasksState={tasksState}
-            onClose={() => setTasksPanelOpen(false)}
+            onClose={() => setRightDrawerOpen(false)}
             onRun={handleRunTasks}
             onPause={handlePauseTasks}
             onReset={handleResetTasks}
             onDecompose={handleDecomposeTasks}
             onUpdateTasks={handleUpdateTasks}
+            onSendPrompt={(prompt) => handleSend(prompt)}
           />
         )}
       </AnimatePresence>

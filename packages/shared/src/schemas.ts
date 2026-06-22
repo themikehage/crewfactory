@@ -69,6 +69,32 @@ export const TaskRunnerStateSchema = z.object({
 });
 export type TaskRunnerState = z.infer<typeof TaskRunnerStateSchema>;
 
+export const QuickActionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  prompt: z.string(),
+  description: z.string().optional(),
+});
+export type QuickAction = z.infer<typeof QuickActionSchema>;
+
+export const IntegrationTemplateSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  requiredEnvVars: z.array(z.string()),
+  requiredRepoVars: z.array(z.string()),
+  actions: z.array(QuickActionSchema),
+});
+export type IntegrationTemplate = z.infer<typeof IntegrationTemplateSchema>;
+
+export const SaveTemplatesSchema = z.object({
+  templates: z.array(IntegrationTemplateSchema),
+});
+export type SaveTemplates = z.infer<typeof SaveTemplatesSchema>;
+
+export const RepoBindingsSchema = z.record(z.string(), z.record(z.string(), z.string()));
+export type RepoBindings = z.infer<typeof RepoBindingsSchema>;
+
 export type Login = z.infer<typeof LoginSchema>;
 export type Prompt = z.infer<typeof PromptSchema>;
 export type Session = z.infer<typeof SessionSchema>;
@@ -83,9 +109,9 @@ export interface FileInfo {
   isDirectory: boolean;
   size: number;
   mimeType?: string;
-  content?: string; // base64 encoded for files
+  content?: string;
   children?: FileInfo[];
-  lastModified: string; // ISO string representation
+  lastModified: string;
 }
 
 export interface FileUploadResult {
