@@ -17,6 +17,13 @@ export function SettingsPage() {
   const [apiKey, setApiKey] = useState("");
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
+  const [envVars, setEnvVars] = useState<Array<{ key: string; value: string }>>([]);
+  const [envLoading, setEnvLoading] = useState(true);
+  const [envError, setEnvError] = useState("");
+  const [isAddingEnv, setIsAddingEnv] = useState(false);
+  const [newEnvKey, setNewEnvKey] = useState("");
+  const [newEnvVal, setNewEnvVal] = useState("");
+  const [savingEnv, setSavingEnv] = useState(false);
 
   const token = localStorage.getItem("token");
 
@@ -40,9 +47,73 @@ export function SettingsPage() {
     }
   }, [token]);
 
+  const fetchEnvVars = useCallback(async () => {
+    try {
+      const res = await fetch("/api/env", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load environment variables");
+      const data = await res.json();
+      setEnvVars(data.env ?? []);
+    } catch (err) {
+      setEnvError(err instanceof Error ? err.message : "Error loading environment variables");
+    } finally {
+      setEnvLoading(false);
+    }
+  }, [token]);
+
   useEffect(() => {
     fetchProviders();
-  }, [fetchProviders]);
+    fetchEnvVars();
+  }, [fetchProviders, fetchEnvVars]);
+
+  const handleSaveEnvVar = async () => {
+    const formattedKey = newEnvKey.trim().toUpperCase();
+    if (!formattedKey || !newEnvVal.trim()) return;
+
+    if (!/^[A-Z_][A-Z0-9_]*$/.test(formattedKey)) {
+      setEnvError("Invalid variable name. Must start with a letter or underscore and contain only letters, numbers, or underscores.");
+      return;
+    }
+
+    setSavingEnv(true);
+    setEnvError("");
+    try {
+      const res = await fetch("/api/env", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ key: formattedKey, value: newEnvVal }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.message || "Failed to save environment variable");
+      }
+      setNewEnvKey("");
+      setNewEnvVal("");
+      setIsAddingEnv(false);
+      await fetchEnvVars();
+    } catch (err) {
+      setEnvError(err instanceof Error ? err.message : "Error saving environment variable");
+    } finally {
+      setSavingEnv(false);
+    }
+  };
+
+  const handleDeleteEnvVar = async (key: string) => {
+    try {
+      const res = await fetch(`/api/env/${key}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to delete environment variable");
+      await fetchEnvVars();
+    } catch (err) {
+      setEnvError(err instanceof Error ? err.message : "Error deleting environment variable");
+    }
+  };
 
   const handleSaveKey = async () => {
     if (!selectedProvider || !apiKey.trim()) return;
@@ -192,6 +263,63 @@ export function SettingsPage() {
               </div>
             )}
           </div>
+
+          <div className="pt-6 border-t border-surface-hover/30 space-y-4">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-text-primary font-semibold text-base">Environment Variables</h2>
+                <p className="text-text-secondary text-[11px] mt-0.5">
+                  Configure custom environment variables (e.g., GITHUB_TOKEN, NOTION_TOKEN) for your agent's shell activities.
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setIsAddingEnv(true);
+                  setNewEnvKey("");
+                  setNewEnvVal("");
+                  setEnvError("");
+                }}
+                className="text-xs bg-accent text-bg font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity flex-shrink-0 cursor-pointer"
+              >
+                Add Variable
+              </button>
+            </div>
+
+            {envError && (
+              <p className="text-error text-sm p-3 bg-surface rounded-lg">{envError}</p>
+            )}
+
+            {envLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              </div>
+            ) : envVars.length === 0 ? (
+              <div className="bg-surface rounded-lg p-6 text-center border border-surface-hover/10">
+                <p className="text-text-secondary text-sm">No environment variables configured.</p>
+              </div>
+            ) : (
+              <div className="space-y-3">
+                {envVars.map((v) => (
+                  <div key={v.key} className="bg-surface rounded-lg p-3 sm:p-4 flex items-center justify-between border border-surface-hover/10">
+                    <div className="min-w-0 flex-1 mr-4">
+                      <div className="text-text-primary text-sm font-mono font-semibold truncate">
+                        {v.key}
+                      </div>
+                      <div className="text-text-secondary text-xs font-mono mt-0.5">
+                        {v.value}
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => handleDeleteEnvVar(v.key)}
+                      className="text-xs text-text-secondary hover:text-error transition-colors px-2 py-1 flex-shrink-0 cursor-pointer font-semibold"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       </div>
 
@@ -230,6 +358,64 @@ export function SettingsPage() {
                            hover:opacity-90 disabled:opacity-50 transition-opacity"
               >
                 {saving ? "Saving..." : "Save"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {isAddingEnv && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="bg-surface rounded-lg w-full max-w-sm p-4 sm:p-6 space-y-4 border border-surface-hover/30">
+            <h3 className="text-text-primary font-semibold text-sm">
+              Add Environment Variable
+            </h3>
+            <div className="space-y-3">
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Variable Name</label>
+                <input
+                  type="text"
+                  value={newEnvKey}
+                  onChange={(e) => setNewEnvKey(e.target.value)}
+                  placeholder="GITHUB_TOKEN"
+                  autoFocus
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none
+                             focus:border-accent transition-colors text-sm font-mono uppercase"
+                />
+              </div>
+              <div>
+                <label className="text-text-secondary text-[11px] block mb-1">Value</label>
+                <input
+                  type="password"
+                  value={newEnvVal}
+                  onChange={(e) => setNewEnvVal(e.target.value)}
+                  placeholder="Enter value"
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg
+                             text-text-primary placeholder-text-secondary outline-none
+                             focus:border-accent transition-colors text-sm"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") handleSaveEnvVar();
+                    if (e.key === "Escape") setIsAddingEnv(false);
+                  }}
+                />
+              </div>
+            </div>
+            {envError && <p className="text-error text-xs">{envError}</p>}
+            <div className="flex gap-2 justify-end">
+              <button
+                onClick={() => setIsAddingEnv(false)}
+                className="px-3 py-2 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleSaveEnvVar}
+                disabled={savingEnv || !newEnvKey.trim() || !newEnvVal.trim()}
+                className="px-4 py-2 text-sm bg-accent text-bg font-semibold rounded-lg
+                           hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+              >
+                {savingEnv ? "Saving..." : "Save"}
               </button>
             </div>
           </div>

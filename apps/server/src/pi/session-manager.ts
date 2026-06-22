@@ -5,10 +5,11 @@ import {
   SessionManager,
   DefaultResourceLoader,
   getAgentDir,
+  createBashToolDefinition,
   type AgentSession,
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
-import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 
 export function getResolvedSkillPaths(cwd: string): string[] {
@@ -71,6 +72,34 @@ class PiSessionManager {
       mkdirSync(dir, { recursive: true });
     }
     return dir;
+  }
+
+  getUserEnv(username: string): Record<string, string> {
+    const userDir = this.ensureUserDir(username);
+    const envPath = join(userDir, "env.json");
+    if (!existsSync(envPath)) return {};
+    try {
+      return JSON.parse(readFileSync(envPath, "utf-8"));
+    } catch (e) {
+      console.error(`Failed to read env.json for ${username}:`, e);
+      return {};
+    }
+  }
+
+  setUserEnv(username: string, key: string, value: string): void {
+    const userDir = this.ensureUserDir(username);
+    const envPath = join(userDir, "env.json");
+    const env = this.getUserEnv(username);
+    env[key] = value;
+    writeFileSync(envPath, JSON.stringify(env, null, 2), "utf-8");
+  }
+
+  deleteUserEnv(username: string, key: string): void {
+    const userDir = this.ensureUserDir(username);
+    const envPath = join(userDir, "env.json");
+    const env = this.getUserEnv(username);
+    delete env[key];
+    writeFileSync(envPath, JSON.stringify(env, null, 2), "utf-8");
   }
 
   getUserContext(username: string): UserContext {
@@ -144,12 +173,26 @@ class PiSessionManager {
       sessionManager = SessionManager.create(sessionDir, sessionDir);
     }
 
+    const customBashTool = createBashToolDefinition(workspaceDir, {
+      spawnHook: (context) => {
+        const userEnv = this.getUserEnv(username);
+        return {
+          ...context,
+          env: {
+            ...context.env,
+            ...userEnv,
+          },
+        };
+      },
+    });
+
     const { session } = await createAgentSession({
       cwd: workspaceDir,
       sessionManager,
       authStorage,
       modelRegistry,
       resourceLoader,
+      customTools: [customBashTool],
     });
 
     const unsubscribe = session.subscribe(() => {});

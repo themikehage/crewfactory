@@ -31,12 +31,18 @@ export const SetApiKeySchema = z.object({
   apiKey: z.string().min(1),
 });
 
+export const SetEnvVarSchema = z.object({
+  key: z.string().min(1).regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/, "Invalid environment variable name. Must start with a letter or underscore and contain only alphanumeric characters or underscores."),
+  value: z.string().min(1),
+});
+
 export type Login = z.infer<typeof LoginSchema>;
 export type Prompt = z.infer<typeof PromptSchema>;
 export type Session = z.infer<typeof SessionSchema>;
 export type CreateSession = z.infer<typeof CreateSessionSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type SetApiKey = z.infer<typeof SetApiKeySchema>;
+export type SetEnvVar = z.infer<typeof SetEnvVarSchema>;
 
 export interface FileInfo {
   name: string;
