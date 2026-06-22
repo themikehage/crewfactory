@@ -37,3 +37,22 @@ export type Session = z.infer<typeof SessionSchema>;
 export type CreateSession = z.infer<typeof CreateSessionSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type SetApiKey = z.infer<typeof SetApiKeySchema>;
+
+export interface FileInfo {
+  name: string;
+  path: string;
+  isDirectory: boolean;
+  size: number;
+  mimeType?: string;
+  content?: string; // base64 encoded for files
+  children?: FileInfo[];
+  lastModified: string; // ISO string representation
+}
+
+export interface FileUploadResult {
+  name: string;
+  path: string;
+  size: number;
+  mimeType: string;
+}
+

@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
 import { ChatArea } from "@/components/chat/ChatArea";
+import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { useState, useCallback } from "react";
 
 interface Props {
@@ -11,6 +12,7 @@ interface Props {
 export function ChatLayout({ sessionId, onNavigate }: Props) {
   const { user, logout } = useAuth();
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [workspaceOpen, setWorkspaceOpen] = useState(false);
 
   const handleSelectSession = useCallback((id: string) => {
     if (id) {
@@ -49,6 +51,17 @@ export function ChatLayout({ sessionId, onNavigate }: Props) {
           <h1 className="font-display font-bold text-text-primary text-xs sm:text-sm">Pi Web</h1>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
+          <button
+            onClick={() => setWorkspaceOpen(!workspaceOpen)}
+            className={`text-text-secondary hover:text-text-primary transition-colors p-1 cursor-pointer ${
+              workspaceOpen ? "text-accent" : ""
+            }`}
+            title="Workspace"
+          >
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="sm:w-[18px] sm:h-[18px]">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+            </svg>
+          </button>
           <button
             onClick={handleOpenSkills}
             className="text-text-secondary hover:text-text-primary transition-colors p-1 cursor-pointer"
@@ -100,6 +113,11 @@ export function ChatLayout({ sessionId, onNavigate }: Props) {
             sessionId={sessionId}
           />
         </main>
+        {workspaceOpen && (
+          <aside className="fixed inset-y-10 sm:inset-y-12 right-0 z-40 sm:relative sm:z-auto w-full sm:w-[400px] lg:w-[450px] flex-shrink-0 h-full bg-surface transition-transform duration-200">
+            <WorkspacePanel onClose={() => setWorkspaceOpen(false)} />
+          </aside>
+        )}
       </div>
     </div>
   );

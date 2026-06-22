@@ -103,11 +103,16 @@ class PiSessionManager {
       mkdirSync(sessionDir, { recursive: true });
     }
 
+    const workspaceDir = `${userDir}/workspace`;
+    if (!existsSync(workspaceDir)) {
+      mkdirSync(workspaceDir, { recursive: true });
+    }
+
     const { authStorage, modelRegistry } = this.getUserContext(username);
 
     const skillPaths = getResolvedSkillPaths(process.cwd());
     const resourceLoader = new DefaultResourceLoader({
-      cwd: sessionDir,
+      cwd: workspaceDir,
       agentDir: userDir,
       additionalSkillPaths: skillPaths,
       appendSystemPrompt: [
@@ -140,7 +145,7 @@ class PiSessionManager {
     }
 
     const { session } = await createAgentSession({
-      cwd: sessionDir,
+      cwd: workspaceDir,
       sessionManager,
       authStorage,
       modelRegistry,
