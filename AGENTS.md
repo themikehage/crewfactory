@@ -8,6 +8,7 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 2. Pick next incomplete task from `steps.md`
 3. Complete task, validate, commit
 4. Update `steps.md` to mark completed
+5. Update `about.md` after each new change to keep documentation current (architecture, features, API endpoints, and modules)
 
 ## Commands
 - `bun run dev` - Start both client and server (from root)
@@ -33,15 +34,33 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 - **Persistence:** localStorage (client), filesystem (server sessions at /tmp/pi-web-users)
 - **Deployment:** Coolify (Docker)
 
+## Workspace Structure
+Each user has an isolated workspace at `/tmp/pi-web-users/{username}/workspace/`:
+```
+workspace/
+  repos/           # Git repositories (each is an isolated agent context)
+  assets/
+    uploads/       # User-uploaded files
+    generated/     # Agent-generated outputs (images, diagrams)
+  memories/
+    repos/         # Per-repo agent notes and context
+    sessions/      # Short-term session memories
+```
+
+### Agent Instantiation Modes
+- **Global mode (root):** Agent CWD = `/workspace`. Used for cross-repo tasks, asset management, and memory administration.
+- **Repo mode:** Agent CWD = `/workspace/repos/{repoName}`. Used for focused, isolated development within a single repository. Sessions are bound to the repo via `metadata.json`.
+
 ## Design Tokens
-- Palette: bg=#0f172a, surface=#1e293b, surfaceHover=#334155, accent=#3b82f6, textPrimary=#f1f5f9, textSecondary=#94a3b8, highlight=#8b5cf6, success=#10b981, error=#ef4444, warning=#f59e0b
-- Typography: display=Inter, mono=JetBrains Mono (Google Fonts, loaded in index.html)
-- All colors use Tailwind @theme tokens
+- Theme defined in `apps/client/src/index.css` via Tailwind CSS v4 `@theme`
+- Palette: `bg=#121212`, `surface=#171717`, `surface-hover=#313131`, `accent=#4ade80` (green), `text-primary=#e2e8f0`, `text-secondary=#a2a2a2`, `success=#4ade80`, `error=#ca3214`, `warning=#fbbf24`
+- Typography: `display/body=Outfit`, `mono=JetBrains Mono` (Google Fonts, loaded in index.html)
+- **Always use Tailwind tokens** (`bg-bg`, `bg-surface`, `text-accent`, etc.). Never use raw hex values in component code.
 
 ## Git Commit Style
 `type(scope): description`
 - Types: feat, fix, style, chore, refactor, docs
-- Scopes: auth, chat, ws, session, ui, deploy, project
+- Scopes: auth, chat, ws, session, ui, deploy, project, workspace, dashboard, repo
 
 ## Deploy
 
