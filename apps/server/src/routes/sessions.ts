@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
+import { existsSync, readFileSync } from "node:fs";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { piSessionManager } from "../pi/session-manager";
 import { CreateSessionSchema, PromptSchema, ModelSettingsSchema } from "shared";
@@ -159,5 +160,39 @@ sessionsRouter.post(
     return c.json({ success: true, model: { id: model.id, name: model.name, provider: model.provider as string } });
   }
 );
+
+sessionsRouter.get("/:id/skills", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+
+  try {
+    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const { skills, diagnostics } = session.resourceLoader.getSkills();
+
+    const skillsWithContent = skills.map((skill) => {
+      let content = "";
+      if (existsSync(skill.filePath)) {
+        try {
+          content = readFileSync(skill.filePath, "utf-8");
+        } catch (e) {
+          console.error(`Failed to read skill file ${skill.filePath}:`, e);
+        }
+      }
+      return {
+        name: skill.name,
+        description: skill.description,
+        filePath: skill.filePath,
+        disableModelInvocation: skill.disableModelInvocation,
+        scope: skill.sourceInfo?.scope || "project",
+        content,
+      };
+    });
+
+    return c.json({ skills: skillsWithContent, diagnostics });
+  } catch (error) {
+    return c.json({ error: String(error) }, 500);
+  }
+});
+
 
 

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, type KeyboardEvent } from "react";
 import { ModelSelector } from "./ModelSelector";
 import { ToolsSelector } from "./ToolsSelector";
+import { SkillsSelector } from "./SkillsSelector";
 
 interface Props {
   onSend: (message: string, option?: "steer" | "follow_up", tools?: string[]) => void;
@@ -21,6 +22,8 @@ export function InputArea({ onSend, onAbort, streaming, sessionId }: Props) {
     }
   });
   const [showOptions, setShowOptions] = useState(false);
+  const [skills, setSkills] = useState<any[]>([]);
+  const [skillsLoading, setSkillsLoading] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
 
@@ -39,6 +42,32 @@ export function InputArea({ onSend, onAbort, streaming, sessionId }: Props) {
     } catch {
       setActiveTools(["read", "write", "edit", "bash", "grep", "find", "ls"]);
     }
+  }, [sessionId]);
+
+  // Fetch session skills when sessionId changes
+  useEffect(() => {
+    if (!sessionId) {
+      setSkills([]);
+      return;
+    }
+    const fetchSessionSkills = async () => {
+      setSkillsLoading(true);
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/sessions/${sessionId}/skills`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setSkills(data.skills ?? []);
+        }
+      } catch (err) {
+        console.error("Error loading session skills:", err);
+      } finally {
+        setSkillsLoading(false);
+      }
+    };
+    fetchSessionSkills();
   }, [sessionId]);
 
   // Click outside to close options
@@ -165,10 +194,15 @@ export function InputArea({ onSend, onAbort, streaming, sessionId }: Props) {
       </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-center justify-between relative px-1">
         <ModelSelector sessionId={sessionId} />
-        <ToolsSelector
-          activeTools={activeTools}
-          onChange={handleToolsChange}
-        />
+        <div className="flex items-center gap-3">
+          {sessionId && (
+            <SkillsSelector skills={skills} loading={skillsLoading} />
+          )}
+          <ToolsSelector
+            activeTools={activeTools}
+            onChange={handleToolsChange}
+          />
+        </div>
       </div>
     </div>
   );

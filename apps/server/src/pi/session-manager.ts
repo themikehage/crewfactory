@@ -4,11 +4,48 @@ import {
   ModelRegistry,
   SessionManager,
   DefaultResourceLoader,
+  getAgentDir,
   type AgentSession,
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
 import { existsSync, mkdirSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, dirname } from "node:path";
+
+export function getResolvedSkillPaths(cwd: string): string[] {
+  const paths: string[] = [];
+  try {
+    const realAgentDir = getAgentDir();
+    const globalSkillsDir = resolve(realAgentDir, "skills");
+    if (existsSync(globalSkillsDir)) {
+      paths.push(globalSkillsDir);
+    }
+  } catch (e) {
+  }
+  let current = resolve(cwd);
+  let workspaceRoot = current;
+  while (true) {
+    if (existsSync(resolve(current, "package.json")) || existsSync(resolve(current, "bun.lock"))) {
+      workspaceRoot = current;
+    }
+    const parent = dirname(current);
+    if (parent === current) {
+      break;
+    }
+    current = parent;
+  }
+  const localCandidates = [
+    resolve(workspaceRoot, ".pi/skills"),
+    resolve(workspaceRoot, ".agents/skills"),
+    resolve(workspaceRoot, "pi/.pi/skills"),
+    resolve(workspaceRoot, "pi/.agents/skills"),
+  ];
+  for (const candidate of localCandidates) {
+    if (existsSync(candidate) && !paths.includes(candidate)) {
+      paths.push(candidate);
+    }
+  }
+  return paths;
+}
 
 interface UserSessionEntry {
   session: AgentSession;
@@ -68,9 +105,11 @@ class PiSessionManager {
 
     const { authStorage, modelRegistry } = this.getUserContext(username);
 
+    const skillPaths = getResolvedSkillPaths(process.cwd());
     const resourceLoader = new DefaultResourceLoader({
       cwd: sessionDir,
       agentDir: userDir,
+      additionalSkillPaths: skillPaths,
       appendSystemPrompt: [
         `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
         `- When generating web pages, HTML layouts, mockups, or visual documents, always output them as complete HTML files starting with "<!DOCTYPE html>" or "<html>" to enable a live browser-based preview.\n` +

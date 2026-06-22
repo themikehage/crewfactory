@@ -30,6 +30,10 @@ export function ChatLayout({ sessionId, onNavigate }: Props) {
     onNavigate("/settings");
   }, [onNavigate]);
 
+  const handleOpenSkills = useCallback(() => {
+    onNavigate("/skills");
+  }, [onNavigate]);
+
   return (
     <div className="h-dvh flex flex-col bg-bg">
       <header className="h-10 sm:h-12 flex items-center justify-between px-3 sm:px-4 border-b border-surface flex-shrink-0">
@@ -46,8 +50,18 @@ export function ChatLayout({ sessionId, onNavigate }: Props) {
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
           <button
+            onClick={handleOpenSkills}
+            className="text-text-secondary hover:text-text-primary transition-colors p-1 cursor-pointer"
+            title="Skills Library"
+          >
+            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="sm:w-[18px] sm:h-[18px]">
+              <path d="M9 4.804A7.968 7.968 0 005.5 4c-1.255 0-2.443.29-3.5.804v10A7.969 7.969 0 015.5 14c1.669 0 3.218.51 4.5 1.385A7.962 7.962 0 0114.5 14c1.255 0 2.443.29 3.5.804v-10A7.968 7.968 0 0014.5 4c-1.255 0-2.443.29-3.5.804V12a1 1 0 11-2 0V4.804z" />
+            </svg>
+          </button>
+          <button
             onClick={handleOpenSettings}
-            className="text-text-secondary hover:text-text-primary transition-colors p-1"
+            className="text-text-secondary hover:text-text-primary transition-colors p-1 cursor-pointer"
+            title="Settings"
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="sm:w-[18px] sm:h-[18px]">
               <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />

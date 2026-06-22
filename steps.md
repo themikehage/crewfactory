@@ -60,3 +60,9 @@
 - [x] 9.3 Deploy to Coolify
 - [x] 9.4 Configure environment variables
 - [x] 9.5 Verify deployment
+
+## Phase 10: Prompts & Skills
+- [x] 10.1 Implement API route for session skills
+- [x] 10.2 Implement frontend SkillsSelector in Chat Input
+- [x] 10.3 Implement API route for global workspace skills
+- [x] 10.4 Implement standalone Skills Library page

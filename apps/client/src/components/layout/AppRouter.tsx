@@ -1,6 +1,7 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/pages/LoginPage";
 import { SettingsPage } from "@/pages/SettingsPage";
+import { SkillsPage } from "@/pages/SkillsPage";
 import { useRouter } from "@/hooks/useRouter";
 import { ChatLayout } from "./ChatLayout";
 
@@ -22,6 +23,10 @@ export function AppRouter() {
 
   if (route.page === "settings") {
     return <SettingsPage onClose={() => navigate("/")} />;
+  }
+
+  if (route.page === "skills") {
+    return <SkillsPage onClose={() => navigate("/")} />;
   }
 
   return <ChatLayout sessionId={route.sessionId} onNavigate={navigate} />;

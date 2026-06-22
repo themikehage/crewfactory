@@ -8,6 +8,7 @@ import { sessionsRouter } from "./routes/sessions";
 import { filesRouter } from "./routes/files";
 import { modelsRouter } from "./routes/models";
 import { providersRouter } from "./routes/providers";
+import { skillsRouter } from "./routes/skills";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
@@ -22,6 +23,7 @@ app.route("/api/sessions", sessionsRouter);
 app.route("/api", filesRouter);
 app.route("/api/models", modelsRouter);
 app.route("/api/providers", providersRouter);
+app.route("/api/skills", skillsRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
