@@ -90,16 +90,28 @@ filesRouter.get("/sessions/:sessionId/files/*", async (c) => {
   return c.body(file.stream());
 });
 
+function getRelativePath(c: any): string {
+  const prefix = "/api/workspace";
+  let relativePath = "";
+  if (c.req.path.startsWith(prefix)) {
+    relativePath = c.req.path.substring(prefix.length);
+    if (relativePath.startsWith("/")) {
+      relativePath = relativePath.substring(1);
+    }
+  }
+  return decodeURIComponent(relativePath);
+}
+
 // ---------------------------------------------------------
 // 2. Persistent User Workspace Endpoints
 // ---------------------------------------------------------
 
 // GET: list directory files or fetch specific file details/stream
-filesRouter.get("/workspace/*", async (c) => {
+const handleGetWorkspace = async (c: any) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
-  const relativePath = c.req.param("*") || "";
+  const relativePath = getRelativePath(c);
   if (relativePath.includes("..")) {
     return c.json({ error: "Forbidden" }, 403);
   }
@@ -192,14 +204,18 @@ filesRouter.get("/workspace/*", async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to access path" }, 500);
   }
-});
+};
+
+filesRouter.get("/workspace", handleGetWorkspace);
+filesRouter.get("/workspace/*", handleGetWorkspace);
 
 // PUT: create file or folder
-filesRouter.put("/workspace/*", async (c) => {
+const handlePutWorkspace = async (c: any) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
-  const relativePath = c.req.param("*") || "";
+  const relativePath = getRelativePath(c);
+  console.log("PUT workspace received:", { relativePath, path: c.req.path, username });
   if (relativePath.includes("..") || !relativePath) {
     return c.json({ error: "Forbidden or empty path" }, 403);
   }
@@ -235,14 +251,17 @@ filesRouter.put("/workspace/*", async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to create resource" }, 500);
   }
-});
+};
+
+filesRouter.put("/workspace", handlePutWorkspace);
+filesRouter.put("/workspace/*", handlePutWorkspace);
 
 // POST: upload file (multipart form data)
-filesRouter.post("/workspace/*", async (c) => {
+const handlePostWorkspace = async (c: any) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
-  const relativePath = c.req.param("*") || "";
+  const relativePath = getRelativePath(c);
   if (relativePath.includes("..")) {
     return c.json({ error: "Forbidden" }, 403);
   }
@@ -278,14 +297,17 @@ filesRouter.post("/workspace/*", async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message || "Upload failed" }, 500);
   }
-});
+};
+
+filesRouter.post("/workspace", handlePostWorkspace);
+filesRouter.post("/workspace/*", handlePostWorkspace);
 
 // DELETE: delete file or folder
-filesRouter.delete("/workspace/*", async (c) => {
+const handleDeleteWorkspace = async (c: any) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
-  const relativePath = c.req.param("*") || "";
+  const relativePath = getRelativePath(c);
   if (relativePath.includes("..") || !relativePath) {
     return c.json({ error: "Forbidden or empty path" }, 403);
   }
@@ -307,14 +329,17 @@ filesRouter.delete("/workspace/*", async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to delete resource" }, 500);
   }
-});
+};
+
+filesRouter.delete("/workspace", handleDeleteWorkspace);
+filesRouter.delete("/workspace/*", handleDeleteWorkspace);
 
 // PATCH: rename or move
-filesRouter.patch("/workspace/*", async (c) => {
+const handlePatchWorkspace = async (c: any) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
-  const relativePath = c.req.param("*") || "";
+  const relativePath = getRelativePath(c);
   if (relativePath.includes("..") || !relativePath) {
     return c.json({ error: "Forbidden or empty path" }, 403);
   }
@@ -346,4 +371,7 @@ filesRouter.patch("/workspace/*", async (c) => {
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to rename resource" }, 500);
   }
-});
+};
+
+filesRouter.patch("/workspace", handlePatchWorkspace);
+filesRouter.patch("/workspace/*", handlePatchWorkspace);
