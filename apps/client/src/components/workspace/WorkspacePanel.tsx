@@ -302,50 +302,6 @@ export function WorkspacePanel() {
 
   return (
     <div className="w-full h-full flex flex-col bg-surface overflow-hidden border-l border-surface select-none">
-      <div className="h-9 px-3 border-b border-surface flex items-center justify-between flex-shrink-0 bg-[#0d1321]/80">
-        <div className="text-[10px] text-text-secondary uppercase tracking-wider font-semibold">
-          Files
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => loadWorkspace("")}
-            className="p-1 text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 rounded transition-colors cursor-pointer"
-            title="Refresh Root"
-          >
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-              <path
-                fillRule="evenodd"
-                d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.259.627 5.002 5.002 0 009.23 1.316H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-          <button
-            onClick={() => setAddingRootType("file")}
-            className="p-1 text-text-secondary hover:text-success rounded transition-colors cursor-pointer"
-            title="New File in Root"
-          >
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6z" />
-              <path
-                fillRule="evenodd"
-                d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
-                clipRule="evenodd"
-              />
-            </svg>
-          </button>
-          <button
-            onClick={() => setAddingRootType("folder")}
-            className="p-1 text-text-secondary hover:text-warning rounded transition-colors cursor-pointer"
-            title="New Folder in Root"
-          >
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
       {error && (
         <div className="px-3 py-1.5 bg-error/10 border-b border-error/20 text-error text-[10px] flex items-center justify-between flex-shrink-0">
           <span className="truncate">{error}</span>
@@ -365,6 +321,48 @@ export function WorkspacePanel() {
               onChange={(e) => setSearchQuery(e.target.value)}
               className="w-full bg-[#0b0f19] border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1 rounded text-xs transition-all font-sans"
             />
+          </div>
+
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-surface/50 flex-shrink-0 text-text-secondary">
+            <span className="text-[10px] uppercase tracking-wider font-semibold">Files</span>
+            <div className="flex items-center gap-1.5">
+              <button
+                onClick={() => loadWorkspace("")}
+                className="p-1 text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 rounded transition-colors cursor-pointer"
+                title="Refresh Root"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                  <path
+                    fillRule="evenodd"
+                    d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.259.627 5.002 5.002 0 009.23 1.316H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setAddingRootType("file")}
+                className="p-1 text-text-secondary hover:text-success rounded transition-colors cursor-pointer"
+                title="New File in Root"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6z" />
+                  <path
+                    fillRule="evenodd"
+                    d="M10 5a1 1 0 011 1v3h3a1 1 0 110 2h-3v3a1 1 0 11-2 0v-3H6a1 1 0 110-2h3V6a1 1 0 011-1z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </button>
+              <button
+                onClick={() => setAddingRootType("folder")}
+                className="p-1 text-text-secondary hover:text-warning rounded transition-colors cursor-pointer"
+                title="New Folder in Root"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                  <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+                </svg>
+              </button>
+            </div>
           </div>
 
           <div className="flex-1 overflow-y-auto min-h-0">

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ProviderInfo {
   id: string;
@@ -8,6 +9,7 @@ interface ProviderInfo {
 }
 
 export function SettingsPage() {
+  const { user, logout } = useAuth();
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -82,6 +84,24 @@ export function SettingsPage() {
     <div className="h-full flex flex-col bg-bg">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-3 sm:p-6 space-y-6">
+          <div className="bg-surface rounded-lg p-4 flex items-center justify-between border border-surface-hover/30">
+            <div className="flex items-center gap-3">
+              <div className="w-8 h-8 rounded-full bg-accent/15 flex items-center justify-center text-accent font-semibold font-mono uppercase select-none">
+                {user?.username?.[0] || "?"}
+              </div>
+              <div>
+                <div className="text-text-primary text-sm font-medium">{user?.username}</div>
+                <div className="text-text-secondary text-[11px]">Active Session</div>
+              </div>
+            </div>
+            <button
+              onClick={logout}
+              className="text-xs bg-error/10 text-error hover:bg-error/20 border border-error/20 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
+            >
+              Sign Out
+            </button>
+          </div>
+
           <div>
             <h2 className="text-text-primary font-semibold text-base mb-4">Providers</h2>
             {error && (
