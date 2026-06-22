@@ -57,14 +57,12 @@
 - Sandbox badge in chat header shows current mode (Read-Only / Full Access / N/7 Tools)
 - Tools also sent per-prompt via WebSocket for immediate override
 
-### Task Runner
-- Persistent, stateful task execution (saved in `tasks.json` in user's repo or workspace root)
-- Automatic task decomposition via LLM prompt styling or manual task sequences
-- Autonomous step-by-step loop: auto-advances to next task on step success
-- Play, pause, resume, and cancel control interface
-- Live WebSocket event updates for task run status, task step start/completion, logs, and progress
-- Responsive sidebar panel `TaskPanel` with individual step progress, accordion logs, and control actions
-- Pulse badge in global header layout when task runner is active in current session
+### Task Runner (Supervisor Loop)
+- Decompose high-level goals into sequential task steps using active session LLM
+- Persistent runner state saved in session `tasks.json`
+- Start, pause, reset, and manual adjustments (add, reorder, edit, delete steps) of the queue
+- Auto-continuation loop (Supervisor) running asynchronously in server background
+- Premium sliding Tasks side panel with shimmers, pulse spinners, and expanded task execution output logs
 
 ## API Endpoints
 
@@ -87,11 +85,12 @@
 | GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name` scoping) |
 | GET | /api/sessions/:id/tools | Get active tool permissions for session |
 | POST | /api/sessions/:id/tools | Set and persist tool permissions for session |
-| POST | /api/sessions/:id/task | Start/create task run (objective or manual list) |
-| GET | /api/sessions/:id/tasks | Read current/last task run status and logs |
-| POST | /api/sessions/:id/task/pause | Pause active task run |
-| POST | /api/sessions/:id/task/resume | Resume paused task run |
-| DELETE | /api/sessions/:id/task | Cancel and archive active task run |
+| GET | /api/sessions/:id/tasks | Get session task runner state |
+| POST | /api/sessions/:id/tasks | Set and persist task checklist |
+| POST | /api/sessions/:id/tasks/decompose | Trigger AI subtask decomposition |
+| POST | /api/sessions/:id/tasks/run | Start/resume the supervisor loop |
+| POST | /api/sessions/:id/tasks/pause | Pause execution and abort active stream |
+| POST | /api/sessions/:id/tasks/reset | Reset all steps to pending and clear logs |
 | WS | /ws | WebSocket for real-time streaming |
 | GET | /api/health | Health check |
 
@@ -105,12 +104,11 @@ packages/shared/  Shared Zod schemas and types
 
 ### Key Server Modules
 - `pi/session-manager.ts` — Singleton managing AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `repoName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
-- `pi/task-runner.ts` — Singleton coordinating active task runs, step looping, and disk persistence.
+- `pi/task-runner.ts` — Task runner queue storage and supervisor background loop execution.
 - `routes/files.ts` — Workspace file CRUD API with `?repo=name` scoping and `/workspace-repos` endpoints for repo management.
 - `routes/providers.ts` — Dynamic provider configuration API
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
-- `routes/sessions.ts` — Session CRUD with `repoName` binding and tool permissions endpoints
-- `routes/tasks.ts` — API endpoints for task CRUD and execution control.
+- `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints
 - `ws/handler.ts` — WebSocket auth via JWT, streaming via session.subscribe()
 - `middleware/auth.ts` — JWT verification middleware for REST routes
 
@@ -122,7 +120,7 @@ packages/shared/  Shared Zod schemas and types
 - `components/layout/AppRouter.tsx` — Routing logic with repo context state (global vs repo mode). Persists active context in localStorage.
 - `components/layout/ChatLayout.tsx` — Mobile-first layout with collapsible sidebar
 - `components/layout/MainLayout.tsx` — App shell with context-aware header (back to Dashboard button) and scoped SessionSidebar.
-- `components/chat/ChatArea.tsx` — Message list, streaming state, error display
+- `components/chat/ChatArea.tsx` — Message list, streaming state, error display, layout structure with side-by-side tasks queue
+- `components/chat/TasksPanel.tsx` — Premium task drawer component displaying subtasks, logs, and controls
 - `components/sidebar/SessionSidebar.tsx` — Filters sessions by active `repoName`; creates sessions with correct context.
-- `components/sidebar/TaskPanel.tsx` — Panel rendering task progress, logs accordion, and play/pause controls.
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active repo via `?repo=` query param.

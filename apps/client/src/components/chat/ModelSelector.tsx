@@ -16,11 +16,12 @@ interface SelectedModel {
 
 interface Props {
   sessionId: string | null;
+  disabled?: boolean;
 }
 
 const STORAGE_KEY = "pi-selected-model";
 
-export function ModelSelector({ sessionId }: Props) {
+export function ModelSelector({ sessionId, disabled = false }: Props) {
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [selected, setSelected] = useState<SelectedModel | null>(() => {
     try {
@@ -126,10 +127,14 @@ export function ModelSelector({ sessionId }: Props) {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => {
+          if (disabled) return;
           setOpen(!open);
           setActiveProvider(null);
         }}
-        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5"
+        disabled={disabled}
+        className={`flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
       >
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v2H4V6zm0 4h3v4H4v-4zm5 0h7v4H9v-4z" clipRule="evenodd" />

@@ -11,9 +11,10 @@ interface Props {
   streaming: boolean;
   sessionId: string | null;
   onToolsChange?: (tools: string[]) => void;
+  runnerActive?: boolean;
 }
 
-export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange }: Props) {
+export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false }: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
   const [showOptions, setShowOptions] = useState(false);
@@ -151,7 +152,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
   };
 
   const handleSend = (option?: "steer" | "follow_up") => {
-    if (!input.trim()) return;
+    if (!input.trim() || runnerActive) return;
     onSend(input, option, activeTools);
     setInput("");
   };
@@ -253,8 +254,11 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
             checkAutocomplete(target.value, target.selectionStart);
           }}
           onKeyDown={handleKeyDown}
+          disabled={runnerActive}
           placeholder={
-            streaming
+            runnerActive
+              ? "Task runner is active. Pause execution to send messages manually."
+              : streaming
               ? "Steer agent... (Enter to steer, Alt+Enter to enqueue follow-up)"
               : "Send a message... (Enter to send, Shift+Enter for new line)"
           }
@@ -276,7 +280,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
             <div className="flex rounded-lg overflow-hidden">
               <button
                 onClick={() => handleSend("steer")}
-                disabled={!input.trim()}
+                disabled={!input.trim() || runnerActive}
                 className="px-3 sm:px-4 py-2 sm:py-3 bg-accent text-bg hover:opacity-90
                            disabled:opacity-50 transition-opacity flex-shrink-0 font-semibold text-xs sm:text-sm cursor-pointer border-r border-bg/10"
               >
@@ -284,7 +288,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
               </button>
               <button
                 onClick={() => setShowOptions(!showOptions)}
-                disabled={!input.trim()}
+                disabled={!input.trim() || runnerActive}
                 className="px-2 py-2 sm:py-3 bg-accent text-bg hover:opacity-90
                            disabled:opacity-50 transition-opacity flex items-center justify-center cursor-pointer"
               >
@@ -310,7 +314,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         ) : (
           <button
             onClick={() => handleSend()}
-            disabled={!input.trim()}
+            disabled={!input.trim() || runnerActive}
             className="px-3 sm:px-4 py-2 sm:py-3 bg-accent text-bg rounded-lg hover:opacity-90
                        disabled:opacity-50 transition-opacity flex-shrink-0 font-semibold text-xs sm:text-sm cursor-pointer"
           >
@@ -319,12 +323,13 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         )}
       </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-center justify-between relative px-1">
-        <ModelSelector sessionId={sessionId} />
+        <ModelSelector sessionId={sessionId} disabled={runnerActive} />
         <div className="flex items-center gap-3">
           {sessionId && (
             <SkillsSelector
               skills={skills}
               loading={skillsLoading}
+              disabled={runnerActive}
               onSelectSkill={(skillName) => {
                 const textarea = textareaRef.current;
                 if (!textarea) return;
@@ -351,6 +356,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
           <ToolsSelector
             activeTools={activeTools}
             onChange={handleToolsChange}
+            disabled={runnerActive}
           />
         </div>
       </div>

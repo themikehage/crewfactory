@@ -14,9 +14,10 @@ interface Props {
   skills: SkillInfo[];
   loading: boolean;
   onSelectSkill?: (skillName: string) => void;
+  disabled?: boolean;
 }
 
-export function SkillsSelector({ skills, loading, onSelectSkill }: Props) {
+export function SkillsSelector({ skills, loading, onSelectSkill, disabled = false }: Props) {
   const [open, setOpen] = useState(false);
   const [viewingSkill, setViewingSkill] = useState<SkillInfo | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -36,8 +37,11 @@ export function SkillsSelector({ skills, loading, onSelectSkill }: Props) {
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer"
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        className={`flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
         title="Session skills list"
       >
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">

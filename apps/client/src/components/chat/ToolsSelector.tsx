@@ -13,9 +13,10 @@ export const ALL_TOOLS = [
 interface Props {
   activeTools: string[];
   onChange: (tools: string[]) => void;
+  disabled?: boolean;
 }
 
-export function ToolsSelector({ activeTools, onChange }: Props) {
+export function ToolsSelector({ activeTools, onChange, disabled = false }: Props) {
   const [open, setOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
@@ -68,8 +69,11 @@ export function ToolsSelector({ activeTools, onChange }: Props) {
   return (
     <div className="relative inline-block text-left" ref={dropdownRef}>
       <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer"
+        onClick={() => !disabled && setOpen(!open)}
+        disabled={disabled}
+        className={`flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer ${
+          disabled ? "opacity-50 cursor-not-allowed" : ""
+        }`}
       >
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M2.166 4.9L10 1.154l7.834 3.746A2 2 0 0119 6.707V13a6 6 0 01-9 5.2v-2.067a4 4 0 003-3.833V7.907l-3-1.434v8.86a2.001 2.001 0 01-2 0v-8.86L5 7.907v4.993a4 4 0 003 3.833V18.2A6 6 0 011 13V6.707a2 2 0 011.166-1.808z" clipRule="evenodd" />

@@ -2,7 +2,6 @@ import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
-import type { RunStatus } from "shared";
 
 interface Props {
   route: Route;
@@ -14,7 +13,6 @@ interface Props {
 
 export function MainLayout({ route, onNavigate, activeRepoName, onLeaveContext, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [taskRunStatus, setTaskRunStatus] = useState<RunStatus | null>(null);
 
   const pendingWorkspaceFile = useRef<string | null>(null);
 
@@ -41,15 +39,6 @@ export function MainLayout({ route, onNavigate, activeRepoName, onLeaveContext, 
       }, 150);
     }
   }, [route.page]);
-
-  useEffect(() => {
-    const handler = (e: Event) => {
-      const evt = e as CustomEvent<{ status: RunStatus | null }>;
-      setTaskRunStatus(evt.detail.status);
-    };
-    window.addEventListener("taskRunStatusChange", handler);
-    return () => window.removeEventListener("taskRunStatusChange", handler);
-  }, []);
 
   const handleSelectSession = useCallback((id: string) => {
     if (id) {
@@ -121,18 +110,6 @@ export function MainLayout({ route, onNavigate, activeRepoName, onLeaveContext, 
           </span>
         </div>
         <div className="flex items-center gap-2 sm:gap-4">
-          {taskRunStatus === "running" && (
-            <div className="flex items-center gap-1.5 text-xs text-accent" title="Task run in progress">
-              <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
-              <span className="hidden sm:inline text-[10px] font-semibold">Tasks</span>
-            </div>
-          )}
-          {taskRunStatus === "paused" && (
-            <div className="flex items-center gap-1.5 text-xs text-warning" title="Task run paused">
-              <span className="w-1.5 h-1.5 rounded-full bg-warning" />
-              <span className="hidden sm:inline text-[10px] font-semibold">Paused</span>
-            </div>
-          )}
           <button
             onClick={() => onNavigate("/workspace")}
             className={`p-1 cursor-pointer transition-colors ${

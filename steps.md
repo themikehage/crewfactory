@@ -100,14 +100,13 @@
 - [x] 13.9 Client: `InputArea` exposes `onToolsChange` prop for real-time parent updates
 - [x] 13.10 Client: `ChatArea` displays sandbox status badge in header (Read-Only / Full Access / N/7 Tools)
 
-## Phase 14: Task Runner
-- [x] 14.1 Shared: TaskStatus, RunStatus, TaskItem, TaskRun, CreateTaskRunSchema
-- [x] 14.2 session-manager: getWorkspaceDir() method + workspaceDirs map
-- [x] 14.3 task-runner: TaskRunner singleton (loop, pause, resume, disk I/O, decomposition)
-- [x] 14.4 routes/tasks: POST task, GET tasks, pause, resume, DELETE
-- [x] 14.5 ws/handler: task_pause / task_resume + wsUserSend export
-- [x] 14.6 index: registrar tasksRouter
-- [x] 14.7 TaskPanel: panel con lista de tareas, progress, controles, log expandible
-- [x] 14.8 SessionSidebar: integrar TaskPanel
-- [x] 14.9 MainLayout: badge de tasks activo en header
-- [x] 14.10 taskRunStatusChange global event para sincronizar header badge
+---
+
+## Phase 14: Task Runner (Persistent Task Queue)
+- [x] 14.1 Shared schemas: Zod types for TaskStatus, RunnerStatus, Task, and TaskRunnerState
+- [x] 14.2 WebSocket tracking: track connected sockets by sessionId and broadcast helper
+- [x] 14.3 Server Task Runner loop & decomposition logic in `apps/server/src/pi/task-runner.ts`
+- [x] 14.4 REST endpoints `/api/sessions/:id/tasks` (GET, POST, /decompose, /run, /pause, /reset)
+- [x] 14.5 Client layout updates: disable message composition in `InputArea.tsx` during task runner execution
+- [x] 14.6 Client `TasksPanel.tsx` drawer rendering checklist, log code blocks, and controllers
+- [x] 14.7 Client `ChatArea.tsx` layout and toggle button integration

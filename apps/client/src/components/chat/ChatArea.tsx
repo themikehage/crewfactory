@@ -2,6 +2,9 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageList } from "./MessageList";
 import { InputArea } from "./InputArea";
+import { TasksPanel } from "./TasksPanel";
+import { AnimatePresence } from "framer-motion";
+import type { Task, TaskRunnerState } from "shared";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
@@ -56,9 +59,78 @@ export function ChatArea({ sessionId }: Props) {
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sandboxTools, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
+  const [tasksPanelOpen, setTasksPanelOpen] = useState(false);
+  const [tasksState, setTasksState] = useState<TaskRunnerState>({
+    tasks: [],
+    currentTaskId: null,
+    status: "idle",
+  });
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const firstMessageSentRef = useRef(false);
+
+  const handleRunTasks = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`/api/sessions/${sessionId}/tasks/run`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+  }, [sessionId]);
+
+  const handlePauseTasks = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`/api/sessions/${sessionId}/tasks/pause`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+  }, [sessionId]);
+
+  const handleResetTasks = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`/api/sessions/${sessionId}/tasks/reset`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+    } catch {}
+  }, [sessionId]);
+
+  const handleDecomposeTasks = useCallback(async (objective: string) => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`/api/sessions/${sessionId}/tasks/decompose`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ objective }),
+      });
+    } catch {}
+  }, [sessionId]);
+
+  const handleUpdateTasks = useCallback(async (updatedTasks: Task[]) => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      await fetch(`/api/sessions/${sessionId}/tasks`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ tasks: updatedTasks }),
+      });
+    } catch {}
+  }, [sessionId]);
 
   const loadMessages = useCallback(async () => {
     if (!sessionId) {
@@ -105,6 +177,20 @@ export function ChatArea({ sessionId }: Props) {
       } catch {}
     };
     fetchTools();
+
+    const fetchTasks = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/sessions/${sessionId}/tasks`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setTasksState(data);
+        }
+      } catch {}
+    };
+    fetchTasks();
 
     const unsubStart = subscribe("agent_start", () => {
       setStreaming(true);
@@ -165,6 +251,12 @@ export function ChatArea({ sessionId }: Props) {
       setError(String(evt.error ?? "Unknown error"));
     });
 
+    const unsubTasks = subscribe("tasks_update", (data: any) => {
+      if (data.state) {
+        setTasksState(data.state);
+      }
+    });
+
     return () => {
       unsubStart();
       unsubEnd();
@@ -172,6 +264,7 @@ export function ChatArea({ sessionId }: Props) {
       unsubMsg();
       unsubMsgEnd();
       unsubError();
+      unsubTasks();
     };
   }, [sessionId, subscribe]);
 
@@ -240,38 +333,68 @@ export function ChatArea({ sessionId }: Props) {
   }
 
   return (
-    <div className="h-full flex flex-col">
-      <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border-b border-surface text-xs text-text-secondary">
-        <span
-          className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`}
-        />
-        {connected ? "Connected" : "Reconnecting..."}
-        {streaming && <span className="ml-2 text-accent">Streaming...</span>}
-        <span className="ml-auto">
-          <span className={`font-medium ${getSandboxLabel(sandboxTools).color}`}>
-            {getSandboxLabel(sandboxTools).label}
+    <div className="h-full flex flex-row min-w-0 overflow-hidden">
+      <div className="flex-1 flex flex-col min-w-0 h-full">
+        <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border-b border-surface text-xs text-text-secondary flex-shrink-0">
+          <span
+            className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`}
+          />
+          {connected ? "Connected" : "Reconnecting..."}
+          {streaming && <span className="ml-2 text-accent">Streaming...</span>}
+          {tasksState.status !== "idle" && (
+            <span className="ml-2 px-1.5 py-0.2 rounded bg-accent/15 text-accent font-semibold text-[10px]">
+              Task Queue: {tasksState.status}
+            </span>
+          )}
+          <span className="ml-auto flex items-center gap-3">
+            <span className={`font-medium ${getSandboxLabel(sandboxTools).color}`}>
+              {getSandboxLabel(sandboxTools).label}
+            </span>
+            <button
+              onClick={() => setTasksPanelOpen(!tasksPanelOpen)}
+              className={`px-2 py-0.5 border border-surface hover:border-accent hover:text-accent rounded cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold ${
+                tasksPanelOpen ? "text-accent border-accent bg-accent/10" : ""
+              }`}
+            >
+              Tasks
+            </button>
           </span>
-        </span>
-      </div>
-      {error && (
-        <div className="px-3 sm:px-4 py-2 bg-error/10 border-b border-error/20 text-error text-xs">
-          {error}
-          <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
         </div>
-      )}
-      <div className="flex-1 overflow-y-auto min-h-0">
-        <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-          <MessageList messages={messages} onNavigate={handleNavigate} sessionId={sessionId} />
-          <div ref={messagesEndRef} />
+        {error && (
+          <div className="px-3 sm:px-4 py-2 bg-error/10 border-b border-error/20 text-error text-xs flex-shrink-0">
+            {error}
+            <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
+          </div>
+        )}
+        <div className="flex-1 overflow-y-auto min-h-0">
+          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
+            <MessageList messages={messages} onNavigate={handleNavigate} sessionId={sessionId} />
+            <div ref={messagesEndRef} />
+          </div>
         </div>
+        <InputArea
+          onSend={handleSend}
+          onAbort={handleAbort}
+          streaming={streaming}
+          sessionId={sessionId}
+          onToolsChange={setSandboxTools}
+          runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
+        />
       </div>
-      <InputArea
-        onSend={handleSend}
-        onAbort={handleAbort}
-        streaming={streaming}
-        sessionId={sessionId}
-        onToolsChange={setSandboxTools}
-      />
+
+      <AnimatePresence>
+        {tasksPanelOpen && (
+          <TasksPanel
+            tasksState={tasksState}
+            onClose={() => setTasksPanelOpen(false)}
+            onRun={handleRunTasks}
+            onPause={handlePauseTasks}
+            onReset={handleResetTasks}
+            onDecompose={handleDecomposeTasks}
+            onUpdateTasks={handleUpdateTasks}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

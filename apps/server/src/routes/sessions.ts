@@ -5,6 +5,15 @@ import { existsSync, readFileSync } from "node:fs";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { piSessionManager } from "../pi/session-manager";
 import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema } from "shared";
+import {
+  loadTasksState,
+  saveTasksState,
+  decomposeObjective,
+  startTaskRunner,
+  pauseTaskRunner,
+  resetTasks,
+  broadcastTaskUpdate
+} from "../pi/task-runner";
 
 const STORAGE_KEY = "pi-web-sessions";
 
@@ -222,5 +231,78 @@ sessionsRouter.get("/:id/tools", async (c) => {
 
   const tools = piSessionManager.getSessionTools(username, sessionId);
   return c.json({ tools });
+});
+
+sessionsRouter.get("/:id/tasks", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  const state = loadTasksState(username, sessionId);
+  return c.json(state);
+});
+
+sessionsRouter.post("/:id/tasks", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  try {
+    const { tasks } = await c.req.json();
+    const state = loadTasksState(username, sessionId);
+    state.tasks = tasks || [];
+    state.status = "idle";
+    state.currentTaskId = null;
+    state.error = undefined;
+    saveTasksState(username, sessionId, state);
+    broadcastTaskUpdate(sessionId, state);
+    return c.json(state);
+  } catch (err: any) {
+    return c.json({ error: String(err) }, 400);
+  }
+});
+
+sessionsRouter.post("/:id/tasks/decompose", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  try {
+    const { objective } = await c.req.json();
+    if (!objective || typeof objective !== "string") {
+      return c.json({ error: "Objective is required" }, 400);
+    }
+    await decomposeObjective(username, sessionId, objective);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: String(err) }, 500);
+  }
+});
+
+sessionsRouter.post("/:id/tasks/run", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  try {
+    await startTaskRunner(username, sessionId);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: String(err) }, 500);
+  }
+});
+
+sessionsRouter.post("/:id/tasks/pause", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  try {
+    await pauseTaskRunner(username, sessionId);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: String(err) }, 500);
+  }
+});
+
+sessionsRouter.post("/:id/tasks/reset", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  try {
+    resetTasks(username, sessionId);
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: String(err) }, 500);
+  }
 });
 
