@@ -7,7 +7,8 @@ import {
   type AgentSession,
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
-import { existsSync, mkdirSync } from "node:fs";
+import { existsSync, mkdirSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 
 interface UserSessionEntry {
   session: AgentSession;
@@ -83,9 +84,25 @@ class PiSessionManager {
     });
     await resourceLoader.reload();
 
+    const jsonlFiles = readdirSync(sessionDir)
+      .filter((f) => f.endsWith(".jsonl"))
+      .sort()
+      .reverse();
+
+    let sessionManager: SessionManager;
+    if (jsonlFiles.length > 0) {
+      sessionManager = SessionManager.open(
+        join(sessionDir, jsonlFiles[0]),
+        sessionDir,
+        sessionDir
+      );
+    } else {
+      sessionManager = SessionManager.create(sessionDir, sessionDir);
+    }
+
     const { session } = await createAgentSession({
       cwd: sessionDir,
-      sessionManager: SessionManager.create(sessionDir),
+      sessionManager,
       authStorage,
       modelRegistry,
       resourceLoader,
