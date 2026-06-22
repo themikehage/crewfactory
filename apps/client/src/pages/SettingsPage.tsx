@@ -163,14 +163,14 @@ export function SettingsPage() {
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-3 sm:p-6 space-y-6">
           
-          <div className="flex border-b border-surface-hover/30 mb-6 overflow-x-auto scrollbar-none gap-2 pb-1">
+          <div className="flex border-b border-surface-hover/30 mb-6 gap-1 pb-1 w-full sm:w-max">
             {tabs.map((tab) => {
               const active = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
+                  className={`flex-1 sm:flex-initial text-center px-2 sm:px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                     active
                       ? "text-accent bg-accent/10 border border-accent/25"
                       : "text-text-secondary hover:text-text-primary hover:bg-surface-hover/20 border border-transparent"
