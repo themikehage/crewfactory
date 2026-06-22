@@ -27,12 +27,22 @@ function replaceWorkspacePathsWithLinks(text: string): string {
   return result;
 }
 
+function customUrlTransform(url: string): string {
+  if (url.startsWith("workspace-file://")) {
+    return url;
+  }
+  const safeProtocol = /^(https?|mailto|tel):/i;
+  if (safeProtocol.test(url)) return url;
+  return "#";
+}
+
 export function RichMarkdown({ content }: Props) {
   const processedContent = useMemo(() => replaceWorkspacePathsWithLinks(content), [content]);
 
   return (
     <div className="prose prose-invert max-w-none text-xs sm:text-sm leading-relaxed font-sans">
       <ReactMarkdown
+        urlTransform={customUrlTransform}
         components={{
           code({ className, children, ...props }) {
             const match = /language-(\w+)/.exec(className || "");
@@ -106,6 +116,7 @@ export function RichMarkdown({ content }: Props) {
               const relPath = href.substring("workspace-file://".length);
               return (
                 <button
+                  type="button"
                   onClick={(e) => {
                     e.preventDefault();
                     e.stopPropagation();
