@@ -5,6 +5,7 @@ import { serveStatic } from "hono/bun";
 import { createBunWebSocket } from "hono/bun";
 import { authRouter } from "./routes/auth";
 import { sessionsRouter } from "./routes/sessions";
+import { tasksRouter } from "./routes/tasks";
 import { filesRouter } from "./routes/files";
 import { modelsRouter } from "./routes/models";
 import { providersRouter } from "./routes/providers";
@@ -21,6 +22,7 @@ app.use("/*", logger());
 
 app.route("/api/auth", authRouter);
 app.route("/api/sessions", sessionsRouter);
+app.route("/api/sessions", tasksRouter);
 app.route("/api", filesRouter);
 app.route("/api/models", modelsRouter);
 app.route("/api/providers", providersRouter);

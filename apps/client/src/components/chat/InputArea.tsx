@@ -16,7 +16,6 @@ interface Props {
 export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange }: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
-  const [toolsLoading, setToolsLoading] = useState(false);
   const [showOptions, setShowOptions] = useState(false);
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
@@ -34,7 +33,6 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
       return;
     }
     const fetchTools = async () => {
-      setToolsLoading(true);
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`/api/sessions/${sessionId}/tools`, {
@@ -46,8 +44,6 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         }
       } catch {
         setActiveTools(DEFAULT_TOOLS);
-      } finally {
-        setToolsLoading(false);
       }
     };
     fetchTools();

@@ -53,7 +53,48 @@ export type CreateSession = z.infer<typeof CreateSessionSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;
 export type SetApiKey = z.infer<typeof SetApiKeySchema>;
 export type SetEnvVar = z.infer<typeof SetEnvVarSchema>;
-export type { ToolPermissions };
+
+export const TaskStatusSchema = z.enum(["pending", "running", "done", "failed"]);
+export type TaskStatus = z.infer<typeof TaskStatusSchema>;
+
+export const RunStatusSchema = z.enum(["running", "paused", "done", "failed"]);
+export type RunStatus = z.infer<typeof RunStatusSchema>;
+
+export const TaskItemSchema = z.object({
+  id: z.string(),
+  title: z.string(),
+  prompt: z.string(),
+  status: TaskStatusSchema,
+  startedAt: z.string().nullable(),
+  completedAt: z.string().nullable(),
+  log: z.string(),
+  retries: z.number().default(0),
+});
+export type TaskItem = z.infer<typeof TaskItemSchema>;
+
+export const TaskRunSchema = z.object({
+  id: z.string(),
+  sessionId: z.string(),
+  objective: z.string(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  status: RunStatusSchema,
+  currentTaskIndex: z.number(),
+  tasks: z.array(TaskItemSchema),
+});
+export type TaskRun = z.infer<typeof TaskRunSchema>;
+
+export const CreateTaskRunSchema = z.union([
+  z.object({ objective: z.string().min(1) }),
+  z.object({
+    objective: z.string().default("Manual task list"),
+    tasks: z.array(z.object({
+      title: z.string().min(1),
+      prompt: z.string().min(1),
+    })).min(1),
+  }),
+]);
+export type CreateTaskRun = z.infer<typeof CreateTaskRunSchema>;
 
 export interface FileInfo {
   name: string;

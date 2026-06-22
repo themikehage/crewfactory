@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { TaskPanel } from "./TaskPanel";
+
 
 interface SessionItem {
   id: string;
@@ -144,6 +146,7 @@ export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSessio
           </p>
         )}
       </div>
+      <TaskPanel sessionId={activeSessionId} />
     </div>
   );
 }

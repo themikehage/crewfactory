@@ -81,6 +81,7 @@ interface UserContext {
 class PiSessionManager {
   private sessions = new Map<string, UserSessionEntry>();
   private users = new Map<string, UserContext>();
+  private workspaceDirs = new Map<string, string>();
 
   private getSessionKey(username: string, sessionId: string): string {
     return `${username}:${sessionId}`;
@@ -260,6 +261,7 @@ class PiSessionManager {
       session,
       unsubscribe,
     });
+    this.workspaceDirs.set(key, workspaceDir);
 
     return session;
   }
@@ -267,6 +269,11 @@ class PiSessionManager {
   getSession(username: string, sessionId: string): AgentSession | null {
     const key = this.getSessionKey(username, sessionId);
     return this.sessions.get(key)?.session ?? null;
+  }
+
+  getWorkspaceDir(username: string, sessionId: string): string | null {
+    const key = this.getSessionKey(username, sessionId);
+    return this.workspaceDirs.get(key) ?? null;
   }
 
   subscribeToSession(

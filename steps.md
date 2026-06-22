@@ -99,3 +99,15 @@
 - [x] 13.8 Client: `InputArea` persists tool changes via `POST /api/sessions/:id/tools`
 - [x] 13.9 Client: `InputArea` exposes `onToolsChange` prop for real-time parent updates
 - [x] 13.10 Client: `ChatArea` displays sandbox status badge in header (Read-Only / Full Access / N/7 Tools)
+
+## Phase 14: Task Runner
+- [x] 14.1 Shared: TaskStatus, RunStatus, TaskItem, TaskRun, CreateTaskRunSchema
+- [x] 14.2 session-manager: getWorkspaceDir() method + workspaceDirs map
+- [x] 14.3 task-runner: TaskRunner singleton (loop, pause, resume, disk I/O, decomposition)
+- [x] 14.4 routes/tasks: POST task, GET tasks, pause, resume, DELETE
+- [x] 14.5 ws/handler: task_pause / task_resume + wsUserSend export
+- [x] 14.6 index: registrar tasksRouter
+- [x] 14.7 TaskPanel: panel con lista de tareas, progress, controles, log expandible
+- [x] 14.8 SessionSidebar: integrar TaskPanel
+- [x] 14.9 MainLayout: badge de tasks activo en header
+- [x] 14.10 taskRunStatusChange global event para sincronizar header badge

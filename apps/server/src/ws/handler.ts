@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import { piSessionManager } from "../pi/session-manager";
+import { taskRunner } from "../pi/task-runner";
 import type { AuthPayload } from "../middleware/auth";
 import type { WSContext, WSMessageReceive } from "hono/ws";
 
@@ -11,6 +12,14 @@ interface PiWebSocket extends WSContext {
 let wsCounter = 0;
 const userMap = new Map<string, AuthPayload>();
 const wsSubscriptions = new Map<string, () => void>();
+const userWsMap = new Map<string, { send: (data: string) => void }>();
+
+export function wsUserSend(username: string): (event: Record<string, unknown>) => void {
+  return (event) => {
+    const ws = userWsMap.get(username);
+    if (ws) safeSend(ws, JSON.stringify(event));
+  };
+}
 
 function safeSend(ws: { send: (data: string) => void }, data: string) {
   try {
@@ -23,13 +32,16 @@ export function onOpen(_evt: Event, _ws: WSContext) {
   ws.wsId = String(++wsCounter);
 }
 
-export function onClose(_evt: any, _ws: WSContext) {
+export function onClose(_evt: unknown, _ws: WSContext) {
   const ws = _ws as unknown as PiWebSocket;
   userMap.delete(ws.wsId);
   const unsub = wsSubscriptions.get(ws.wsId);
   if (unsub) {
     unsub();
     wsSubscriptions.delete(ws.wsId);
+  }
+  if (ws.user) {
+    userWsMap.delete(ws.user.username);
   }
 }
 
@@ -54,6 +66,8 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
         process.env.JWT_SECRET!
       ) as AuthPayload;
       userMap.set(ws.wsId, user);
+      ws.user = user;
+      userWsMap.set(user.username, ws);
 
       const sessionId = data.sessionId as string;
       if (sessionId) {
@@ -173,6 +187,19 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     if (session) {
       await session.abort();
       safeSend(ws, JSON.stringify({ type: "aborted", sessionId }));
+    }
+  }
+
+  if (data.type === "task_pause") {
+    const sessionId = data.sessionId as string;
+    taskRunner.pause(user.username, sessionId);
+  }
+
+  if (data.type === "task_resume") {
+    const sessionId = data.sessionId as string;
+    const session = piSessionManager.getSession(user.username, sessionId);
+    if (session) {
+      await taskRunner.resume(user.username, sessionId, session, wsUserSend(user.username));
     }
   }
 }
