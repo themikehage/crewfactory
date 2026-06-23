@@ -35,14 +35,6 @@ export function AppRouter() {
     navigate("/");
   }, [navigate]);
 
-  const handleLeaveContext = useCallback(() => {
-    localStorage.removeItem("active-repo");
-    localStorage.removeItem("has-context");
-    setActiveRepoName(null);
-    setHasContext(false);
-    navigate("/");
-  }, [navigate]);
-
   if (loading) {
     return (
       <div className="h-dvh flex items-center justify-center bg-bg">
@@ -55,9 +47,9 @@ export function AppRouter() {
     return <LoginPage />;
   }
 
-  // Si el usuario no ha seleccionado un contexto de trabajo (Repo o Global), se muestra el Dashboard
+  // Si el usuario no tiene contexto, establecer modo global automáticamente
   if (!hasContext) {
-    return <DashboardPage onSelectRepo={handleSelectRepo} />;
+    handleSelectRepo(null);
   }
 
   return (
@@ -65,8 +57,10 @@ export function AppRouter() {
       route={route}
       onNavigate={navigate}
       activeRepoName={activeRepoName}
-      onLeaveContext={handleLeaveContext}
     >
+      {route.page === "projects" && (
+        <DashboardPage onSelectRepo={handleSelectRepo} />
+      )}
       {route.page === "settings" && (
         <SettingsPage />
       )}
