@@ -179,7 +179,7 @@ integrationsRouter.post(
     const { templates } = c.req.valid("json");
 
     const data = loadIntegrations(username);
-    data.templates = templates;
+    data.templates = templates as typeof DEFAULT_TEMPLATES;
     saveIntegrations(username, data);
 
     return c.json({ success: true, templates: data.templates });

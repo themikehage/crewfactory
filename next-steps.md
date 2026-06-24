@@ -88,7 +88,41 @@ Endpoint y UI para cambiar la contraseña del usuario autenticado.
 
 ---
 
-## 7. CLI / API Docs para el workspace
+## 8. Preview de proyectos (Live Render)
+
+Página para renderizar aplicaciones construidas por el agente (React, HTML, etc.) directamente dentro de la app, sin salir al navegador.
+
+### Enfoque: iframe + build output servido estáticamente
+
+El método más robusto y mantenible:
+
+1. El agente construye la app dentro del workspace (`workspace/repos/{repo}/`)
+2. El `dist/` o `build/` resultante se sirve via un endpoint estático
+3. La UI abre un iframe apuntando a ese endpoint
+
+**Backend:**
+- Endpoint `GET /api/files/preview/{repo}/*` — sirve archivos estáticos desde `workspace/repos/{repo}/dist/`
+- Soporte para SPA routing (fallback a `index.html`)
+- Cabeceras MIME correctas y `X-Frame-Options` configurado
+
+**Frontend:**
+- Nueva pestaña/página "Preview" en el panel de proyecto
+- Iframe con toolbar: recargar, abrir en nueva pestaña, modo responsive (375px/768px/1280px)
+- Indicador de "building..." mientras el agente construye
+
+**Alternativa futura (dev mode):**
+- Proxy a Vite dev server para hot-reload mientras el agente desarrolla
+- Requiere gestionar puertos efímeros — el iframe build-output cubre el 90% de los casos
+
+**Ventajas de este enfoque:**
+- Framework-agnóstico (React, Vue, Svelte, HTML plano)
+- Sin dependencias externas (Sandpack, WebContainer, etc.)
+- El agente controla el build — misma salida que en producción
+- Escalable: cualquier proyecto con un `dist/` se puede previsualizar
+
+---
+
+## 9. CLI / API Docs para el workspace
 
 Documentación (tutorial o sección en UI) que enseñe a los usuarios:
 

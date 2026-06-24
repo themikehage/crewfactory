@@ -78,6 +78,16 @@ interface UserContext {
   modelRegistry: ModelRegistry;
 }
 
+type SessionListItem = {
+  id: string;
+  name: string;
+  createdAt: string;
+  updatedAt: string;
+  messageCount: number;
+  status?: "active" | "streaming" | "task-running" | "sleeping";
+  repoName?: string;
+};
+
 class PiSessionManager {
   private sessions = new Map<string, UserSessionEntry>();
   private users = new Map<string, UserContext>();
@@ -247,7 +257,7 @@ class PiSessionManager {
       authStorage,
       modelRegistry,
       resourceLoader,
-      customTools: [customBashTool],
+      customTools: [customBashTool as any],
     });
 
     if (persistedTools) {
@@ -330,15 +340,6 @@ class PiSessionManager {
   }
 
   async listSessions(username: string): Promise<SessionListItem[]> {
-    type SessionListItem = {
-      id: string;
-      name: string;
-      createdAt: string;
-      updatedAt: string;
-      messageCount: number;
-      status?: "active" | "streaming" | "task-running" | "sleeping";
-      repoName?: string;
-    };
     const userDir = this.ensureUserDir(username);
     const sessionsDir = join(userDir, "sessions");
     if (!existsSync(sessionsDir)) return [];
