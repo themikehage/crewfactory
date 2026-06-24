@@ -24,6 +24,7 @@ export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSessio
     return [];
   });
   const [creating, setCreating] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     localStorage.setItem("pi-sessions", JSON.stringify(sessions));
@@ -34,6 +35,20 @@ export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSessio
       activeRepoName ? s.repoName === activeRepoName : !s.repoName
     );
   }, [sessions, activeRepoName]);
+
+  useEffect(() => {
+    setLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    if (!loaded || activeSessionId || creating) return;
+    
+    if (filteredSessions.length > 0) {
+      onSelectSession(filteredSessions[0].id);
+    } else {
+      createSession();
+    }
+  }, [loaded, activeSessionId, filteredSessions, onSelectSession, creating]);
 
   const createSession = useCallback(async () => {
     setCreating(true);
