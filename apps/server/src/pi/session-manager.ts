@@ -318,6 +318,65 @@ class PiSessionManager {
     }
   }
 
+  saveSessionMetadata(username: string, sessionId: string, data: Record<string, unknown>): void {
+    const userDir = this.ensureUserDir(username);
+    const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");
+    let metadata: Record<string, unknown> = {};
+    if (existsSync(metadataPath)) {
+      try { metadata = JSON.parse(readFileSync(metadataPath, "utf-8")); } catch {}
+    }
+    Object.assign(metadata, data);
+    writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
+  }
+
+  listSessions(username: string): Array<{
+    id: string;
+    name: string;
+    createdAt: string;
+    updatedAt: string;
+    messageCount: number;
+    repoName?: string;
+  }> {
+    const userDir = this.ensureUserDir(username);
+    const sessionsDir = join(userDir, "sessions");
+    if (!existsSync(sessionsDir)) return [];
+
+    const entries = readdirSync(sessionsDir, { withFileTypes: true });
+    const sessions: Array<{
+      id: string;
+      name: string;
+      createdAt: string;
+      updatedAt: string;
+      messageCount: number;
+      repoName?: string;
+    }> = [];
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) continue;
+      const sessionId = entry.name;
+      const metadataPath = join(sessionsDir, sessionId, "metadata.json");
+      let metadata: Record<string, unknown> = {};
+      if (existsSync(metadataPath)) {
+        try { metadata = JSON.parse(readFileSync(metadataPath, "utf-8")); } catch {}
+      }
+
+      const jsonlCount = readdirSync(join(sessionsDir, sessionId))
+        .filter((f) => f.endsWith(".jsonl")).length;
+
+      sessions.push({
+        id: sessionId,
+        name: (metadata.name as string) || sessionId,
+        createdAt: (metadata.createdAt as string) || new Date(0).toISOString(),
+        updatedAt: (metadata.updatedAt as string) || new Date(0).toISOString(),
+        messageCount: jsonlCount,
+        repoName: metadata.repoName as string | undefined,
+      });
+    }
+
+    sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+    return sessions;
+  }
+
   persistSessionTools(username: string, sessionId: string, tools: string[]): void {
     const userDir = this.ensureUserDir(username);
     const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");

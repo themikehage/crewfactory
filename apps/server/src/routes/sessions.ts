@@ -22,7 +22,9 @@ export const sessionsRouter = new Hono();
 sessionsRouter.use("/*", authMiddleware);
 
 sessionsRouter.get("/", (c) => {
-  return c.json({ sessions: [] });
+  const { username } = getAuthPayload(c);
+  const sessions = piSessionManager.listSessions(username);
+  return c.json({ sessions });
 });
 
 sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
@@ -30,16 +32,23 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
   const { username } = getAuthPayload(c);
   const sessionId = crypto.randomUUID();
 
+  const now = new Date().toISOString();
   const session = {
     id: sessionId,
     name,
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: now,
+    updatedAt: now,
     messageCount: 0,
     repoName,
   };
 
   await piSessionManager.getOrCreateSession(username, sessionId, repoName);
+  piSessionManager.saveSessionMetadata(username, sessionId, {
+    name,
+    createdAt: now,
+    updatedAt: now,
+    repoName: repoName || null,
+  });
 
   return c.json(session, 201);
 });

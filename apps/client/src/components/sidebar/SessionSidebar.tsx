@@ -16,19 +16,34 @@ interface Props {
 }
 
 export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSession, onNewSession }: Props) {
-  const [sessions, setSessions] = useState<SessionItem[]>(() => {
-    const raw = localStorage.getItem("pi-sessions");
-    if (raw) {
-      try { return JSON.parse(raw); } catch { return []; }
-    }
-    return [];
-  });
+  const [sessions, setSessions] = useState<SessionItem[]>([]);
+  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
-  const [loaded, setLoaded] = useState(false);
+
+  const fetchSessions = useCallback(async () => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/sessions", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const list = data.sessions ?? [];
+        setSessions(list);
+        localStorage.setItem("pi-sessions", JSON.stringify(list));
+        return;
+      }
+    } catch {}
+    const cached = localStorage.getItem("pi-sessions");
+    if (cached) {
+      try { setSessions(JSON.parse(cached)); } catch {}
+    }
+    setLoading(false);
+  }, []);
 
   useEffect(() => {
-    localStorage.setItem("pi-sessions", JSON.stringify(sessions));
-  }, [sessions]);
+    fetchSessions().finally(() => setLoading(false));
+  }, [fetchSessions]);
 
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) =>
@@ -37,18 +52,14 @@ export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSessio
   }, [sessions, activeRepoName]);
 
   useEffect(() => {
-    setLoaded(true);
-  }, []);
+    if (loading || activeSessionId || creating) return;
 
-  useEffect(() => {
-    if (!loaded || activeSessionId || creating) return;
-    
     if (filteredSessions.length > 0) {
       onSelectSession(filteredSessions[0].id);
     } else {
       createSession();
     }
-  }, [loaded, activeSessionId, filteredSessions, onSelectSession, creating]);
+  }, [loading, activeSessionId, filteredSessions, onSelectSession, creating]);
 
   const createSession = useCallback(async () => {
     setCreating(true);
@@ -72,12 +83,14 @@ export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSessio
       });
       if (!res.ok) return;
       const session = await res.json();
-      setSessions((prev) => [session, ...prev]);
+      const updated = [session, ...sessions];
+      setSessions(updated);
+      localStorage.setItem("pi-sessions", JSON.stringify(updated));
       onNewSession(session.id);
     } finally {
       setCreating(false);
     }
-  }, [filteredSessions.length, activeRepoName, onNewSession]);
+  }, [filteredSessions.length, activeRepoName, onNewSession, sessions]);
 
   useEffect(() => {
     const handleRename = (e: Event) => {
@@ -99,7 +112,8 @@ export function SessionSidebar({ activeSessionId, activeRepoName, onSelectSessio
       });
       const remaining = sessions.filter((s) => s.id !== id);
       setSessions(remaining);
-      
+      localStorage.setItem("pi-sessions", JSON.stringify(remaining));
+
       const filteredRemaining = remaining.filter((s) =>
         activeRepoName ? s.repoName === activeRepoName : !s.repoName
       );
