@@ -67,10 +67,9 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
     currentTaskId: null,
     status: "idle",
   });
-  const [contextUsage, setContextUsage] = useState<{
-    tokens: number | null;
-    contextWindow: number | null;
-    percent: number | null;
+  const [contextData, setContextData] = useState<{
+    contextUsage: { tokens: number | null; contextWindow: number | null; percent: number | null } | null;
+    sessionStats: { tokens: { input: number; output: number; total: number } } | null;
   } | null>(null);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -226,8 +225,8 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
         });
         if (res.ok) {
           const data = await res.json();
-          if (data.usage) {
-            setContextUsage(data.usage);
+          if (data.contextUsage || data.sessionStats) {
+            setContextData(data);
           }
         }
       } catch {}
@@ -300,8 +299,8 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
     });
 
     const unsubCtx = subscribe("context_usage", (data: any) => {
-      if (data.usage) {
-        setContextUsage(data.usage);
+      if (data.contextUsage || data.sessionStats) {
+        setContextData({ contextUsage: data.contextUsage, sessionStats: data.sessionStats });
       }
     });
 
@@ -375,8 +374,8 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
       });
       if (res.ok) {
         const data = await res.json();
-        if (data.usage) {
-          setContextUsage(data.usage);
+        if (data.contextUsage || data.sessionStats) {
+          setContextData(data);
         }
       }
     } catch {}
@@ -457,7 +456,12 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
             <div ref={messagesEndRef} />
           </div>
         </div>
-        <ContextMeter usage={contextUsage} onCompact={handleCompact} onRefresh={handleRefreshContext} />
+        <ContextMeter
+          contextUsage={contextData?.contextUsage ?? null}
+          sessionStats={contextData?.sessionStats ?? null}
+          onCompact={handleCompact}
+          onRefresh={handleRefreshContext}
+        />
         <InputArea
           onSend={handleSend}
           onAbort={handleAbort}

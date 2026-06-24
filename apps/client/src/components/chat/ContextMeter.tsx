@@ -6,13 +6,18 @@ interface ContextUsage {
   percent: number | null;
 }
 
+interface SessionStats {
+  tokens: { input: number; output: number; total: number };
+}
+
 interface Props {
-  usage: ContextUsage | null;
+  contextUsage: ContextUsage | null;
+  sessionStats: SessionStats | null;
   onCompact: () => void;
   onRefresh?: () => void;
 }
 
-export function ContextMeter({ usage, onCompact, onRefresh }: Props) {
+export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh }: Props) {
   const [compacting, setCompacting] = useState(false);
 
   useEffect(() => {
@@ -22,12 +27,13 @@ export function ContextMeter({ usage, onCompact, onRefresh }: Props) {
     }
   }, [compacting]);
 
-  if (!usage || usage.tokens === null || usage.contextWindow === null || usage.percent === null) {
-    return null;
-  }
+  const showContextBar = contextUsage?.tokens != null && contextUsage?.contextWindow != null && contextUsage?.percent != null;
+  const hasStats = sessionStats?.tokens?.total != null;
 
-  const pct = usage.percent;
-  const color =
+  if (!showContextBar && !hasStats) return null;
+
+  const pct = contextUsage?.percent ?? 0;
+  const barColor =
     pct >= 90 ? "bg-error" :
     pct >= 70 ? "bg-warning" :
     "bg-accent";
@@ -48,15 +54,26 @@ export function ContextMeter({ usage, onCompact, onRefresh }: Props) {
     <div className="border-t border-surface px-3 sm:px-4 py-2 bg-bg">
       <div className="max-w-3xl mx-auto flex items-center gap-3">
         <div className="flex-1 flex flex-col gap-1 min-w-0">
-          <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-300 ${color}`}
-              style={{ width: `${Math.min(pct, 100)}%` }}
-            />
-          </div>
+          {showContextBar && (
+            <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
+              <div
+                className={`h-full rounded-full transition-all duration-300 ${barColor}`}
+                style={{ width: `${Math.min(pct, 100)}%` }}
+              />
+            </div>
+          )}
           <div className="flex items-center justify-between text-[10px] font-mono">
-            <span className={textColor}>
-              {formatNum(usage.tokens)} / {formatNum(usage.contextWindow)} tokens ({Math.round(pct)}%)
+            <span className="flex items-center gap-2">
+              {showContextBar && (
+                <span className={textColor}>
+                  {formatNum(contextUsage.tokens!)} / {formatNum(contextUsage.contextWindow!)} ({Math.round(pct)}%)
+                </span>
+              )}
+              {hasStats && (
+                <span className="text-text-secondary">
+                  Total: {formatNum(sessionStats.tokens.total)} ({formatNum(sessionStats.tokens.input)} in / {formatNum(sessionStats.tokens.output)} out)
+                </span>
+              )}
             </span>
           </div>
         </div>

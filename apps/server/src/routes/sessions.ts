@@ -188,9 +188,10 @@ sessionsRouter.post(
     }
 
     try {
-      const usage = session.getContextUsage();
-      if (usage) {
-        broadcastToSession(sessionId, { type: "context_usage", sessionId, usage });
+      const contextUsage = session.getContextUsage();
+      const sessionStats = session.getSessionStats();
+      if (contextUsage || sessionStats) {
+        broadcastToSession(sessionId, { type: "context_usage", sessionId, contextUsage, sessionStats });
       }
     } catch {}
 
@@ -203,13 +204,14 @@ sessionsRouter.get("/:id/context", async (c) => {
   const { username } = getAuthPayload(c);
   const session = piSessionManager.getSession(username, sessionId);
   if (!session) {
-    return c.json({ usage: null });
+    return c.json({ contextUsage: null, sessionStats: null });
   }
   try {
-    const usage = session.getContextUsage();
-    return c.json({ usage });
+    const contextUsage = session.getContextUsage();
+    const sessionStats = session.getSessionStats();
+    return c.json({ contextUsage, sessionStats });
   } catch {
-    return c.json({ usage: null });
+    return c.json({ contextUsage: null, sessionStats: null });
   }
 });
 

@@ -137,31 +137,31 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
         const unsub = session.subscribe((agentEvent) => {
           safeSend(ws, JSON.stringify(agentEvent));
-          if (agentEvent.type === "agent_start") {
-            broadcastToUser(user.username, { type: "session_status", sessionId, status: "streaming" });
+          const sendContextUsage = () => {
             try {
-              const usage = session.getContextUsage();
-              if (usage) {
-                safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
+              const contextUsage = session.getContextUsage();
+              const sessionStats = session.getSessionStats();
+              if (contextUsage || sessionStats) {
+                safeSend(ws, JSON.stringify({
+                  type: "context_usage",
+                  sessionId,
+                  contextUsage,
+                  sessionStats,
+                }));
               }
             } catch {}
+          };
+
+          if (agentEvent.type === "agent_start") {
+            broadcastToUser(user.username, { type: "session_status", sessionId, status: "streaming" });
+            sendContextUsage();
           }
           if (agentEvent.type === "agent_end") {
             broadcastToUser(user.username, { type: "session_status", sessionId, status: "active" });
-            try {
-              const usage = session.getContextUsage();
-              if (usage) {
-                safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
-              }
-            } catch {}
+            sendContextUsage();
           }
           if (agentEvent.type === "message_end") {
-            try {
-              const usage = session.getContextUsage();
-              if (usage) {
-                safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
-              }
-            } catch {}
+            sendContextUsage();
           }
         });
         wsSubscriptions.set(ws.wsId, unsub);
@@ -282,8 +282,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const sessionId = data.sessionId as string;
     const session = piSessionManager.getSession(user.username, sessionId);
     if (session) {
-      const usage = session.getContextUsage();
-      safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
+      const contextUsage = session.getContextUsage();
+      const sessionStats = session.getSessionStats();
+      safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, contextUsage, sessionStats }));
     }
   }
 }
