@@ -93,27 +93,17 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
 
       {open && (
         <div className="px-3 sm:px-4 pb-2 flex items-center gap-3">
-          <div className="flex-1 flex flex-col gap-1 min-w-0">
+          <div className="text-[10px] font-mono">
             {showContextBar && (
-              <div className="w-full h-1.5 bg-surface rounded-full overflow-hidden">
-                <div
-                  className={`h-full rounded-full transition-all duration-300 ${barColor}`}
-                  style={{ width: `${Math.min(pct, 100)}%` }}
-                />
-              </div>
+              <span className={textColor}>
+                {formatNum(contextUsage.tokens!)} / {formatNum(contextUsage.contextWindow!)} ({Math.round(pct)}%)
+              </span>
             )}
-            <div className="text-[10px] font-mono">
-              {showContextBar && (
-                <span className={textColor}>
-                  {formatNum(contextUsage.tokens!)} / {formatNum(contextUsage.contextWindow!)} ({Math.round(pct)}%)
-                </span>
-              )}
-              {hasStats && (
-                <span className="text-text-secondary">
-                  {" · "}Total: {formatNum(sessionStats.tokens.total)} ({formatNum(sessionStats.tokens.input)} in / {formatNum(sessionStats.tokens.output)} out)
-                </span>
-              )}
-            </div>
+            {hasStats && (
+              <span className="text-text-secondary">
+                {" · "}Total: {formatNum(sessionStats.tokens.total)} ({formatNum(sessionStats.tokens.input)} in / {formatNum(sessionStats.tokens.output)} out)
+              </span>
+            )}
           </div>
           <div className="flex items-center gap-1.5">
             {onRefresh && (
