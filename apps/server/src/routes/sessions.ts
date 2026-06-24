@@ -14,6 +14,7 @@ import {
   resetTasks,
   broadcastTaskUpdate
 } from "../pi/task-runner";
+import { broadcastToSession } from "../ws/handler";
 
 const STORAGE_KEY = "pi-web-sessions";
 
@@ -186,9 +187,31 @@ sessionsRouter.post(
       session.setThinkingLevel(thinkingLevel);
     }
 
+    try {
+      const usage = session.getContextUsage();
+      if (usage) {
+        broadcastToSession(sessionId, { type: "context_usage", sessionId, usage });
+      }
+    } catch {}
+
     return c.json({ success: true, model: { id: model.id, name: model.name, provider: model.provider as string } });
   }
 );
+
+sessionsRouter.get("/:id/context", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  const session = piSessionManager.getSession(username, sessionId);
+  if (!session) {
+    return c.json({ usage: null });
+  }
+  try {
+    const usage = session.getContextUsage();
+    return c.json({ usage });
+  } catch {
+    return c.json({ usage: null });
+  }
+});
 
 sessionsRouter.get("/:id/skills", async (c) => {
   const sessionId = c.req.param("id");

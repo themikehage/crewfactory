@@ -139,9 +139,21 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
           safeSend(ws, JSON.stringify(agentEvent));
           if (agentEvent.type === "agent_start") {
             broadcastToUser(user.username, { type: "session_status", sessionId, status: "streaming" });
+            try {
+              const usage = session.getContextUsage();
+              if (usage) {
+                safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
+              }
+            } catch {}
           }
           if (agentEvent.type === "agent_end") {
             broadcastToUser(user.username, { type: "session_status", sessionId, status: "active" });
+            try {
+              const usage = session.getContextUsage();
+              if (usage) {
+                safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
+              }
+            } catch {}
           }
           if (agentEvent.type === "message_end") {
             try {

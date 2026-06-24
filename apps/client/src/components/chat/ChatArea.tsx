@@ -218,6 +218,22 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
     };
     fetchTasks();
 
+    const fetchContext = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/sessions/${sessionId}/context`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          if (data.usage) {
+            setContextUsage(data.usage);
+          }
+        }
+      } catch {}
+    };
+    fetchContext();
+
     const unsubStart = subscribe("agent_start", () => {
       setStreaming(true);
     });
@@ -350,6 +366,22 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
     send({ type: "compact", sessionId });
   }, [sessionId, send]);
 
+  const handleRefreshContext = useCallback(async () => {
+    if (!sessionId) return;
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sessions/${sessionId}/context`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.usage) {
+          setContextUsage(data.usage);
+        }
+      }
+    } catch {}
+  }, [sessionId]);
+
   const handleNavigate = useCallback(async (targetId: string) => {
     if (!sessionId) return;
     try {
@@ -425,7 +457,7 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
             <div ref={messagesEndRef} />
           </div>
         </div>
-        <ContextMeter usage={contextUsage} onCompact={handleCompact} />
+        <ContextMeter usage={contextUsage} onCompact={handleCompact} onRefresh={handleRefreshContext} />
         <InputArea
           onSend={handleSend}
           onAbort={handleAbort}

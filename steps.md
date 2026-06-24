@@ -127,6 +127,10 @@
 - [x] 16.2 Server: handle `compact` and `get_context_usage` WebSocket messages
 - [x] 16.3 Client: `ContextMeter.tsx` component (progress bar, token count, Compact button)
 - [x] 16.4 Client: integrate ContextMeter in ChatArea between messages and InputArea
+- [x] 16.5 Server: REST endpoint `GET /api/sessions/:id/context` for fetch on page load
+- [x] 16.6 Server: emit `context_usage` on `agent_start`, `agent_end`, and after model change
+- [x] 16.7 Client: fetch context on session mount via REST
+- [x] 16.8 Client: refresh button in ContextMeter for manual refresh
 
 ---
 
