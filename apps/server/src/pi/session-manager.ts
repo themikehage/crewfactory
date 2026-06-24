@@ -329,27 +329,22 @@ class PiSessionManager {
     writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
   }
 
-  listSessions(username: string): Array<{
-    id: string;
-    name: string;
-    createdAt: string;
-    updatedAt: string;
-    messageCount: number;
-    repoName?: string;
-  }> {
-    const userDir = this.ensureUserDir(username);
-    const sessionsDir = join(userDir, "sessions");
-    if (!existsSync(sessionsDir)) return [];
-
-    const entries = readdirSync(sessionsDir, { withFileTypes: true });
-    const sessions: Array<{
+  async listSessions(username: string): Promise<SessionListItem[]> {
+    type SessionListItem = {
       id: string;
       name: string;
       createdAt: string;
       updatedAt: string;
       messageCount: number;
+      status?: "active" | "streaming" | "task-running" | "sleeping";
       repoName?: string;
-    }> = [];
+    };
+    const userDir = this.ensureUserDir(username);
+    const sessionsDir = join(userDir, "sessions");
+    if (!existsSync(sessionsDir)) return [];
+
+    const entries = readdirSync(sessionsDir, { withFileTypes: true });
+    const sessions: SessionListItem[] = [];
 
     for (const entry of entries) {
       if (!entry.isDirectory()) continue;
@@ -360,15 +355,49 @@ class PiSessionManager {
         try { metadata = JSON.parse(readFileSync(metadataPath, "utf-8")); } catch {}
       }
 
-      const jsonlCount = readdirSync(join(sessionsDir, sessionId))
-        .filter((f) => f.endsWith(".jsonl")).length;
+      let messageCount = 0;
+      const jsonlFiles = readdirSync(join(sessionsDir, sessionId)).filter((f) => f.endsWith(".jsonl"));
+      for (const file of jsonlFiles) {
+        try {
+          const content = readFileSync(join(sessionsDir, sessionId, file), "utf-8");
+          const lines = content.trim().split("\n");
+          const limit = Math.min(lines.length, 500);
+          for (let i = 0; i < limit; i++) {
+            const entry = JSON.parse(lines[i]);
+            if (entry.type === "message" && entry.message?.role === "user") {
+              messageCount++;
+            }
+          }
+        } catch {}
+      }
+
+      const session = this.sessions.get(this.getSessionKey(username, sessionId));
+      let status: "active" | "streaming" | "task-running" | "sleeping" | undefined;
+      if (session) {
+        if (session.session.isStreaming) {
+          status = "streaming";
+        } else {
+          status = "active";
+        }
+      } else {
+        status = "sleeping";
+      }
+      if (status === "active" || status === "sleeping") {
+        try {
+          const { isTaskRunnerActive } = await import("../pi/task-runner");
+          if (isTaskRunnerActive(sessionId)) {
+            status = "task-running";
+          }
+        } catch {}
+      }
 
       sessions.push({
         id: sessionId,
         name: (metadata.name as string) || sessionId,
         createdAt: (metadata.createdAt as string) || new Date(0).toISOString(),
         updatedAt: (metadata.updatedAt as string) || new Date(0).toISOString(),
-        messageCount: jsonlCount,
+        messageCount,
+        status,
         repoName: metadata.repoName as string | undefined,
       });
     }

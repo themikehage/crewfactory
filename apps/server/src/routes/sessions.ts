@@ -21,9 +21,9 @@ export const sessionsRouter = new Hono();
 
 sessionsRouter.use("/*", authMiddleware);
 
-sessionsRouter.get("/", (c) => {
+sessionsRouter.get("/", async (c) => {
   const { username } = getAuthPayload(c);
-  const sessions = piSessionManager.listSessions(username);
+  const sessions = await piSessionManager.listSessions(username);
   return c.json({ sessions });
 });
 
@@ -148,6 +148,16 @@ sessionsRouter.delete("/:id", async (c) => {
   const { username } = getAuthPayload(c);
 
   await piSessionManager.destroySession(username, sessionId);
+
+  return c.json({ success: true });
+});
+
+sessionsRouter.patch("/:id", zValidator("json", z.object({ name: z.string().min(1).max(100) })), async (c) => {
+  const sessionId = c.req.param("id");
+  const { name } = c.req.valid("json");
+  const { username } = getAuthPayload(c);
+
+  piSessionManager.saveSessionMetadata(username, sessionId, { name });
 
   return c.json({ success: true });
 });

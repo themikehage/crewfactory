@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 import { piSessionManager } from "./session-manager";
-import { broadcastToSession } from "../ws/handler";
+import { broadcastToSession, broadcastToUser } from "../ws/handler";
 import type { Task, TaskRunnerState } from "shared";
 
 const DECOMPOSITION_PROMPT_PREFIX = `You are a supervisor AI. I need to achieve the following high-level objective:`;
@@ -24,6 +24,10 @@ Your response MUST end with a valid JSON block containing an array of these subt
 Provide only the JSON block at the end. Do not include any other markdown other than the JSON block.`;
 
 const activeRunners = new Set<string>(); // sessionId
+
+export function isTaskRunnerActive(sessionId: string): boolean {
+  return activeRunners.has(sessionId);
+}
 
 export function getTasksPath(username: string, sessionId: string): string {
   return `/tmp/pi-web-users/${username}/sessions/${sessionId}/tasks.json`;
@@ -70,6 +74,7 @@ export async function decomposeObjective(username: string, sessionId: string, ob
   state.error = undefined;
   saveTasksState(username, sessionId, state);
   broadcastTaskUpdate(sessionId, state);
+  broadcastToUser(username, { type: "session_status", sessionId, status: "task-running" });
 
   let session = piSessionManager.getSession(username, sessionId);
   if (!session) {
@@ -151,6 +156,7 @@ export async function startTaskRunner(username: string, sessionId: string): Prom
   state.error = undefined;
   saveTasksState(username, sessionId, state);
   broadcastTaskUpdate(sessionId, state);
+  broadcastToUser(username, { type: "session_status", sessionId, status: "task-running" });
 
   activeRunners.add(sessionId);
 
@@ -170,6 +176,7 @@ export async function pauseTaskRunner(username: string, sessionId: string): Prom
   state.status = "paused";
   saveTasksState(username, sessionId, state);
   broadcastTaskUpdate(sessionId, state);
+  broadcastToUser(username, { type: "session_status", sessionId, status: "active" });
 
   const session = piSessionManager.getSession(username, sessionId);
   if (session && session.isStreaming) {
@@ -189,6 +196,7 @@ export function resetTasks(username: string, sessionId: string): void {
   }));
   saveTasksState(username, sessionId, state);
   broadcastTaskUpdate(sessionId, state);
+  broadcastToUser(username, { type: "session_status", sessionId, status: "active" });
 }
 
 async function runTaskLoop(username: string, sessionId: string): Promise<void> {
@@ -209,6 +217,7 @@ async function runTaskLoop(username: string, sessionId: string): Promise<void> {
       state.currentTaskId = null;
       saveTasksState(username, sessionId, state);
       broadcastTaskUpdate(sessionId, state);
+      broadcastToUser(username, { type: "session_status", sessionId, status: "active" });
       break;
     }
 
@@ -279,6 +288,7 @@ async function runTaskLoop(username: string, sessionId: string): Promise<void> {
         currentState.currentTaskId = null;
         saveTasksState(username, sessionId, currentState);
         broadcastTaskUpdate(sessionId, currentState);
+        broadcastToUser(username, { type: "session_status", sessionId, status: "active" });
         break;
       }
     }

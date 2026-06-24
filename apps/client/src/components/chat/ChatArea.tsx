@@ -309,10 +309,20 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
 
       if (!firstMessageSentRef.current && option !== "steer" && option !== "follow_up") {
         firstMessageSentRef.current = true;
-        const name = message.trim().slice(0, 50) + (message.trim().length > 50 ? "..." : "");
+        const cleanName = message.trim();
+        const name = cleanName.slice(0, 50) + (cleanName.length > 50 ? "..." : "");
         window.dispatchEvent(
           new CustomEvent("renameSession", { detail: { sessionId, name } })
         );
+        const token = localStorage.getItem("token");
+        fetch(`/api/sessions/${sessionId}`, {
+          method: "PATCH",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ name }),
+        }).catch(() => {});
       }
 
       if (option === "steer") {

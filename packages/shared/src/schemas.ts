@@ -9,12 +9,15 @@ export const PromptSchema = z.object({
   message: z.string().min(1),
 });
 
+export const SessionStatusSchema = z.enum(["active", "streaming", "task-running", "sleeping"]);
+
 export const SessionSchema = z.object({
   id: z.string(),
   name: z.string(),
   createdAt: z.string(),
   updatedAt: z.string(),
   messageCount: z.number(),
+  status: SessionStatusSchema.optional(),
   repoName: z.string().optional(),
 });
 
@@ -103,6 +106,7 @@ export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 
 export type Login = z.infer<typeof LoginSchema>;
 export type Prompt = z.infer<typeof PromptSchema>;
+export type SessionStatus = z.infer<typeof SessionStatusSchema>;
 export type Session = z.infer<typeof SessionSchema>;
 export type CreateSession = z.infer<typeof CreateSessionSchema>;
 export type ModelSettings = z.infer<typeof ModelSettingsSchema>;

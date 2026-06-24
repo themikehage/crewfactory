@@ -12,6 +12,19 @@ let wsCounter = 0;
 const userMap = new Map<string, AuthPayload>();
 const wsSubscriptions = new Map<string, () => void>();
 export const sessionSockets = new Map<string, Set<WSContext>>();
+export const userSockets = new Map<string, Set<WSContext>>();
+
+export function broadcastToUser(username: string, data: any) {
+  const sockets = userSockets.get(username);
+  if (sockets) {
+    const payload = JSON.stringify(data);
+    for (const ws of sockets) {
+      try {
+        ws.send(payload);
+      } catch {}
+    }
+  }
+}
 
 export function broadcastToSession(sessionId: string, data: any) {
   const sockets = sessionSockets.get(sessionId);
@@ -38,7 +51,18 @@ export function onOpen(_evt: Event, _ws: WSContext) {
 
 export function onClose(_evt: any, _ws: WSContext) {
   const ws = _ws as unknown as PiWebSocket;
+  const user = userMap.get(ws.wsId);
   userMap.delete(ws.wsId);
+  // Clean from userSockets
+  if (user) {
+    const uSockets = userSockets.get(user.username);
+    if (uSockets) {
+      uSockets.delete(ws);
+      if (uSockets.size === 0) {
+        userSockets.delete(user.username);
+      }
+    }
+  }
   // Clean from sessionSockets
   for (const [sessionId, wsSet] of sessionSockets.entries()) {
     if (wsSet.has(ws)) {
@@ -77,6 +101,13 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       ) as AuthPayload;
       userMap.set(ws.wsId, user);
 
+      let userSockSet = userSockets.get(user.username);
+      if (!userSockSet) {
+        userSockSet = new Set();
+        userSockets.set(user.username, userSockSet);
+      }
+      userSockSet.add(ws);
+
       const sessionId = data.sessionId as string;
       if (sessionId) {
         // Clean up from other sessions first
@@ -106,6 +137,12 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
         const unsub = session.subscribe((agentEvent) => {
           safeSend(ws, JSON.stringify(agentEvent));
+          if (agentEvent.type === "agent_start") {
+            broadcastToUser(user.username, { type: "session_status", sessionId, status: "streaming" });
+          }
+          if (agentEvent.type === "agent_end") {
+            broadcastToUser(user.username, { type: "session_status", sessionId, status: "active" });
+          }
           if (agentEvent.type === "message_end") {
             try {
               const usage = session.getContextUsage();
