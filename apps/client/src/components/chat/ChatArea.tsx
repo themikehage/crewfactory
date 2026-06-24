@@ -3,6 +3,7 @@ import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageList } from "./MessageList";
 import { InputArea } from "./InputArea";
 import { RightDrawer } from "./RightDrawer";
+import { ContextMeter } from "./ContextMeter";
 import { AnimatePresence } from "framer-motion";
 import type { Task, TaskRunnerState } from "shared";
 
@@ -66,6 +67,11 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
     currentTaskId: null,
     status: "idle",
   });
+  const [contextUsage, setContextUsage] = useState<{
+    tokens: number | null;
+    contextWindow: number | null;
+    percent: number | null;
+  } | null>(null);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -277,6 +283,12 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
       }
     });
 
+    const unsubCtx = subscribe("context_usage", (data: any) => {
+      if (data.usage) {
+        setContextUsage(data.usage);
+      }
+    });
+
     return () => {
       unsubStart();
       unsubEnd();
@@ -285,6 +297,7 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
       unsubMsgEnd();
       unsubError();
       unsubTasks();
+      unsubCtx();
     };
   }, [sessionId, subscribe]);
 
@@ -321,6 +334,10 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
 
   const handleAbort = useCallback(() => {
     send({ type: "abort", sessionId });
+  }, [sessionId, send]);
+
+  const handleCompact = useCallback(() => {
+    send({ type: "compact", sessionId });
   }, [sessionId, send]);
 
   const handleNavigate = useCallback(async (targetId: string) => {
@@ -398,6 +415,7 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
             <div ref={messagesEndRef} />
           </div>
         </div>
+        <ContextMeter usage={contextUsage} onCompact={handleCompact} />
         <InputArea
           onSend={handleSend}
           onAbort={handleAbort}

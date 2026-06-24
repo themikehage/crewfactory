@@ -17,6 +17,8 @@
 - Real-time streaming via WebSocket (Hono/Bun upgrade)
 - Message rendering: user, assistant, tool calls, thinking blocks
 - Abort active generation
+- Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
+- Context Window Meter with token usage bar and manual Compact button
 
 ### Provider Management
 - Dynamic provider configuration via web UI (no env vars needed)
@@ -56,6 +58,12 @@
 - Applied immediately to live agent session via `session.setActiveToolsByName()`
 - Sandbox badge in chat header shows current mode (Read-Only / Full Access / N/7 Tools)
 - Tools also sent per-prompt via WebSocket for immediate override
+
+### Context Window Meter
+- Real-time context usage bar in chat footer (tokens / context window / percentage)
+- Color-coded states: <70% green, 70-90% amber, >90% red
+- Manual "Compact" button triggering `session.compact()` via WebSocket
+- Context usage emitted automatically after each `message_end` event
 
 ### Task Runner (Supervisor Loop)
 - Decompose high-level goals into sequential task steps using active session LLM
@@ -101,7 +109,7 @@
 | POST | /api/integrations/templates | Update or define new integrations and custom quick actions |
 | GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
 | POST | /api/integrations/bindings/:repoName | Update repository linkages for active repository |
-| WS | /ws | WebSocket for real-time streaming |
+| WS | /ws | WebSocket for real-time streaming (events: prompt, steer, follow_up, abort, compact, get_context_usage, context_usage) |
 | GET | /api/health | Health check |
 
 ## Architecture

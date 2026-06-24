@@ -51,7 +51,7 @@
 - [ ] 8.1 Responsive design (375px, 768px, 1280px)
 - [ ] 8.2 Loading states
 - [ ] 8.3 Error handling
-- [ ] 8.4 Keyboard shortcuts
+- [x] 8.4 Keyboard shortcuts (Enter=send/steer, Alt+Enter=follow_up, Escape=cancel)
 - [ ] 8.5 Accessibility
 
 ## Phase 9: Docker & Deployment
@@ -110,6 +110,14 @@
 - [x] 14.5 Client layout updates: disable message composition in `InputArea.tsx` during task runner execution
 - [x] 14.6 Client `TasksPanel.tsx` drawer rendering checklist, log code blocks, and controllers
 - [x] 14.7 Client `ChatArea.tsx` layout and toggle button integration
+
+---
+
+## Phase 16: Context Window Meter
+- [x] 16.1 Server: emit `context_usage` via WebSocket after each `message_end`
+- [x] 16.2 Server: handle `compact` and `get_context_usage` WebSocket messages
+- [x] 16.3 Client: `ContextMeter.tsx` component (progress bar, token count, Compact button)
+- [x] 16.4 Client: integrate ContextMeter in ChatArea between messages and InputArea
 
 ---
 

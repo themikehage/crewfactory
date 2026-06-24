@@ -106,6 +106,14 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
         const unsub = session.subscribe((agentEvent) => {
           safeSend(ws, JSON.stringify(agentEvent));
+          if (agentEvent.type === "message_end") {
+            try {
+              const usage = session.getContextUsage();
+              if (usage) {
+                safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
+              }
+            } catch {}
+          }
         });
         wsSubscriptions.set(ws.wsId, unsub);
       }
@@ -210,6 +218,23 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     if (session) {
       await session.abort();
       safeSend(ws, JSON.stringify({ type: "aborted", sessionId }));
+    }
+  }
+
+  if (data.type === "compact") {
+    const sessionId = data.sessionId as string;
+    const session = piSessionManager.getSession(user.username, sessionId);
+    if (session) {
+      await session.compact();
+    }
+  }
+
+  if (data.type === "get_context_usage") {
+    const sessionId = data.sessionId as string;
+    const session = piSessionManager.getSession(user.username, sessionId);
+    if (session) {
+      const usage = session.getContextUsage();
+      safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, usage }));
     }
   }
 }
