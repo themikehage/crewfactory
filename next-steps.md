@@ -4,7 +4,7 @@
 
 ---
 
-## 1. Dashboard → Chat por defecto (Modo Global)
+## 1. Dashboard → Chat por defecto (Modo Global) ✓
 
 Que al entrar, en lugar de una landing vacía, se abra directamente el chat con el asistente global. El usuario puede usar la app desde el primer momento sin necesidad de crear un proyecto.
 
@@ -14,7 +14,7 @@ Que al entrar, en lugar de una landing vacía, se abra directamente el chat con 
 
 ---
 
-## 2. Visibilidad del estado de sesiones
+## 2. Visibilidad del estado de sesiones ✓
 
 Indicadores visuales del estado de cada sesión en el sidebar:
 
@@ -79,7 +79,7 @@ Ejemplos:
 
 ---
 
-## 6. Actualizar contraseña
+## 6. Actualizar contraseña ✓
 
 Endpoint y UI para cambiar la contraseña del usuario autenticado.
 
