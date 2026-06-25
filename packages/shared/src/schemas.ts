@@ -104,6 +104,17 @@ export const ChangePasswordSchema = z.object({
 });
 export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 
+export const FrameworkPresetSchema = z.enum(["auto", "vite", "next", "nuxt", "astro", "html", "custom"]);
+export type FrameworkPreset = z.infer<typeof FrameworkPresetSchema>;
+
+export const PreviewConfigSchema = z.object({
+  framework: FrameworkPresetSchema.optional(),
+  buildCommand: z.string().optional(),
+  outputDir: z.string().optional(),
+  autoDetected: z.boolean().optional(),
+});
+export type PreviewConfig = z.infer<typeof PreviewConfigSchema>;
+
 export const PreviewStatusSchema = z.enum(["idle", "building", "ready", "error"]);
 export type PreviewStatus = z.infer<typeof PreviewStatusSchema>;
 
@@ -114,8 +125,16 @@ export const PreviewStateSchema = z.object({
   indexHtmlExists: z.boolean(),
   lastBuildAt: z.number().nullable(),
   error: z.string().optional(),
+  config: PreviewConfigSchema.optional(),
 });
 export type PreviewState = z.infer<typeof PreviewStateSchema>;
+
+export const SavePreviewConfigSchema = z.object({
+  framework: FrameworkPresetSchema.optional(),
+  buildCommand: z.string().optional(),
+  outputDir: z.string().optional(),
+});
+export type SavePreviewConfig = z.infer<typeof SavePreviewConfigSchema>;
 
 export const BuildEventSchema = z.object({
   type: z.enum(["preview_status", "preview_error"]),

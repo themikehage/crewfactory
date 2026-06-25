@@ -166,3 +166,13 @@
 - [x] 19.14 Token auto-refresh: reactively regenerate iframe src on token/repo change
 - [x] 19.15 Build session tracking: only ensureWatcher on agent_end if build actually ran
 
+## Phase 20: Deterministic Build Config (Vercel-style)
+- [x] 20.1 Shared schemas: FrameworkPreset, PreviewConfig, SavePreviewConfig
+- [x] 20.2 preview-config.ts: auto-detect framework (package.json, config files), save/load .preview.json
+- [x] 20.3 preview-builder.ts: spawn bash build command, stream logs via preview_build_log WS events
+- [x] 20.4 Preview config endpoints: GET/POST /api/preview/config
+- [x] 20.5 Build trigger endpoints: POST /api/preview/build, POST /api/preview/build/abort
+- [x] 20.6 PreviewPanel: config drawer with framework preset selector + build command + output dir
+- [x] 20.7 PreviewPanel: Build Now button + build log panel with live streaming
+- [x] 20.8 Validate: typecheck + build pass
+

@@ -78,9 +78,15 @@
 - Sirve archivos estáticos desde el directorio de build (`dist/`, `build/`, `.output/` auto-detectados) con MIME correctas y `X-Frame-Options: SAMEORIGIN`
 - SPA routing con fallback a `index.html` para cualquier ruta no-asset
 - **HTML rewriting automático**: inyecta `<base href="/api/preview/">` + reescribe paths absolutos (`src="/"`, `href="/"`, `fetch("/"`, `new URL("/"`) para compatibilidad total con Vite SPAs, React Router BrowserRouter, y frameworks como Next.js, Nuxt, Astro
+- **Build config determinista**: modal de configuración con framework preset (Auto/Vite/Next/Nuxt/Astro/HTML/Custom), build command y output directory editables
+- **Auto-detect de framework**: escanea `package.json` (deps, scripts) y archivos de configuración (`vite.config.ts`, `next.config.js`, etc.)
+- **Build trigger manual**: botón "Build Now" en toolbar, spawn `buildCommand` via `bash -c`, transmite logs en vivo por WS
+- **Logs de build en tiempo real**: panel colapsable con stdout/stderr stream, auto-scroll
+- **Build endpoint**: `POST /api/preview/build?repo=X` con abort (`POST /api/preview/build/abort`)
+- **Persistencia**: configuración guardada en `.preview.json` dentro del repo workspace
 - Toolbar con estado de build (idle/building/ready/error), recargar, abrir en nueva pestaña
 - Modos responsive: 375px, 768px, 1280px y Full
-- Detección automática de build via WebSocket: regex que cubre 10+ comandos (`vite build`, `bun run build`, `npm run build`, `webpack`, `tsc`, `next build`, `nuxt build`, `astro build`, etc.)
+- Detección automática de build via WebSocket: regex que cubre 10+ comandos
 - `fs.watch` sobre el build dir con polling fallback cada 2s para Docker overlay filesystems
 - Token de autenticación refrescado automáticamente al cambiar de repo o re-loguear
 - Framework-agnóstico — compatible con React (Vite), HTML estático, Next.js, Nuxt, Astro, etc.
@@ -115,7 +121,11 @@
 | POST | /api/providers/:id/key | Set API key |
 | DELETE | /api/providers/:id/key | Remove API key |
 | GET | /api/preview/state | Get preview build state for a repo (`?repo=name`) |
-| GET | /api/preview/* | Serve static files from repo `dist/` with SPA fallback (`?repo=name&token=jwt`) |
+| GET | /api/preview/config | Get preview build config (`?repo=name`) |
+| POST | /api/preview/config | Save preview build config (framework, buildCommand, outputDir) |
+| POST | /api/preview/build | Trigger build from config (`?repo=name`) |
+| POST | /api/preview/build/abort | Cancel running build (`?repo=name`) |
+| GET | /api/preview/* | Serve static files from repo build dir with SPA fallback (`?repo=name&token=jwt`) |
 | GET | /api/workspace-repos | List repos in workspace/repos/ |
 | POST | /api/workspace-repos | Create empty repo or clone from Git URL |
 | GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name` scoping) |
@@ -146,8 +156,10 @@ packages/shared/  Shared Zod schemas and types
 - `pi/session-manager.ts` — Singleton managing AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `repoName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
 - `pi/task-runner.ts` — Task runner queue storage and supervisor background loop execution.
 - `routes/files.ts` — Workspace file CRUD API with `?repo=name` scoping and `/workspace-repos` endpoints for repo management.
-- `routes/preview.ts` — Serves static files from `repo/dist/` with MIME, SPA fallback, and `X-Frame-Options`
-- `pi/preview-watcher.ts` — `fs.watch` on `dist/`, build status detection, broadcast preview_status via WS
+- `routes/preview.ts` — Preview file serving, config CRUD (`/config`), and build trigger/abort (`/build`)
+- `pi/preview-config.ts` — Auto-detect framework from `package.json`/config files, load/save `.preview.json`
+- `pi/preview-builder.ts` — Spawn build via `bash -c`, stream stdout/stderr logs via WS, abort support
+- `pi/preview-watcher.ts` — `fs.watch` on build dir, build status detection, broadcast preview_status via WS
 - `lib/auth-helpers.ts` — Shared `getUsername()` helper supporting `?token=` query param and `Authorization` header
 - `routes/providers.ts` — Dynamic provider configuration API
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()

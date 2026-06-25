@@ -3,6 +3,14 @@ import { resolve, normalize, sep, extname } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
 import { getPreviewState } from "../pi/preview-watcher";
+import {
+  loadPreviewConfig,
+  savePreviewConfig,
+  autoDetectConfig,
+  getBuildOutputDir,
+  getBuildCommand,
+} from "../pi/preview-config";
+import { runBuild, isBuilding, abortBuild } from "../pi/preview-builder";
 
 export const previewRouter = new Hono();
 
@@ -151,6 +159,67 @@ previewRouter.get("/state", async (c) => {
 
   const state = getPreviewState(username, repoName);
   return c.json(state);
+});
+
+// GET /api/preview/config?repo=X — get current preview config
+previewRouter.get("/config", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.text("Unauthorized", 401);
+
+  const repoName = getRepoName(c);
+  if (!repoName) return c.json({ error: "Missing or invalid repo query parameter" }, 400);
+
+  const config = loadPreviewConfig(username, repoName);
+  return c.json(config);
+});
+
+// POST /api/preview/config?repo=X — save preview config
+previewRouter.post("/config", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.text("Unauthorized", 401);
+
+  const repoName = getRepoName(c);
+  if (!repoName) return c.json({ error: "Missing or invalid repo query parameter" }, 400);
+
+  let body: any;
+  try {
+    body = await c.req.json();
+  } catch {
+    return c.json({ error: "Invalid JSON body" }, 400);
+  }
+
+  const saved = savePreviewConfig(username, repoName, {
+    framework: body.framework,
+    buildCommand: body.buildCommand || undefined,
+    outputDir: body.outputDir || undefined,
+  });
+
+  return c.json(saved);
+});
+
+// POST /api/preview/build?repo=X — trigger build
+previewRouter.post("/build", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.text("Unauthorized", 401);
+
+  const repoName = getRepoName(c);
+  if (!repoName) return c.json({ error: "Missing or invalid repo query parameter" }, 400);
+
+  const config = loadPreviewConfig(username, repoName);
+  const result = await runBuild(username, repoName, config);
+  return c.json(result);
+});
+
+// POST /api/preview/build/abort?repo=X — cancel running build
+previewRouter.post("/build/abort", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.text("Unauthorized", 401);
+
+  const repoName = getRepoName(c);
+  if (!repoName) return c.json({ error: "Missing or invalid repo query parameter" }, 400);
+
+  abortBuild(username, repoName);
+  return c.json({ success: true });
 });
 
 // GET /api/preview/* — serves static files from build output dir

@@ -3,6 +3,7 @@ import { resolve } from "node:path";
 import type { FSWatcher } from "node:fs";
 import { broadcastToUser } from "../ws/handler";
 import type { PreviewState, PreviewStatus } from "shared";
+import { loadPreviewConfig, getBuildOutputDir } from "./preview-config";
 
 interface WatcherEntry {
   watcher: FSWatcher | null;
@@ -16,16 +17,9 @@ function watcherKey(username: string, repoName: string): string {
   return `${username}:${repoName}`;
 }
 
-const BUILD_DIRS = ["dist", "build", ".output"] as const;
-
 function resolveBuildDir(username: string, repoName: string): string | null {
-  const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);
-  const repoDir = resolve(workspaceBase, "repos", repoName);
-  for (const dir of BUILD_DIRS) {
-    const candidate = resolve(repoDir, dir);
-    if (existsSync(candidate)) return candidate;
-  }
-  return null;
+  const config = loadPreviewConfig(username, repoName);
+  return getBuildOutputDir(config, username, repoName);
 }
 
 function readPreviewState(username: string, repoName: string): PreviewState {
@@ -41,12 +35,15 @@ function readPreviewState(username: string, repoName: string): PreviewState {
     } catch {}
   }
 
+  const config = loadPreviewConfig(username, repoName);
+
   return {
     repoName,
     status: indexHtmlExists ? "ready" : "idle",
     distExists,
     indexHtmlExists,
     lastBuildAt,
+    config,
   };
 }
 
