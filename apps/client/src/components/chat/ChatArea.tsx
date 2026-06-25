@@ -261,17 +261,13 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
       const evt = data as Record<string, unknown>;
       const msg = evt.message as Message | undefined;
       if (!msg) return;
-      if (msg.role === "user") return;
 
       setMessages((prev) => {
-        for (let i = prev.length - 1; i >= 0; i--) {
-          if (prev[i].isStreaming) {
-            const updated = [...prev];
-            updated[i] = { ...msg, isStreaming: true };
-            return updated;
-          }
+        const last = prev[prev.length - 1];
+        if (last?.isStreaming) {
+          return [...prev.slice(0, -1), { ...msg, isStreaming: true }];
         }
-        return prev;
+        return [...prev, { ...msg, isStreaming: true }];
       });
     });
 
@@ -282,12 +278,9 @@ export function ChatArea({ sessionId, activeRepoName }: Props) {
       if (msg.role === "user") return;
 
       setMessages((prev) => {
-        for (let i = prev.length - 1; i >= 0; i--) {
-          if (prev[i].isStreaming) {
-            const updated = [...prev];
-            updated[i] = msg;
-            return updated;
-          }
+        const last = prev[prev.length - 1];
+        if (last?.isStreaming) {
+          return [...prev.slice(0, -1), msg];
         }
         return [...prev, msg];
       });
