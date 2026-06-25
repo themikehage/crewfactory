@@ -5,13 +5,6 @@ interface Props {
   activeRepoName: string | null;
 }
 
-const RESOLUTIONS = [
-  { label: "375", width: 375 },
-  { label: "768", width: 768 },
-  { label: "1280", width: 1280 },
-  { label: "Full", width: null },
-] as const;
-
 const FRAMEWORK_LABELS: Record<string, string> = {
   auto: "Auto-detect",
   vite: "Vite",
@@ -27,7 +20,6 @@ function usePreviewStatus(repoName: string) {
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
 
-  // Fetch initial state
   useEffect(() => {
     if (!repoName) return;
     const t = localStorage.getItem("token") || "";
@@ -39,7 +31,6 @@ function usePreviewStatus(repoName: string) {
       .catch(() => {});
   }, [repoName]);
 
-  // Fetch config separately
   const fetchConfig = useCallback(async () => {
     if (!repoName) return null;
     const t = localStorage.getItem("token") || "";
@@ -53,7 +44,6 @@ function usePreviewStatus(repoName: string) {
     }
   }, [repoName]);
 
-  // Subscribe to preview WS events
   useEffect(() => {
     if (!repoName) return;
 
@@ -91,9 +81,6 @@ function usePreviewStatus(repoName: string) {
           if (data.type === "preview_build_log" && data.repoName === repoName) {
             setBuildLogs((prev) => [...prev, data.line]);
           }
-          if (data.type === "preview_build_end" && data.repoName === repoName) {
-            // Keep final log line, future builds will clear
-          }
         } catch {}
       };
 
@@ -126,21 +113,19 @@ function usePreviewStatus(repoName: string) {
 export function PreviewPanel({ activeRepoName }: Props) {
   const repoName = activeRepoName || "";
   const { state: previewState, buildLogs, setBuildLogs, fetchConfig } = usePreviewStatus(repoName);
-  const [resolutionIndex, setResolutionIndex] = useState(0);
   const [buildKey, setBuildKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [token, setToken] = useState(() => localStorage.getItem("token") || "");
   const [configOpen, setConfigOpen] = useState(false);
-  const [configForm, setConfigForm] = useState<{
-    framework: string;
-    buildCommand: string;
-    outputDir: string;
-  }>({ framework: "auto", buildCommand: "", outputDir: "" });
+  const [configForm, setConfigForm] = useState({
+    framework: "auto",
+    buildCommand: "",
+    outputDir: "",
+  });
   const [saving, setSaving] = useState(false);
   const [logOpen, setLogOpen] = useState(false);
   const logEndRef = useRef<HTMLDivElement>(null);
 
-  // Refresh token on focus
   useEffect(() => {
     const refresh = () => setToken(localStorage.getItem("token") || "");
     window.addEventListener("focus", refresh);
@@ -153,7 +138,6 @@ export function PreviewPanel({ activeRepoName }: Props) {
     };
   }, []);
 
-  // Auto-scroll logs
   useEffect(() => {
     if (logOpen && logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: "smooth" });
@@ -169,7 +153,6 @@ export function PreviewPanel({ activeRepoName }: Props) {
     if (previewSrc) setBuildKey((k) => k + 1);
   }, [previewSrc]);
 
-  // Load config into form when opening
   const handleOpenConfig = useCallback(async () => {
     setConfigOpen(true);
     const cfg = await fetchConfig();
@@ -189,7 +172,10 @@ export function PreviewPanel({ activeRepoName }: Props) {
     try {
       await fetch(`/api/preview/config?repo=${encodeURIComponent(repoName)}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${t}`, "Content-Type": "application/json" },
+        headers: {
+          Authorization: `Bearer ${t}`,
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify(configForm),
       });
       setConfigOpen(false);
@@ -256,8 +242,6 @@ export function PreviewPanel({ activeRepoName }: Props) {
     }
   };
 
-  const iframeWidth = RESOLUTIONS[resolutionIndex].width;
-
   return (
     <div className="w-full h-full flex flex-col bg-bg">
       {/* Toolbar */}
@@ -282,7 +266,11 @@ export function PreviewPanel({ activeRepoName }: Props) {
                 title="Configure Preview"
               >
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </>
@@ -290,25 +278,6 @@ export function PreviewPanel({ activeRepoName }: Props) {
         </div>
 
         <div className="flex items-center gap-2">
-          {/* Resolution toggle */}
-          <div className="flex bg-bg/60 p-0.5 rounded-lg border border-surface-hover/30 gap-0.5">
-            {RESOLUTIONS.map((res, i) => (
-              <button
-                key={res.label}
-                onClick={() => setResolutionIndex(i)}
-                className={`px-2 py-1 text-[10px] font-medium rounded-md transition-all cursor-pointer ${
-                  resolutionIndex === i
-                    ? "bg-accent text-black"
-                    : "text-text-secondary hover:text-text-primary"
-                }`}
-              >
-                {res.label}
-              </button>
-            ))}
-          </div>
-
-          <div className="w-px h-5 bg-surface-hover/50" />
-
           <button
             onClick={handleReload}
             className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 rounded transition-colors cursor-pointer"
@@ -339,20 +308,35 @@ export function PreviewPanel({ activeRepoName }: Props) {
       {/* Build log panel */}
       {logOpen && buildLogs.length > 0 && (
         <div className="flex-shrink-0 border-b border-surface">
-          <div className="flex items-center justify-between px-3 py-1 bg-[#0a0a0a]/80">
-            <span className="text-[10px] font-mono text-text-secondary font-semibold uppercase tracking-wider">Build Log</span>
+          <div className="flex items-center justify-between px-3 py-1 bg-code-bg/80">
+            <span className="text-[10px] font-mono text-text-secondary font-semibold uppercase tracking-wider">
+              Build Log
+            </span>
             <button
               onClick={() => setLogOpen(false)}
               className="text-text-secondary hover:text-text-primary cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                <path
+                  fillRule="evenodd"
+                  d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
           </div>
-          <pre className="max-h-40 overflow-y-auto bg-[#0a0a0a]/40 p-3 text-[11px] font-mono text-text-secondary leading-relaxed">
+          <pre className="max-h-40 overflow-y-auto bg-code-bg/40 p-3 text-[11px] font-mono text-text-secondary leading-relaxed">
             {buildLogs.map((line, i) => (
-              <div key={i} className={line.startsWith("$ ") ? "text-accent/80" : line.startsWith("Build") ? "text-text-primary" : ""}>
+              <div
+                key={i}
+                className={
+                  line.startsWith("$ ")
+                    ? "text-accent/80"
+                    : line.startsWith("Build")
+                      ? "text-text-primary"
+                      : ""
+                }
+              >
                 {line}
               </div>
             ))}
@@ -369,17 +353,28 @@ export function PreviewPanel({ activeRepoName }: Props) {
       )}
 
       {/* Iframe container */}
-      <div className="flex-1 flex items-start justify-center overflow-auto bg-[#0a0a0a] p-2 sm:p-4 min-h-0">
-        {(!repoName || (previewState?.status === "idle" && !previewState?.distExists && buildLogs.length === 0)) ? (
+      <div className="flex-1 flex items-start justify-center overflow-auto bg-code-bg p-2 sm:p-4 min-h-0">
+        {!repoName ||
+        (previewState?.status === "idle" && !previewState?.distExists && buildLogs.length === 0) ? (
           <div className="flex flex-col items-center justify-center h-full text-text-secondary/60 gap-3">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-30">
+            <svg
+              width="48"
+              height="48"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1"
+              className="opacity-30"
+            >
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
             </svg>
             <p className="text-sm font-medium">
               {!repoName ? "Select a project to preview" : "No build output yet"}
             </p>
             <p className="text-xs text-center max-w-xs">
-              {repoName ? "Configure your build settings and click Build Now." : "Select a project from the Projects page."}
+              {repoName
+                ? "Configure your build settings and click Build Now."
+                : "Select a project from the Projects page."}
             </p>
             {repoName && (
               <div className="flex gap-2 mt-1">
@@ -402,14 +397,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
             )}
           </div>
         ) : (
-          <div
-            className="bg-white rounded-lg shadow-2xl overflow-hidden transition-all duration-300"
-            style={{
-              width: iframeWidth ? `${iframeWidth}px` : "100%",
-              maxWidth: iframeWidth ? `${iframeWidth}px` : "100%",
-              height: "100%",
-            }}
-          >
+          <div className="bg-white rounded-lg shadow-2xl overflow-hidden w-full h-full max-w-full">
             <iframe
               key={buildKey}
               ref={iframeRef}
@@ -425,40 +413,56 @@ export function PreviewPanel({ activeRepoName }: Props) {
       {/* Config drawer */}
       {configOpen && (
         <>
-          <div className="fixed inset-0 bg-black/40 z-40" onClick={() => setConfigOpen(false)} />
+          <div
+            className="fixed inset-0 bg-black/40 z-40"
+            onClick={() => setConfigOpen(false)}
+          />
           <div className="fixed right-0 top-0 h-full w-80 sm:w-96 bg-surface border-l border-surface-hover z-50 flex flex-col shadow-2xl">
             <div className="flex items-center justify-between px-4 py-3 border-b border-surface-hover">
-              <span className="text-sm font-semibold text-text-primary">Preview Settings</span>
+              <span className="text-sm font-semibold text-text-primary">
+                Preview Settings
+              </span>
               <button
                 onClick={() => setConfigOpen(false)}
                 className="text-text-secondary hover:text-text-primary cursor-pointer"
               >
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                  <path
+                    fillRule="evenodd"
+                    d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
                 </svg>
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
-              {/* Framework */}
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">Framework</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
+                  Framework
+                </label>
                 <select
                   value={configForm.framework}
                   onChange={(e) => {
                     const fw = e.target.value;
-                    // Auto-fill defaults based on framework selection
                     const presets: Record<string, { cmd: string; dir: string }> = {
                       vite: { cmd: "npx --yes vite build", dir: "dist" },
                       next: { cmd: "npx --yes next build", dir: ".next" },
                       nuxt: { cmd: "npx --yes nuxt build", dir: ".output" },
                       astro: { cmd: "npx --yes astro build", dir: "dist" },
                       html: { cmd: "", dir: "." },
-                      custom: { cmd: configForm.buildCommand || "npm run build", dir: configForm.outputDir || "dist" },
+                      custom: {
+                        cmd: configForm.buildCommand || "npm run build",
+                        dir: configForm.outputDir || "dist",
+                      },
                     };
                     const preset = presets[fw];
                     if (preset && fw !== "custom" && fw !== "auto") {
-                      setConfigForm({ framework: fw, buildCommand: preset.cmd, outputDir: preset.dir });
+                      setConfigForm({
+                        framework: fw,
+                        buildCommand: preset.cmd,
+                        outputDir: preset.dir,
+                      });
                     } else {
                       setConfigForm((prev) => ({ ...prev, framework: fw }));
                     }
@@ -466,19 +470,31 @@ export function PreviewPanel({ activeRepoName }: Props) {
                   className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1.5 rounded text-xs transition-all"
                 >
                   {Object.entries(FRAMEWORK_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>{label}</option>
+                    <option key={value} value={value}>
+                      {label}
+                    </option>
                   ))}
                 </select>
               </div>
 
-              {/* Build Command */}
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">Build Command</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
+                  Build Command
+                </label>
                 <input
                   type="text"
                   value={configForm.buildCommand}
-                  onChange={(e) => setConfigForm((prev) => ({ ...prev, buildCommand: e.target.value }))}
-                  placeholder={configForm.framework === "html" ? "No build needed" : "e.g. npm run build"}
+                  onChange={(e) =>
+                    setConfigForm((prev) => ({
+                      ...prev,
+                      buildCommand: e.target.value,
+                    }))
+                  }
+                  placeholder={
+                    configForm.framework === "html"
+                      ? "No build needed"
+                      : "e.g. npm run build"
+                  }
                   disabled={configForm.framework === "html"}
                   className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1.5 rounded text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed font-mono"
                 />
@@ -487,13 +503,19 @@ export function PreviewPanel({ activeRepoName }: Props) {
                 </p>
               </div>
 
-              {/* Output Directory */}
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">Output Directory</label>
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
+                  Output Directory
+                </label>
                 <input
                   type="text"
                   value={configForm.outputDir}
-                  onChange={(e) => setConfigForm((prev) => ({ ...prev, outputDir: e.target.value }))}
+                  onChange={(e) =>
+                    setConfigForm((prev) => ({
+                      ...prev,
+                      outputDir: e.target.value,
+                    }))
+                  }
                   placeholder="dist"
                   className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1.5 rounded text-xs transition-all font-mono"
                 />
