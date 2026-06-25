@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { resolve, normalize, sep, extname } from "node:path";
-import { existsSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
 import { getPreviewState } from "../pi/preview-watcher";
 
@@ -45,22 +45,83 @@ function isAssetPath(path: string): boolean {
   return ASSET_EXTENSIONS.has(ext);
 }
 
-function validatePreviewPath(username: string, repoName: string, reqPath: string): string {
+const BUILD_DIRS = ["dist", "build", ".output"] as const;
+
+function resolveBuildDir(username: string, repoName: string): string | null {
   const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);
-  const distDir = resolve(workspaceBase, "repos", repoName, "dist");
+  const repoDir = resolve(workspaceBase, "repos", repoName);
+  for (const dir of BUILD_DIRS) {
+    const candidate = resolve(repoDir, dir);
+    if (existsSync(candidate)) return candidate;
+  }
+  return resolve(repoDir, "dist");
+}
+
+function validatePreviewPath(username: string, repoName: string, reqPath: string): string {
+  const buildDir = resolveBuildDir(username, repoName);
+  if (!buildDir) throw new Error("No build directory found");
 
   const normalized = normalize(reqPath || ".");
-  const fullPath = resolve(distDir, normalized);
+  const fullPath = resolve(buildDir, normalized);
 
-  if (fullPath !== distDir && !fullPath.startsWith(distDir + sep)) {
+  if (fullPath !== buildDir && !fullPath.startsWith(buildDir + sep)) {
     throw new Error("Path traversal detected");
   }
 
   return fullPath;
 }
 
-function buildDistIndexPath(username: string, repoName: string): string {
-  return resolve(`/tmp/pi-web-users/${username}/workspace/repos/${repoName}/dist/index.html`);
+function buildIndexPath(username: string, repoName: string): string | null {
+  const buildDir = resolveBuildDir(username, repoName);
+  if (!buildDir) return null;
+  const indexPath = resolve(buildDir, "index.html");
+  return existsSync(indexPath) ? indexPath : null;
+}
+
+const PREFIX = "/api/preview/";
+
+function rewriteHtml(html: string): string {
+  const baseInjected = html.replace(
+    /<head[^>]*>/i,
+    (match) => `${match}<base href="${PREFIX}">`
+  );
+
+  return baseInjected
+    .replace(
+      /(<(?:script|link|img|source|iframe|video|audio)\s[^>]*?)(src|href|action)\s*=\s*"(\/(?!\/)[^"]*?)"/gi,
+      (_, tag, attr, path) => {
+        if (path.startsWith(PREFIX) || path.startsWith("//") || path.startsWith("http")) return `${tag}${attr}="${path}"`;
+        return `${tag}${attr}="${PREFIX}${path.replace(/^\//, "")}"`;
+      }
+    )
+    .replace(
+      /(<(?:script|link|img|source|iframe|video|audio)\s[^>]*?)(src|href|action)\s*=\s*'(\/(?!\/)[^']*?)'/gi,
+      (_, tag, attr, path) => {
+        if (path.startsWith(PREFIX) || path.startsWith("//") || path.startsWith("http")) return `${tag}${attr}='${path}'`;
+        return `${tag}${attr}='${PREFIX}${path.replace(/^\//, "")}'`;
+      }
+    )
+    .replace(
+      /(fetch|import)\s*\(\s*"(\/(?!\/)[^"]*?)"/gi,
+      (_, call, path) => {
+        if (path.startsWith(PREFIX)) return `${call}("${path}"`;
+        return `${call}("${PREFIX}${path.replace(/^\//, "")}"`;
+      }
+    )
+    .replace(
+      /(fetch|import)\s*\(\s*'(\/(?!\/)[^']*?)'/gi,
+      (_, call, path) => {
+        if (path.startsWith(PREFIX)) return `${call}('${path}'`;
+        return `${call}('${PREFIX}${path.replace(/^\//, "")}'`;
+      }
+    )
+    .replace(
+      /(new URL|import\.meta\.url)\s*\(\s*"(\/(?!\/)[^"]*?)"/gi,
+      (_, call, path) => {
+        if (path.startsWith(PREFIX)) return `${call}("${path}"`;
+        return `${call}("${PREFIX}${path.replace(/^\//, "")}"`;
+      }
+    );
 }
 
 function buildPreviewHeaders(contentType: string): Record<string, string> {
@@ -92,7 +153,7 @@ previewRouter.get("/state", async (c) => {
   return c.json(state);
 });
 
-// GET /api/preview/* — serves static files from dist/
+// GET /api/preview/* — serves static files from build output dir
 previewRouter.get("/*", async (c) => {
   const username = getUsername(c);
   if (!username) return c.text("Unauthorized", 401);
@@ -103,7 +164,6 @@ previewRouter.get("/*", async (c) => {
   const reqPath = c.req.param("*") || "index.html";
 
   try {
-    // Validate path
     let fullPath: string;
     try {
       fullPath = validatePreviewPath(username, repoName, reqPath);
@@ -116,20 +176,30 @@ previewRouter.get("/*", async (c) => {
       const file = Bun.file(fullPath);
       const exists = await file.exists();
       if (exists) {
+        const mime = lookupMime(fullPath);
+        if (mime.startsWith("text/html")) {
+          const original = await file.text();
+          const rewritten = rewriteHtml(original);
+          return new Response(rewritten, {
+            headers: buildPreviewHeaders(mime),
+          });
+        }
         return new Response(file.stream(), {
-          headers: buildPreviewHeaders(lookupMime(fullPath)),
+          headers: buildPreviewHeaders(mime),
         });
       }
     }
 
     // SPA fallback: for non-asset requests, serve index.html
     if (!isAssetPath(reqPath)) {
-      const indexPath = buildDistIndexPath(username, repoName);
-      if (existsSync(indexPath)) {
+      const indexPath = buildIndexPath(username, repoName);
+      if (indexPath && existsSync(indexPath)) {
         const file = Bun.file(indexPath);
         const exists = await file.exists();
         if (exists) {
-          return new Response(file.stream(), {
+          const original = await file.text();
+          const rewritten = rewriteHtml(original);
+          return new Response(rewritten, {
             headers: buildPreviewHeaders("text/html; charset=utf-8"),
           });
         }

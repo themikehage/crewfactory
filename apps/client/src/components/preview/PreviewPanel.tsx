@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { PreviewState } from "shared";
 
 interface Props {
@@ -12,18 +12,9 @@ const RESOLUTIONS = [
   { label: "Full", width: null },
 ] as const;
 
-export function PreviewPanel({ activeRepoName }: Props) {
-  const [previewState, setPreviewState] = useState<PreviewState | null>(null);
-  const [resolutionIndex, setResolutionIndex] = useState(0);
-  const [buildKey, setBuildKey] = useState(0);
-
-  const repoName = activeRepoName || "";
-  const token = localStorage.getItem("token") || "";
-
-  const previewSrc =
-    repoName && token
-      ? `/api/preview/index.html?repo=${encodeURIComponent(repoName)}&token=${encodeURIComponent(token)}`
-      : null;
+function usePreviewStatus(repoName: string) {
+  const [state, setState] = useState<PreviewState | null>(null);
+  const wsRef = useRef<WebSocket | null>(null);
 
   // Fetch initial state
   useEffect(() => {
@@ -33,35 +24,37 @@ export function PreviewPanel({ activeRepoName }: Props) {
       headers: { Authorization: `Bearer ${t}` },
     })
       .then((r) => r.json())
-      .then((data) => setPreviewState(data))
+      .then((data) => setState(data))
       .catch(() => {});
   }, [repoName]);
 
-  // Subscribe to preview WebSocket events (no sessionId needed — broadcastToUser)
+  // Subscribe to preview WS events (broadcastToUser — no sessionId needed)
   useEffect(() => {
     if (!repoName) return;
 
     const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProto}//${location.host}/ws`;
-    let ws: WebSocket | null = null;
     let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
     let reconnectAttempts = 0;
+    let closed = false;
 
     const connect = () => {
       const t = localStorage.getItem("token");
-      if (!t) return;
+      if (!t || closed) return;
 
-      ws = new WebSocket(wsUrl);
+      const ws = new WebSocket(wsUrl);
+      wsRef.current = ws;
+
       ws.onopen = () => {
         reconnectAttempts = 0;
-        ws!.send(JSON.stringify({ type: "auth", token: t }));
+        ws.send(JSON.stringify({ type: "auth", token: t }));
       };
 
       ws.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data);
           if (data.type === "preview_status" && data.repoName === repoName) {
-            setPreviewState((prev) => ({
+            setState((prev) => ({
               repoName: data.repoName,
               status: data.status || prev?.status || "idle",
               distExists: data.distExists ?? prev?.distExists ?? false,
@@ -74,20 +67,59 @@ export function PreviewPanel({ activeRepoName }: Props) {
       };
 
       ws.onclose = () => {
+        wsRef.current = null;
+        if (closed) return;
         const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
         reconnectAttempts++;
         reconnectTimer = setTimeout(connect, delay);
       };
 
-      ws.onerror = () => ws?.close();
+      ws.onerror = () => ws.close();
     };
 
     connect();
+
     return () => {
+      closed = true;
       if (reconnectTimer) clearTimeout(reconnectTimer);
-      ws?.close();
+      wsRef.current?.close();
+      wsRef.current = null;
     };
   }, [repoName]);
+
+  return state;
+}
+
+export function PreviewPanel({ activeRepoName }: Props) {
+  const repoName = activeRepoName || "";
+  const previewState = usePreviewStatus(repoName);
+  const [resolutionIndex, setResolutionIndex] = useState(0);
+  const [buildKey, setBuildKey] = useState(0);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [token, setToken] = useState(() => localStorage.getItem("token") || "");
+
+  // Refresh token on focus (covers re-login scenarios)
+  useEffect(() => {
+    const refresh = () => setToken(localStorage.getItem("token") || "");
+    window.addEventListener("focus", refresh);
+    window.addEventListener("storage", (e) => {
+      if (e.key === "token") refresh();
+    });
+    return () => {
+      window.removeEventListener("focus", refresh);
+      window.removeEventListener("storage", refresh);
+    };
+  }, []);
+
+  const previewSrc =
+    repoName && token
+      ? `/api/preview/index.html?repo=${encodeURIComponent(repoName)}&token=${encodeURIComponent(token)}`
+      : null;
+
+  // Auto-reload iframe when src changes (token refresh, repo change)
+  useEffect(() => {
+    if (previewSrc) setBuildKey((k) => k + 1);
+  }, [previewSrc]);
 
   const handleReload = useCallback(() => {
     setBuildKey((k) => k + 1);
@@ -197,7 +229,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
 
       {/* Iframe container */}
       <div className="flex-1 flex items-start justify-center overflow-auto bg-[#0a0a0a] p-2 sm:p-4 min-h-0">
-        {(!repoName || previewState?.status === "idle" && !previewState?.distExists) ? (
+        {(!repoName || (previewState?.status === "idle" && !previewState?.distExists)) ? (
           <div className="flex flex-col items-center justify-center h-full text-text-secondary/60 gap-3">
             <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1" className="opacity-30">
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -215,11 +247,12 @@ export function PreviewPanel({ activeRepoName }: Props) {
             style={{
               width: iframeWidth ? `${iframeWidth}px` : "100%",
               maxWidth: iframeWidth ? `${iframeWidth}px` : "100%",
-              height: iframeWidth ? "100%" : "100%",
+              height: "100%",
             }}
           >
             <iframe
               key={buildKey}
+              ref={iframeRef}
               src={previewSrc || ""}
               className="w-full h-full border-0"
               sandbox="allow-scripts allow-forms allow-same-origin allow-popups"

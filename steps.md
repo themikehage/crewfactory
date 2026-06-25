@@ -159,4 +159,10 @@
 - [x] 19.7 PreviewPanel.tsx: iframe + toolbar (reload, new tab, responsive 375/768/1280/Full) + build status
 - [x] 19.8 Integración UI: /preview route in useRouter, AppRouter, MainLayout header button
 - [x] 19.9 Validación: server + client typecheck and build pass
+- [x] 19.10 HTML rewriting: inject `<base>` + rewrite src/href/fetch/URL paths for Vite/SPA compatibility
+- [x] 19.11 Multi-build-dir support: auto-detect dist/, build/, .output/ directories
+- [x] 19.12 Extended build regex: vite build, webpack, tsc, next build, nuxt build, astro build, etc.
+- [x] 19.13 Polling fallback for Docker overlay filesystems (2s interval)
+- [x] 19.14 Token auto-refresh: reactively regenerate iframe src on token/repo change
+- [x] 19.15 Build session tracking: only ensureWatcher on agent_end if build actually ran
 

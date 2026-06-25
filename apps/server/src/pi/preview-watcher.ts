@@ -5,8 +5,9 @@ import { broadcastToUser } from "../ws/handler";
 import type { PreviewState, PreviewStatus } from "shared";
 
 interface WatcherEntry {
-  watcher: FSWatcher;
+  watcher: FSWatcher | null;
   timer: ReturnType<typeof setTimeout> | null;
+  pollTimer: ReturnType<typeof setInterval> | null;
 }
 
 const watchers = new Map<string, WatcherEntry>();
@@ -15,15 +16,23 @@ function watcherKey(username: string, repoName: string): string {
   return `${username}:${repoName}`;
 }
 
-function distDir(username: string, repoName: string): string {
-  return resolve(`/tmp/pi-web-users/${username}/workspace/repos/${repoName}/dist`);
+const BUILD_DIRS = ["dist", "build", ".output"] as const;
+
+function resolveBuildDir(username: string, repoName: string): string | null {
+  const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);
+  const repoDir = resolve(workspaceBase, "repos", repoName);
+  for (const dir of BUILD_DIRS) {
+    const candidate = resolve(repoDir, dir);
+    if (existsSync(candidate)) return candidate;
+  }
+  return null;
 }
 
 function readPreviewState(username: string, repoName: string): PreviewState {
-  const dd = distDir(username, repoName);
-  const distExists = existsSync(dd);
-  const indexPath = resolve(dd, "index.html");
-  const indexHtmlExists = existsSync(indexPath);
+  const buildDir = resolveBuildDir(username, repoName);
+  const distExists = buildDir !== null;
+  const indexPath = buildDir ? resolve(buildDir, "index.html") : "";
+  const indexHtmlExists = distExists && existsSync(indexPath);
 
   let lastBuildAt: number | null = null;
   if (indexHtmlExists) {
@@ -65,15 +74,44 @@ function debouncedNotify(username: string, repoName: string) {
   }, 300);
 }
 
+function startPollingFallback(username: string, repoName: string) {
+  const key = watcherKey(username, repoName);
+  const entry = watchers.get(key);
+  if (!entry) return;
+
+  let lastMtime = Date.now();
+  const indexPath = resolveBuildDir(username, repoName)
+    ? resolve(resolveBuildDir(username, repoName)!, "index.html")
+    : "";
+
+  entry.pollTimer = setInterval(() => {
+    try {
+      if (indexPath && existsSync(indexPath)) {
+        const mtime = statSync(indexPath).mtimeMs;
+        if (mtime > lastMtime) {
+          lastMtime = mtime;
+          notifyStatus(username, repoName, "ready");
+        }
+      } else {
+        notifyStatus(username, repoName, "idle");
+      }
+    } catch {}
+  }, 2000);
+}
+
 export function ensureWatcher(username: string, repoName: string) {
   const key = watcherKey(username, repoName);
   if (watchers.has(key)) return;
 
-  const dd = distDir(username, repoName);
-  if (!existsSync(dd)) return;
+  const buildDir = resolveBuildDir(username, repoName);
+  const entry: WatcherEntry = { watcher: null, timer: null, pollTimer: null };
+  watchers.set(key, entry);
 
+  if (!buildDir) return;
+
+  // Try fs.watch first, fall back to polling
   try {
-    const watcher = watch(dd, { recursive: true }, (eventType, filename) => {
+    const w = watch(buildDir, { recursive: true }, (eventType, filename) => {
       if (!filename) return;
 
       const name = filename.toString();
@@ -87,10 +125,10 @@ export function ensureWatcher(username: string, repoName: string) {
         debouncedNotify(username, repoName);
       }
     });
-
-    watchers.set(key, { watcher, timer: null });
+    entry.watcher = w;
   } catch {
-    // fs.watch may fail on some Docker overlay filesystems; handled by polling fallback
+    // fs.watch failed (Docker overlay etc.), polling fallback handles it
+    startPollingFallback(username, repoName);
   }
 }
 
@@ -99,9 +137,10 @@ export function removeWatcher(username: string, repoName: string) {
   const entry = watchers.get(key);
   if (entry) {
     if (entry.timer) clearTimeout(entry.timer);
-    try {
-      entry.watcher.close();
-    } catch {}
+    if (entry.pollTimer) clearInterval(entry.pollTimer);
+    if (entry.watcher) {
+      try { entry.watcher.close(); } catch {}
+    }
     watchers.delete(key);
   }
 }

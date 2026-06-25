@@ -75,13 +75,15 @@
 
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente
-- Sirve archivos estáticos desde `dist/` con MIME correctas y `X-Frame-Options: SAMEORIGIN`
+- Sirve archivos estáticos desde el directorio de build (`dist/`, `build/`, `.output/` auto-detectados) con MIME correctas y `X-Frame-Options: SAMEORIGIN`
 - SPA routing con fallback a `index.html` para cualquier ruta no-asset
+- **HTML rewriting automático**: inyecta `<base href="/api/preview/">` + reescribe paths absolutos (`src="/"`, `href="/"`, `fetch("/"`, `new URL("/"`) para compatibilidad total con Vite SPAs, React Router BrowserRouter, y frameworks como Next.js, Nuxt, Astro
 - Toolbar con estado de build (idle/building/ready/error), recargar, abrir en nueva pestaña
 - Modos responsive: 375px, 768px, 1280px y Full
-- Detección automática de build via WebSocket: escucha `tool_execution_start`/`tool_execution_end` con `bash` commands de build
-- `fs.watch` sobre `dist/` para notificar cambios post-build
-- Framework-agnóstico — funciona con React, HTML estático, etc.
+- Detección automática de build via WebSocket: regex que cubre 10+ comandos (`vite build`, `bun run build`, `npm run build`, `webpack`, `tsc`, `next build`, `nuxt build`, `astro build`, etc.)
+- `fs.watch` sobre el build dir con polling fallback cada 2s para Docker overlay filesystems
+- Token de autenticación refrescado automáticamente al cambiar de repo o re-loguear
+- Framework-agnóstico — compatible con React (Vite), HTML estático, Next.js, Nuxt, Astro, etc.
 
 ### Task Runner (Supervisor Loop)
 - Decompose high-level goals into sequential task steps using active session LLM

@@ -146,8 +146,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             sessionId
           );
 
-          const BUILD_REGEX = /\b(build|vite build|next build|bun run build|npm run build|pnpm run build|yarn build)\b/;
+          const BUILD_REGEX = /\b(build|vite build|next build|nuxt build|astro build|bun run build|npm run build|pnpm run build|yarn build|tsc|webpack|parcel build|rollup -c)\b/;
           const sessionRepoName = getRepoNameForSession(user.username, sessionId);
+          let hadBuildInSession = false;
 
           const unsub = session.subscribe((agentEvent) => {
             safeSend(ws, JSON.stringify(agentEvent));
@@ -156,6 +157,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
               const ev = agentEvent as any;
               const cmd = ev.args?.command as string | undefined;
               if (ev.toolName === "bash" && cmd && BUILD_REGEX.test(cmd) && sessionRepoName) {
+                hadBuildInSession = true;
                 setBuilding(user.username, sessionRepoName);
               }
             }
@@ -167,14 +169,17 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
                 if (ev.isError) {
                   const resultStr = typeof ev.result === "string" ? ev.result : JSON.stringify(ev.result).slice(0, 500);
                   setError(user.username, sessionRepoName, resultStr || "Build failed");
+                  hadBuildInSession = false;
                 } else if (cmd && BUILD_REGEX.test(cmd)) {
+                  hadBuildInSession = false;
                   setReady(user.username, sessionRepoName);
                 }
               }
             }
 
-            if (agentEvent.type === "agent_end" && sessionRepoName) {
+            if (agentEvent.type === "agent_end" && sessionRepoName && hadBuildInSession) {
               ensureWatcher(user.username, sessionRepoName);
+              hadBuildInSession = false;
             }
 
             const sendContextUsage = () => {
