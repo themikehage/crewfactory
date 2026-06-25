@@ -73,6 +73,16 @@
 - Manual "Compact" button triggering `session.compact()` via WebSocket
 - Context usage emitted automatically after each `message_end` event
 
+### Live Render Preview
+- Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente
+- Sirve archivos estáticos desde `dist/` con MIME correctas y `X-Frame-Options: SAMEORIGIN`
+- SPA routing con fallback a `index.html` para cualquier ruta no-asset
+- Toolbar con estado de build (idle/building/ready/error), recargar, abrir en nueva pestaña
+- Modos responsive: 375px, 768px, 1280px y Full
+- Detección automática de build via WebSocket: escucha `tool_execution_start`/`tool_execution_end` con `bash` commands de build
+- `fs.watch` sobre `dist/` para notificar cambios post-build
+- Framework-agnóstico — funciona con React, HTML estático, etc.
+
 ### Task Runner (Supervisor Loop)
 - Decompose high-level goals into sequential task steps using active session LLM
 - Persistent runner state saved in session `tasks.json`
@@ -102,6 +112,8 @@
 | GET | /api/providers/:id/models | Models for a provider |
 | POST | /api/providers/:id/key | Set API key |
 | DELETE | /api/providers/:id/key | Remove API key |
+| GET | /api/preview/state | Get preview build state for a repo (`?repo=name`) |
+| GET | /api/preview/* | Serve static files from repo `dist/` with SPA fallback (`?repo=name&token=jwt`) |
 | GET | /api/workspace-repos | List repos in workspace/repos/ |
 | POST | /api/workspace-repos | Create empty repo or clone from Git URL |
 | GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name` scoping) |
@@ -132,6 +144,9 @@ packages/shared/  Shared Zod schemas and types
 - `pi/session-manager.ts` — Singleton managing AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `repoName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
 - `pi/task-runner.ts` — Task runner queue storage and supervisor background loop execution.
 - `routes/files.ts` — Workspace file CRUD API with `?repo=name` scoping and `/workspace-repos` endpoints for repo management.
+- `routes/preview.ts` — Serves static files from `repo/dist/` with MIME, SPA fallback, and `X-Frame-Options`
+- `pi/preview-watcher.ts` — `fs.watch` on `dist/`, build status detection, broadcast preview_status via WS
+- `lib/auth-helpers.ts` — Shared `getUsername()` helper supporting `?token=` query param and `Authorization` header
 - `routes/providers.ts` — Dynamic provider configuration API
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
 - `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints
@@ -152,4 +167,5 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/TasksPanel.tsx` — Checklist component displaying subtasks, logs, and controls.
 - `components/chat/InfrastructurePanel.tsx` — Renders input fields for repository mappings and quick action triggers.
 - `components/sidebar/SessionSidebar.tsx` — Filters sessions by active `repoName`; creates sessions with correct context.
+- `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active repo via `?repo=` query param.

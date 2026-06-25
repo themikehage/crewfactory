@@ -12,6 +12,7 @@ import { providersRouter } from "./routes/providers";
 import { skillsRouter } from "./routes/skills";
 import { envRouter } from "./routes/env";
 import { integrationsRouter } from "./routes/integrations";
+import { previewRouter } from "./routes/preview";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
@@ -29,6 +30,7 @@ app.route("/api/providers", providersRouter);
 app.route("/api/skills", skillsRouter);
 app.route("/api/env", envRouter);
 app.route("/api/integrations", integrationsRouter);
+app.route("/api/preview", previewRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 

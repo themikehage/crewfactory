@@ -5,6 +5,7 @@ import { SettingsPage } from "@/pages/SettingsPage";
 import { SkillsPage } from "@/pages/SkillsPage";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { ChatArea } from "@/components/chat/ChatArea";
+import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { useRouter } from "@/hooks/useRouter";
 import { MainLayout } from "./MainLayout";
@@ -76,6 +77,9 @@ export function AppRouter() {
           sessionId={route.sessionId}
           activeRepoName={activeRepoName}
         />
+      )}
+      {route.page === "preview" && (
+        <PreviewPanel activeRepoName={activeRepoName} />
       )}
     </MainLayout>
   );

@@ -1,31 +1,9 @@
 import { Hono } from "hono";
-import jwt from "jsonwebtoken";
-import type { AuthPayload } from "../middleware/auth";
 import { resolve, normalize, sep, join, basename, dirname } from "node:path";
 import { existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, rmSync, renameSync } from "node:fs";
+import { getUsername } from "../lib/auth-helpers";
 
 export const filesRouter = new Hono();
-
-function getUsername(c: any): string | null {
-  const tokenFromQuery = c.req.query("token");
-  const authHeader = c.req.header("Authorization");
-  let token = "";
-
-  if (tokenFromQuery) {
-    token = tokenFromQuery;
-  } else if (authHeader?.startsWith("Bearer ")) {
-    token = authHeader.slice(7);
-  } else {
-    return null;
-  }
-
-  try {
-    const payload = jwt.verify(token, process.env.JWT_SECRET!) as AuthPayload;
-    return payload.username;
-  } catch {
-    return null;
-  }
-}
 
 function validateWorkspacePath(username: string, relativePath: string, repoName?: string): string {
   const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);

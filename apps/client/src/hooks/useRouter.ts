@@ -5,7 +5,8 @@ export type Route =
   | { page: "projects" }
   | { page: "settings" }
   | { page: "skills" }
-  | { page: "workspace" };
+  | { page: "workspace" }
+  | { page: "preview" };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
@@ -24,6 +25,9 @@ function parseRoute(): Route {
   }
   if (path === "/workspace") {
     return { page: "workspace" };
+  }
+  if (path === "/preview") {
+    return { page: "preview" };
   }
   return { page: "chat", sessionId: null };
 }

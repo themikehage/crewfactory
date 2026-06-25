@@ -149,3 +149,14 @@
 - [x] 18.2 Rebuild client and server with new SW configuration
 - [x] 18.3 Verify CSS/JS/assets served correctly without SW interference
 
+## Phase 19: Live Render Preview (Project Preview via iframe + dist/)
+- [x] 19.1 Shared schemas: PreviewStatus, PreviewState, BuildEvent
+- [x] 19.2 Refactor getUsername helper from files.ts to shared lib/auth-helpers.ts
+- [x] 19.3 Preview route /api/preview/state + /api/preview/* with MIME, SPA fallback, X-Frame-Options, CSP
+- [x] 19.4 Register previewRouter in index.ts before static SPA fallback
+- [x] 19.5 preview-watcher.ts (fs.watch + polling fallback + broadcastToUser via WS)
+- [x] 19.6 WS handler: detect build via tool_execution_start/end on bash commands
+- [x] 19.7 PreviewPanel.tsx: iframe + toolbar (reload, new tab, responsive 375/768/1280/Full) + build status
+- [x] 19.8 Integración UI: /preview route in useRouter, AppRouter, MainLayout header button
+- [x] 19.9 Validación: server + client typecheck and build pass
+

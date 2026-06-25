@@ -104,6 +104,27 @@ export const ChangePasswordSchema = z.object({
 });
 export type ChangePassword = z.infer<typeof ChangePasswordSchema>;
 
+export const PreviewStatusSchema = z.enum(["idle", "building", "ready", "error"]);
+export type PreviewStatus = z.infer<typeof PreviewStatusSchema>;
+
+export const PreviewStateSchema = z.object({
+  repoName: z.string(),
+  status: PreviewStatusSchema,
+  distExists: z.boolean(),
+  indexHtmlExists: z.boolean(),
+  lastBuildAt: z.number().nullable(),
+  error: z.string().optional(),
+});
+export type PreviewState = z.infer<typeof PreviewStateSchema>;
+
+export const BuildEventSchema = z.object({
+  type: z.enum(["preview_status", "preview_error"]),
+  repoName: z.string(),
+  status: PreviewStatusSchema.optional(),
+  error: z.string().optional(),
+  lastBuildAt: z.number().optional(),
+});
+
 export type Login = z.infer<typeof LoginSchema>;
 export type Prompt = z.infer<typeof PromptSchema>;
 export type SessionStatus = z.infer<typeof SessionStatusSchema>;

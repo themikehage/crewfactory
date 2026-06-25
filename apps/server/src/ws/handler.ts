@@ -1,7 +1,18 @@
 import jwt from "jsonwebtoken";
+import { existsSync, readFileSync } from "node:fs";
 import { piSessionManager } from "../pi/session-manager";
 import type { AuthPayload } from "../middleware/auth";
 import type { WSContext, WSMessageReceive } from "hono/ws";
+import { setBuilding, setReady, setError, ensureWatcher } from "../pi/preview-watcher";
+
+function getRepoNameForSession(username: string, sessionId: string): string | undefined {
+  const p = `/tmp/pi-web-users/${username}/sessions/${sessionId}/metadata.json`;
+  if (existsSync(p)) {
+    try {
+      return JSON.parse(readFileSync(p, "utf-8")).repoName;
+    } catch {}
+  }
+}
 
 interface PiWebSocket extends WSContext {
   wsId: string;
@@ -130,14 +141,43 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
           existingUnsub();
         }
 
-        const session = await piSessionManager.getOrCreateSession(
-          user.username,
-          sessionId
-        );
+          const session = await piSessionManager.getOrCreateSession(
+            user.username,
+            sessionId
+          );
 
-        const unsub = session.subscribe((agentEvent) => {
-          safeSend(ws, JSON.stringify(agentEvent));
-          const sendContextUsage = () => {
+          const BUILD_REGEX = /\b(build|vite build|next build|bun run build|npm run build|pnpm run build|yarn build)\b/;
+          const sessionRepoName = getRepoNameForSession(user.username, sessionId);
+
+          const unsub = session.subscribe((agentEvent) => {
+            safeSend(ws, JSON.stringify(agentEvent));
+
+            if (agentEvent.type === "tool_execution_start") {
+              const ev = agentEvent as any;
+              const cmd = ev.args?.command as string | undefined;
+              if (ev.toolName === "bash" && cmd && BUILD_REGEX.test(cmd) && sessionRepoName) {
+                setBuilding(user.username, sessionRepoName);
+              }
+            }
+
+            if (agentEvent.type === "tool_execution_end") {
+              const ev = agentEvent as any;
+              if (ev.toolName === "bash" && sessionRepoName) {
+                const cmd = ev.args?.command as string | undefined;
+                if (ev.isError) {
+                  const resultStr = typeof ev.result === "string" ? ev.result : JSON.stringify(ev.result).slice(0, 500);
+                  setError(user.username, sessionRepoName, resultStr || "Build failed");
+                } else if (cmd && BUILD_REGEX.test(cmd)) {
+                  setReady(user.username, sessionRepoName);
+                }
+              }
+            }
+
+            if (agentEvent.type === "agent_end" && sessionRepoName) {
+              ensureWatcher(user.username, sessionRepoName);
+            }
+
+            const sendContextUsage = () => {
             try {
               const contextUsage = session.getContextUsage();
               const sessionStats = session.getSessionStats();
