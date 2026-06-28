@@ -4,6 +4,7 @@ import { piSessionManager } from "../pi/session-manager";
 import type { AuthPayload } from "../middleware/auth";
 import type { WSContext, WSMessageReceive } from "hono/ws";
 import { setBuilding, setReady, setError, ensureWatcher } from "../pi/preview-watcher";
+import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 
 function getRepoNameForSession(username: string, sessionId: string): string | undefined {
   const p = `/tmp/pi-web-users/${username}/sessions/${sessionId}/metadata.json`;
@@ -24,6 +25,21 @@ const userMap = new Map<string, AuthPayload>();
 const wsSubscriptions = new Map<string, () => void>();
 export const sessionSockets = new Map<string, Set<WSContext>>();
 export const userSockets = new Map<string, Set<WSContext>>();
+export const channelSockets = new Map<string, Set<WSContext>>();
+
+export function broadcastToChannel(channelId: string, data: any) {
+  const sockets = channelSockets.get(channelId);
+  if (sockets) {
+    const payload = JSON.stringify(data);
+    for (const ws of sockets) {
+      try {
+        ws.send(payload);
+      } catch {}
+    }
+  }
+}
+
+setChannelBroadcastHandler(broadcastToChannel);
 
 export function broadcastToUser(username: string, data: any) {
   const sockets = userSockets.get(username);
@@ -80,6 +96,15 @@ export function onClose(_evt: any, _ws: WSContext) {
       wsSet.delete(ws);
       if (wsSet.size === 0) {
         sessionSockets.delete(sessionId);
+      }
+    }
+  }
+  // Clean from channelSockets
+  for (const [channelId, wsSet] of channelSockets.entries()) {
+    if (wsSet.has(ws)) {
+      wsSet.delete(ws);
+      if (wsSet.size === 0) {
+        channelSockets.delete(channelId);
       }
     }
   }
@@ -332,4 +357,33 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       safeSend(ws, JSON.stringify({ type: "context_usage", sessionId, contextUsage, sessionStats }));
     }
   }
+
+  if (data.type === "channel_join") {
+    const channelId = data.channelId as string;
+    if (channelId) {
+      // Remove from existing channelSockets
+      for (const [cid, wsSet] of channelSockets.entries()) {
+        wsSet.delete(ws);
+        if (wsSet.size === 0) channelSockets.delete(cid);
+      }
+      let wsSet = channelSockets.get(channelId);
+      if (!wsSet) {
+        wsSet = new Set();
+        channelSockets.set(channelId, wsSet);
+      }
+      wsSet.add(ws);
+      safeSend(ws, JSON.stringify({ type: "channel_joined", channelId }));
+    }
+  }
+
+  if (data.type === "channel_send") {
+    const channelId = data.channelId as string;
+    const message = data.message as string;
+    if (channelId && message) {
+      channelOrchestrator.dispatchUserMessage(channelId, message).catch((err) => {
+        console.error(`[WS] Error dispatching channel message:`, err);
+      });
+    }
+  }
+
 }

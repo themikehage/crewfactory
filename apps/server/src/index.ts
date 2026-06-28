@@ -13,6 +13,7 @@ import { skillsRouter } from "./routes/skills";
 import { envRouter } from "./routes/env";
 import { integrationsRouter } from "./routes/integrations";
 import { agentsRouter } from "./routes/agents";
+import { channelsRouter } from "./routes/channels";
 import { previewRouter } from "./routes/preview";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 
@@ -33,6 +34,7 @@ app.route("/api/env", envRouter);
 app.route("/api/integrations", integrationsRouter);
 app.route("/api/preview", previewRouter);
 app.route("/api/agents", agentsRouter);
+app.route("/api/channels", channelsRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 

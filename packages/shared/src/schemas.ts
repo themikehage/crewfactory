@@ -195,3 +195,61 @@ export const AgentInfoSchema = z.object({
 });
 export type AgentInfo = z.infer<typeof AgentInfoSchema>;
 
+export const ReplyModeSchema = z.enum(["user-only", "broadcast", "targeted"]);
+export type ReplyMode = z.infer<typeof ReplyModeSchema>;
+
+export const ChannelMemberSchema = z.object({
+  agentId: z.string(),
+  replyMode: ReplyModeSchema,
+  targetAgentIds: z.array(z.string()).optional(),
+});
+export type ChannelMember = z.infer<typeof ChannelMemberSchema>;
+
+export const ChannelSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  members: z.array(ChannelMemberSchema),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type Channel = z.infer<typeof ChannelSchema>;
+
+export const CreateChannelSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().optional(),
+});
+export type CreateChannel = z.infer<typeof CreateChannelSchema>;
+
+export const UpdateChannelSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().optional(),
+});
+export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;
+
+export const AddMemberSchema = z.object({
+  agentId: z.string(),
+  replyMode: ReplyModeSchema,
+  targetAgentIds: z.array(z.string()).optional(),
+});
+export type AddMember = z.infer<typeof AddMemberSchema>;
+
+export const UpdateMemberSchema = z.object({
+  replyMode: ReplyModeSchema.optional(),
+  targetAgentIds: z.array(z.string()).optional(),
+});
+export type UpdateMember = z.infer<typeof UpdateMemberSchema>;
+
+export const ChannelMessageRoleSchema = z.enum(["user", "agent"]);
+export type ChannelMessageRole = z.infer<typeof ChannelMessageRoleSchema>;
+
+export const ChannelMessageSchema = z.object({
+  id: z.string(),
+  channelId: z.string(),
+  role: ChannelMessageRoleSchema,
+  agentId: z.string().optional(),
+  agentName: z.string().optional(),
+  content: z.string(),
+  createdAt: z.string(),
+});
+export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;

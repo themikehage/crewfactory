@@ -7,13 +7,19 @@ export type Route =
   | { page: "skills" }
   | { page: "workspace" }
   | { page: "preview" }
-  | { page: "agents" };
+  | { page: "agents" }
+  | { page: "channels" }
+  | { page: "channel"; channelId: string };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
   if (path.startsWith("/session/")) {
     const id = path.slice("/session/".length);
     return { page: "chat", sessionId: id || null };
+  }
+  if (path.startsWith("/channel/")) {
+    const id = path.slice("/channel/".length);
+    return { page: "channel", channelId: id };
   }
   if (path === "/projects") {
     return { page: "projects" };
@@ -32,6 +38,9 @@ function parseRoute(): Route {
   }
   if (path === "/agents") {
     return { page: "agents" };
+  }
+  if (path === "/channels") {
+    return { page: "channels" };
   }
   return { page: "chat", sessionId: null };
 }
