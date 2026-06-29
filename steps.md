@@ -259,4 +259,6 @@
 - [x] 30.2 `apps/client/src/components/sidebar/SessionSidebar.tsx` — Updated `deleteSession` remaining session filtering to properly respect `activeChannel` and `activeAgent` context modes.
 - [x] 30.3 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
 
-
+## Phase 31: Active Tagging Protocol Prompt Injection
+- [x] 31.1 `apps/server/src/channels/channel-orchestrator.ts` — Enhanced `buildAgentPrompt` to inject active tagging protocol rules (`Channel Participants & Tagging Protocol`), explaining routing mechanics and instructing agents to explicitly tag teammates when needing input/review.
+- [x] 31.2 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
