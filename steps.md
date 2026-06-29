@@ -269,4 +269,9 @@
 - [x] 32.3 `apps/server/src/routes/channels.ts` & `apps/server/src/ws/handler.ts` — Added `POST /api/channels/:id/abort` REST endpoint and `channel_abort` WebSocket message handler.
 - [x] 32.4 `apps/client/src/hooks/useChannel.ts` & `apps/client/src/components/channels/ChannelChatArea.tsx` — Wired `abortDispatch` to `InputArea`'s `onAbort` prop, enabling functional Stop button behavior for channel executions.
 - [x] 32.5 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
-
+## Phase 33: Per-Channel Configurable MAX_CHAIN_DEPTH
+- [x] 33.1 `packages/shared/src/schemas.ts` — Added `maxChainDepth?: number` to `ChannelSchema`, `CreateChannelSchema`, and `UpdateChannelSchema`.
+- [x] 33.2 `apps/server/src/channels/channel-store.ts` & `channel-orchestrator.ts` — Persisted `maxChainDepth` and dynamically evaluated execution depth against `channel.maxChainDepth ?? 5`.
+- [x] 33.3 `apps/client/src/components/channels/ChannelSettingsModal.tsx` — Created settings modal with interactive slider for adjusting max chain depth (1-20 steps).
+- [x] 33.4 `apps/client/src/components/channels/ChannelChatArea.tsx` & `useChannel.ts` — Wired "Ajustes" button in header to open `ChannelSettingsModal` and update channel configuration.
+- [x] 33.5 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
