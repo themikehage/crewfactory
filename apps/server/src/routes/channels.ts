@@ -135,3 +135,11 @@ channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string
 
   return c.json({ success: true });
 });
+
+channelsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.string().optional() }).optional()), async (c) => {
+  const id = c.req.param("id");
+  const body = c.req.valid("json");
+  channelOrchestrator.abortDispatch(id, body?.sessionId);
+  return c.json({ success: true });
+});
+

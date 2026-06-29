@@ -21,6 +21,24 @@ const MAX_CHAIN_DEPTH = 5;
 
 class ChannelOrchestrator {
   private activeDispatches = new Set<string>(); // channelId currently processing
+  private abortedDispatches = new Set<string>(); // `${channelId}:${sessionId || 'default'}`
+
+  abortDispatch(channelId: string, sessionId?: string): void {
+    const key = `${channelId}:${sessionId || "default"}`;
+    this.abortedDispatches.add(key);
+    console.log(`[ChannelOrchestrator] Aborting dispatch for ${key}`);
+
+    const channel = channelStore.getChannel(channelId);
+    if (channel) {
+      for (const member of channel.members) {
+        const entry = agentRegistry.get(member.agentId);
+        if (entry && entry.server.session.isStreaming) {
+          entry.server.session.abort().catch(() => {});
+        }
+      }
+    }
+    broadcast(channelId, { type: "channel_dispatch_aborted", channelId, sessionId });
+  }
 
   /** Build a name map agentId -> displayName for the current channel members */
   private buildAgentNameMap(members: ChannelMember[]): Map<string, string> {
@@ -33,6 +51,9 @@ class ChannelOrchestrator {
   }
 
   async dispatchUserMessage(channelId: string, userContent: string, sessionId?: string): Promise<void> {
+    const key = `${channelId}:${sessionId || "default"}`;
+    this.abortedDispatches.delete(key);
+
     const channel = channelStore.getChannel(channelId);
     if (!channel) throw new Error("Channel not found");
 
@@ -74,8 +95,18 @@ class ChannelOrchestrator {
     const targetMembers = this.resolveRecipients(channel, incomingMsg);
     if (targetMembers.length === 0) return;
 
+    const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
+    if (this.abortedDispatches.has(key)) {
+      console.log(`[ChannelOrchestrator] Stopping dispatch for ${key} due to abort`);
+      return;
+    }
+
     // Execute agent responses in series to preserve chronological order and avoid race conditions
     for (const member of targetMembers) {
+      if (this.abortedDispatches.has(key)) {
+        console.log(`[ChannelOrchestrator] Stopping loop for ${key} due to abort`);
+        break;
+      }
       const agentEntry = agentRegistry.get(member.agentId);
       if (!agentEntry || agentEntry.status === "stopped") {
         broadcast(channelId, {
@@ -182,19 +213,8 @@ class ChannelOrchestrator {
         const agentNameMap2 = this.buildAgentNameMap(channel.members);
         const agentMentions = parseMentions(fullResponse, channel.members, agentNameMap2);
 
-        const agentMsg: ChannelMessage = {
-          id: crypto.randomUUID(),
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          role: "agent",
-          agentId: member.agentId,
-          agentName,
-          content: fullResponse || "(empty response)",
-          mentions: agentMentions.length > 0 ? agentMentions : undefined,
-          createdAt: new Date().toISOString(),
-        };
-
-        channelStore.appendMessage(channelId, agentMsg);
+        const trimmed = fullResponse.trim();
+        const isSilent = !trimmed || trimmed.toLowerCase() === "(silent)" || trimmed.toLowerCase() === "(silencioso)";
 
         broadcast(channelId, {
           type: "channel_agent_end",
@@ -203,14 +223,35 @@ class ChannelOrchestrator {
           agentId: member.agentId,
         });
 
+        if (isSilent) {
+          console.log(`[ChannelOrchestrator] Agent ${member.agentId} produced silent response, suppressing message`);
+          continue;
+        }
+
+        const agentMsg: ChannelMessage = {
+          id: crypto.randomUUID(),
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          role: "agent",
+          agentId: member.agentId,
+          agentName,
+          content: fullResponse,
+          mentions: agentMentions.length > 0 ? agentMentions : undefined,
+          createdAt: new Date().toISOString(),
+        };
+
+        channelStore.appendMessage(channelId, agentMsg);
+
         broadcast(channelId, {
           type: "channel_message",
           channelId,
           message: agentMsg,
         });
 
-        // Always propagate agent messages — resolveRecipients returns [] if no member listens
-        await this.runDispatchRound(channelId, agentMsg, depth + 1);
+        if (!this.abortedDispatches.has(key)) {
+          // Propagate agent messages to next depth round
+          await this.runDispatchRound(channelId, agentMsg, depth + 1);
+        }
       } catch (err: any) {
         console.error(`[ChannelOrchestrator] Error prompt agent ${member.agentId}:`, err);
         broadcast(channelId, {
@@ -288,9 +329,10 @@ class ChannelOrchestrator {
         `Channel Participants & Tagging Protocol:\n` +
         `The following participants are in this channel. Explicitly mentioning them using @name or @id in your message will trigger them to respond:\n` +
         `${lines.join("\n")}\n\n` +
-        `ROUTING RULES:\n` +
-        `- If your response requires input, review, or action from a specific team member, you MUST explicitly tag them in your message (e.g., "@Tech Lead", "@Senior Dev", or "@user").\n` +
-        `- Participants in mention-only mode will NOT respond unless you explicitly tag them.\n\n`;
+        `STRICT COMMUNICATION RULES (PREVENT CHATTER & LOOPS):\n` +
+        `1. NO COURTESY REPLIES / ACKNOWLEDGMENTS: Never reply merely to say hello, confirm attendance, state that you are "present", "listening", or "on standby". If you have no concrete new technical analysis, decision, or work deliverable to add, reply EXACTLY with "(silent)".\n` +
+        `2. ONLY TAG WHEN DELEGATING A TASK: Only @mention another participant if you are transferring an explicit, actionable task or deliverable (e.g. scope proposal, technical review, commercial summary) or asking a direct blocking technical question.\n` +
+        `3. NO REPETITIVE WAITING MESSAGES: Do not repeatedly prompt the user or repeat questions that have already been asked in the conversation history.\n\n`;
     }
 
     let historyText = "";

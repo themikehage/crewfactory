@@ -387,4 +387,11 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     }
   }
 
+  if (data.type === "channel_abort") {
+    const channelId = data.channelId as string;
+    const sessionId = data.sessionId as string | undefined;
+    if (channelId) {
+      channelOrchestrator.abortDispatch(channelId, sessionId);
+    }
+  }
 }

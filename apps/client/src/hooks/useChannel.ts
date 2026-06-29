@@ -117,6 +117,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
             delete next[data.agentId];
             return next;
           });
+        } else if (data.type === "channel_dispatch_aborted" || data.type === "channel_chain_limit") {
+          setStreamingAgents({});
         }
       } catch {}
     };
@@ -149,6 +151,23 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     },
     [channelId, sessionId]
   );
+
+  const abortDispatch = useCallback(async () => {
+    if (!channelId) return;
+    setStreamingAgents({});
+    if (wsRef.current?.readyState === WebSocket.OPEN) {
+      wsRef.current.send(JSON.stringify({ type: "channel_abort", channelId, sessionId }));
+    } else {
+      await fetch(`/api/channels/${channelId}/abort`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify({ sessionId }),
+      });
+    }
+  }, [channelId, sessionId]);
 
   const addMember = useCallback(
     async (data: AddMember) => {
@@ -211,6 +230,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     error,
     fetchChannel,
     sendMessage,
+    abortDispatch,
     addMember,
     updateMember,
     removeMember,

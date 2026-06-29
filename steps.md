@@ -262,3 +262,11 @@
 ## Phase 31: Active Tagging Protocol Prompt Injection
 - [x] 31.1 `apps/server/src/channels/channel-orchestrator.ts` — Enhanced `buildAgentPrompt` to inject active tagging protocol rules (`Channel Participants & Tagging Protocol`), explaining routing mechanics and instructing agents to explicitly tag teammates when needing input/review.
 - [x] 31.2 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
+
+## Phase 32: Anti-Chatter Rules & Channel Abort Mechanism
+- [x] 32.1 `apps/server/src/channels/channel-orchestrator.ts` — Injected strict anti-chatter constraints (no courtesy acknowledgments, silent mode `(silent)` when no new technical work exists, and task-only tagging). Suppressed silent messages and stopped unnecessary chain propagation.
+- [x] 32.2 `apps/server/src/channels/channel-orchestrator.ts` — Implemented `abortDispatch(channelId, sessionId)` to abort running agent sessions and stop chain execution loops instantly upon request.
+- [x] 32.3 `apps/server/src/routes/channels.ts` & `apps/server/src/ws/handler.ts` — Added `POST /api/channels/:id/abort` REST endpoint and `channel_abort` WebSocket message handler.
+- [x] 32.4 `apps/client/src/hooks/useChannel.ts` & `apps/client/src/components/channels/ChannelChatArea.tsx` — Wired `abortDispatch` to `InputArea`'s `onAbort` prop, enabling functional Stop button behavior for channel executions.
+- [x] 32.5 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
+

@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function ChannelChatArea({ activeChannel, sessionId }: Props) {
-  const { channel, messages, streamingAgents, sendMessage, fetchChannel } = useChannel(activeChannel.id, sessionId);
+  const { channel, messages, streamingAgents, sendMessage, abortDispatch, fetchChannel } = useChannel(activeChannel.id, sessionId);
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showContextModal, setShowContextModal] = useState(false);
@@ -153,7 +153,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           sessionId={sessionId}
           streaming={isStreaming}
           onSend={(msg) => handleSend(msg)}
-          onAbort={() => {}}
+          onAbort={abortDispatch}
           mentionTargets={mentionTargets}
         />
       </div>
