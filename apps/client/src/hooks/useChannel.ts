@@ -88,12 +88,13 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
         }
 
         if (data.channelId && data.channelId !== channelId) return;
+        if (sessionId && data.sessionId && data.sessionId !== sessionId) return;
 
         if (data.type === "channel_message") {
           const newMsg: ChannelMessage = data.message;
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
-            if (sessionId && newMsg.sessionId && newMsg.sessionId !== sessionId) return prev;
+            if (sessionId && newMsg.sessionId !== sessionId) return prev;
             return [...prev, newMsg];
           });
         } else if (data.type === "channel_agent_start") {

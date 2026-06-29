@@ -142,7 +142,7 @@ class ChannelStore {
       for (const line of lines) {
         try {
           const parsed: ChannelMessage = JSON.parse(line);
-          if (!sessionId || !parsed.sessionId || parsed.sessionId === sessionId) {
+          if (!sessionId || parsed.sessionId === sessionId) {
             messages.push(parsed);
           }
         } catch {}

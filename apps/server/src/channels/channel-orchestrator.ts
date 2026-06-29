@@ -117,6 +117,7 @@ class ChannelOrchestrator {
       broadcast(channelId, {
         type: "channel_agent_start",
         channelId,
+        sessionId: incomingMsg.sessionId,
         agentId: member.agentId,
         agentName,
       });
@@ -147,6 +148,7 @@ class ChannelOrchestrator {
                 broadcast(channelId, {
                   type: "channel_agent_token",
                   channelId,
+                  sessionId: incomingMsg.sessionId,
                   agentId: member.agentId,
                   token: delta,
                 });
@@ -193,6 +195,7 @@ class ChannelOrchestrator {
         broadcast(channelId, {
           type: "channel_agent_end",
           channelId,
+          sessionId: incomingMsg.sessionId,
           agentId: member.agentId,
         });
 
@@ -209,6 +212,7 @@ class ChannelOrchestrator {
         broadcast(channelId, {
           type: "channel_agent_error",
           channelId,
+          sessionId: incomingMsg.sessionId,
           agentId: member.agentId,
           error: String(err.message || err),
         });
