@@ -1,5 +1,5 @@
 {
-  "name": "pi-web-wrapper",
+  "name": "crewfactory",
   "private": true,
   "workspaces": ["apps/*", "packages/*"],
   "scripts": {

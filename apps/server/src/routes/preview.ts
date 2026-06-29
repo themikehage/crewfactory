@@ -56,7 +56,7 @@ function isAssetPath(path: string): boolean {
 const BUILD_DIRS = ["dist", "build", ".output"] as const;
 
 function resolveBuildDir(username: string, repoName: string): string | null {
-  const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);
+  const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
   const repoDir = resolve(workspaceBase, "repos", repoName);
   for (const dir of BUILD_DIRS) {
     const candidate = resolve(repoDir, dir);

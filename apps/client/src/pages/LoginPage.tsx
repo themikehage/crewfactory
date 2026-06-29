@@ -21,7 +21,7 @@ export function LoginPage() {
     <div className="h-dvh flex items-center justify-center bg-bg">
       <div className="w-full max-w-md px-6 sm:px-8">
         <h1 className="text-3xl font-display font-bold text-text-primary text-center mb-2">
-          Pi Web
+          Crew Factory
         </h1>
         <p className="text-text-secondary text-center mb-8">
           Coding agent interface

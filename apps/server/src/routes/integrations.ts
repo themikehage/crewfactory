@@ -123,12 +123,12 @@ interface IntegrationsFile {
 }
 
 function getIntegrationsPath(username: string): string {
-  return join("/tmp/pi-web-users", username, "integrations.json");
+  return join("/tmp/crewfactory", username, "integrations.json");
 }
 
 function loadIntegrations(username: string): IntegrationsFile {
   const filePath = getIntegrationsPath(username);
-  const userDir = join("/tmp/pi-web-users", username);
+  const userDir = join("/tmp/crewfactory", username);
   if (!existsSync(userDir)) {
     mkdirSync(userDir, { recursive: true });
   }

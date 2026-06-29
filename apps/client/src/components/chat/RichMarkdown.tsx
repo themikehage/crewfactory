@@ -73,7 +73,7 @@ export function RichMarkdown({ content }: Props) {
                     </svg>
                     <span>File Tree</span>
                   </div>
-                  <pre className="m-0 p-3 bg-[#171717] whitespace-pre">{codeString}</pre>
+                  <pre className="m-0 p-3 bg-code-bg whitespace-pre">{codeString}</pre>
                 </div>
               );
             }
@@ -95,7 +95,7 @@ export function RichMarkdown({ content }: Props) {
                   PreTag="div"
                   customStyle={{
                     margin: 0,
-                    background: "#171717",
+                    background: "var(--code-bg)",
                     padding: "0.75rem",
                     overflowX: "auto",
                   }}

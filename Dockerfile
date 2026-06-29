@@ -29,7 +29,7 @@ COPY --from=builder /app/apps/server/dist ./dist
 COPY --from=builder /app/apps/client/dist ./public
 COPY --from=builder /app/node_modules ./node_modules
 
-RUN mkdir -p /tmp/pi-web-users
+RUN mkdir -p /tmp/crewfactory
 
 EXPOSE 3000
 

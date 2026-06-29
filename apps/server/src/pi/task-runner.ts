@@ -30,7 +30,7 @@ export function isTaskRunnerActive(sessionId: string): boolean {
 }
 
 export function getTasksPath(username: string, sessionId: string): string {
-  return `/tmp/pi-web-users/${username}/sessions/${sessionId}/tasks.json`;
+  return `/tmp/crewfactory/${username}/sessions/${sessionId}/tasks.json`;
 }
 
 export function loadTasksState(username: string, sessionId: string): TaskRunnerState {

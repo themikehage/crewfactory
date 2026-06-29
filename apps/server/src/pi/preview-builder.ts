@@ -31,7 +31,7 @@ export async function runBuild(
     return { success: false, exitCode: null };
   }
 
-  const repoDir = resolve(`/tmp/pi-web-users/${username}/workspace/repos/${repoName}`);
+  const repoDir = resolve(`/tmp/crewfactory/${username}/workspace/repos/${repoName}`);
   const command = getBuildCommand(config, username, repoName);
 
   if (!command) {

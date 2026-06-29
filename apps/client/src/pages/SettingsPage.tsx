@@ -554,7 +554,7 @@ export function SettingsPage() {
                   </div>
                   <div className="space-y-0.5">
                     <div className="text-text-secondary font-medium">Workspace Context</div>
-                    <div className="text-text-primary font-mono break-all">themikehage/pi-web-wrapper</div>
+                    <div className="text-text-primary font-mono break-all">themikehage/crewfactory</div>
                   </div>
                   <div className="space-y-0.5">
                     <div className="text-text-secondary font-medium">Health Status</div>

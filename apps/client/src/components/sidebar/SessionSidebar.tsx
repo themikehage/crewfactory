@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
 import type { SessionStatus } from "@/hooks/useSessionStatusWs";
+import { apiFetch } from "@/lib/api";
 
 interface SessionItem {
   id: string;
@@ -33,25 +34,28 @@ export function SessionSidebar({ activeSessionId, activeRepoName, activeAgent, a
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
+  const [hasError, setHasError] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
   const sessionStatuses = useSessionStatusWs();
 
   const fetchSessions = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/sessions", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const mapped = (data.sessions ?? []).map((s: SessionItem) => ({
-          ...s,
-          status: sessionStatuses[s.id] || s.status,
-        }));
-        setSessions(mapped);
+      const res = await apiFetch("/api/sessions");
+      if (!res.ok) {
+        setHasError(true);
+        return;
       }
-    } catch {}
-  }, []);
+      const data = await res.json();
+      const mapped = (data.sessions ?? []).map((s: SessionItem) => ({
+        ...s,
+        status: sessionStatuses[s.id] || s.status,
+      }));
+      setSessions(mapped);
+      setHasError(false);
+    } catch {
+      setHasError(true);
+    }
+  }, [sessionStatuses]);
 
   useEffect(() => {
     fetchSessions().finally(() => setLoading(false));
@@ -86,20 +90,9 @@ export function SessionSidebar({ activeSessionId, activeRepoName, activeAgent, a
     });
   }, [sessions, activeRepoName, activeAgent, activeChannel]);
 
-  useEffect(() => {
-    if (loading || activeSessionId || creating) return;
-
-    if (filteredSessions.length > 0) {
-      onSelectSession(filteredSessions[0].id);
-    } else {
-      createSession();
-    }
-  }, [loading, activeSessionId, filteredSessions, onSelectSession, creating]);
-
   const createSession = useCallback(async () => {
     setCreating(true);
     try {
-      const token = localStorage.getItem("token");
       const sessionCount = filteredSessions.length;
       const sessionName = activeChannel
         ? `#${activeChannel.name} - Session ${sessionCount + 1}`
@@ -109,11 +102,10 @@ export function SessionSidebar({ activeSessionId, activeRepoName, activeAgent, a
         ? `${activeRepoName} - Session ${sessionCount + 1}`
         : `Global Session ${sessionCount + 1}`;
 
-      const res = await fetch("/api/sessions", {
+      const res = await apiFetch("/api/sessions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
           name: sessionName,
@@ -122,23 +114,38 @@ export function SessionSidebar({ activeSessionId, activeRepoName, activeAgent, a
           channelId: activeChannel ? activeChannel.id : undefined,
         }),
       });
-      if (!res.ok) return;
+      if (!res.ok) {
+        setHasError(true);
+        return;
+      }
       const session = await res.json();
       const updated = [{ ...session, status: "active" as SessionStatus }, ...sessions];
       setSessions(updated);
       onNewSession(session.id);
+      setHasError(false);
+    } catch {
+      setHasError(true);
     } finally {
       setCreating(false);
     }
   }, [filteredSessions.length, activeRepoName, activeAgent, activeChannel, onNewSession, sessions]);
 
+  useEffect(() => {
+    if (loading || activeSessionId || creating || hasError) return;
+
+    if (filteredSessions.length > 0) {
+      onSelectSession(filteredSessions[0].id);
+    } else {
+      createSession();
+    }
+  }, [loading, activeSessionId, filteredSessions, onSelectSession, creating, hasError, createSession]);
+
   const deleteSession = useCallback(
     async (id: string) => {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${id}`, {
+      await apiFetch(`/api/sessions/${id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
+
       const remaining = sessions.filter((s) => s.id !== id);
       setSessions(remaining);
 

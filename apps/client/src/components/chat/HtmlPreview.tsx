@@ -71,7 +71,7 @@ export function HtmlPreview({ html }: Props) {
           />
         </div>
       ) : (
-        <pre className="p-3 max-h-80 overflow-y-auto overflow-x-auto text-[10px] text-text-secondary font-mono leading-normal bg-[#171717]">
+        <pre className="p-3 max-h-80 overflow-y-auto overflow-x-auto text-[10px] text-text-secondary font-mono leading-normal bg-code-bg">
           {html}
         </pre>
       )}

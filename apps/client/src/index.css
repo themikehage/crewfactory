@@ -1,38 +1,172 @@
 @import "tailwindcss";
 
-@theme {
-  --color-bg: #121212;
-  --color-surface: #171717;
-  --color-surface-hover: #313131;
-  --color-accent: #4ade80;
-  --color-text-primary: #e2e8f0;
-  --color-text-secondary: #a2a2a2;
-  --color-highlight: #4ade80;
-  --color-success: #4ade80;
-  --color-error: #ca3214;
-  --color-warning: #fbbf24;
-  --color-code-bg: #0a0a0a;
+@custom-variant dark (&:is(.dark *));
 
-  --font-display: "Outfit", sans-serif;
-  --font-body: "Outfit", sans-serif;
+:root {
+  /* Base tokens - Slack Aubergine Light */
+  --background: #ffffff;
+  --foreground: #1d1c1d;
+  --card: #ffffff;
+  --card-foreground: #1d1c1d;
+  --popover: #ffffff;
+  --popover-foreground: #1d1c1d;
+  --primary: #1164a3;
+  --primary-foreground: #ffffff;
+  --secondary: #f8f8f8;
+  --secondary-foreground: #1d1c1d;
+  --muted: #f6f6f6;
+  --muted-foreground: #616061;
+  --accent: #f0ebf4;
+  --accent-foreground: #1d1c1d;
+  --destructive: #e01e5a;
+  --destructive-foreground: #ffffff;
+  --border: #dddddd;
+  --input: #e8e8e8;
+  --ring: #1164a3;
+
+  /* Slack-specific theme tokens */
+  --slack-sidebar-bg: #3f0e40;
+  --slack-sidebar-fg: #d1d2d3;
+  --slack-sidebar-hover: rgba(255, 255, 255, 0.08);
+  --slack-sidebar-active: #1164a3;
+  --slack-sidebar-active-fg: #ffffff;
+  --slack-sidebar-border: #522653;
+  --slack-header-bg: #350d36;
+  --slack-header-fg: #ffffff;
+  --slack-chat-bg: #ffffff;
+  --slack-chat-hover: #f8f8f8;
+  --slack-border: #dddddd;
+
+  /* Custom CrewFactory colors */
+  --highlight: #9333ea;
+  --success: #16a34a;
+  --error: #e01e5a;
+  --warning: #d97706;
+  --code-bg: #f6f6f6;
+
+  --font-sans: "Outfit", Inter, sans-serif;
   --font-mono: "JetBrains Mono", monospace;
+  --radius: 0.5rem;
 }
 
-html, body {
-  height: 100dvh;
+.dark {
+  --background: #1a1d21;
+  --foreground: #d1d2d3;
+  --card: #222529;
+  --card-foreground: #d1d2d3;
+  --popover: #222529;
+  --popover-foreground: #d1d2d3;
+  --primary: #1164a3;
+  --primary-foreground: #ffffff;
+  --secondary: #2c2f33;
+  --secondary-foreground: #d1d2d3;
+  --muted: #222529;
+  --muted-foreground: #abaded;
+  --accent: #2c2f33;
+  --accent-foreground: #ffffff;
+  --destructive: #e01e5a;
+  --destructive-foreground: #ffffff;
+  --border: #383b40;
+  --input: #383b40;
+  --ring: #1164a3;
+
+  /* Slack-specific theme tokens - Dark */
+  --slack-sidebar-bg: #19171d;
+  --slack-sidebar-fg: #abaded;
+  --slack-sidebar-hover: rgba(255, 255, 255, 0.06);
+  --slack-sidebar-active: #1164a3;
+  --slack-sidebar-active-fg: #ffffff;
+  --slack-sidebar-border: #2b2930;
+  --slack-header-bg: #1a1d21;
+  --slack-header-fg: #ffffff;
+  --slack-chat-bg: #1a1d21;
+  --slack-chat-hover: #222529;
+  --slack-border: #383b40;
+
+  /* Dark variant custom colors */
+  --highlight: #c084fc;
+  --success: #4ade80;
+  --error: #e01e5a;
+  --warning: #facc15;
+  --code-bg: #131416;
 }
 
-#root {
-  height: 100dvh;
-  overflow: hidden;
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--primary);
+  --color-accent-foreground: var(--primary-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /* Legacy CrewFactory aliases */
+  --color-bg: var(--background);
+  --color-surface: var(--card);
+  --color-surface-hover: var(--accent);
+  --color-text-primary: var(--foreground);
+  --color-text-secondary: var(--muted-foreground);
+  --color-highlight: var(--highlight);
+  --color-success: var(--success);
+  --color-error: var(--destructive);
+  --color-warning: var(--warning);
+  --color-code-bg: var(--code-bg);
+
+  /* Slack-specific theme tokens */
+  --color-slack-sidebar: var(--slack-sidebar-bg);
+  --color-slack-sidebar-fg: var(--slack-sidebar-fg);
+  --color-slack-sidebar-hover: var(--slack-sidebar-hover);
+  --color-slack-sidebar-active: var(--slack-sidebar-active);
+  --color-slack-sidebar-active-fg: var(--slack-sidebar-active-fg);
+  --color-slack-sidebar-border: var(--slack-sidebar-border);
+  --color-slack-header: var(--slack-header-bg);
+  --color-slack-header-fg: var(--slack-header-fg);
+  --color-slack-chat: var(--slack-chat-bg);
+  --color-slack-chat-hover: var(--slack-chat-hover);
+  --color-slack-border: var(--slack-border);
+
+  --font-sans: var(--font-sans);
+  --font-mono: var(--font-mono);
+  --font-display: var(--font-sans);
+  --font-body: var(--font-sans);
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-body {
-  background-color: var(--color-bg);
-  color: var(--color-text-primary);
-  font-family: var(--font-body);
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html, body {
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+  }
+  #root {
+    height: 100dvh;
+    overflow: hidden;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 }
 
 ::-webkit-scrollbar {
@@ -44,10 +178,10 @@ body {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: var(--color-surface-hover);
+  background: var(--border);
   border-radius: 3px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--color-text-secondary);
+  background: var(--muted-foreground);
 }

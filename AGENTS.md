@@ -1,4 +1,4 @@
-# AGENTS.md - Pi Web Wrapper
+# AGENTS.md - CrewFactory
 
 ## Mandatory Context Files
 Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These are the single source of truth.
@@ -31,11 +31,11 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 - **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS v4 + Framer Motion
 - **Auth:** JWT + bcrypt (credentials in env vars, base64-encoded for Docker safety)
 - **Streaming:** WebSocket (Hono/Bun upgrade)
-- **Persistence:** localStorage (client), filesystem (server sessions at /tmp/pi-web-users)
+- **Persistence:** localStorage (client), filesystem (server sessions at /tmp/crewfactory)
 - **Deployment:** Coolify (Docker)
 
 ## Workspace Structure
-Each user has an isolated workspace at `/tmp/pi-web-users/{username}/workspace/`:
+Each user has an isolated workspace at `/tmp/crewfactory/{username}/workspace/`:
 ```
 workspace/
   repos/           # Git repositories (each is an isolated agent context)
@@ -66,13 +66,13 @@ workspace/
 
 ### Platform
 - **Service:** Coolify
-- **URL:** https://pi-web.pages.therry.dev
+- **URL:** https://crewfactory.pages.therry.dev
 
 ### Resources
 - **Server UUID:** usfaz8tzw85ctz03i4kl8okf
 - **Project UUID:** aitet5hutg1byuy5hcjbhuyp
 - **Application UUID:** nb0ee5mtnrx195nrw9aa3oor
-- **Repository:** https://github.com/themikehage/pi-web-wrapper (public)
+- **Repository:** https://github.com/themikehage/crewfactory (public)
 - **Build Pack:** dockerfile
 - **Port:** 3000
 - **Base URL for API:** https://pages.therry.dev/api/v1
@@ -101,8 +101,8 @@ curl -s "$COOLIFY_URL/api/v1/deployments?application_uuid=nb0ee5mtnrx195nrw9aa3o
 
 ### Considerations
 - WebSocket streaming requires no sticky sessions
-- User session data stored at /tmp/pi-web-users/{username} (not persisted across restarts)
-- For persistent sessions, add a volume mount for /tmp/pi-web-users
+- User session data stored at /tmp/crewfactory/{username} (not persisted across restarts)
+- For persistent sessions, add a volume mount for /tmp/crewfactory
 - Server serves client static files from ./public directory
 - Health check at /api/health
 

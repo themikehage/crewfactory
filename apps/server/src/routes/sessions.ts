@@ -16,7 +16,7 @@ import {
 } from "../pi/task-runner";
 import { broadcastToSession } from "../ws/handler";
 
-const STORAGE_KEY = "pi-web-sessions";
+const STORAGE_KEY = "crewfactory-sessions";
 
 export const sessionsRouter = new Hono();
 

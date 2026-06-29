@@ -1,9 +1,10 @@
-# pi-web-wrapper
+# CrewFactory
 **Type:** PRODUCTION
-**Description:** Web interface for pi coding agent with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Wraps the @earendil-works/pi-coding-agent SDK.
+**Description:** Web interface for CrewFactory with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Wraps the @earendil-works/pi-coding-agent SDK.
 **Stack:** Bun, Hono, React 19, Vite, TypeScript (strict), Tailwind CSS v4, Framer Motion, WebSocket
+**Theme:** Slack Aubergine (light) with dark mode support
 **Deployment Target:** Coolify (Docker)
-**Database Tier:** No database (localStorage client-side, filesystem sessions server-side at /tmp/pi-web-users)
+**Database Tier:** No database (localStorage client-side, filesystem sessions server-side at /tmp/crewfactory)
 
 ## Features
 
@@ -49,7 +50,7 @@
 - Design tokens via Tailwind CSS v4 @theme (always use semantic tokens, no raw hex in code)
 
 ### Workspace & Hybrid Agent Instantiation
-- Structured workspace per user at `/tmp/pi-web-users/{username}/workspace/`:
+- Structured workspace per user at `/tmp/crewfactory/{username}/workspace/`:
   - `repos/` — Git repositories, each is an isolated agent context
   - `assets/uploads/` — User-uploaded files
   - `assets/generated/` — Agent-generated outputs

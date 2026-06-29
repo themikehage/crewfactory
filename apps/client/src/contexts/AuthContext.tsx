@@ -3,8 +3,10 @@ import {
   useContext,
   useState,
   useCallback,
+  useEffect,
   type ReactNode,
 } from "react";
+import { apiFetch } from "@/lib/api";
 
 interface User {
   username: string;
@@ -32,7 +34,46 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
     return null;
   });
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState<boolean>(() => !!localStorage.getItem("token"));
+
+  const logout = useCallback(() => {
+    setToken(null);
+    setUser(null);
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+  }, []);
+
+  useEffect(() => {
+    const handleUnauthorized = () => {
+      logout();
+    };
+    window.addEventListener("auth-unauthorized", handleUnauthorized);
+    return () => window.removeEventListener("auth-unauthorized", handleUnauthorized);
+  }, [logout]);
+
+  useEffect(() => {
+    if (!token) {
+      setLoading(false);
+      return;
+    }
+
+    apiFetch("/api/auth/me")
+      .then(async (res) => {
+        if (!res.ok) {
+          logout();
+        } else {
+          const data = await res.json();
+          setUser(data.user);
+          localStorage.setItem("user", JSON.stringify(data.user));
+        }
+      })
+      .catch(() => {
+        // Ignorar errores de red temporales en me
+      })
+      .finally(() => {
+        setLoading(false);
+      });
+  }, [token, logout]);
 
   const login = useCallback(async (username: string, password: string) => {
     setLoading(true);
@@ -58,19 +99,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
-  const logout = useCallback(() => {
-    setToken(null);
-    setUser(null);
-    localStorage.removeItem("token");
-    localStorage.removeItem("user");
-  }, []);
-
   const changePassword = useCallback(async (currentPassword: string, newPassword: string) => {
-    const res = await fetch("/api/auth/password", {
+    const res = await apiFetch("/api/auth/password", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${token}`,
       },
       body: JSON.stringify({ currentPassword, newPassword }),
     });
@@ -86,7 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("token", data.token);
     localStorage.setItem("user", JSON.stringify(data.user));
     window.dispatchEvent(new Event("token-refreshed"));
-  }, [token]);
+  }, []);
 
   return (
     <AuthContext.Provider value={{ token, user, loading, login, logout, changePassword }}>
@@ -100,3 +133,4 @@ export function useAuth() {
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");
   return ctx;
 }
+

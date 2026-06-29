@@ -6,7 +6,7 @@ import { getUsername } from "../lib/auth-helpers";
 export const filesRouter = new Hono();
 
 function validateWorkspacePath(username: string, relativePath: string, repoName?: string): string {
-  const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);
+  const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
   const workspaceDir = repoName
     ? resolve(workspaceBase, "repos", repoName)
     : workspaceBase;
@@ -41,10 +41,10 @@ filesRouter.get("/sessions/:sessionId/files/*", async (c) => {
     return c.text("Unauthorized", 401);
   }
 
-  const sessionPath = `/tmp/pi-web-users/${username}/sessions/${sessionId}/${filePath}`;
+  const sessionPath = `/tmp/crewfactory/${username}/sessions/${sessionId}/${filePath}`;
   let finalPath = sessionPath;
   if (!existsSync(sessionPath)) {
-    const workspacePath = `/tmp/pi-web-users/${username}/workspace/${filePath}`;
+    const workspacePath = `/tmp/crewfactory/${username}/workspace/${filePath}`;
     if (existsSync(workspacePath)) {
       finalPath = workspacePath;
     } else {
@@ -199,7 +199,7 @@ filesRouter.get("/workspace-repos", async (c) => {
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   try {
-    const reposDir = resolve(`/tmp/pi-web-users/${username}/workspace/repos`);
+    const reposDir = resolve(`/tmp/crewfactory/${username}/workspace/repos`);
     if (!existsSync(reposDir)) {
       mkdirSync(reposDir, { recursive: true });
     }
@@ -236,7 +236,7 @@ filesRouter.post("/workspace-repos", async (c) => {
       return c.json({ error: "Invalid repository name" }, 400);
     }
 
-    const reposDir = resolve(`/tmp/pi-web-users/${username}/workspace/repos`);
+    const reposDir = resolve(`/tmp/crewfactory/${username}/workspace/repos`);
     if (!existsSync(reposDir)) {
       mkdirSync(reposDir, { recursive: true });
     }
@@ -352,7 +352,7 @@ const handlePostWorkspace = async (c: any) => {
 
     // Validate the final resolved file save path
     const resolvedSavePath = resolve(savePath);
-    const workspaceBase = resolve(`/tmp/pi-web-users/${username}/workspace`);
+    const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
     const workspaceDir = repoName
       ? resolve(workspaceBase, "repos", repoName)
       : workspaceBase;

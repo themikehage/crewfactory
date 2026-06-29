@@ -1,6 +1,6 @@
-# Pi CLI vs Pi Web Wrapper - Gap Analysis Report
+# Pi CLI vs CrewFactory - Gap Analysis Report
 
-This report analyzes the functional gaps between the native **Pi CLI** and the **Pi Web Wrapper** web application, prioritizing the features that would bring the web UI closer to the terminal experience.
+This report analyzes the functional gaps between the native **Pi CLI** and the **CrewFactory** web application, prioritizing the features that would bring the web UI closer to the terminal experience.
 
 ---
 

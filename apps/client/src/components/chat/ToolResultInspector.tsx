@@ -230,7 +230,7 @@ export function ToolResultInspector({ toolName, args, result, sessionId }: Props
       {isOpen && (
         <div className="border-t border-surface-hover">
           {args && Object.keys(args).length > 0 && (
-            <div className="px-3 py-1.5 bg-[#171717]/40 border-b border-surface-hover/40 text-[10px] text-text-secondary font-mono break-all">
+            <div className="px-3 py-1.5 bg-code-bg border-b border-surface-hover/40 text-[10px] text-text-secondary font-mono break-all">
               <span className="text-text-secondary/50">params:</span>{" "}
               {JSON.stringify(args)}
             </div>
@@ -242,7 +242,7 @@ export function ToolResultInspector({ toolName, args, result, sessionId }: Props
             ) : hasMediaMarkers ? (
               <MediaRenderer markers={markers} sessionId={sessionId} />
             ) : (
-              <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-[#171717]/40 p-2.5 rounded-md max-h-96 overflow-y-auto">
+              <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-code-bg p-2.5 rounded-md max-h-96 overflow-y-auto">
                 {resultStr}
               </pre>
             )}

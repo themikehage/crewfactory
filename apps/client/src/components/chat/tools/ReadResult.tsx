@@ -69,7 +69,7 @@ export function ReadResult({ content, args }: Props) {
         </button>
         <span className="text-text-secondary/50">{lines.length} lines</span>
       </div>
-      <pre className="text-[11px] font-mono leading-relaxed text-text-secondary whitespace-pre-wrap break-all bg-[#0a0a0a]/60 p-3 rounded-md max-h-64 overflow-y-auto border border-surface-hover/40">
+      <pre className="text-[11px] font-mono leading-relaxed text-text-secondary whitespace-pre-wrap break-all bg-code-bg p-3 rounded-md max-h-64 overflow-y-auto border border-surface-hover/40">
         {text}
       </pre>
     </div>

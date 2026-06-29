@@ -1,4 +1,4 @@
-# Pi Web Wrapper — Roadmap
+# CrewFactory — Roadmap
 
 > Contexto: copiloto + piloto autónomo para flujo freelance multi-proyecto con Cloudflare, Neon, Coolify, GitHub, Notion, servicios de imagen.
 > Referentes: Claude Code, Codex CLI, Lovable, Cursor.

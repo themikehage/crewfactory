@@ -7,7 +7,7 @@ import { setBuilding, setReady, setError, ensureWatcher } from "../pi/preview-wa
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 
 function getRepoNameForSession(username: string, sessionId: string): string | undefined {
-  const p = `/tmp/pi-web-users/${username}/sessions/${sessionId}/metadata.json`;
+  const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
   if (existsSync(p)) {
     try {
       return JSON.parse(readFileSync(p, "utf-8")).repoName;

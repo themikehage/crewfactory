@@ -36,7 +36,7 @@ const FRAMEWORK_PRESETS: Record<string, FrameworkPresetDef[]> = {
 };
 
 function configPath(username: string, repoName: string): string {
-  const base = `/tmp/pi-web-users/${username}/workspace/repos/${repoName}`;
+  const base = `/tmp/crewfactory/${username}/workspace/repos/${repoName}`;
   return resolve(base, ".preview.json");
 }
 
@@ -102,7 +102,7 @@ function detectFromConfigFiles(repoDir: string): FrameworkPresetDef | null {
 }
 
 function autoDetectFramework(username: string, repoName: string): PreviewConfig {
-  const repoDir = resolve(`/tmp/pi-web-users/${username}/workspace/repos/${repoName}`);
+  const repoDir = resolve(`/tmp/crewfactory/${username}/workspace/repos/${repoName}`);
 
   if (!existsSync(repoDir)) {
     return { framework: "html", buildCommand: undefined, outputDir: undefined, autoDetected: true };
@@ -180,7 +180,7 @@ export function savePreviewConfig(
 }
 
 export function getBuildOutputDir(config: PreviewConfig, username: string, repoName: string): string | null {
-  const repoDir = resolve(`/tmp/pi-web-users/${username}/workspace/repos/${repoName}`);
+  const repoDir = resolve(`/tmp/crewfactory/${username}/workspace/repos/${repoName}`);
   const dir = config.outputDir || "dist";
   const candidate = resolve(repoDir, dir);
   if (existsSync(candidate)) return candidate;
@@ -189,7 +189,7 @@ export function getBuildOutputDir(config: PreviewConfig, username: string, repoN
 }
 
 export function getBuildCommand(config: PreviewConfig, username: string, repoName: string): string | null {
-  const repoDir = resolve(`/tmp/pi-web-users/${username}/workspace/repos/${repoName}`);
+  const repoDir = resolve(`/tmp/crewfactory/${username}/workspace/repos/${repoName}`);
   const pkg = readPackageJson(repoDir);
 
   if (config.buildCommand) return config.buildCommand;

@@ -1,5 +1,5 @@
 services:
-  pi-web:
+  crewfactory:
     build:
       context: .
       dockerfile: Dockerfile
@@ -12,7 +12,7 @@ services:
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
     volumes:
-      - pi-web-users:/tmp/pi-web-users
+      - crewfactory-data:/tmp/crewfactory
 
 volumes:
-  pi-web-users:
+  crewfactory-data:

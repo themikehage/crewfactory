@@ -175,7 +175,7 @@ function ToolBody({ toolName, args, result }: { toolName: string; args: Record<s
     case "bash": return <BashResult text={text} command={(args.command as string) || ""} isError={result.isError} />;
     default:
       return (
-        <pre className="text-[11px] font-mono text-text-secondary whitespace-pre-wrap break-all bg-[#0a0a0a]/60 p-3 rounded-md max-h-48 overflow-y-auto">
+        <pre className="text-[11px] font-mono text-text-secondary whitespace-pre-wrap break-all bg-code-bg p-3 rounded-md max-h-48 overflow-y-auto">
           {text}
         </pre>
       );

@@ -1,3 +1,4 @@
+import jwt from "jsonwebtoken";
 import {
   createAgentSession,
   AuthStorage,
@@ -12,6 +13,7 @@ import {
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import { AVAILABLE_TOOLS } from "shared";
+import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
 
 export function getResolvedSkillPaths(cwd: string): string[] {
   const paths: string[] = [];
@@ -50,14 +52,16 @@ export function getResolvedSkillPaths(cwd: string): string[] {
 }
 
 export function ensureWorkspaceStructure(username: string): string {
-  const userDir = `/tmp/pi-web-users/${username}`;
+  const userDir = `/tmp/crewfactory/${username}`;
   const workspaceDir = join(userDir, "workspace");
+  const skillsBaseDir = join(workspaceDir, ".agents", "skills");
   const subdirs = [
     join(workspaceDir, "repos"),
     join(workspaceDir, "assets", "uploads"),
     join(workspaceDir, "assets", "generated"),
     join(workspaceDir, "memories", "repos"),
     join(workspaceDir, "memories", "sessions"),
+    skillsBaseDir,
   ];
 
   for (const dir of subdirs) {
@@ -65,8 +69,34 @@ export function ensureWorkspaceStructure(username: string): string {
       mkdirSync(dir, { recursive: true });
     }
   }
+
+  const agentsMdPath = join(workspaceDir, "AGENTS.md");
+  if (!existsSync(agentsMdPath)) {
+    try {
+      writeFileSync(agentsMdPath, DEFAULT_AGENTS_MD, "utf-8");
+    } catch (e) {
+      console.error("Failed to write AGENTS.md:", e);
+    }
+  }
+
+  for (const [skillKey, skillDef] of Object.entries(DEFAULT_FACTORY_SKILLS)) {
+    const skillDir = join(skillsBaseDir, skillKey);
+    if (!existsSync(skillDir)) {
+      mkdirSync(skillDir, { recursive: true });
+    }
+    const skillFilePath = join(skillDir, "SKILL.md");
+    if (!existsSync(skillFilePath)) {
+      try {
+        writeFileSync(skillFilePath, skillDef.content, "utf-8");
+      } catch (e) {
+        console.error(`Failed to write skill ${skillKey}:`, e);
+      }
+    }
+  }
+
   return workspaceDir;
 }
+
 
 interface UserSessionEntry {
   session: AgentSession;
@@ -99,7 +129,7 @@ class PiSessionManager {
   }
 
   private ensureUserDir(username: string): string {
-    const dir = `/tmp/pi-web-users/${username}`;
+    const dir = `/tmp/crewfactory/${username}`;
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -283,15 +313,23 @@ class PiSessionManager {
     const customBashTool = createBashToolDefinition(workspaceDir, {
       spawnHook: (context) => {
         const userEnv = this.getUserEnv(username);
+        const token = jwt.sign(
+          { username },
+          process.env.JWT_SECRET!,
+          { expiresIn: "7d" }
+        );
         return {
           ...context,
           env: {
             ...context.env,
             ...userEnv,
+            TOKEN: token,
+            JWT_TOKEN: token,
           },
         };
       },
     });
+
 
     const { session } = await createAgentSession({
       cwd: workspaceDir,

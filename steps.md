@@ -1,4 +1,4 @@
-# Pi Web Wrapper - Development Steps
+# CrewFactory - Development Steps
 
 ## Phase 1: Research & Design
 - [x] 1.0 Brainstorming requirements
@@ -137,7 +137,7 @@
 ## Phase 15: Integrations Hub (Declarative Infrastructure Operations)
 - [x] 15.1 Shared schemas: QuickAction, IntegrationTemplate, SaveTemplates, and RepoBindings
 - [x] 15.2 Server router: CRUD endpoints under `/api/integrations/templates` and `/api/integrations/bindings`
-- [x] 15.3 Server persistence: User-level storage mapped in `/tmp/pi-web-users/{username}/integrations.json`
+- [x] 15.3 Server persistence: User-level storage mapped in `/tmp/crewfactory/{username}/integrations.json`
 - [x] 15.4 Client settings: Tab rendering with status connection indicator, credentials update, and template custom editing
 - [x] 15.5 Client workspace: Dual-tab RightDrawer container with sliding toggle integration
 - [x] 15.6 Client panel: InfrastructurePanel rendering active bindings form and dynamic Quick Action prompt buttons
@@ -178,7 +178,7 @@
 
 ---
 
-## Phase 21: AutoConsulting Multi-Agent Pi WebBuilder Integration
+## Phase 21: AutoConsulting Multi-Agent CrewFactory Builder Integration
 - [x] 21.1 Core Pi session manager module (`autoconsulting/src/pi/session-manager.ts`) supporting project-level workspaces (`/tmp/ac-projects/{projectId}`)
 - [x] 21.2 Static deployment skills: `github-deploy`, `cloudflare-deploy`, `neon-db` (`autoconsulting/src/pi/skills/`)
 - [x] 21.3 WebSocket streaming handler (`autoconsulting/src/pi/ws-handler.ts`) for project sessions (`/ws/pi`)
