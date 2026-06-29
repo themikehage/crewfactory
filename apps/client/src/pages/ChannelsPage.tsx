@@ -3,7 +3,8 @@ import { motion, AnimatePresence } from "framer-motion";
 import { useChannels } from "@/hooks/useChannels";
 import { ChannelCard } from "@/components/channels/ChannelCard";
 import { ChannelMembersModal } from "@/components/channels/ChannelMembersModal";
-import type { Channel, ChannelMember, AgentInfo, AddMember, UpdateMember, CreateChannel } from "shared";
+import { ChannelContextModal } from "@/components/channels/ChannelContextModal";
+import type { Channel, ChannelMember, AgentInfo, AddMember, UpdateMember, CreateChannel, ChannelContextItem } from "shared";
 
 function CreateChannelModal({
   onClose,
@@ -103,6 +104,7 @@ function CreateChannelModal({
     </div>
   );
 }
+
 interface Props {
   onNavigate: (path: string) => void;
   onSelectChannel?: (channel: { id: string; name: string }) => void;
@@ -112,6 +114,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
   const { channels, loading, error, fetchChannels, createChannel, deleteChannel } = useChannels();
   const [showCreate, setShowCreate] = useState(false);
   const [managingChannel, setManagingChannel] = useState<Channel | null>(null);
+  const [contextChannel, setContextChannel] = useState<Channel | null>(null);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
 
@@ -137,6 +140,21 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
     setManagingChannel(channel);
     setChannelMembers(channel.members || []);
     loadChannelDetails(channel.id);
+  };
+
+  const handleOpenContext = (channel: Channel) => {
+    setContextChannel(channel);
+  };
+
+  const handleSaveContext = async (context: ChannelContextItem[]) => {
+    if (!contextChannel) return;
+    const token = localStorage.getItem("token");
+    await fetch(`/api/channels/${contextChannel.id}/context`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ context }),
+    });
+    await fetchChannels();
   };
 
   const handleAddMember = async (data: AddMember) => {
@@ -255,6 +273,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
                   }}
                   onDelete={deleteChannel}
                   onManageMembers={handleOpenMembers}
+                  onManageContext={handleOpenContext}
                 />
               ))}
             </AnimatePresence>
@@ -288,6 +307,17 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
             onAddMember={handleAddMember}
             onUpdateMember={handleUpdateMember}
             onRemoveMember={handleRemoveMember}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {contextChannel && (
+          <ChannelContextModal
+            channelName={contextChannel.name}
+            context={contextChannel.context || []}
+            onClose={() => setContextChannel(null)}
+            onSave={handleSaveContext}
           />
         )}
       </AnimatePresence>

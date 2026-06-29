@@ -3,7 +3,8 @@ import { useChannel } from "@/hooks/useChannel";
 import { ChannelMessageList } from "./ChannelMessageList";
 import { InputArea } from "@/components/chat/InputArea";
 import { ChannelMembersModal } from "./ChannelMembersModal";
-import type { ChannelMember, AgentInfo, AddMember, UpdateMember } from "shared";
+import { ChannelContextModal } from "./ChannelContextModal";
+import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
   activeChannel: { id: string; name: string };
@@ -11,9 +12,10 @@ interface Props {
 }
 
 export function ChannelChatArea({ activeChannel, sessionId }: Props) {
-  const { channel, messages, streamingAgents, sendMessage } = useChannel(activeChannel.id);
+  const { channel, messages, streamingAgents, sendMessage, fetchChannel } = useChannel(activeChannel.id);
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);
+  const [showContextModal, setShowContextModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
 
@@ -49,6 +51,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
       body: JSON.stringify(data),
     });
     await loadChannelDetails();
+    await fetchChannel();
   };
 
   const handleUpdateMember = async (agentId: string, data: UpdateMember) => {
@@ -59,6 +62,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
       body: JSON.stringify(data),
     });
     await loadChannelDetails();
+    await fetchChannel();
   };
 
   const handleRemoveMember = async (agentId: string) => {
@@ -68,6 +72,17 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
       headers: { Authorization: `Bearer ${token}` },
     });
     await loadChannelDetails();
+    await fetchChannel();
+  };
+
+  const handleSaveContext = async (context: ChannelContextItem[]) => {
+    const token = localStorage.getItem("token");
+    await fetch(`/api/channels/${activeChannel.id}/context`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ context }),
+    });
+    await fetchChannel();
   };
 
   const handleSend = (text: string) => {
@@ -92,15 +107,29 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           )}
         </div>
 
-        <button
-          onClick={() => setShowMembersModal(true)}
-          className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-400/10 text-purple-400 border border-purple-400/20 hover:bg-purple-400/20 transition-colors font-medium"
-        >
-          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-          </svg>
-          <span>Miembros ({channel?.members?.length ?? 0})</span>
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowContextModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-blue-400/10 text-blue-400 border border-blue-400/20 hover:bg-blue-400/20 transition-colors font-medium"
+            title="Gestionar variables de contexto del canal"
+          >
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+            <span>Contexto ({channel?.context?.length ?? 0})</span>
+          </button>
+
+          <button
+            onClick={() => setShowMembersModal(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-purple-400/10 text-purple-400 border border-purple-400/20 hover:bg-purple-400/20 transition-colors font-medium"
+            title="Gestionar miembros del canal"
+          >
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
+            </svg>
+            <span>Miembros ({channel?.members?.length ?? 0})</span>
+          </button>
+        </div>
       </div>
 
       {/* Messages area specialized for multi-agent channels */}
@@ -125,6 +154,15 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           onAddMember={handleAddMember}
           onUpdateMember={handleUpdateMember}
           onRemoveMember={handleRemoveMember}
+        />
+      )}
+
+      {showContextModal && (
+        <ChannelContextModal
+          channelName={channel?.name || activeChannel.name}
+          context={channel?.context || []}
+          onClose={() => setShowContextModal(false)}
+          onSave={handleSaveContext}
         />
       )}
     </div>

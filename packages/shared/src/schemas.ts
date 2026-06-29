@@ -209,11 +209,18 @@ export const ChannelMemberSchema = z.object({
 });
 export type ChannelMember = z.infer<typeof ChannelMemberSchema>;
 
+export const ChannelContextItemSchema = z.object({
+  key: z.string().min(1),
+  value: z.string(),
+});
+export type ChannelContextItem = z.infer<typeof ChannelContextItemSchema>;
+
 export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
   members: z.array(ChannelMemberSchema),
+  context: z.array(ChannelContextItemSchema).optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -222,12 +229,14 @@ export type Channel = z.infer<typeof ChannelSchema>;
 export const CreateChannelSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
+  context: z.array(ChannelContextItemSchema).optional(),
 });
 export type CreateChannel = z.infer<typeof CreateChannelSchema>;
 
 export const UpdateChannelSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
+  context: z.array(ChannelContextItemSchema).optional(),
 });
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;
 

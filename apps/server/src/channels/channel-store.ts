@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
 import { join } from "node:path";
-import type { Channel, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
+import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
 
 class ChannelStore {
   private baseDir = "/tmp/pi-channels";
@@ -34,6 +34,7 @@ class ChannelStore {
       name: data.name,
       description: data.description,
       members: [],
+      context: data.context || [],
       createdAt: now,
       updatedAt: now,
     };
@@ -48,7 +49,11 @@ class ChannelStore {
     const jsonPath = this.getChannelJsonPath(id);
     if (!existsSync(jsonPath)) return null;
     try {
-      return JSON.parse(readFileSync(jsonPath, "utf-8"));
+      const parsed = JSON.parse(readFileSync(jsonPath, "utf-8"));
+      return {
+        ...parsed,
+        context: parsed.context || [],
+      };
     } catch {
       return null;
     }
@@ -74,6 +79,18 @@ class ChannelStore {
 
     if (updates.name !== undefined) channel.name = updates.name;
     if (updates.description !== undefined) channel.description = updates.description;
+    if (updates.context !== undefined) channel.context = updates.context;
+    channel.updatedAt = new Date().toISOString();
+
+    writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");
+    return channel;
+  }
+
+  updateChannelContext(id: string, context: ChannelContextItem[]): Channel | null {
+    const channel = this.getChannel(id);
+    if (!channel) return null;
+
+    channel.context = context;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");

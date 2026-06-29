@@ -108,7 +108,7 @@ class ChannelOrchestrator {
       try {
         // Build prompt with channel context
         const recentMessages = channelStore.getMessages(channelId, 20);
-        const promptText = this.buildAgentPrompt(agentEntry.server.definition, incomingMsg, recentMessages);
+        const promptText = this.buildAgentPrompt(agentEntry.server.definition, incomingMsg, recentMessages, channel.context || []);
 
         let fullResponse = "";
 
@@ -227,7 +227,8 @@ class ChannelOrchestrator {
   private buildAgentPrompt(
     agentDef: any,
     incomingMsg: ChannelMessage,
-    recentHistory: ChannelMessage[]
+    recentHistory: ChannelMessage[],
+    contextItems: { key: string; value: string }[] = []
   ): string {
     let historyText = "";
     for (const msg of recentHistory) {
@@ -238,12 +239,19 @@ class ChannelOrchestrator {
       }
     }
 
+    let contextBlock = "";
+    if (contextItems.length > 0) {
+      contextBlock = `Channel Environmental Context Variables:\n` +
+        contextItems.map((item) => `- ${item.key}: ${item.value}`).join("\n") + "\n\n";
+    }
+
     const senderLabel = incomingMsg.role === "user" ? "User" : `Agent ${incomingMsg.agentName || incomingMsg.agentId}`;
 
     return (
       `You are participating in a multi-agent group channel.\n` +
       `Your Name: ${agentDef.name}\n` +
       `Your Role: ${agentDef.role}\n\n` +
+      contextBlock +
       `Channel Conversation History:\n${historyText}\n` +
       `--- New Message from ${senderLabel} ---\n` +
       `${incomingMsg.content}\n\n` +

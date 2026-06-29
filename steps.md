@@ -245,3 +245,12 @@
 - [x] 28.1 `apps/client/src/components/layout/MainLayout.tsx` — Refactored topbar title header into modular breadcrumb navigation separated by `/` slashes (`Chat / Agent: AgentName`, `Chat / Channel: #channelName`, etc.) with interactive route navigation.
 - [x] 28.2 Verification — TypeScript compilation passes clean (EXIT 0) for client build.
 
+## Phase 29: Channel Context Array (Key-Value Pairs)
+- [x] 29.1 `packages/shared/src/schemas.ts` — Defined `ChannelContextItemSchema` and updated channel schemas with `context?: ChannelContextItem[]`
+- [x] 29.2 `apps/server/src/channels/channel-store.ts` — Supported `context` array in channel creation, filesystem persistence (`channel.json`), loading, and update helpers
+- [x] 29.3 `apps/server/src/routes/channels.ts` — Added `PUT /api/channels/:id/context` REST endpoint
+- [x] 29.4 `apps/server/src/channels/channel-orchestrator.ts` — Formatted and injected channel context environmental variables into agent system prompts
+- [x] 29.5 `apps/client/src/components/channels/ChannelContextModal.tsx` — Built interactive floating modal for viewing, adding, editing, and deleting key-value variables
+- [x] 29.6 Integration — Added "Contexto" buttons to `ChannelCard.tsx`, `ChannelsPage.tsx`, and `ChannelChatArea.tsx`
+- [x] 29.7 Verification — TypeScript compilation passes clean (EXIT 0) for server and client
+

@@ -41,6 +41,14 @@ channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
   return c.json(updated);
 });
 
+channelsRouter.put("/:id/context", zValidator("json", z.object({ context: z.array(z.object({ key: z.string().min(1), value: z.string() })) })), (c) => {
+  const id = c.req.param("id");
+  const { context } = c.req.valid("json");
+  const updated = channelStore.updateChannelContext(id, context);
+  if (!updated) return c.json({ error: "Channel not found" }, 404);
+  return c.json(updated);
+});
+
 channelsRouter.delete("/:id", (c) => {
   const id = c.req.param("id");
   const deleted = channelStore.deleteChannel(id);

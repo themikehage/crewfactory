@@ -6,9 +6,10 @@ interface Props {
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onManageMembers?: (channel: Channel) => void;
+  onManageContext?: (channel: Channel) => void;
 }
 
-export function ChannelCard({ channel, onOpen, onDelete, onManageMembers }: Props) {
+export function ChannelCard({ channel, onOpen, onDelete, onManageMembers, onManageContext }: Props) {
   return (
     <motion.div
       layout
@@ -54,20 +55,36 @@ export function ChannelCard({ channel, onOpen, onDelete, onManageMembers }: Prop
         <span>{new Date(channel.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>
       </div>
 
-      <div className="flex items-center gap-2 pt-2 border-t border-surface-hover/50">
+      <div className="flex flex-wrap items-center gap-2 pt-2 border-t border-surface-hover/50">
         <button
           onClick={() => onOpen(channel.id)}
-          className="flex-1 py-1.5 px-3 text-xs font-medium bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors"
+          className="flex-1 min-w-[80px] py-1.5 px-3 text-xs font-medium bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors"
         >
           Abrir Chat
         </button>
+        {onManageContext && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              onManageContext(channel);
+            }}
+            className="py-1.5 px-2.5 text-xs font-medium bg-blue-400/10 text-blue-400 border border-blue-400/20 rounded-lg hover:bg-blue-400/20 transition-colors flex items-center gap-1"
+            title="Gestionar variables de contexto"
+          >
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+            </svg>
+            Contexto ({channel.context?.length ?? 0})
+          </button>
+        )}
         {onManageMembers && (
           <button
             onClick={(e) => {
               e.stopPropagation();
               onManageMembers(channel);
             }}
-            className="py-1.5 px-3 text-xs font-medium bg-purple-400/10 text-purple-400 border border-purple-400/20 rounded-lg hover:bg-purple-400/20 transition-colors flex items-center gap-1"
+            className="py-1.5 px-2.5 text-xs font-medium bg-purple-400/10 text-purple-400 border border-purple-400/20 rounded-lg hover:bg-purple-400/20 transition-colors flex items-center gap-1"
+            title="Gestionar miembros del canal"
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
