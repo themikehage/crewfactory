@@ -113,7 +113,8 @@
 - **Collaborative Group Spaces**: Multi-agent channels with isolated workspaces at `/tmp/pi-channels/{channelId}/workspace` and append-only message logs.
 - **Sequential Orchestrator**: Multi-agent message dispatcher with loop protection (`MAX_CHAIN_DEPTH = 5`).
 - **Flexible Reply Modes**: `user-only` (responds to human), `broadcast` (triggers all channel agents), and `targeted` (responds only to explicitly selected target agents).
-- **Modal Member Management**: Floating `ChannelMembersModal` accessible directly from channel cards to manage members, reply modes, and target selections.
+- **Environmental Context Variables**: Structured key-value context array per channel (`context: ChannelContextItem[]`), dynamically injected into agent prompts during execution to align responses with project environment rules.
+- **Modal Member & Context Management**: Floating `ChannelMembersModal` and `ChannelContextModal` accessible from channel cards and chat headers for managing members, reply modes, and key-value pairs.
 - **Modular ChannelChatArea Architecture**: Dedicated `ChannelChatArea` and `ChannelMessageList` handling multi-agent WS streaming and agent identity badges, while sharing `RichMarkdown` and `InputArea` with standard chat.
 
 ### AutoConsulting Multi-Agent Pi Integration (`autoconsulting`)
@@ -160,7 +161,7 @@
 | POST | /api/integrations/templates | Update or define new integrations and custom quick actions |
 | GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
 | GET/POST/DELETE | /api/agents | Agent registration, listing, and management |
-| GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), and message dispatch (`/send`) |
+| GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), and message dispatch (`/send`) |
 | WS | /ws | WebSocket for real-time streaming (events: prompt, steer, follow_up, abort, compact, get_context_usage, channel_send, channel_join) |
 | GET | /api/health | Health check |
 
@@ -200,6 +201,7 @@ packages/shared/  Shared Zod schemas and types
 - `components/channels/ChannelChatArea.tsx` — Dedicated container for channel WS streaming and multi-agent execution.
 - `components/channels/ChannelMessageList.tsx` — Multi-agent message list with agent badges, avatars, and RichMarkdown.
 - `components/channels/ChannelMembersModal.tsx` — Floating modal for member management and targeted agent selection.
+- `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
 - `hooks/useWebSocket.ts` — WebSocket client with auto-reconnect, event subscription
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
 - `pages/SettingsPage.tsx` — Provider, global env variables, and Integrations Hub template editor.
