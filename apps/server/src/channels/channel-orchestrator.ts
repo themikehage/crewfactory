@@ -173,10 +173,8 @@ class ChannelOrchestrator {
           message: agentMsg,
         });
 
-        // Trigger next level of chain based on this agent's replyMode
-        if (member.replyMode !== "user-only") {
-          await this.runDispatchRound(channelId, agentMsg, depth + 1);
-        }
+        // Always propagate agent messages — resolveRecipients returns [] if no member listens
+        await this.runDispatchRound(channelId, agentMsg, depth + 1);
       } catch (err: any) {
         console.error(`[ChannelOrchestrator] Error prompt agent ${member.agentId}:`, err);
         broadcast(channelId, {
@@ -193,30 +191,31 @@ class ChannelOrchestrator {
     const recipients: ChannelMember[] = [];
 
     for (const member of channel.members) {
-      // Don't send agent's own message back to itself
+      // Never route a message back to the agent that sent it
       if (incomingMsg.role === "agent" && incomingMsg.agentId === member.agentId) {
         continue;
       }
 
       if (incomingMsg.role === "user") {
-        // All members hear user messages
-        recipients.push(member);
-      } else if (incomingMsg.role === "agent") {
-        // Find sender member configuration
-        const senderMember = channel.members.find((m) => m.agentId === incomingMsg.agentId);
-        if (!senderMember) continue;
-
-        if (senderMember.replyMode === "user-only") {
-          // Sender does not trigger other agents
-          continue;
-        } else if (senderMember.replyMode === "broadcast") {
-          // Sender triggers all other agents
+        // Receiver-side: which members listen to user messages?
+        // - "user-only" and "broadcast" always listen to the user
+        // - "targeted" members listen to the user only if "__user__" is in their targetAgentIds
+        if (member.replyMode === "user-only" || member.replyMode === "broadcast") {
           recipients.push(member);
-        } else if (senderMember.replyMode === "targeted") {
-          // Sender triggers only specified targetAgentIds
-          if (senderMember.targetAgentIds?.includes(member.agentId)) {
-            recipients.push(member);
-          }
+        } else if (member.replyMode === "targeted" && member.targetAgentIds?.includes("__user__")) {
+          recipients.push(member);
+        }
+      } else if (incomingMsg.role === "agent") {
+        const senderId = incomingMsg.agentId!;
+
+        // Receiver-side: which members listen to this specific agent?
+        // - "broadcast" listens to all agents
+        // - "targeted" listens only to agents whose ID is in targetAgentIds
+        // - "user-only" never responds to agent messages
+        if (member.replyMode === "broadcast") {
+          recipients.push(member);
+        } else if (member.replyMode === "targeted" && member.targetAgentIds?.includes(senderId)) {
+          recipients.push(member);
         }
       }
     }
@@ -235,27 +234,28 @@ class ChannelOrchestrator {
       if (msg.role === "user") {
         historyText += `[User]: ${msg.content}\n`;
       } else {
-        historyText += `[Agent ${msg.agentName || msg.agentId}]: ${msg.content}\n`;
+        historyText += `[${msg.agentName || msg.agentId}]: ${msg.content}\n`;
       }
     }
 
     let contextBlock = "";
     if (contextItems.length > 0) {
-      contextBlock = `Channel Environmental Context Variables:\n` +
-        contextItems.map((item) => `- ${item.key}: ${item.value}`).join("\n") + "\n\n";
+      contextBlock =
+        `Channel Environmental Context Variables:\n` +
+        contextItems.map((item) => `- ${item.key}: ${item.value}`).join("\n") +
+        "\n\n";
     }
 
-    const senderLabel = incomingMsg.role === "user" ? "User" : `Agent ${incomingMsg.agentName || incomingMsg.agentId}`;
+    const senderLabel =
+      incomingMsg.role === "user"
+        ? "User"
+        : incomingMsg.agentName || incomingMsg.agentId;
 
     return (
-      `You are participating in a multi-agent group channel.\n` +
-      `Your Name: ${agentDef.name}\n` +
-      `Your Role: ${agentDef.role}\n\n` +
       contextBlock +
-      `Channel Conversation History:\n${historyText}\n` +
-      `--- New Message from ${senderLabel} ---\n` +
-      `${incomingMsg.content}\n\n` +
-      `Respond concisely as ${agentDef.name} (${agentDef.role}) to this channel conversation.`
+      `Conversation so far:\n${historyText}\n` +
+      `--- New message from ${senderLabel} ---\n` +
+      `${incomingMsg.content}`
     );
   }
 }
