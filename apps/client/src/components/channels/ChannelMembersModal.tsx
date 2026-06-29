@@ -141,6 +141,7 @@ export function ChannelMembersModal({
                       <option value="user-only">User-only (Solo al usuario)</option>
                       <option value="broadcast">Broadcast (A todos los agentes)</option>
                       <option value="targeted">Targeted (A agentes específicos)</option>
+                      <option value="mention-only">Mention-only (Solo cuando lo mencionan)</option>
                     </select>
                   </div>
 

@@ -1,7 +1,8 @@
 import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
 import { piSessionManager } from "../pi/session-manager";
-import type { Channel, ChannelMember, ChannelMessage, ReplyMode } from "shared";
+import { parseMentions } from "./mention-parser";
+import type { Channel, ChannelMember, ChannelMessage } from "shared";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -21,15 +22,29 @@ const MAX_CHAIN_DEPTH = 5;
 class ChannelOrchestrator {
   private activeDispatches = new Set<string>(); // channelId currently processing
 
+  /** Build a name map agentId -> displayName for the current channel members */
+  private buildAgentNameMap(members: ChannelMember[]): Map<string, string> {
+    const map = new Map<string, string>();
+    for (const member of members) {
+      const entry = agentRegistry.get(member.agentId);
+      if (entry) map.set(member.agentId, entry.server.definition.name);
+    }
+    return map;
+  }
+
   async dispatchUserMessage(channelId: string, userContent: string): Promise<void> {
     const channel = channelStore.getChannel(channelId);
     if (!channel) throw new Error("Channel not found");
+
+    const agentNameMap = this.buildAgentNameMap(channel.members);
+    const mentions = parseMentions(userContent, channel.members, agentNameMap);
 
     const userMsg: ChannelMessage = {
       id: crypto.randomUUID(),
       channelId,
       role: "user",
       content: userContent,
+      mentions: mentions.length > 0 ? mentions : undefined,
       createdAt: new Date().toISOString(),
     };
 
@@ -106,9 +121,17 @@ class ChannelOrchestrator {
       });
 
       try {
-        // Build prompt with channel context
+        // Build prompt with channel context and member roster
         const recentMessages = channelStore.getMessages(channelId, 20);
-        const promptText = this.buildAgentPrompt(agentEntry.server.definition, incomingMsg, recentMessages, channel.context || []);
+        const agentNameMap = this.buildAgentNameMap(channel.members);
+        const promptText = this.buildAgentPrompt(
+          agentEntry.server.definition,
+          incomingMsg,
+          recentMessages,
+          channel.context || [],
+          channel.members,
+          agentNameMap
+        );
 
         let fullResponse = "";
 
@@ -149,6 +172,9 @@ class ChannelOrchestrator {
           }
         }
 
+        const agentNameMap2 = this.buildAgentNameMap(channel.members);
+        const agentMentions = parseMentions(fullResponse, channel.members, agentNameMap2);
+
         const agentMsg: ChannelMessage = {
           id: crypto.randomUUID(),
           channelId,
@@ -156,6 +182,7 @@ class ChannelOrchestrator {
           agentId: member.agentId,
           agentName,
           content: fullResponse || "(empty response)",
+          mentions: agentMentions.length > 0 ? agentMentions : undefined,
           createdAt: new Date().toISOString(),
         };
 
@@ -188,7 +215,9 @@ class ChannelOrchestrator {
   }
 
   private resolveRecipients(channel: Channel, incomingMsg: ChannelMessage): ChannelMember[] {
-    const recipients: ChannelMember[] = [];
+    const mentioned = incomingMsg.mentions ?? [];
+    const recipientSet = new Set<string>();
+    const result: ChannelMember[] = [];
 
     for (const member of channel.members) {
       // Never route a message back to the agent that sent it
@@ -196,39 +225,58 @@ class ChannelOrchestrator {
         continue;
       }
 
-      if (incomingMsg.role === "user") {
+      const isMentioned = mentioned.includes(member.agentId);
+      let addedByMode = false;
+
+      if (member.replyMode === "mention-only") {
+        // Only responds when explicitly @mentioned — skip all other routing
+        if (isMentioned) addedByMode = true;
+      } else if (incomingMsg.role === "user") {
         // Receiver-side: which members listen to user messages?
-        // - "user-only" and "broadcast" always listen to the user
-        // - "targeted" members listen to the user only if "__user__" is in their targetAgentIds
         if (member.replyMode === "user-only" || member.replyMode === "broadcast") {
-          recipients.push(member);
+          addedByMode = true;
         } else if (member.replyMode === "targeted" && member.targetAgentIds?.includes("__user__")) {
-          recipients.push(member);
+          addedByMode = true;
         }
       } else if (incomingMsg.role === "agent") {
         const senderId = incomingMsg.agentId!;
-
         // Receiver-side: which members listen to this specific agent?
-        // - "broadcast" listens to all agents
-        // - "targeted" listens only to agents whose ID is in targetAgentIds
-        // - "user-only" never responds to agent messages
         if (member.replyMode === "broadcast") {
-          recipients.push(member);
+          addedByMode = true;
         } else if (member.replyMode === "targeted" && member.targetAgentIds?.includes(senderId)) {
-          recipients.push(member);
+          addedByMode = true;
         }
+      }
+
+      // Mention overlay: explicitly mentioned members always get added (except self)
+      if ((addedByMode || isMentioned) && !recipientSet.has(member.agentId)) {
+        recipientSet.add(member.agentId);
+        result.push(member);
       }
     }
 
-    return recipients;
+    return result;
   }
 
   private buildAgentPrompt(
     agentDef: any,
     incomingMsg: ChannelMessage,
     recentHistory: ChannelMessage[],
-    contextItems: { key: string; value: string }[] = []
+    contextItems: { key: string; value: string }[] = [],
+    members: ChannelMember[] = [],
+    agentNameMap: Map<string, string> = new Map()
   ): string {
+    // Channel member roster — lets agents know how to @mention peers
+    let rosterBlock = "";
+    if (members.length > 0) {
+      const lines = ["- @user (the human user)"];
+      for (const m of members) {
+        const name = agentNameMap.get(m.agentId) || m.agentId;
+        lines.push(`- @${name}  (id: ${m.agentId})`);
+      }
+      rosterBlock = `Channel participants (use @name or @id to mention them):\n${lines.join("\n")}\n\n`;
+    }
+
     let historyText = "";
     for (const msg of recentHistory) {
       if (msg.role === "user") {
@@ -252,6 +300,7 @@ class ChannelOrchestrator {
         : incomingMsg.agentName || incomingMsg.agentId;
 
     return (
+      rosterBlock +
       contextBlock +
       `Conversation so far:\n${historyText}\n` +
       `--- New message from ${senderLabel} ---\n` +

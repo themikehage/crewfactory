@@ -5,6 +5,11 @@ import { SkillsSelector, type SkillInfo } from "./SkillsSelector";
 
 const DEFAULT_TOOLS = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
+export interface MentionTarget {
+  id: string;
+  name: string;
+}
+
 interface Props {
   onSend: (message: string, option?: "steer" | "follow_up", tools?: string[]) => void;
   onAbort: () => void;
@@ -12,9 +17,10 @@ interface Props {
   sessionId: string | null;
   onToolsChange?: (tools: string[]) => void;
   runnerActive?: boolean;
+  mentionTargets?: MentionTarget[];
 }
 
-export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false }: Props) {
+export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false, mentionTargets = [] }: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
   const [showOptions, setShowOptions] = useState(false);
@@ -23,10 +29,21 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
 
+  // Skill autocomplete (/ prefix)
   const [showAutocomplete, setShowAutocomplete] = useState(false);
   const [autocompleteSearch, setAutocompleteSearch] = useState("");
   const [selectedAutocompleteIndex, setSelectedAutocompleteIndex] = useState(0);
   const autocompleteRef = useRef<HTMLDivElement>(null);
+
+  // @mention autocomplete
+  const [showMentionAC, setShowMentionAC] = useState(false);
+  const [mentionSearch, setMentionSearch] = useState("");
+  const [selectedMentionIndex, setSelectedMentionIndex] = useState(0);
+  const mentionACRef = useRef<HTMLDivElement>(null);
+
+  const filteredMentions = mentionTargets.filter((t) =>
+    t.name.toLowerCase().includes(mentionSearch.toLowerCase())
+  );
 
   useEffect(() => {
     if (!sessionId) {
@@ -119,8 +136,23 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
 
   const checkAutocomplete = (text: string, cursorPosition: number) => {
     const textBeforeCursor = text.slice(0, cursorPosition);
-    const lastWordMatch = textBeforeCursor.match(/(\/\S*)$/);
 
+    // @mention detection (only when mentionTargets provided)
+    if (mentionTargets.length > 0) {
+      const mentionMatch = textBeforeCursor.match(/(?:^|\s)@(\S*)$/);
+      if (mentionMatch) {
+        setMentionSearch(mentionMatch[1]);
+        setShowMentionAC(true);
+        setSelectedMentionIndex(0);
+        setShowAutocomplete(false);
+        return;
+      } else {
+        setShowMentionAC(false);
+      }
+    }
+
+    // Skill autocomplete (/ prefix)
+    const lastWordMatch = textBeforeCursor.match(/(\/\S*)$/);
     if (lastWordMatch) {
       const triggerWord = lastWordMatch[1];
       setAutocompleteSearch(triggerWord.slice(1));
@@ -129,6 +161,23 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
     } else {
       setShowAutocomplete(false);
     }
+  };
+
+  const insertMention = (target: MentionTarget) => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    const cursorPosition = textarea.selectionStart;
+    const textBeforeCursor = input.slice(0, cursorPosition);
+    const textAfterCursor = input.slice(cursorPosition);
+    const replaced = textBeforeCursor.replace(/(?:^|(\s))@\S*$/, (_, space) => `${space ?? ""}@${target.name} `);
+    const newVal = replaced + textAfterCursor;
+    setInput(newVal);
+    setShowMentionAC(false);
+    const newCursorPos = replaced.length;
+    setTimeout(() => {
+      textarea.focus();
+      textarea.setSelectionRange(newCursorPos, newCursorPos);
+    }, 0);
   };
 
   const insertSkillReference = (skillName: string) => {
@@ -158,6 +207,30 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // @mention autocomplete keyboard nav
+    if (showMentionAC && filteredMentions.length > 0) {
+      if (e.key === "ArrowDown") {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => (prev + 1) % filteredMentions.length);
+        return;
+      }
+      if (e.key === "ArrowUp") {
+        e.preventDefault();
+        setSelectedMentionIndex((prev) => (prev - 1 + filteredMentions.length) % filteredMentions.length);
+        return;
+      }
+      if (e.key === "Enter" || e.key === "Tab") {
+        e.preventDefault();
+        insertMention(filteredMentions[selectedMentionIndex]);
+        return;
+      }
+      if (e.key === "Escape") {
+        e.preventDefault();
+        setShowMentionAC(false);
+        return;
+      }
+    }
+
     if (showAutocomplete && filteredSkillsForAutocomplete.length > 0) {
       if (e.key === "ArrowDown") {
         e.preventDefault();
@@ -218,6 +291,33 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
   return (
     <div className="border-t border-surface p-3 sm:p-4 bg-bg">
       <div className="max-w-3xl mx-auto flex gap-2 sm:gap-3 relative">
+        {/* @mention autocomplete dropdown */}
+        {showMentionAC && filteredMentions.length > 0 && (
+          <div
+            ref={mentionACRef}
+            className="absolute bottom-full left-0 mb-1.5 w-56 bg-surface border border-accent/30 rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
+          >
+            <div className="px-2.5 py-1.5 text-[10px] font-semibold text-text-secondary border-b border-surface-hover tracking-wide uppercase">
+              Mention
+            </div>
+            {filteredMentions.map((t, idx) => (
+              <button
+                key={t.id}
+                onMouseDown={(e) => { e.preventDefault(); insertMention(t); }}
+                className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
+                  idx === selectedMentionIndex
+                    ? "bg-accent/15 text-accent"
+                    : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
+                }`}
+              >
+                <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-[9px] shrink-0">
+                  {t.name[0]?.toUpperCase()}
+                </span>
+                <span className="font-medium">@{t.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
         {showAutocomplete && filteredSkillsForAutocomplete.length > 0 && (
           <div
             ref={autocompleteRef}

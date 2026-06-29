@@ -6,9 +6,22 @@ import { RichMarkdown } from "@/components/chat/RichMarkdown";
 interface Props {
   messages: ChannelMessage[];
   streamingAgents: Record<string, StreamingAgentState>;
+  mentionNames?: string[];
 }
 
-export function ChannelMessageList({ messages, streamingAgents }: Props) {
+function highlightMentions(content: string, names: string[]): string {
+  if (names.length === 0) return content;
+  // Replace @name patterns with a markdown-safe bold highlight
+  // We use HTML spans since RichMarkdown renders raw HTML in code blocks
+  let result = content;
+  for (const name of names) {
+    const pattern = new RegExp(`@(${name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")})\\b`, "gi");
+    result = result.replace(pattern, `**@$1**`);
+  }
+  return result;
+}
+
+export function ChannelMessageList({ messages, streamingAgents, mentionNames = [] }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -62,7 +75,7 @@ export function ChannelMessageList({ messages, streamingAgents }: Props) {
                 : "bg-surface text-text-primary border border-surface-hover rounded-tl-none shadow-sm"
             }`}
           >
-            <RichMarkdown content={msg.content} />
+            <RichMarkdown content={highlightMentions(msg.content, mentionNames)} />
           </div>
         </div>
       ))}

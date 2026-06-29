@@ -199,7 +199,7 @@ export const AgentInfoSchema = z.object({
 });
 export type AgentInfo = z.infer<typeof AgentInfoSchema>;
 
-export const ReplyModeSchema = z.enum(["user-only", "broadcast", "targeted"]);
+export const ReplyModeSchema = z.enum(["user-only", "broadcast", "targeted", "mention-only"]);
 export type ReplyMode = z.infer<typeof ReplyModeSchema>;
 
 export const ChannelMemberSchema = z.object({
@@ -263,6 +263,7 @@ export const ChannelMessageSchema = z.object({
   agentId: z.string().optional(),
   agentName: z.string().optional(),
   content: z.string(),
+  mentions: z.array(z.string()).optional(),
   createdAt: z.string(),
 });
 export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;

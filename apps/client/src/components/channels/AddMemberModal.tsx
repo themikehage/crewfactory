@@ -89,8 +89,8 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
 
               <div>
                 <label className="text-xs font-medium text-text-secondary block mb-1.5">Reply Mode</label>
-                <div className="grid grid-cols-3 gap-2">
-                  {(["user-only", "broadcast", "targeted"] as ReplyMode[]).map((mode) => (
+                <div className="grid grid-cols-2 gap-2">
+                  {(["user-only", "broadcast", "targeted", "mention-only"] as ReplyMode[]).map((mode) => (
                     <button
                       key={mode}
                       type="button"
@@ -109,6 +109,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
                   {replyMode === "user-only" && "Agent responds only to human messages. Does not trigger other agents."}
                   {replyMode === "broadcast" && "Agent responds to human and other agent messages. Triggers all channel members."}
                   {replyMode === "targeted" && "Agent responds to human and selected target agents. Triggers specified targets."}
+                  {replyMode === "mention-only" && "Agent is silent unless explicitly @mentioned by name or id in a message."}
                 </p>
               </div>
 

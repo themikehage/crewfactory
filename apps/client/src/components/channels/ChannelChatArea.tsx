@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelMessageList } from "./ChannelMessageList";
 import { InputArea } from "@/components/chat/InputArea";
+import type { MentionTarget } from "@/components/chat/InputArea";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
@@ -18,6 +19,14 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
   const [showContextModal, setShowContextModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
+
+  const mentionTargets: MentionTarget[] = [
+    { id: "__user__", name: "user" },
+    ...channelMembers.map((m) => ({
+      id: m.agentId,
+      name: registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId,
+    })),
+  ];
 
   const loadChannelDetails = useCallback(async () => {
     const token = localStorage.getItem("token");
@@ -37,11 +46,10 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
     } catch {}
   }, [activeChannel.id]);
 
+  // Load on mount so mentionTargets are available immediately
   useEffect(() => {
-    if (showMembersModal) {
-      loadChannelDetails();
-    }
-  }, [showMembersModal, loadChannelDetails]);
+    loadChannelDetails();
+  }, [loadChannelDetails]);
 
   const handleAddMember = async (data: AddMember) => {
     const token = localStorage.getItem("token");
@@ -133,7 +141,11 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
       </div>
 
       {/* Messages area specialized for multi-agent channels */}
-      <ChannelMessageList messages={messages} streamingAgents={streamingAgents} />
+      <ChannelMessageList
+        messages={messages}
+        streamingAgents={streamingAgents}
+        mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
+      />
 
       {/* Reused InputArea shared with normal chat */}
       <div className="p-3 sm:p-4 border-t border-surface/60 bg-surface/10 flex-shrink-0">
@@ -142,6 +154,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           streaming={isStreaming}
           onSend={(msg) => handleSend(msg)}
           onAbort={() => {}}
+          mentionTargets={mentionTargets}
         />
       </div>
 
