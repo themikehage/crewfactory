@@ -158,6 +158,10 @@ class ChannelOrchestrator {
         });
 
         try {
+          // Reset internal agent runtime state so prior sessions/channels do not bleed into this channel dispatch
+          if ((agentEntry.server.session as any).agent?.reset) {
+            (agentEntry.server.session as any).agent.reset();
+          }
           await agentEntry.server.session.prompt(promptText);
         } finally {
           unsub();

@@ -142,15 +142,18 @@ export function SessionSidebar({ activeSessionId, activeRepoName, activeAgent, a
       const remaining = sessions.filter((s) => s.id !== id);
       setSessions(remaining);
 
-      const filteredRemaining = remaining.filter((s) =>
-        activeRepoName ? s.repoName === activeRepoName : !s.repoName
-      );
+      const filteredRemaining = remaining.filter((s) => {
+        if (activeChannel) return s.channelId === activeChannel.id;
+        if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
+        if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
+        return !s.repoName && !s.agentId && !s.channelId;
+      });
 
       if (activeSessionId === id) {
         onSelectSession(filteredRemaining[0]?.id ?? "");
       }
     },
-    [activeSessionId, onSelectSession, sessions, activeRepoName]
+    [activeSessionId, onSelectSession, sessions, activeRepoName, activeAgent, activeChannel]
   );
 
   const handleDeleteClick = useCallback((e: React.MouseEvent, id: string) => {

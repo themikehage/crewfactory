@@ -254,3 +254,9 @@
 - [x] 29.6 Integration — Added "Contexto" buttons to `ChannelCard.tsx`, `ChannelsPage.tsx`, and `ChannelChatArea.tsx`
 - [x] 29.7 Verification — TypeScript compilation passes clean (EXIT 0) for server and client
 
+## Phase 30: Channel Session Agent Memory Isolation Fix
+- [x] 30.1 `apps/server/src/channels/channel-orchestrator.ts` — Reset agent session internal runtime state (`agent.reset()`) before dispatching prompts to isolate channel session histories and prevent previous session state leakage.
+- [x] 30.2 `apps/client/src/components/sidebar/SessionSidebar.tsx` — Updated `deleteSession` remaining session filtering to properly respect `activeChannel` and `activeAgent` context modes.
+- [x] 30.3 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
+
+
