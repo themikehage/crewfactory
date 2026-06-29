@@ -11,7 +11,7 @@ export interface StreamingAgentState {
   text: string;
 }
 
-export function useChannel(channelId: string | null) {
+export function useChannel(channelId: string | null, sessionId?: string | null) {
   const [channel, setChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [streamingAgents, setStreamingAgents] = useState<Record<string, StreamingAgentState>>({});
@@ -37,7 +37,8 @@ export function useChannel(channelId: string | null) {
   const fetchMessages = useCallback(async () => {
     if (!channelId) return;
     try {
-      const res = await fetch(`/api/channels/${channelId}/messages?limit=100`, {
+      const url = `/api/channels/${channelId}/messages?limit=100${sessionId ? `&sessionId=${sessionId}` : ""}`;
+      const res = await fetch(url, {
         headers: { Authorization: `Bearer ${getToken()}` },
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -46,7 +47,7 @@ export function useChannel(channelId: string | null) {
     } catch (err: any) {
       console.error("Failed to load channel messages:", err);
     }
-  }, [channelId]);
+  }, [channelId, sessionId]);
 
   useEffect(() => {
     if (!channelId) {
@@ -92,6 +93,7 @@ export function useChannel(channelId: string | null) {
           const newMsg: ChannelMessage = data.message;
           setMessages((prev) => {
             if (prev.some((m) => m.id === newMsg.id)) return prev;
+            if (sessionId && newMsg.sessionId && newMsg.sessionId !== sessionId) return prev;
             return [...prev, newMsg];
           });
         } else if (data.type === "channel_agent_start") {
@@ -131,7 +133,7 @@ export function useChannel(channelId: string | null) {
     async (content: string) => {
       if (!channelId || !content.trim()) return;
       if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "channel_send", channelId, message: content }));
+        wsRef.current.send(JSON.stringify({ type: "channel_send", channelId, sessionId, message: content }));
       } else {
         // Fallback REST
         await fetch(`/api/channels/${channelId}/send`, {
@@ -140,11 +142,11 @@ export function useChannel(channelId: string | null) {
             "Content-Type": "application/json",
             Authorization: `Bearer ${getToken()}`,
           },
-          body: JSON.stringify({ message: content }),
+          body: JSON.stringify({ message: content, sessionId }),
         });
       }
     },
-    [channelId]
+    [channelId, sessionId]
   );
 
   const addMember = useCallback(

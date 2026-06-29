@@ -13,7 +13,7 @@ interface Props {
 }
 
 export function ChannelChatArea({ activeChannel, sessionId }: Props) {
-  const { channel, messages, streamingAgents, sendMessage, fetchChannel } = useChannel(activeChannel.id);
+  const { channel, messages, streamingAgents, sendMessage, fetchChannel } = useChannel(activeChannel.id, sessionId);
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showContextModal, setShowContextModal] = useState(false);

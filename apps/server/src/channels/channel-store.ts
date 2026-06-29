@@ -132,20 +132,22 @@ class ChannelStore {
     }
   }
 
-  getMessages(channelId: string, limit: number = 100): ChannelMessage[] {
+  getMessages(channelId: string, limit: number = 100, sessionId?: string): ChannelMessage[] {
     const messagesPath = this.getMessagesPath(channelId);
     if (!existsSync(messagesPath)) return [];
     try {
       const content = readFileSync(messagesPath, "utf-8");
       const lines = content.trim().split("\n").filter((l) => l.trim().length > 0);
       const messages: ChannelMessage[] = [];
-      const slice = lines.slice(-limit);
-      for (const line of slice) {
+      for (const line of lines) {
         try {
-          messages.push(JSON.parse(line));
+          const parsed: ChannelMessage = JSON.parse(line);
+          if (!sessionId || !parsed.sessionId || parsed.sessionId === sessionId) {
+            messages.push(parsed);
+          }
         } catch {}
       }
-      return messages;
+      return messages.slice(-limit);
     } catch {
       return [];
     }

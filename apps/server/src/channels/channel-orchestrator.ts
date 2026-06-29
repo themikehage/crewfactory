@@ -32,7 +32,7 @@ class ChannelOrchestrator {
     return map;
   }
 
-  async dispatchUserMessage(channelId: string, userContent: string): Promise<void> {
+  async dispatchUserMessage(channelId: string, userContent: string, sessionId?: string): Promise<void> {
     const channel = channelStore.getChannel(channelId);
     if (!channel) throw new Error("Channel not found");
 
@@ -42,6 +42,7 @@ class ChannelOrchestrator {
     const userMsg: ChannelMessage = {
       id: crypto.randomUUID(),
       channelId,
+      sessionId,
       role: "user",
       content: userContent,
       mentions: mentions.length > 0 ? mentions : undefined,
@@ -122,7 +123,7 @@ class ChannelOrchestrator {
 
       try {
         // Build prompt with channel context and member roster
-        const recentMessages = channelStore.getMessages(channelId, 20);
+        const recentMessages = channelStore.getMessages(channelId, 20, incomingMsg.sessionId);
         const agentNameMap = this.buildAgentNameMap(channel.members);
         const promptText = this.buildAgentPrompt(
           agentEntry.server.definition,
@@ -178,6 +179,7 @@ class ChannelOrchestrator {
         const agentMsg: ChannelMessage = {
           id: crypto.randomUUID(),
           channelId,
+          sessionId: incomingMsg.sessionId,
           role: "agent",
           agentId: member.agentId,
           agentName,

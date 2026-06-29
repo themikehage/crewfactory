@@ -259,6 +259,7 @@ export type ChannelMessageRole = z.infer<typeof ChannelMessageRoleSchema>;
 export const ChannelMessageSchema = z.object({
   id: z.string(),
   channelId: z.string(),
+  sessionId: z.string().optional(),
   role: ChannelMessageRoleSchema,
   agentId: z.string().optional(),
   agentName: z.string().optional(),

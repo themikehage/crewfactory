@@ -379,8 +379,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   if (data.type === "channel_send") {
     const channelId = data.channelId as string;
     const message = data.message as string;
+    const sessionId = data.sessionId as string | undefined;
     if (channelId && message) {
-      channelOrchestrator.dispatchUserMessage(channelId, message).catch((err) => {
+      channelOrchestrator.dispatchUserMessage(channelId, message, sessionId).catch((err) => {
         console.error(`[WS] Error dispatching channel message:`, err);
       });
     }

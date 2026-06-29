@@ -114,21 +114,22 @@ channelsRouter.delete("/:id/members/:agentId", (c) => {
 channelsRouter.get("/:id/messages", (c) => {
   const id = c.req.param("id");
   const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!) : 100;
+  const sessionId = c.req.query("sessionId");
   const channel = channelStore.getChannel(id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
-  const messages = channelStore.getMessages(id, limit);
+  const messages = channelStore.getMessages(id, limit, sessionId);
   return c.json({ messages });
 });
 
-channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().min(1) })), async (c) => {
+channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().min(1), sessionId: z.string().optional() })), async (c) => {
   const id = c.req.param("id");
-  const { message } = c.req.valid("json");
+  const { message, sessionId } = c.req.valid("json");
   const channel = channelStore.getChannel(id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   // Trigger dispatch asynchronously
-  channelOrchestrator.dispatchUserMessage(id, message).catch((err) => {
+  channelOrchestrator.dispatchUserMessage(id, message, sessionId).catch((err) => {
     console.error(`[ChannelsRoute] Error dispatching message for channel ${id}:`, err);
   });
 
