@@ -276,7 +276,7 @@ class ChannelOrchestrator {
     members: ChannelMember[] = [],
     agentNameMap: Map<string, string> = new Map()
   ): string {
-    // Channel member roster — lets agents know how to @mention peers
+    // Channel member roster — lets agents know how and when to @mention peers
     let rosterBlock = "";
     if (members.length > 0) {
       const lines = ["- @user (the human user)"];
@@ -284,7 +284,13 @@ class ChannelOrchestrator {
         const name = agentNameMap.get(m.agentId) || m.agentId;
         lines.push(`- @${name}  (id: ${m.agentId})`);
       }
-      rosterBlock = `Channel participants (use @name or @id to mention them):\n${lines.join("\n")}\n\n`;
+      rosterBlock =
+        `Channel Participants & Tagging Protocol:\n` +
+        `The following participants are in this channel. Explicitly mentioning them using @name or @id in your message will trigger them to respond:\n` +
+        `${lines.join("\n")}\n\n` +
+        `ROUTING RULES:\n` +
+        `- If your response requires input, review, or action from a specific team member, you MUST explicitly tag them in your message (e.g., "@Tech Lead", "@Senior Dev", or "@user").\n` +
+        `- Participants in mention-only mode will NOT respond unless you explicitly tag them.\n\n`;
     }
 
     let historyText = "";
