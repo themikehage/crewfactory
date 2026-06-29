@@ -26,7 +26,9 @@ function connect() {
 
   ws.onopen = () => {
     reconnectAttempts = 0;
-    ws!.send(JSON.stringify({ type: "auth", token }));
+    if (ws?.readyState === WebSocket.OPEN) {
+      ws.send(JSON.stringify({ type: "auth", token }));
+    }
   };
 
   ws.onmessage = (event) => {

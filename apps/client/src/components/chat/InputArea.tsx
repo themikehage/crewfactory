@@ -423,7 +423,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         )}
       </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-center justify-between relative px-1">
-        <ModelSelector sessionId={sessionId} disabled={runnerActive} />
+        <ModelSelector sessionId={mentionTargets.length > 0 ? null : sessionId} disabled={runnerActive} />
         <div className="flex items-center gap-3">
           {sessionId && (
             <SkillsSelector

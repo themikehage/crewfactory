@@ -329,10 +329,10 @@ class ChannelOrchestrator {
         `Channel Participants & Tagging Protocol:\n` +
         `The following participants are in this channel. Explicitly mentioning them using @name or @id in your message will trigger them to respond:\n` +
         `${lines.join("\n")}\n\n` +
-        `STRICT COMMUNICATION RULES (PREVENT CHATTER & LOOPS):\n` +
-        `1. NO COURTESY REPLIES / ACKNOWLEDGMENTS: Never reply merely to say hello, confirm attendance, state that you are "present", "listening", or "on standby". If you have no concrete new technical analysis, decision, or work deliverable to add, reply EXACTLY with "(silent)".\n` +
-        `2. ONLY TAG WHEN DELEGATING A TASK: Only @mention another participant if you are transferring an explicit, actionable task or deliverable (e.g. scope proposal, technical review, commercial summary) or asking a direct blocking technical question.\n` +
-        `3. NO REPETITIVE WAITING MESSAGES: Do not repeatedly prompt the user or repeat questions that have already been asked in the conversation history.\n\n`;
+        `COMMUNICATION PROTOCOL & TASK ROUTING:\n` +
+        `1. FOCUS ON VALUE & ACTION: Respond meaningfully to advance the project (e.g. analyzing user requests, generating scope proposals, conducting technical reviews, drafting commercial quotes). Do NOT reply merely to say hello, acknowledge attendance, or state that you are "present" or "on standby". If you genuinely have no input or action to contribute at this step, reply with "(silent)".\n` +
+        `2. TASK DELEGATION: Mention other team members using @name or @id ONLY when transferring an explicit task, delivering a required work artifact, or asking a direct blocking technical question.\n` +
+        `3. NO REPETITIVE CHATTER: Do not loop or repeat questions already answered or asked in the conversation history.\n\n`;
     }
 
     let historyText = "";
