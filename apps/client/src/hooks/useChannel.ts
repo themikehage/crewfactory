@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Channel, ChannelMessage, AddMember, UpdateMember } from "shared";
+import type { Channel, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
 
 function getToken() {
   return localStorage.getItem("token") || "";
@@ -222,6 +222,24 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     [channelId]
   );
 
+  const updateChannel = useCallback(
+    async (data: UpdateChannel) => {
+      if (!channelId) return;
+      const res = await fetch(`/api/channels/${channelId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${getToken()}`,
+        },
+        body: JSON.stringify(data),
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const updated = await res.json();
+      setChannel(updated);
+    },
+    [channelId]
+  );
+
   return {
     channel,
     messages,
@@ -231,6 +249,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     fetchChannel,
     sendMessage,
     abortDispatch,
+    updateChannel,
     addMember,
     updateMember,
     removeMember,

@@ -35,6 +35,7 @@ class ChannelStore {
       description: data.description,
       members: [],
       context: data.context || [],
+      maxChainDepth: data.maxChainDepth ?? 5,
       createdAt: now,
       updatedAt: now,
     };
@@ -53,6 +54,7 @@ class ChannelStore {
       return {
         ...parsed,
         context: parsed.context || [],
+        maxChainDepth: parsed.maxChainDepth ?? 5,
       };
     } catch {
       return null;
@@ -80,6 +82,7 @@ class ChannelStore {
     if (updates.name !== undefined) channel.name = updates.name;
     if (updates.description !== undefined) channel.description = updates.description;
     if (updates.context !== undefined) channel.context = updates.context;
+    if (updates.maxChainDepth !== undefined) channel.maxChainDepth = updates.maxChainDepth;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");

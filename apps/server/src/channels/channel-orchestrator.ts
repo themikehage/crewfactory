@@ -82,14 +82,15 @@ class ChannelOrchestrator {
     incomingMsg: ChannelMessage,
     depth: number
   ): Promise<void> {
-    if (depth > MAX_CHAIN_DEPTH) {
-      console.warn(`[ChannelOrchestrator] Max chain depth reached (${MAX_CHAIN_DEPTH}) for channel ${channelId}`);
-      broadcast(channelId, { type: "channel_chain_limit", channelId });
-      return;
-    }
-
     const channel = channelStore.getChannel(channelId);
     if (!channel || channel.members.length === 0) return;
+
+    const maxDepth = channel.maxChainDepth ?? 10;
+    if (depth > maxDepth) {
+      console.warn(`[ChannelOrchestrator] Max chain depth reached (${maxDepth}) for channel ${channelId}`);
+      broadcast(channelId, { type: "channel_chain_limit", channelId, maxChainDepth: maxDepth });
+      return;
+    }
 
     // Determine which members should receive this incoming message
     const targetMembers = this.resolveRecipients(channel, incomingMsg);
