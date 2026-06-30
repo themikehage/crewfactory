@@ -231,9 +231,10 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
 - `pages/SettingsPage.tsx` — Provider, global env variables, and Integrations Hub template editor.
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
-- `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like) and clean topbar header featuring breadcrumb navigation separated by `/` slashes.
+- `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and a right-side SessionDrawer trigger button.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
-- `components/sidebar/SessionSidebar.tsx` — Unified left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible session lists, and administration shortcuts.
+- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos (Repos), Agentes, and Canales, and administration links.
+- `components/sidebar/SessionDrawer.tsx` — Sliding right drawer containing session history list, message counts, session statuses, creation, and deletion controls.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.

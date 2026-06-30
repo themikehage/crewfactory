@@ -1,4 +1,5 @@
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
+import { SessionDrawer } from "@/components/sidebar/SessionDrawer";
 import { Logo } from "@/components/ui/Logo";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
@@ -11,11 +12,24 @@ interface Props {
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
   onSelectRepo?: (repoName: string | null) => void;
+  onSelectAgent?: (agent: { id: string; name: string } | null) => void;
+  onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   children: ReactNode;
 }
 
-export function MainLayout({ route, onNavigate, activeRepoName, activeAgent, activeChannel = null, onSelectRepo, children }: Props) {
+export function MainLayout({
+  route,
+  onNavigate,
+  activeRepoName,
+  activeAgent,
+  activeChannel = null,
+  onSelectRepo,
+  onSelectAgent,
+  onSelectChannel,
+  children
+}: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
 
   useEffect(() => {
@@ -164,8 +178,18 @@ export function MainLayout({ route, onNavigate, activeRepoName, activeAgent, act
           </button>
           {renderBreadcrumbs()}
         </div>
-        <div className="flex items-center">
-          {/* Vacío en barra superior derecha, toda la navegación está en el sidebar */}
+        <div className="flex items-center gap-2">
+          {/* Botón para abrir el panel derecho de sesiones */}
+          <button
+            onClick={() => setSessionDrawerOpen(true)}
+            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
+            title="Ver sesiones"
+          >
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
+            </svg>
+            <span className="hidden sm:inline">Sesiones</span>
+          </button>
         </div>
       </header>
       <div className="flex flex-1 min-h-0 relative">
@@ -185,17 +209,27 @@ export function MainLayout({ route, onNavigate, activeRepoName, activeAgent, act
             activeRepoName={activeRepoName}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
-            onSelectSession={handleSelectSession}
-            onNewSession={handleNewSession}
             currentPage={route.page}
             onNavigate={onNavigate}
             onSelectRepo={onSelectRepo}
+            onSelectAgent={onSelectAgent}
+            onSelectChannel={onSelectChannel}
           />
         </aside>
         <main className="flex-1 min-w-0">
           {children}
         </main>
       </div>
+      <SessionDrawer
+        isOpen={sessionDrawerOpen}
+        onClose={() => setSessionDrawerOpen(false)}
+        activeSessionId={sessionId}
+        activeRepoName={activeRepoName}
+        activeAgent={activeAgent}
+        activeChannel={activeChannel}
+        onSelectSession={handleSelectSession}
+        onNewSession={handleNewSession}
+      />
     </div>
   );
 }

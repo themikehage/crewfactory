@@ -85,6 +85,7 @@
 
 ## Proximas ideas:
 - Sistema de prompts para que el agente pueda interactuar con la api del backend y auto usarse
+- Rediseño de navegación estilo Slack con acordeones de Proyectos/Agentes/Canales en el sidebar izquierdo y panel/desplegable de sesiones a la derecha.
 
 ---
 
@@ -330,3 +331,10 @@ crear un plan de despliegue facil en vps
 - [x] 38.3 Modificar `MainLayout.tsx` para hacer la barra lateral persistente y limpiar el header superior
 - [x] 38.4 Ajustar ancho de árbol de archivos de Workspace a `w-64`
 - [x] 38.5 Verificar compilación de producción del cliente
+
+## Phase 39: Sidebar de Navegación Tipo Slack y Sesiones a la Derecha
+- [x] 39.1 Crear componente `SessionDrawer.tsx` para gestionar sesiones en el lado derecho
+- [x] 39.2 Integrar `SessionDrawer` en `MainLayout.tsx` con botón en la barra superior
+- [x] 39.3 Rediseñar `SessionSidebar.tsx` incorporando acordeones interactivos para Proyectos, Agentes y Canales
+- [x] 39.4 Limpieza de props no utilizadas en el sidebar izquierdo
+- [x] 39.5 Verificar compilación y empaquetado de producción del cliente

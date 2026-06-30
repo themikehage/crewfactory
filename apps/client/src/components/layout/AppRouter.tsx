@@ -119,6 +119,8 @@ export function AppRouter() {
       activeAgent={activeAgent}
       activeChannel={activeChannel}
       onSelectRepo={handleSelectRepo}
+      onSelectAgent={handleSelectAgent}
+      onSelectChannel={handleSelectChannel}
     >
       {route.page === "projects" && (
         <DashboardPage onSelectRepo={handleSelectRepo} />

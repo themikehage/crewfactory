@@ -1,17 +1,25 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
-import type { SessionStatus } from "@/hooks/useSessionStatusWs";
 import { apiFetch } from "@/lib/api";
 
-interface SessionItem {
+interface RepoItem {
+  name: string;
+  path: string;
+  lastModified: string;
+}
+
+interface AgentItem {
   id: string;
   name: string;
+  role: string;
+  status: string;
   createdAt: string;
-  messageCount: number;
-  status?: SessionStatus;
-  repoName?: string;
-  agentId?: string;
-  channelId?: string;
+}
+
+interface ChannelItem {
+  id: string;
+  name: string;
+  description?: string;
+  maxChainDepth?: number;
 }
 
 interface Props {
@@ -19,39 +27,89 @@ interface Props {
   activeRepoName: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
-  onSelectSession: (id: string) => void;
-  onNewSession: (id: string) => void;
   currentPage?: string;
   onNavigate?: (path: string) => void;
   onSelectRepo?: (repoName: string | null) => void;
+  onSelectAgent?: (agent: { id: string; name: string } | null) => void;
+  onSelectChannel?: (channel: { id: string; name: string } | null) => void;
 }
-
-const statusConfig: Record<SessionStatus, { color: string; label: string }> = {
-  active: { color: "bg-success", label: "Active" },
-  streaming: { color: "bg-warning", label: "Streaming..." },
-  "task-running": { color: "bg-accent", label: "Task Running..." },
-  sleeping: { color: "bg-text-secondary/30", label: "Sleeping" },
-};
 
 export function SessionSidebar({
   activeSessionId,
   activeRepoName,
   activeAgent,
   activeChannel,
-  onSelectSession,
-  onNewSession,
   currentPage = "chat",
   onNavigate,
-  onSelectRepo
+  onSelectRepo,
+  onSelectAgent,
+  onSelectChannel
 }: Props) {
-  const [sessions, setSessions] = useState<SessionItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [creating, setCreating] = useState(false);
-  const [hasError, setHasError] = useState(false);
-  const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const [isOpenSessions, setIsOpenSessions] = useState(true);
-  const sessionStatuses = useSessionStatusWs();
+  // Context Navigation Lists
+  const [repos, setRepos] = useState<RepoItem[]>([]);
+  const [agents, setAgents] = useState<AgentItem[]>([]);
+  const [channels, setChannels] = useState<ChannelItem[]>([]);
 
+  // Loading States
+  const [loadingRepos, setLoadingRepos] = useState(true);
+  const [loadingAgents, setLoadingAgents] = useState(true);
+  const [loadingChannels, setLoadingChannels] = useState(true);
+
+  // Accordion Toggles
+  const [isOpenRepos, setIsOpenRepos] = useState(true);
+  const [isOpenAgents, setIsOpenAgents] = useState(true);
+  const [isOpenChannels, setIsOpenChannels] = useState(true);
+
+  // Fetching Functions
+  const fetchRepos = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/workspace-repos");
+      if (res.ok) {
+        const data = await res.json();
+        setRepos(data.repos || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch repositories:", err);
+    } finally {
+      setLoadingRepos(false);
+    }
+  }, []);
+
+  const fetchAgents = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/agents");
+      if (res.ok) {
+        const data = await res.json();
+        setAgents(data.agents || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch agents:", err);
+    } finally {
+      setLoadingAgents(false);
+    }
+  }, []);
+
+  const fetchChannels = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/channels");
+      if (res.ok) {
+        const data = await res.json();
+        setChannels(data.channels || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch channels:", err);
+    } finally {
+      setLoadingChannels(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchRepos();
+    fetchAgents();
+    fetchChannels();
+  }, [fetchRepos, fetchAgents, fetchChannels]);
+
+  // Context Object to display
   const activeContext = useMemo(() => {
     if (activeChannel) {
       return { type: "channel", name: `#${activeChannel.name}`, display: activeChannel.name };
@@ -66,157 +124,31 @@ export function SessionSidebar({
   }, [activeChannel, activeAgent, activeRepoName]);
 
   const handleClearContext = useCallback(() => {
-    if (onSelectRepo) {
-      onSelectRepo(null);
-    }
-  }, [onSelectRepo]);
+    if (onSelectRepo) onSelectRepo(null);
+    if (onSelectAgent) onSelectAgent(null);
+    if (onSelectChannel) onSelectChannel(null);
+    if (onNavigate) onNavigate("/");
+  }, [onSelectRepo, onSelectAgent, onSelectChannel, onNavigate]);
 
-  const fetchSessions = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/sessions");
-      if (!res.ok) {
-        setHasError(true);
-        return;
-      }
-      const data = await res.json();
-      const mapped = (data.sessions ?? []).map((s: SessionItem) => ({
-        ...s,
-        status: sessionStatuses[s.id] || s.status,
-      }));
-      setSessions(mapped);
-      setHasError(false);
-    } catch {
-      setHasError(true);
-    }
-  }, [sessionStatuses]);
+  const handleSelectRepoClick = useCallback((repoName: string) => {
+    if (onSelectRepo) onSelectRepo(repoName);
+    if (onNavigate) onNavigate("/");
+  }, [onSelectRepo, onNavigate]);
 
-  useEffect(() => {
-    fetchSessions().finally(() => setLoading(false));
-  }, [fetchSessions]);
+  const handleSelectAgentClick = useCallback((agent: { id: string; name: string }) => {
+    if (onSelectAgent) onSelectAgent(agent);
+    if (onNavigate) onNavigate("/");
+  }, [onSelectAgent, onNavigate]);
 
-  useEffect(() => {
-    setSessions((prev) =>
-      prev.map((s) => ({
-        ...s,
-        status: sessionStatuses[s.id] || s.status,
-      }))
-    );
-  }, [sessionStatuses]);
-
-  useEffect(() => {
-    const handleRename = (e: Event) => {
-      const { sessionId, name } = (e as CustomEvent<{ sessionId: string; name: string }>).detail;
-      setSessions((prev) =>
-        prev.map((s) => (s.id === sessionId ? { ...s, name } : s))
-      );
-    };
-    window.addEventListener("renameSession", handleRename);
-    return () => window.removeEventListener("renameSession", handleRename);
-  }, []);
-
-  const filteredSessions = useMemo(() => {
-    return sessions.filter((s) => {
-      if (activeChannel) return s.channelId === activeChannel.id;
-      if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-      if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
-      return !s.repoName && !s.agentId && !s.channelId;
-    });
-  }, [sessions, activeRepoName, activeAgent, activeChannel]);
-
-  const createSession = useCallback(async () => {
-    setCreating(true);
-    try {
-      const sessionCount = filteredSessions.length;
-      const sessionName = activeChannel
-        ? `#${activeChannel.name} - Session ${sessionCount + 1}`
-        : activeAgent
-        ? `${activeAgent.name} - Session ${sessionCount + 1}`
-        : activeRepoName
-        ? `${activeRepoName} - Session ${sessionCount + 1}`
-        : `Global Session ${sessionCount + 1}`;
-
-      const res = await apiFetch("/api/sessions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          name: sessionName,
-          repoName: (activeAgent || activeChannel) ? undefined : (activeRepoName || undefined),
-          agentId: (activeChannel) ? undefined : (activeAgent ? activeAgent.id : undefined),
-          channelId: activeChannel ? activeChannel.id : undefined,
-        }),
-      });
-      if (!res.ok) {
-        setHasError(true);
-        return;
-      }
-      const session = await res.json();
-      const updated = [{ ...session, status: "active" as SessionStatus }, ...sessions];
-      setSessions(updated);
-      onNewSession(session.id);
-      setHasError(false);
-    } catch {
-      setHasError(true);
-    } finally {
-      setCreating(false);
-    }
-  }, [filteredSessions.length, activeRepoName, activeAgent, activeChannel, onNewSession, sessions]);
-
-  useEffect(() => {
-    if (currentPage !== "chat") return;
-    if (loading || activeSessionId || creating || hasError) return;
-
-    if (filteredSessions.length > 0) {
-      onSelectSession(filteredSessions[0].id);
-    } else {
-      createSession();
-    }
-  }, [currentPage, loading, activeSessionId, filteredSessions, onSelectSession, creating, hasError, createSession]);
-
-  const deleteSession = useCallback(
-    async (id: string) => {
-      await apiFetch(`/api/sessions/${id}`, {
-        method: "DELETE",
-      });
-
-      const remaining = sessions.filter((s) => s.id !== id);
-      setSessions(remaining);
-
-      const filteredRemaining = remaining.filter((s) => {
-        if (activeChannel) return s.channelId === activeChannel.id;
-        if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-        if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
-        return !s.repoName && !s.agentId && !s.channelId;
-      });
-
-      if (activeSessionId === id) {
-        onSelectSession(filteredRemaining[0]?.id ?? "");
-      }
-    },
-    [activeSessionId, onSelectSession, sessions, activeRepoName, activeAgent, activeChannel]
-  );
-
-  const handleDeleteClick = useCallback((e: React.MouseEvent, id: string) => {
-    e.stopPropagation();
-    setConfirmDeleteId(id);
-  }, []);
-
-  const handleConfirmDelete = useCallback(() => {
-    if (confirmDeleteId) {
-      deleteSession(confirmDeleteId);
-      setConfirmDeleteId(null);
-    }
-  }, [confirmDeleteId, deleteSession]);
-
-  const handleCancelDelete = useCallback(() => {
-    setConfirmDeleteId(null);
-  }, []);
+  const handleSelectChannelClick = useCallback((channel: { id: string; name: string }) => {
+    if (onSelectChannel) onSelectChannel(channel);
+    if (onNavigate) onNavigate("/");
+  }, [onSelectChannel, onNavigate]);
 
   const navItems = useMemo(() => [
     {
       id: "chat",
-      label: "Chat",
+      label: "Chat Activo",
       path: activeSessionId ? `/session/${activeSessionId}` : "/",
       icon: (
         <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -251,37 +183,8 @@ export function SessionSidebar({
 
   const adminItems = useMemo(() => [
     {
-      id: "projects",
-      label: "Proyectos",
-      path: "/projects",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M7 3a1 1 0 000 2h5.586l-1.293 1.293a1 1 0 001.414 1.414l3-3a1 1 0 000-1.414l-3-3a1 1 0 10-1.414 1.414L12.586 3H7z" />
-          <path d="M4 5a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V7a2 2 0 00-2-2h-1.586l-1 1H16v8H4V6h1.586l-1-1H4z" />
-        </svg>
-      )
-    },
-    {
-      id: "agents",
-      label: "Agentes",
-      path: "/agents",
-      icon: (
-        <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-          <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-        </svg>
-      )
-    },
-    {
-      id: "channels",
-      label: "Canales",
-      path: "/channels",
-      icon: (
-        <span className="font-bold text-xs select-none">#</span>
-      )
-    },
-    {
       id: "skills",
-      label: "Skills",
+      label: "Skills Library",
       path: "/skills",
       icon: (
         <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -349,7 +252,7 @@ export function SessionSidebar({
       </div>
 
       {/* Enlaces de Navegación Principal */}
-      <div className="p-2 border-b border-surface/60 space-y-1">
+      <div className="p-2 border-b border-surface/60 space-y-0.5">
         {navItems.filter(item => item.visible).map(item => {
           const isActive = currentPage === item.id;
           return (
@@ -371,87 +274,179 @@ export function SessionSidebar({
         })}
       </div>
 
-      {/* Listado de Sesiones (Scrollable) */}
-      <div className="flex-1 flex flex-col min-h-0">
-        <button
-          onClick={() => setIsOpenSessions(prev => !prev)}
-          className="w-full flex items-center justify-between px-3 py-2 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70 hover:text-text-primary transition-colors cursor-pointer"
-        >
-          <span>Sesiones</span>
-          <svg
-            width="10"
-            height="10"
-            viewBox="0 0 20 20"
-            fill="currentColor"
-            className={`transform transition-transform ${isOpenSessions ? "rotate-90" : ""}`}
-          >
-            <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
-          </svg>
-        </button>
-
-        {isOpenSessions && (
-          <div className="flex-1 flex flex-col min-h-0">
-            <div className="px-3 pb-2">
-              <button
-                onClick={createSession}
-                disabled={creating}
-                className="w-full py-1.5 text-xs bg-accent text-bg rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity font-medium cursor-pointer"
+      {/* Listado Contextual en Acordeones */}
+      <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-3">
+        {/* Acordeón Proyectos */}
+        <div className="flex flex-col">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+            <button
+              onClick={() => setIsOpenRepos(prev => !prev)}
+              className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
+            >
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className={`transform transition-transform ${isOpenRepos ? "rotate-90" : ""}`}
               >
-                {creating ? "Creando..." : activeRepoName ? "+ Nueva Sesión Repo" : "+ Nueva Sesión Global"}
-              </button>
-            </div>
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Proyectos ({repos.length})</span>
+            </button>
+            <button
+              onClick={() => onNavigate && onNavigate("/projects")}
+              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              title="Administrar Proyectos"
+            >
+              +
+            </button>
+          </div>
 
-            <div className="flex-1 overflow-y-auto px-2 space-y-1 min-h-0">
-              {filteredSessions.map((s) => {
-                const cfg = s.status ? statusConfig[s.status] : null;
-                const isActive = activeSessionId === s.id;
-                return (
-                  <div key={s.id} className="group relative">
-                     <button
-                       onClick={() => onSelectSession(s.id)}
-                       className={`w-full text-left px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer ${
-                         isActive
-                           ? "bg-surface-hover text-text-primary font-medium"
-                           : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
-                       }`}
-                     >
-                       <div className="flex items-center gap-2">
-                         {cfg && (
-                           <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.color}`} title={cfg.label} />
-                         )}
-                         <span className="truncate flex-1 font-sans">{s.name}</span>
-                       </div>
-                       <div className="flex items-center gap-2 mt-0.5">
-                         <span className="text-[10px] text-text-secondary/60">
-                           {s.messageCount} mensajes
-                         </span>
-                         {s.status && s.status !== "sleeping" && (
-                           <span className={`text-[9px] font-semibold ${cfg?.color.replace("bg-", "text-") || "text-text-secondary/50"}`}>
-                             {cfg?.label}
-                           </span>
-                         )}
-                       </div>
-                     </button>
+          {isOpenRepos && (
+            <div className="px-2 mt-1 space-y-0.5">
+              {loadingRepos ? (
+                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Cargando...</div>
+              ) : repos.length === 0 ? (
+                <div className="text-[10px] text-text-secondary/40 px-3 py-1">Sin proyectos</div>
+              ) : (
+                repos.map(repo => {
+                  const isActive = activeRepoName === repo.name && !activeAgent && !activeChannel;
+                  return (
                     <button
-                      onClick={(e) => handleDeleteClick(e, s.id)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2
-                                 text-text-secondary hover:text-error transition-colors p-1 text-[10px] opacity-0 group-hover:opacity-100 cursor-pointer"
+                      key={repo.name}
+                      onClick={() => handleSelectRepoClick(repo.name)}
+                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
+                        isActive
+                          ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
+                          : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                      }`}
                     >
-                      <svg width="12" height="12" viewBox="0 0 14 14" fill="currentColor">
-                        <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                      <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0 text-text-secondary/60">
+                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                       </svg>
+                      <span className="truncate">{repo.name}</span>
                     </button>
-                  </div>
-                );
-              })}
-              {filteredSessions.length === 0 && (
-                <p className="text-text-secondary/50 text-xs text-center py-4">
-                  Sin sesiones
-                </p>
+                  );
+                })
               )}
             </div>
+          )}
+        </div>
+
+        {/* Acordeón Agentes */}
+        <div className="flex flex-col">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+            <button
+              onClick={() => setIsOpenAgents(prev => !prev)}
+              className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
+            >
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className={`transform transition-transform ${isOpenAgents ? "rotate-90" : ""}`}
+              >
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Agentes ({agents.length})</span>
+            </button>
+            <button
+              onClick={() => onNavigate && onNavigate("/agents")}
+              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              title="Administrar Agentes"
+            >
+              +
+            </button>
           </div>
-        )}
+
+          {isOpenAgents && (
+            <div className="px-2 mt-1 space-y-0.5">
+              {loadingAgents ? (
+                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Cargando...</div>
+              ) : agents.length === 0 ? (
+                <div className="text-[10px] text-text-secondary/40 px-3 py-1">Sin agentes</div>
+              ) : (
+                agents.map(agent => {
+                  const isActive = activeAgent?.id === agent.id && !activeChannel;
+                  return (
+                    <button
+                      key={agent.id}
+                      onClick={() => handleSelectAgentClick({ id: agent.id, name: agent.name })}
+                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
+                        isActive
+                          ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
+                          : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                      }`}
+                    >
+                      <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0 text-text-secondary/60">
+                        <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                      </svg>
+                      <span className="truncate">{agent.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Acordeón Canales */}
+        <div className="flex flex-col">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+            <button
+              onClick={() => setIsOpenChannels(prev => !prev)}
+              className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
+            >
+              <svg
+                width="8"
+                height="8"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className={`transform transition-transform ${isOpenChannels ? "rotate-90" : ""}`}
+              >
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+              <span>Canales ({channels.length})</span>
+            </button>
+            <button
+              onClick={() => onNavigate && onNavigate("/channels")}
+              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              title="Administrar Canales"
+            >
+              +
+            </button>
+          </div>
+
+          {isOpenChannels && (
+            <div className="px-2 mt-1 space-y-0.5">
+              {loadingChannels ? (
+                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Cargando...</div>
+              ) : channels.length === 0 ? (
+                <div className="text-[10px] text-text-secondary/40 px-3 py-1">Sin canales</div>
+              ) : (
+                channels.map(channel => {
+                  const isActive = activeChannel?.id === channel.id;
+                  return (
+                    <button
+                      key={channel.id}
+                      onClick={() => handleSelectChannelClick({ id: channel.id, name: channel.name })}
+                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
+                        isActive
+                          ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
+                          : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                      }`}
+                    >
+                      <span className="font-bold text-xs text-text-secondary/60 flex-shrink-0 w-3 text-center">#</span>
+                      <span className="truncate">{channel.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Enlaces de Administración */}
@@ -460,7 +455,7 @@ export function SessionSidebar({
           Administración
         </div>
         {adminItems.map(item => {
-          const isActive = currentPage === item.id || (item.id === "channels" && (currentPage === "channel" || currentPage === "channels"));
+          const isActive = currentPage === item.id;
           return (
             <button
               key={item.id}
@@ -479,30 +474,6 @@ export function SessionSidebar({
           );
         })}
       </div>
-
-      {confirmDeleteId && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-surface border border-surface-hover rounded-lg p-4 mx-4 max-w-xs w-full shadow-lg">
-            <p className="text-sm text-text-primary mb-3">
-              ¿Estás seguro de que querés borrar esta sesión?
-            </p>
-            <div className="flex justify-end gap-2">
-              <button
-                onClick={handleCancelDelete}
-                className="px-3 py-1.5 text-xs rounded-md bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
-              >
-                Cancelar
-              </button>
-              <button
-                onClick={handleConfirmDelete}
-                className="px-3 py-1.5 text-xs rounded-md bg-error text-white hover:opacity-90 transition-opacity cursor-pointer"
-              >
-                Borrar
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
