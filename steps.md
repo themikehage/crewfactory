@@ -340,3 +340,12 @@ crear un plan de despliegue facil en vps
 - [x] 38.8 Agents y channels reciben subestructura completa (`.agents/skills/`, `assets/`, `memories/`) en su workspace
 - [x] 38.9 Solo el agente global tiene AGENTS.md y factory skills — proyectos/agentes/canales las ven como referencia read-only
 - [x] 38.10 Validación: compilación servidor y cliente pasa (EXIT 0)
+
+## Phase 40: Sidebar UX Overhaul & Session Popover Refactor
+- [x] 40.1 Crear hook de resolución automática de sesiones `useSessionResolver` reactivo a cambios de contexto y sessionId nulo
+- [x] 40.2 Refactorizar `SessionSidebar.tsx`: unificar navegación a pestañas horizontales compactas estilo Slack, extensibles por tipo de contexto (CONTEXT_TABS)
+- [x] 40.3 Refactorizar `SessionSidebar.tsx`: reemplazar el Selector de Contexto duplicado por un botón "Factory" siempre visible para navegar a la sesión global
+- [x] 40.4 Crear componente `SessionPopover.tsx` para reemplazar el drawer lateral derecho por un menú contextual flotante bajo el botón de Sesiones
+- [x] 40.5 Integrar `SessionPopover` en `MainLayout.tsx` dentro de un contenedor relativo y eliminar `SessionDrawer.tsx`
+- [x] 40.6 Verificar que la compilación de TypeScript no contenga errores
+

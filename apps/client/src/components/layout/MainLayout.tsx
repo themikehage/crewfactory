@@ -1,9 +1,10 @@
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
-import { SessionDrawer } from "@/components/sidebar/SessionDrawer";
+import { SessionPopover } from "@/components/sidebar/SessionPopover";
 import { Logo } from "@/components/ui/Logo";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
+import { useSessionResolver } from "@/hooks/useSessionResolver";
 
 interface Props {
   route: Route;
@@ -29,7 +30,7 @@ export function MainLayout({
   children
 }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [sessionDrawerOpen, setSessionDrawerOpen] = useState(false);
+  const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
 
   useEffect(() => {
@@ -71,6 +72,14 @@ export function MainLayout({
   }, [onNavigate]);
 
   const sessionId = route.page === "chat" ? route.sessionId : null;
+
+  useSessionResolver({
+    sessionId,
+    activeRepoName,
+    activeAgent,
+    activeChannel,
+    onNavigate,
+  });
 
   const renderBreadcrumbs = () => {
     let items: { label: string; path?: string }[] = [];
@@ -178,10 +187,10 @@ export function MainLayout({
           </button>
           {renderBreadcrumbs()}
         </div>
-        <div className="flex items-center gap-2">
-          {/* Botón para abrir el panel derecho de sesiones */}
+        <div className="flex items-center gap-2 relative">
+          {/* Botón para abrir el popover de sesiones */}
           <button
-            onClick={() => setSessionDrawerOpen(true)}
+            onClick={() => setSessionPopoverOpen((p) => !p)}
             className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
             title="Ver sesiones"
           >
@@ -190,6 +199,16 @@ export function MainLayout({
             </svg>
             <span className="hidden sm:inline">Sesiones</span>
           </button>
+          <SessionPopover
+            isOpen={sessionPopoverOpen}
+            onClose={() => setSessionPopoverOpen(false)}
+            activeSessionId={sessionId}
+            activeRepoName={activeRepoName}
+            activeAgent={activeAgent}
+            activeChannel={activeChannel}
+            onSelectSession={handleSelectSession}
+            onNewSession={handleNewSession}
+          />
         </div>
       </header>
       <div className="flex flex-1 min-h-0 relative">
@@ -220,16 +239,6 @@ export function MainLayout({
           {children}
         </main>
       </div>
-      <SessionDrawer
-        isOpen={sessionDrawerOpen}
-        onClose={() => setSessionDrawerOpen(false)}
-        activeSessionId={sessionId}
-        activeRepoName={activeRepoName}
-        activeAgent={activeAgent}
-        activeChannel={activeChannel}
-        onSelectSession={handleSelectSession}
-        onNewSession={handleNewSession}
-      />
     </div>
   );
 }
