@@ -106,7 +106,7 @@ function assetHeaders(contentType: string): Record<string, string> {
   };
 }
 
-async function handleRequest(req: Request): Promise<Response> {
+export async function handleRequest(req: Request): Promise<Response> {
   const url = new URL(req.url);
   const parts = url.pathname.split("/").filter(Boolean);
 
