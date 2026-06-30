@@ -1,64 +1,5 @@
-import { useState, useEffect, useCallback, useMemo, type ReactNode } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
-
-// --- Tab System ---
-
-interface TabDef {
-  id: string;
-  label: string;
-  path: (sessionId: string | null, repoName: string | null) => string;
-  icon: ReactNode;
-}
-
-type ContextType = "global" | "repo" | "agent" | "channel";
-
-const CHAT_TAB: TabDef = {
-  id: "chat",
-  label: "Chat",
-  path: (sessionId) => (sessionId ? `/session/${sessionId}` : "/"),
-  icon: (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z"
-        clipRule="evenodd"
-      />
-    </svg>
-  ),
-};
-
-const WORKSPACE_TAB: TabDef = {
-  id: "workspace",
-  label: "Files",
-  path: () => "/workspace",
-  icon: (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-      <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-    </svg>
-  ),
-};
-
-const PREVIEW_TAB: TabDef = {
-  id: "preview",
-  label: "Preview",
-  path: () => "/preview",
-  icon: (
-    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-      <path
-        fillRule="evenodd"
-        d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 011.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z"
-        clipRule="evenodd"
-      />
-    </svg>
-  ),
-};
-
-const CONTEXT_TABS: Record<ContextType, TabDef[]> = {
-  global: [CHAT_TAB],
-  agent: [CHAT_TAB],
-  channel: [CHAT_TAB],
-  repo: [CHAT_TAB, WORKSPACE_TAB, PREVIEW_TAB],
-};
 
 // --- Component ---
 
@@ -84,7 +25,6 @@ interface ChannelItem {
 }
 
 interface Props {
-  activeSessionId: string | null;
   activeRepoName: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
@@ -96,7 +36,6 @@ interface Props {
 }
 
 export function SessionSidebar({
-  activeSessionId,
   activeRepoName,
   activeAgent,
   activeChannel,
@@ -166,14 +105,7 @@ export function SessionSidebar({
     fetchChannels();
   }, [fetchRepos, fetchAgents, fetchChannels]);
 
-  const contextType = useMemo((): ContextType => {
-    if (activeChannel) return "channel";
-    if (activeAgent) return "agent";
-    if (activeRepoName) return "repo";
-    return "global";
-  }, [activeChannel, activeAgent, activeRepoName]);
-
-  const tabs = useMemo(() => CONTEXT_TABS[contextType], [contextType]);
+  const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
 
   const handleGoFactory = useCallback(() => {
     if (onSelectRepo) onSelectRepo(null);
@@ -243,7 +175,7 @@ export function SessionSidebar({
         <button
           onClick={handleGoFactory}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            contextType === "global"
+            isGlobal
               ? "bg-surface text-accent border border-accent/30"
               : "bg-surface/40 text-text-secondary hover:bg-surface hover:text-accent border border-transparent hover:border-accent/20"
           }`}
@@ -259,29 +191,6 @@ export function SessionSidebar({
           <span>Factory</span>
         </button>
       </div>
-
-      {/* Context Tabs */}
-      {tabs.length > 1 && (
-        <div className="flex px-2 pt-2 gap-0.5 border-b border-surface flex-shrink-0">
-          {tabs.map((tab) => {
-            const isActive = currentPage === tab.id;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => onNavigate && onNavigate(tab.path(activeSessionId, activeRepoName))}
-                className={`flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium transition-all cursor-pointer rounded-t-md border-b-2 ${
-                  isActive
-                    ? "text-accent border-accent bg-surface/50"
-                    : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
-                }`}
-              >
-                <span className={isActive ? "text-accent" : "text-text-secondary"}>{tab.icon}</span>
-                {tab.label}
-              </button>
-            );
-          })}
-        </div>
-      )}
 
       {/* Context List Accordions */}
       <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-3">

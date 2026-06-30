@@ -6,6 +6,7 @@ interface UseSessionResolverParams {
   activeRepoName: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
+  currentPage: string;
   onNavigate: (path: string) => void;
 }
 
@@ -14,11 +15,13 @@ export function useSessionResolver({
   activeRepoName,
   activeAgent,
   activeChannel,
+  currentPage,
   onNavigate,
 }: UseSessionResolverParams) {
   const resolvingRef = useRef(false);
 
   useEffect(() => {
+    if (currentPage !== "chat") return;
     if (sessionId || resolvingRef.current) return;
 
     resolvingRef.current = true;
@@ -77,5 +80,6 @@ export function useSessionResolver({
     };
 
     resolve();
-  }, [sessionId, activeRepoName, activeAgent?.id, activeChannel?.id, onNavigate]);
+  }, [sessionId, activeRepoName, activeAgent?.id, activeChannel?.id, currentPage, onNavigate]);
 }
+

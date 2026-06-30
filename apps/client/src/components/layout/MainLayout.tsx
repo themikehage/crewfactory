@@ -1,7 +1,7 @@
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
 import { SessionPopover } from "@/components/sidebar/SessionPopover";
 import { Logo } from "@/components/ui/Logo";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
@@ -78,8 +78,51 @@ export function MainLayout({
     activeRepoName,
     activeAgent,
     activeChannel,
+    currentPage: route.page,
     onNavigate,
   });
+
+  const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview";
+
+  const contextTabs = useMemo(() => {
+    const list = [
+      {
+        id: "chat",
+        label: "Chat",
+        path: sessionId ? `/session/${sessionId}` : "/",
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+          </svg>
+        ),
+      },
+      {
+        id: "workspace",
+        label: "Files",
+        path: "/workspace",
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+          </svg>
+        ),
+      }
+    ];
+
+    if (activeRepoName) {
+      list.push({
+        id: "preview",
+        label: "Preview",
+        path: "/preview",
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 01-1.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />
+          </svg>
+        ),
+      });
+    }
+
+    return list;
+  }, [sessionId, activeRepoName]);
 
   const renderBreadcrumbs = () => {
     let items: { label: string; path?: string }[] = [];
@@ -224,7 +267,6 @@ export function MainLayout({
           } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-surface bg-bg transition-transform duration-200`}
         >
           <SessionSidebar
-            activeSessionId={sessionId}
             activeRepoName={activeRepoName}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
@@ -235,8 +277,33 @@ export function MainLayout({
             onSelectChannel={onSelectChannel}
           />
         </aside>
-        <main className="flex-1 min-w-0">
-          {children}
+        <main className="flex-1 min-w-0 flex flex-col h-full bg-bg">
+          {isContextView && (
+            <div className="flex px-4 gap-1 border-b border-surface bg-surface/5 flex-shrink-0">
+              {contextTabs.map((tab) => {
+                const isActive = route.page === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onNavigate(tab.path)}
+                    className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                      isActive
+                        ? "text-accent border-accent font-semibold"
+                        : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
+                    }`}
+                  >
+                    <span className={isActive ? "text-accent" : "text-text-secondary"}>
+                      {tab.icon}
+                    </span>
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          <div className="flex-1 min-h-0 relative">
+            {children}
+          </div>
         </main>
       </div>
     </div>
