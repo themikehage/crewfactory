@@ -17,7 +17,9 @@ import { channelsRouter } from "./routes/channels";
 import { previewRouter } from "./routes/preview";
 import { backupRouter } from "./routes/backup";
 import { onOpen, onClose, onMessage } from "./ws/handler";
-import { startPreviewServer } from "./preview-server";
+import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
+
+const PREVIEW_HOST = (process.env.PREVIEW_HOST ?? "").toLowerCase();
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 
@@ -65,6 +67,10 @@ const port = parseInt(process.env.PORT ?? "3000");
 
 const server = Bun.serve({
   fetch(req, server) {
+    const host = (req.headers.get("host") ?? "").toLowerCase().split(":")[0];
+    if (PREVIEW_HOST && host === PREVIEW_HOST) {
+      return previewRequest(req);
+    }
     return app.fetch(req, { server });
   },
   port,
@@ -73,5 +79,5 @@ const server = Bun.serve({
 
 console.log(`Server running at http://0.0.0.0:${server.port}`);
 
-startPreviewServer();
+if (!PREVIEW_HOST) startPreviewServer();
 
