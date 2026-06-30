@@ -279,7 +279,7 @@
 
 ---
 crear un plan de despliegue facil en vps
-migrar la interfaz a una interfaz slack like
+- [x] migrar la interfaz a una interfaz slack like
 
 ## Phase 34: Storage Coherency, Security & Performance Fixes
 - [x] 34.0 Pre-implementation storage backup and migration script (`migrate-storage.ts`)
@@ -320,3 +320,10 @@ migrar la interfaz a una interfaz slack like
 - [x] 37.6 Integrate backup/restore settings cards in React `SettingsPage.tsx`
 - [x] 37.7 Build overwrite destructive warning modal with download-backup shortcut and confirm input field
 - [x] 37.8 Validate server/client builds and run walker exclusion unit tests
+
+## Phase 38: Slack-Like Interface Migration (Navigation Simplification)
+- [x] 38.1 Auditoría y plan de simplificación de navegación aprobado por el usuario
+- [x] 38.2 Unificar barra lateral en `SessionSidebar.tsx` (selector de contexto, accesos rápidos, acordeón de sesiones y administración)
+- [x] 38.3 Modificar `MainLayout.tsx` para hacer la barra lateral persistente y limpiar el header superior
+- [x] 38.4 Ajustar ancho de árbol de archivos de Workspace a `w-64`
+- [x] 38.5 Verificar compilación de producción del cliente

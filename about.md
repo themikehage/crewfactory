@@ -230,8 +230,8 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
 - `pages/SettingsPage.tsx` — Provider, global env variables, and Integrations Hub template editor.
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
-- `components/layout/MainLayout.tsx` — App shell with context-aware topbar header featuring a Home navigation button, interactive breadcrumb navigation separated by `/` slashes, and scoped SessionSidebar.
+- `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like) and clean topbar header featuring breadcrumb navigation separated by `/` slashes.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
-- `components/sidebar/SessionSidebar.tsx` — Filters sessions by active context (`repoName`, `agentId`, `channelId`).
+- `components/sidebar/SessionSidebar.tsx` — Unified left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible session lists, and administration shortcuts.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.

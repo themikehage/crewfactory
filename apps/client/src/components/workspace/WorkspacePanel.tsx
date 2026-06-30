@@ -314,7 +314,7 @@ export function WorkspacePanel({ activeRepoName }: Props) {
       )}
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-        <div className="w-full md:w-80 lg:w-96 border-b md:border-b-0 md:border-r border-surface flex flex-col overflow-hidden p-3 bg-surface/20 flex-shrink-0 min-h-[250px] md:min-h-0 md:h-full">
+        <div className="w-full md:w-64 lg:w-64 border-b md:border-b-0 md:border-r border-surface flex flex-col overflow-hidden p-3 bg-surface/20 flex-shrink-0 min-h-[250px] md:min-h-0 md:h-full">
           <div className="mb-2.5 flex-shrink-0">
             <input
               type="text"
