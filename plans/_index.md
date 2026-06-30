@@ -1,0 +1,15 @@
+# Plans — Future Feature Ideas
+
+Cada archivo `.md` en esta carpeta documenta una funcionalidad propuesta para implementar más adelante.
+
+## Cómo contribuir
+- Crea un archivo con un nombre descriptivo en inglés o español (ej. `vscode-integration.md`)
+- Usa el formato: descripción, motivación, enfoque técnico sugerido, dependencias
+- Enlázalo aquí abajo cuando esté listo
+
+## Índice
+
+- [meta-agent-optimization-loop.md](./meta-agent-optimization-loop.md) — Ciclo de optimización continua: workspace agent crea agentes, observa ejecuciones, y propone mejoras en skills y quick actions.
+- [one-click-deploy-and-landing.md](./one-click-deploy-and-landing.md) — Producción-grade Dockerfile + compose, templates one-click Coolify/Dokploy, landing page SEO, CI/CD a GHCR, guía de deploy para la comunidad.
+- [agent-channel-gallery.md](./agent-channel-gallery.md) — Galería comunitaria de plantillas de agentes y canales, con instalación en 1 clic, exportación, y curación vía PRs.
+- [channels-to-teams-with-orgchart.md](./channels-to-teams-with-orgchart.md) — Renombrar "Channels" a "Teams" en la UI, roles jerárquicos (lead, senior, member, observer), y vista de organigrama SVG alternativa.

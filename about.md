@@ -166,7 +166,7 @@
 | POST | /api/preview/config | Save preview build config (framework, buildCommand, outputDir) |
 | POST | /api/preview/build | Trigger build from config (`?repo=name`) |
 | POST | /api/preview/build/abort | Cancel running build (`?repo=name`) |
-| GET | /api/preview/* | Serve static files from repo build dir with SPA fallback (`?repo=name&token=jwt`) |
+| GET | /api/preview/{username}/{repoName}/* | Serve static files from repo build dir with SPA fallback (path-based isolation, no token) |
 | GET | /api/workspace-repos | List repos in workspace/repos/ |
 | POST | /api/workspace-repos | Create empty repo or clone from Git URL |
 | GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name` scoping) |
@@ -217,6 +217,7 @@ packages/shared/  Shared Zod schemas and types
 - `routes/channels.ts` — REST endpoints for channel CRUD and member administration.
 - `ws/handler.ts` — WebSocket auth via JWT, streaming via session.subscribe(), and channel event broadcasting.
 - `middleware/auth.ts` — JWT verification middleware for REST routes
+- `preview-server.ts` — Standalone static file server on port 3001 with path-based isolation for project preview (no auth tokens in URLs)
 
 ### Key Client Modules
 - `pages/DashboardPage.tsx` — Initial view: lists repos, creates/clones Git projects, accesses global workspace.
@@ -234,4 +235,5 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
 - `components/sidebar/SessionSidebar.tsx` — Unified left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible session lists, and administration shortcuts.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
+- `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.

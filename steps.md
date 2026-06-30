@@ -277,10 +277,13 @@
 - [x] 33.5 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
 
 
+<<<<<<< Updated upstream
 ---
 crear un plan de despliegue facil en vps
 - [x] migrar la interfaz a una interfaz slack like
 
+=======
+>>>>>>> Stashed changes
 ## Phase 34: Storage Coherency, Security & Performance Fixes
 - [x] 34.0 Pre-implementation storage backup and migration script (`migrate-storage.ts`)
 - [x] 34.1 Scope channels baseDir by username and verify ownership on REST routes
