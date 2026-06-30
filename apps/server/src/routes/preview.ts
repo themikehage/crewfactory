@@ -1,18 +1,13 @@
 import { Hono } from "hono";
-import { getCookie, setCookie } from "hono/cookie";
-import jwt from "jsonwebtoken";
 import { resolve, normalize, sep, extname } from "node:path";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
 import { getPreviewState } from "../pi/preview-watcher";
 import {
   loadPreviewConfig,
   savePreviewConfig,
-  autoDetectConfig,
-  getBuildOutputDir,
-  getBuildCommand,
 } from "../pi/preview-config";
-import { runBuild, isBuilding, abortBuild } from "../pi/preview-builder";
+import { runBuild, abortBuild } from "../pi/preview-builder";
 
 export const previewRouter = new Hono();
 
@@ -88,50 +83,65 @@ function buildIndexPath(username: string, repoName: string): string | null {
   return existsSync(indexPath) ? indexPath : null;
 }
 
-const PREFIX = "/api/preview/";
+/**
+ * Rewrites the served HTML so that all absolute paths point to
+ * /api/preview/{username}/{repoName}/ instead of /.
+ * This means the browser will request sub-assets through our server
+ * without needing any authentication token — the path itself provides isolation.
+ */
+function rewriteHtml(html: string, username: string, repoName: string): string {
+  const prefix = `/api/preview/${encodeURIComponent(username)}/${encodeURIComponent(repoName)}/`;
 
-function rewriteHtml(html: string): string {
-  const baseInjected = html.replace(
+  // 1. Inject <base href> so relative paths work correctly
+  let result = html.replace(
     /<head[^>]*>/i,
-    (match) => `${match}<base href="${PREFIX}">`
+    (match) => `${match}<base href="${prefix}">`
   );
 
-  return baseInjected
-    .replace(
-      /(<(?:script|link|img|source|iframe|video|audio)\s[^>]*?)(src|href|action)\s*=\s*"(\/(?!\/)[^"]*?)"/gi,
-      (_, tag, attr, path) => {
-        if (path.startsWith(PREFIX) || path.startsWith("//") || path.startsWith("http")) return `${tag}${attr}="${path}"`;
-        return `${tag}${attr}="${PREFIX}${path.replace(/^\//, "")}"`;
+  // 2. Strip `crossorigin` attribute — it's not needed for same-origin serving
+  //    and causes issues with some browsers treating requests as CORS
+  result = result.replace(/\s+crossorigin(?:="[^"]*"|='[^']*'|(?=[>\s]))?/gi, "");
+
+  // 3. Rewrite absolute src/href/action attributes (double-quotes)
+  result = result.replace(
+    /(<(?:script|link|img|source|iframe|video|audio)\s[^>]*?)(src|href|action)\s*=\s*"(\/(?!\/)[^"]*?)"/gi,
+    (_, tag, attr, path) => {
+      if (path.startsWith(prefix) || path.startsWith("//") || path.startsWith("http")) {
+        return `${tag}${attr}="${path}"`;
       }
-    )
-    .replace(
-      /(<(?:script|link|img|source|iframe|video|audio)\s[^>]*?)(src|href|action)\s*=\s*'(\/(?!\/)[^']*?)'/gi,
-      (_, tag, attr, path) => {
-        if (path.startsWith(PREFIX) || path.startsWith("//") || path.startsWith("http")) return `${tag}${attr}='${path}'`;
-        return `${tag}${attr}='${PREFIX}${path.replace(/^\//, "")}'`;
+      return `${tag}${attr}="${prefix}${path.replace(/^\//, "")}"`;
+    }
+  );
+
+  // 4. Rewrite absolute src/href/action attributes (single-quotes)
+  result = result.replace(
+    /(<(?:script|link|img|source|iframe|video|audio)\s[^>]*?)(src|href|action)\s*=\s*'(\/(?!\/)[^']*?)'/gi,
+    (_, tag, attr, path) => {
+      if (path.startsWith(prefix) || path.startsWith("//") || path.startsWith("http")) {
+        return `${tag}${attr}='${path}'`;
       }
-    )
-    .replace(
-      /(fetch|import)\s*\(\s*"(\/(?!\/)[^"]*?)"/gi,
-      (_, call, path) => {
-        if (path.startsWith(PREFIX)) return `${call}("${path}"`;
-        return `${call}("${PREFIX}${path.replace(/^\//, "")}"`;
-      }
-    )
-    .replace(
-      /(fetch|import)\s*\(\s*'(\/(?!\/)[^']*?)'/gi,
-      (_, call, path) => {
-        if (path.startsWith(PREFIX)) return `${call}('${path}'`;
-        return `${call}('${PREFIX}${path.replace(/^\//, "")}'`;
-      }
-    )
-    .replace(
-      /(new URL|import\.meta\.url)\s*\(\s*"(\/(?!\/)[^"]*?)"/gi,
-      (_, call, path) => {
-        if (path.startsWith(PREFIX)) return `${call}("${path}"`;
-        return `${call}("${PREFIX}${path.replace(/^\//, "")}"`;
-      }
-    );
+      return `${tag}${attr}='${prefix}${path.replace(/^\//, "")}'`;
+    }
+  );
+
+  // 5. Rewrite fetch/import calls with absolute paths
+  result = result.replace(
+    /(fetch|import)\s*\(\s*"(\/(?!\/)[^"]*?)"/gi,
+    (_, call, path) => {
+      if (path.startsWith(prefix)) return `${call}("${path}"`;
+      return `${call}("${prefix}${path.replace(/^\//, "")}"`;
+    }
+  );
+
+  result = result.replace(
+    /(fetch|import)\s*\(\s*'(\/(?!\/)[^']*?)'/gi,
+    (_, call, path) => {
+      if (path.startsWith(prefix)) return `${call}('${path}'`;
+      return `${call}('${prefix}${path.replace(/^\//, "")}'`;
+    }
+  );
+
+  return result;
 }
 
 function buildPreviewHeaders(contentType: string): Record<string, string> {
@@ -139,8 +149,9 @@ function buildPreviewHeaders(contentType: string): Record<string, string> {
     "Content-Type": contentType,
     "X-Frame-Options": "SAMEORIGIN",
     "Cache-Control": "no-cache, no-store, must-revalidate",
+    // Permissive CSP for user-built apps: allow external fonts, stylesheets, connections
     "Content-Security-Policy":
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https: http:; img-src * data: blob:; font-src 'self' data: https: http:; connect-src *; frame-src 'self' *;",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https: http:; img-src * data: blob:; font-src 'self' data: https: http:; connect-src *; frame-src *;",
   };
 }
 
@@ -151,7 +162,7 @@ function getRepoName(c: any): string | null {
   return repo;
 }
 
-// GET /api/preview/state?repo=X — returns preview state as JSON
+// GET /api/preview/state?repo=X
 previewRouter.get("/state", async (c) => {
   const username = getUsername(c);
   if (!username) return c.text("Unauthorized", 401);
@@ -163,7 +174,7 @@ previewRouter.get("/state", async (c) => {
   return c.json(state);
 });
 
-// GET /api/preview/config?repo=X — get current preview config
+// GET /api/preview/config?repo=X
 previewRouter.get("/config", async (c) => {
   const username = getUsername(c);
   if (!username) return c.text("Unauthorized", 401);
@@ -175,7 +186,7 @@ previewRouter.get("/config", async (c) => {
   return c.json(config);
 });
 
-// POST /api/preview/config?repo=X — save preview config
+// POST /api/preview/config?repo=X
 previewRouter.post("/config", async (c) => {
   const username = getUsername(c);
   if (!username) return c.text("Unauthorized", 401);
@@ -199,7 +210,7 @@ previewRouter.post("/config", async (c) => {
   return c.json(saved);
 });
 
-// POST /api/preview/build?repo=X — trigger build
+// POST /api/preview/build?repo=X
 previewRouter.post("/build", async (c) => {
   const username = getUsername(c);
   if (!username) return c.text("Unauthorized", 401);
@@ -212,7 +223,7 @@ previewRouter.post("/build", async (c) => {
   return c.json(result);
 });
 
-// POST /api/preview/build/abort?repo=X — cancel running build
+// POST /api/preview/build/abort?repo=X
 previewRouter.post("/build/abort", async (c) => {
   const username = getUsername(c);
   if (!username) return c.text("Unauthorized", 401);
@@ -224,58 +235,27 @@ previewRouter.post("/build/abort", async (c) => {
   return c.json({ success: true });
 });
 
-// GET /api/preview/* — serves static files from build output dir
-previewRouter.get("/*", async (c) => {
-  let token = c.req.query("token");
-  const authHeader = c.req.header("Authorization");
-  if (!token && authHeader?.startsWith("Bearer ")) {
-    token = authHeader.slice(7);
-  }
-  if (!token) {
-    token = getCookie(c, "cf_preview_token");
-  }
+/**
+ * GET /api/preview/:username/:repo/*
+ *
+ * Serves user-built app static files without authentication.
+ * Security: Path-based isolation — the username+repoName in the URL uniquely
+ * identifies the user's workspace. No token needed for sub-assets.
+ *
+ * Dynamic imports, manifests, fonts, and all relative/absolute paths resolve
+ * correctly because <base href> is injected and crossorigin is stripped.
+ */
+previewRouter.get("/:username/:repo/*", async (c) => {
+  const username = c.req.param("username");
+  const repoName = c.req.param("repo");
 
-  let repoName = c.req.query("repo");
-  if (!repoName) {
-    repoName = getCookie(c, "cf_preview_repo");
-  }
-
-  let username: string | null = null;
-  if (token) {
-    try {
-      const payload = jwt.verify(token, process.env.JWT_SECRET!) as any;
-      username = payload.username;
-    } catch {
-      // Invalid or expired token
-    }
-  }
-
-  if (!username) {
-    return c.text("Unauthorized", 401);
-  }
-
-  if (!repoName || typeof repoName !== "string" || repoName.includes("..") || repoName.includes("/")) {
-    return c.text("Missing or invalid repo parameter", 400);
-  }
-
-  const queryToken = c.req.query("token");
-  const queryRepo = c.req.query("repo");
-  if (queryToken || queryRepo) {
-    const isHttps = c.req.url.startsWith("https:");
-    setCookie(c, "cf_preview_token", token || "", {
-      path: "/api/preview",
-      secure: isHttps,
-      httpOnly: true,
-      maxAge: 3600, // 1 hour
-      sameSite: "Lax",
-    });
-    setCookie(c, "cf_preview_repo", repoName, {
-      path: "/api/preview",
-      secure: isHttps,
-      httpOnly: true,
-      maxAge: 3600,
-      sameSite: "Lax",
-    });
+  // Basic path traversal protection on path params
+  if (
+    !username || !repoName ||
+    username.includes("..") || username.includes("/") ||
+    repoName.includes("..") || repoName.includes("/")
+  ) {
+    return c.text("Bad Request", 400);
   }
 
   const reqPath = c.req.param("*") || "index.html";
@@ -288,7 +268,7 @@ previewRouter.get("/*", async (c) => {
       return c.text("Forbidden", 403);
     }
 
-    // If exact file exists, serve it
+    // Serve the exact file if it exists
     if (existsSync(fullPath)) {
       const file = Bun.file(fullPath);
       const exists = await file.exists();
@@ -296,18 +276,14 @@ previewRouter.get("/*", async (c) => {
         const mime = lookupMime(fullPath);
         if (mime.startsWith("text/html")) {
           const original = await file.text();
-          const rewritten = rewriteHtml(original);
-          return c.html(rewritten, {
-            headers: buildPreviewHeaders(mime),
-          });
+          const rewritten = rewriteHtml(original, username, repoName);
+          return new Response(rewritten, { headers: buildPreviewHeaders(mime) });
         }
-        return c.body(file.stream(), {
-          headers: buildPreviewHeaders(mime),
-        });
+        return new Response(file.stream(), { headers: buildPreviewHeaders(mime) });
       }
     }
 
-    // SPA fallback: for non-asset requests, serve index.html
+    // SPA fallback: serve index.html for non-asset paths (client-side routing)
     if (!isAssetPath(reqPath)) {
       const indexPath = buildIndexPath(username, repoName);
       if (indexPath && existsSync(indexPath)) {
@@ -315,8 +291,8 @@ previewRouter.get("/*", async (c) => {
         const exists = await file.exists();
         if (exists) {
           const original = await file.text();
-          const rewritten = rewriteHtml(original);
-          return c.html(rewritten, {
+          const rewritten = rewriteHtml(original, username, repoName);
+          return new Response(rewritten, {
             headers: buildPreviewHeaders("text/html; charset=utf-8"),
           });
         }

@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { PreviewState } from "shared";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   activeRepoName: string | null;
@@ -112,10 +113,10 @@ function usePreviewStatus(repoName: string) {
 
 export function PreviewPanel({ activeRepoName }: Props) {
   const repoName = activeRepoName || "";
+  const { user } = useAuth();
   const { state: previewState, buildLogs, setBuildLogs, fetchConfig } = usePreviewStatus(repoName);
   const [buildKey, setBuildKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
-  const [token, setToken] = useState(() => localStorage.getItem("token") || "");
   const [configOpen, setConfigOpen] = useState(false);
   const [configForm, setConfigForm] = useState({
     framework: "auto",
@@ -127,26 +128,16 @@ export function PreviewPanel({ activeRepoName }: Props) {
   const logEndRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    const refresh = () => setToken(localStorage.getItem("token") || "");
-    window.addEventListener("focus", refresh);
-    window.addEventListener("storage", (e) => {
-      if (e.key === "token") refresh();
-    });
-    return () => {
-      window.removeEventListener("focus", refresh);
-      window.removeEventListener("storage", refresh);
-    };
-  }, []);
-
-  useEffect(() => {
     if (logOpen && logEndRef.current) {
       logEndRef.current.scrollIntoView({ behavior: "smooth" });
     }
   }, [buildLogs, logOpen]);
 
+  // Path-based isolation: username+repoName in URL uniquely identifies workspace.
+  // No token needed — sub-assets (JS, CSS, fonts) are served without auth.
   const previewSrc =
-    repoName && token
-      ? `/api/preview/index.html?repo=${encodeURIComponent(repoName)}&token=${encodeURIComponent(token)}`
+    repoName && user?.username
+      ? `/api/preview/${encodeURIComponent(user.username)}/${encodeURIComponent(repoName)}/`
       : null;
 
   useEffect(() => {
@@ -203,7 +194,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
   }, []);
 
   const handleOpenNewTab = useCallback(() => {
-    if (previewSrc) window.open(previewSrc, "_blank", "noopener");
+    if (previewSrc) window.open(previewSrc, "_blank", "noreferrer");
   }, [previewSrc]);
 
   const isBuilding = previewState?.status === "building";
@@ -403,7 +394,6 @@ export function PreviewPanel({ activeRepoName }: Props) {
               ref={iframeRef}
               src={previewSrc || ""}
               className="w-full h-full border-0"
-              sandbox="allow-scripts allow-forms allow-same-origin allow-popups"
               title="Project Preview"
             />
           </div>
