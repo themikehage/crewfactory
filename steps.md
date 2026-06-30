@@ -275,3 +275,29 @@
 - [x] 33.3 `apps/client/src/components/channels/ChannelSettingsModal.tsx` — Created settings modal with interactive slider for adjusting max chain depth (1-20 steps).
 - [x] 33.4 `apps/client/src/components/channels/ChannelChatArea.tsx` & `useChannel.ts` — Wired "Ajustes" button in header to open `ChannelSettingsModal` and update channel configuration.
 - [x] 33.5 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
+
+
+---
+crear un plan de despliegue facil en vps
+migrar la interfaz a una interfaz slack like
+
+## Phase 34: Storage Coherency, Security & Performance Fixes
+- [x] 34.0 Pre-implementation storage backup and migration script (`migrate-storage.ts`)
+- [x] 34.1 Scope channels baseDir by username and verify ownership on REST routes
+- [x] 34.2 Scope agent-registry baseDir by username and scan user directories at startup
+- [x] 34.3 Pass username to create-agent-server and channel-orchestrator model lookup
+- [x] 34.4 Remove token query parameters in WorkspaceFileEditor (use blob URLs)
+- [x] 34.5 Remove token query parameters in ImageGrid (use AuthenticatedImage & blob tab open)
+- [x] 34.6 Clean up localStorage keys (active context, models) on logout
+- [x] 34.7 Convert listSessions in session-manager to concurrent async I/O
+- [x] 34.8 Implement backwards chunked tail-read for getMessages in channel-store
+- [x] 34.9 Implement log rotation for channel messages (10MB messages.jsonl limit)
+
+## Phase 35: Isolated Port-Based Project Preview (Option C)
+- [x] 35.1 Create `apps/server/src/preview-server.ts` running on port 3001
+- [x] 35.2 Hook `startPreviewServer()` into Hono startup inside `apps/server/src/index.ts`
+- [x] 35.3 Add `VITE_PREVIEW_BASE_URL` in `apps/client/.env` (pointing to localhost:3001 in dev)
+- [x] 35.4 Update client `PreviewPanel.tsx` to read base URL and iframe path isolation
+- [x] 35.5 Expose port 3001 in Dockerfile for production compatibility
+- [x] 35.6 Revert service worker navigateDenylist since port 3001 is another origin
+- [x] 35.7 Validate full build pipeline for client and server (EXIT 0)

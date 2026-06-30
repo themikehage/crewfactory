@@ -32,6 +32,7 @@ COPY --from=builder /app/node_modules ./node_modules
 RUN mkdir -p /tmp/crewfactory
 
 EXPOSE 3000
+EXPOSE 3001
 
 ENV PORT=3000
 

@@ -133,16 +133,20 @@ export function PreviewPanel({ activeRepoName }: Props) {
     }
   }, [buildLogs, logOpen]);
 
-  // Path-based isolation: username+repoName in URL uniquely identifies workspace.
-  // No token needed — sub-assets (JS, CSS, fonts) are served without auth.
+  // Use dedicated preview server (port 3001) for complete origin isolation.
+  // The preview server is separate from the main Hono server, so no catch-all
+  // SPA fallback can intercept preview asset requests.
+  const PREVIEW_BASE =
+    (import.meta.env.VITE_PREVIEW_BASE_URL as string | undefined) ||
+    `${window.location.protocol}//${window.location.hostname}:3001`;
+
   const previewSrc =
     repoName && user?.username
-      ? `/api/preview/${encodeURIComponent(user.username)}/${encodeURIComponent(repoName)}/`
+      ? `${PREVIEW_BASE}/${encodeURIComponent(user.username)}/${encodeURIComponent(repoName)}/index.html`
       : null;
 
-  useEffect(() => {
-    if (previewSrc) setBuildKey((k) => k + 1);
-  }, [previewSrc]);
+  const lastBuildAt = previewState?.lastBuildAt ?? null;
+  const iframeKey = `${previewSrc}-${buildKey}-${lastBuildAt}`;
 
   const handleOpenConfig = useCallback(async () => {
     setConfigOpen(true);
@@ -390,7 +394,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
         ) : (
           <div className="bg-white rounded-lg shadow-2xl overflow-hidden w-full h-full max-w-full">
             <iframe
-              key={buildKey}
+              key={iframeKey}
               ref={iframeRef}
               src={previewSrc || ""}
               className="w-full h-full border-0"

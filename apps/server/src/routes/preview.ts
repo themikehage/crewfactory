@@ -279,7 +279,7 @@ previewRouter.get("/:username/:repo/*", async (c) => {
           const rewritten = rewriteHtml(original, username, repoName);
           return new Response(rewritten, { headers: buildPreviewHeaders(mime) });
         }
-        return new Response(file.stream(), { headers: buildPreviewHeaders(mime) });
+        return new Response(await file.arrayBuffer(), { headers: buildPreviewHeaders(mime) });
       }
     }
 

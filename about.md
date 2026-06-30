@@ -50,12 +50,11 @@
 - Design tokens via Tailwind CSS v4 @theme (always use semantic tokens, no raw hex in code)
 
 ### Workspace & Hybrid Agent Instantiation
-- Structured workspace per user at `/tmp/crewfactory/{username}/workspace/`:
-  - `repos/` — Git repositories, each is an isolated agent context
-  - `assets/uploads/` — User-uploaded files
-  - `assets/generated/` — Agent-generated outputs
-  - `memories/repos/` — Per-repo agent notes
-  - `memories/sessions/` — Short-term session context files
+- Structured directory per user at `/tmp/crewfactory/{username}/`:
+  - `workspace/` — User workspace root (contains `repos/` for Git projects, `assets/` for uploads/generated, `memories/` for repository and session notes)
+  - `sessions/` — User chat sessions and metadata
+  - `agents/` — User programmatic agents (definitions, workspaces, sessions)
+  - `channels/` — User multi-agent group channels (definitions, workspaces, message logs)
 - **Global mode:** Agent CWD is the workspace root. Used for cross-repo tasks and admin.
 - **Repo mode:** Agent CWD is `repos/{repoName}`. Sessions tagged with `repoName` in `metadata.json`. Sidebar and file explorer are scoped to the active repo.
 - Dashboard view (initial screen) lets users list, create or clone Git repositories.
@@ -76,21 +75,23 @@
 
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente
-- Sirve archivos estáticos desde el directorio de build (`dist/`, `build/`, `.output/` auto-detectados) con MIME correctas y `X-Frame-Options: SAMEORIGIN`
+- **Servidor dedicado de preview (Puerto 3001)**: corre un servidor de archivos estáticos independiente (`Bun.serve`) en el mismo contenedor/proceso para aislar por completo el render del frontend del framework Vite y Service Workers de CrewFactory.
+- **Aislamiento por Path (No auth en assets)**: las URLs tienen el formato `http://localhost:3001/:username/:repo/index.html`. El path provee aislamiento de datos y evita requerir tokens en sub-assets como JS/CSS/imágenes.
+- Sirve archivos estáticos desde el directorio de build (`dist/`, `build/`, `.output/` auto-detectados) con MIME correctas.
 - SPA routing con fallback a `index.html` para cualquier ruta no-asset
-- **HTML rewriting automático**: inyecta `<base href="/api/preview/">` + reescribe paths absolutos (`src="/"`, `href="/"`, `fetch("/"`, `new URL("/"`) para compatibilidad total con Vite SPAs, React Router BrowserRouter, y frameworks como Next.js, Nuxt, Astro
+- **HTML rewriting automático**: inyecta `<base href="/:username/:repo/">` + stripea el atributo `crossorigin` + reescribe paths absolutos (`src="/"`, `href="/"`, `fetch("/"`, `new URL("/"`) para compatibilidad total con Vite SPAs, React Router BrowserRouter, y frameworks como Next.js, Nuxt, Astro
 - **Build config determinista**: modal de configuración con framework preset (Auto/Vite/Next/Nuxt/Astro/HTML/Custom), build command y output directory editables
 - **Auto-detect de framework**: escanea `package.json` (deps, scripts) y archivos de configuración (`vite.config.ts`, `next.config.js`, etc.)
 - **Build trigger manual**: botón "Build Now" en toolbar, spawn `buildCommand` via `bash -c`, transmite logs en vivo por WS
 - **Logs de build en tiempo real**: panel colapsable con stdout/stderr stream, auto-scroll
 - **Build endpoint**: `POST /api/preview/build?repo=X` con abort (`POST /api/preview/build/abort`)
 - **Persistencia**: configuración guardada en `.preview.json` dentro del repo workspace
-- Toolbar con estado de build (idle/building/ready/error), recargar, abrir en nueva pestaña
+- Toolbar con estado de build (idle/building/ready/error), recargar, abrir en nueva pestaña (usando `noreferrer`)
 - Modos responsive: 375px, 768px, 1280px y Full
 - Detección automática de build via WebSocket: regex que cubre 10+ comandos
 - `fs.watch` sobre el build dir con polling fallback cada 2s para Docker overlay filesystems
-- Token de autenticación refrescado automáticamente al cambiar de repo o re-loguear
 - Framework-agnóstico — compatible con React (Vite), HTML estático, Next.js, Nuxt, Astro, etc.
+
 
 ### Task Runner (Supervisor Loop)
 - Decompose high-level goals into sequential task steps using active session LLM
@@ -106,12 +107,12 @@
 - Dynamic Quick Action buttons triggering custom workflows with variable replacements sent as chat prompts to the agent
 
 ### Programmatic Agents & First-Class Context (`agentId`)
-- **Independent AI Workers**: Programmatic agents with isolated workspaces at `/tmp/pi-agents/{agentId}/workspace` and persistent definitions (`definition.json`).
+- **Independent AI Workers**: Programmatic agents with isolated workspaces at `/tmp/crewfactory/{username}/agents/{agentId}/workspace` and persistent definitions (`definition.json`), fully isolated per user.
 - **Factory Architecture**: Factory function `createAgentServer` producing lightweight Hono servers per agent.
 - **Unified Chat Integration**: Integrated directly into main `ChatArea` as a First-Class Context (`agentId`), providing isolated sessions, custom system prompts, inherited skills, and model selection.
 
 ### Multi-Agent Group Channels (`channelId`) & Mention System
-- **Collaborative Group Spaces**: Multi-agent channels with isolated workspaces at `/tmp/pi-channels/{channelId}/workspace` and append-only message logs (`messages.jsonl`).
+- **Collaborative Group Spaces**: Multi-agent channels with isolated workspaces at `/tmp/crewfactory/{username}/channels/{channelId}/workspace` and append-only message logs (`messages.jsonl`), fully isolated per user.
 - **Session Message Isolation**: Channel message histories and live WebSocket streams strictly isolated per session ID (`sessionId`).
 - **Sequential Orchestrator & Configurable Depth**: Dynamic execution depth control with configurable `maxChainDepth` per channel (default 5, editable up to 20 via UI).
 - **Flexible Reply Modes**: `user-only` (responds to human), `broadcast` (triggers all channel agents), `targeted` (responds to selected peers), and `mention-only` (responds exclusively when explicitly tagged).
@@ -210,7 +211,7 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
 - `pages/SettingsPage.tsx` — Provider, global env variables, and Integrations Hub template editor.
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
-- `components/layout/MainLayout.tsx` — App shell with context-aware topbar header featuring interactive breadcrumb navigation separated by `/` slashes and scoped SessionSidebar.
+- `components/layout/MainLayout.tsx` — App shell with context-aware topbar header featuring a Home navigation button, interactive breadcrumb navigation separated by `/` slashes, and scoped SessionSidebar.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
 - `components/sidebar/SessionSidebar.tsx` — Filters sessions by active context (`repoName`, `agentId`, `channelId`).
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle

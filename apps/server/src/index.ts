@@ -16,6 +16,7 @@ import { agentsRouter } from "./routes/agents";
 import { channelsRouter } from "./routes/channels";
 import { previewRouter } from "./routes/preview";
 import { onOpen, onClose, onMessage } from "./ws/handler";
+import { startPreviewServer } from "./preview-server";
 
 const { upgradeWebSocket, websocket } = createBunWebSocket();
 
@@ -69,3 +70,6 @@ const server = Bun.serve({
 });
 
 console.log(`Server running at http://0.0.0.0:${server.port}`);
+
+startPreviewServer();
+
