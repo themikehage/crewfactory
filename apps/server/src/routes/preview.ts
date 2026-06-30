@@ -1,4 +1,6 @@
 import { Hono } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
+import jwt from "jsonwebtoken";
 import { resolve, normalize, sep, extname } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
@@ -138,7 +140,7 @@ function buildPreviewHeaders(contentType: string): Record<string, string> {
     "X-Frame-Options": "SAMEORIGIN",
     "Cache-Control": "no-cache, no-store, must-revalidate",
     "Content-Security-Policy":
-      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' 'unsafe-inline'; frame-src 'self';",
+      "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline' https: http:; img-src * data: blob:; font-src 'self' data: https: http:; connect-src *; frame-src 'self' *;",
   };
 }
 
@@ -224,11 +226,57 @@ previewRouter.post("/build/abort", async (c) => {
 
 // GET /api/preview/* — serves static files from build output dir
 previewRouter.get("/*", async (c) => {
-  const username = getUsername(c);
-  if (!username) return c.text("Unauthorized", 401);
+  let token = c.req.query("token");
+  const authHeader = c.req.header("Authorization");
+  if (!token && authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  }
+  if (!token) {
+    token = getCookie(c, "cf_preview_token");
+  }
 
-  const repoName = getRepoName(c);
-  if (!repoName) return c.text("Missing or invalid repo query parameter", 400);
+  let repoName = c.req.query("repo");
+  if (!repoName) {
+    repoName = getCookie(c, "cf_preview_repo");
+  }
+
+  let username: string | null = null;
+  if (token) {
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET!) as any;
+      username = payload.username;
+    } catch {
+      // Invalid or expired token
+    }
+  }
+
+  if (!username) {
+    return c.text("Unauthorized", 401);
+  }
+
+  if (!repoName || typeof repoName !== "string" || repoName.includes("..") || repoName.includes("/")) {
+    return c.text("Missing or invalid repo parameter", 400);
+  }
+
+  const queryToken = c.req.query("token");
+  const queryRepo = c.req.query("repo");
+  if (queryToken || queryRepo) {
+    const isHttps = c.req.url.startsWith("https:");
+    setCookie(c, "cf_preview_token", token || "", {
+      path: "/api/preview",
+      secure: isHttps,
+      httpOnly: true,
+      maxAge: 3600, // 1 hour
+      sameSite: "Lax",
+    });
+    setCookie(c, "cf_preview_repo", repoName, {
+      path: "/api/preview",
+      secure: isHttps,
+      httpOnly: true,
+      maxAge: 3600,
+      sameSite: "Lax",
+    });
+  }
 
   const reqPath = c.req.param("*") || "index.html";
 
