@@ -110,8 +110,15 @@ export function ImageGrid({ images, sessionId, activeRepoName }: Props) {
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
+      
       const ext = blob.type.split("/")[1] || "png";
-      a.download = filename ? `${filename}.${ext}` : `image.${ext}`;
+      let downloadName = filename || "image";
+      const hasExt = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(downloadName);
+      if (!hasExt) {
+        downloadName = `${downloadName}.${ext}`;
+      }
+      
+      a.download = downloadName;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
