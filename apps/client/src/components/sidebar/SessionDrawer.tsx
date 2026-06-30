@@ -146,9 +146,14 @@ export function SessionDrawer({
 
   // Si no hay sesiones para este contexto, crear una automáticamente
   useEffect(() => {
+    console.log("SessionDrawer Auto-select check:", { isOpen, loading, activeSessionId, creating, hasError, filteredSessionsLength: filteredSessions.length });
     if (!isOpen) return;
-    if (loading || activeSessionId || creating || hasError) return;
+    if (loading || activeSessionId || creating || hasError) {
+      console.log("SessionDrawer Auto-select skipped because:", { loading, activeSessionId, creating, hasError });
+      return;
+    }
 
+    console.log("SessionDrawer Auto-select executing with:", { filteredSessions });
     if (filteredSessions.length > 0) {
       onSelectSession(filteredSessions[0].id);
     } else {
