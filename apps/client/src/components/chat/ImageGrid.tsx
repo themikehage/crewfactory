@@ -105,6 +105,7 @@ export function ImageGrid({ images, sessionId, activeRepoName }: Props) {
           ? { Authorization: `Bearer ${token}` }
           : {},
       });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");

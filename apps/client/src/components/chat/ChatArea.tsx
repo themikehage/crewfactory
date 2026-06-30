@@ -461,7 +461,7 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           className="flex-1 overflow-y-auto min-h-0"
         >
           <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <MessageList messages={messages} onNavigate={handleNavigate} sessionId={sessionId} />
+            <MessageList messages={messages} onNavigate={handleNavigate} sessionId={sessionId} activeRepoName={activeRepoName} />
             <div ref={messagesEndRef} />
           </div>
         </div>
