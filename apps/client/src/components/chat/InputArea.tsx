@@ -269,8 +269,28 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
           data: base64Data,
           mimeType: img.file.type,
         });
+
+        // Upload image to workspace for persistence in chat bubble
+        const formData = new FormData();
+        formData.append("file", img.file);
+        
+        const token = localStorage.getItem("token");
+        const url = `/api/workspace/assets/uploads?repo=${activeRepoName || ""}`;
+        
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          extraPromptText += `\n[Attached File: ${data.path}] (I have uploaded this image to your workspace at: ${data.path})`;
+        }
       } catch (err) {
-        console.error("Error converting image:", err);
+        console.error("Error converting/uploading image:", err);
       }
     }
 

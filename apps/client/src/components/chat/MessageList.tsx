@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import { RichMarkdown } from "./RichMarkdown";
 import { ToolCallRow, type ToolResultData } from "./tools/ToolCallRow";
-import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher } from "./ToolResultInspector";
+import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher, getFileType, type MediaType } from "./ToolResultInspector";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
 
@@ -350,22 +350,107 @@ function AgentTurn({
   );
 }
 
-function UserBubble({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string) => void }) {
-  const text = typeof msg.content === "string"
+interface UserAttachment {
+  path: string;
+  name: string;
+  type: MediaType;
+}
+
+function extractUserAttachments(text: string): UserAttachment[] {
+  const attachments: UserAttachment[] = [];
+  const regex = /\[Attached File:\s*([^\n\]]+)\]/gi;
+  let match;
+  while ((match = regex.exec(text)) !== null) {
+    const path = match[1].trim();
+    const name = path.split(/[\\/]/).pop() || "file";
+    attachments.push({
+      path,
+      name,
+      type: getFileType(path),
+    });
+  }
+  return attachments;
+}
+
+function cleanUserMessageText(text: string): string {
+  return text.replace(/\[Attached File:\s*([^\n\]]+)\]\s*\([^\n)]+\)/gi, "").trim();
+}
+
+function UserBubble({
+  msg,
+  onNavigate,
+  sessionId,
+  activeRepoName,
+}: {
+  msg: Message;
+  onNavigate?: (id: string) => void;
+  sessionId: string | null;
+  activeRepoName?: string | null;
+}) {
+  const rawText = typeof msg.content === "string"
     ? msg.content
     : Array.isArray(msg.content)
     ? (msg.content as ContentBlock[]).map(b => b.text ?? "").join(" ")
     : "";
 
+  const attachments = extractUserAttachments(rawText);
+  const cleanText = cleanUserMessageText(rawText);
+
+  const images = attachments.filter(a => a.type === "image");
+  const nonImages = attachments.filter(a => a.type !== "image");
+
+  const token = localStorage.getItem("token");
+
   return (
-    <div className="flex gap-3 justify-end">
-      <div className="max-w-[80%] sm:max-w-[75%]">
-        <div className="bg-accent text-bg rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm">
-          <p className="text-sm leading-relaxed whitespace-pre-wrap break-words font-sans">{text}</p>
-          {msg.isError && (
-            <div className="mt-1.5 text-xs text-bg/60">Error sending message</div>
-          )}
-        </div>
+    <div className="flex gap-3 justify-end my-1">
+      <div className="max-w-[80%] sm:max-w-[75%] space-y-2 flex flex-col items-end">
+        {cleanText && (
+          <div className="bg-accent text-bg rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm text-right w-fit">
+            <p className="text-sm leading-relaxed whitespace-pre-wrap break-words font-sans text-left">{cleanText}</p>
+            {msg.isError && (
+              <div className="mt-1.5 text-xs text-bg/60">Error sending message</div>
+            )}
+          </div>
+        )}
+        
+        {images.length > 0 && (
+          <div className="max-w-[400px] w-full">
+            <ImageGrid
+              images={images.map(img => ({ url: img.path, title: img.name }))}
+              sessionId={sessionId}
+              activeRepoName={activeRepoName}
+            />
+          </div>
+        )}
+
+        {nonImages.length > 0 && (
+          <div className="space-y-1.5 w-64">
+            {nonImages.map((att, idx) => {
+              const resolved = resolveFileUrl(att.path, sessionId, activeRepoName);
+              const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+              return (
+                <div key={idx} className="flex items-center justify-between p-2.5 bg-surface border border-surface-hover rounded-lg font-sans text-left w-full">
+                  <div className="flex items-center gap-2.5 min-w-0">
+                    <div className="w-8 h-8 rounded bg-accent/15 flex items-center justify-center text-accent text-[9px] font-extrabold select-none shrink-0 border border-accent/20 uppercase">
+                      {att.name.split(".").pop()?.substring(0, 3) || "doc"}
+                    </div>
+                    <div className="flex flex-col min-w-0">
+                      <span className="text-[11px] font-semibold text-text-primary truncate">{att.name}</span>
+                      <span className="text-[8px] text-text-secondary/50 uppercase font-mono">{att.name.split(".").pop()}</span>
+                    </div>
+                  </div>
+                  <a
+                    href={fileUrl}
+                    download={att.name}
+                    className="px-2 py-1 text-[10px] font-semibold rounded bg-accent text-bg hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+                  >
+                    Download
+                  </a>
+                </div>
+              );
+            })}
+          </div>
+        )}
         <BranchNav msg={msg} onNavigate={onNavigate} />
       </div>
     </div>
@@ -398,7 +483,7 @@ export const MessageList: FC<Props> = ({ messages, onNavigate, sessionId, active
             transition={{ duration: 0.15 }}
           >
             {group.type === "user" ? (
-              <UserBubble msg={group.msg} onNavigate={onNavigate} />
+              <UserBubble msg={group.msg} onNavigate={onNavigate} sessionId={sessionId} activeRepoName={activeRepoName} />
             ) : (
               <AgentTurn messages={group.messages} sessionId={sessionId} onNavigate={onNavigate} activeRepoName={activeRepoName} />
             )}
