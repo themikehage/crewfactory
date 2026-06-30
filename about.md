@@ -60,12 +60,16 @@
 
 ### Workspace & Hybrid Agent Instantiation
 - Structured directory per user at `/tmp/crewfactory/{username}/`:
-  - `workspace/` — User workspace root (contains `repos/` for Git projects, `assets/` for uploads/generated, `memories/` for repository and session notes)
+  - `workspace/` — User workspace root (contains `repos/` for Git projects, `assets/` for uploads/generated, `memories/` for repository and session notes, `.agents/skills/` for factory skills, and `AGENTS.md` — the only entity with manager-level instructions)
+  - `agents/{id}/workspace/` — Programmatic agent workspace with same subdirs (`.agents/skills/`, `assets/`, `memories/`) but NO AGENTS.md or factory skill provisioning — they see global factory skills as read-only via `getResolvedSkillPaths(username)`
+  - `channels/{id}/workspace/` — Multi-agent channel workspace, same structure as agents
   - `sessions/` — User chat sessions and metadata
-  - `agents/` — User programmatic agents (definitions, workspaces, sessions)
-  - `channels/` — User multi-agent group channels (definitions, workspaces, message logs)
-- **Global mode:** Agent CWD is the workspace root. Used for cross-repo tasks and admin.
-- **Repo mode:** Agent CWD is `repos/{repoName}`. Sessions tagged with `repoName` in `metadata.json`. Sidebar and file explorer are scoped to the active repo.
+  - `agents/{id}/sessions/` — Agent chat sessions
+  - `channels/{id}/` — Channel definitions and message logs
+- **Global mode:** Agent CWD is the workspace root. Used for cross-repo tasks, admin, and skill authorship.
+- **Repo mode:** Agent CWD is `repos/{repoName}`. Sessions tagged with `repoName` in `metadata.json`.
+- **Agent/Channel mode:** Agent CWD is the entity's workspace. Global factory skills injected via `getResolvedSkillPaths()`.
+- `ensureWorkspaceSubdirs()` creates the common subdirectory skeleton for any entity workspace.
 - Dashboard view (initial screen) lets users list, create or clone Git repositories.
 
 ### Tool Permissions

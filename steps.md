@@ -278,13 +278,10 @@
 - [x] 33.5 Verification — TypeScript compilation passes clean (EXIT 0) for server and client.
 
 
-<<<<<<< Updated upstream
 ---
 crear un plan de despliegue facil en vps
 - [x] migrar la interfaz a una interfaz slack like
 
-=======
->>>>>>> Stashed changes
 ## Phase 34: Storage Coherency, Security & Performance Fixes
 - [x] 34.0 Pre-implementation storage backup and migration script (`migrate-storage.ts`)
 - [x] 34.1 Scope channels baseDir by username and verify ownership on REST routes
@@ -338,3 +335,8 @@ crear un plan de despliegue facil en vps
 - [x] 39.3 Rediseñar `SessionSidebar.tsx` incorporando acordeones interactivos para Proyectos, Agentes y Canales
 - [x] 39.4 Limpieza de props no utilizadas en el sidebar izquierdo
 - [x] 39.5 Verificar compilación y empaquetado de producción del cliente
+- [x] 38.6 Extraer `ensureWorkspaceSubdirs()` de `ensureWorkspaceStructure()` para reutilizar en agentes y canales
+- [x] 38.7 `getResolvedSkillPaths()` acepta `username` opcional e incluye factory skills globales para todas las entidades
+- [x] 38.8 Agents y channels reciben subestructura completa (`.agents/skills/`, `assets/`, `memories/`) en su workspace
+- [x] 38.9 Solo el agente global tiene AGENTS.md y factory skills — proyectos/agentes/canales las ven como referencia read-only
+- [x] 38.10 Validación: compilación servidor y cliente pasa (EXIT 0)

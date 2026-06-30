@@ -16,7 +16,7 @@ import { join, resolve, dirname } from "node:path";
 import { AVAILABLE_TOOLS } from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
 
-export function getResolvedSkillPaths(cwd: string): string[] {
+export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
   try {
     const realAgentDir = getAgentDir();
@@ -26,6 +26,15 @@ export function getResolvedSkillPaths(cwd: string): string[] {
     }
   } catch (e) {
   }
+
+  // Todas las entidades (proyectos, agentes, canales) ven las factory skills globales
+  if (username) {
+    const factorySkillsDir = resolve(`/tmp/crewfactory/${username}`, "workspace", ".agents", "skills");
+    if (existsSync(factorySkillsDir) && !paths.includes(factorySkillsDir)) {
+      paths.push(factorySkillsDir);
+    }
+  }
+
   let current = resolve(cwd);
   let workspaceRoot = current;
   while (true) {
@@ -52,24 +61,28 @@ export function getResolvedSkillPaths(cwd: string): string[] {
   return paths;
 }
 
-export function ensureWorkspaceStructure(username: string): string {
-  const userDir = `/tmp/crewfactory/${username}`;
-  const workspaceDir = join(userDir, "workspace");
-  const skillsBaseDir = join(workspaceDir, ".agents", "skills");
+export function ensureWorkspaceSubdirs(workspaceDir: string): void {
   const subdirs = [
-    join(workspaceDir, "repos"),
+    join(workspaceDir, ".agents", "skills"),
     join(workspaceDir, "assets", "uploads"),
     join(workspaceDir, "assets", "generated"),
     join(workspaceDir, "memories", "repos"),
     join(workspaceDir, "memories", "sessions"),
-    skillsBaseDir,
   ];
-
   for (const dir of subdirs) {
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
   }
+}
+
+export function ensureWorkspaceStructure(username: string): string {
+  const userDir = `/tmp/crewfactory/${username}`;
+  const workspaceDir = join(userDir, "workspace");
+  const skillsBaseDir = join(workspaceDir, ".agents", "skills");
+
+  ensureWorkspaceSubdirs(workspaceDir);
+  mkdirSync(join(workspaceDir, "repos"), { recursive: true });
 
   const agentsMdPath = join(workspaceDir, "AGENTS.md");
   if (!existsSync(agentsMdPath)) {
@@ -258,6 +271,11 @@ class PiSessionManager {
       mkdirSync(workspaceDir, { recursive: true });
     }
 
+    // Crear subestructura completa para workspaces no-globales (skills, assets, memorias)
+    if (resolvedChannelId || resolvedAgentId) {
+      ensureWorkspaceSubdirs(workspaceDir);
+    }
+
     const { authStorage, modelRegistry } = this.getUserContext(username);
 
     let agentDef;
@@ -267,7 +285,7 @@ class PiSessionManager {
       agentDef = agentEntry?.server.definition;
     }
 
-    const skillPaths = getResolvedSkillPaths(workspaceDir);
+    const skillPaths = getResolvedSkillPaths(workspaceDir, username);
     if (agentDef?.skills && agentDef.skills.length > 0) {
       for (const sk of agentDef.skills) {
         const candidate = resolve(workspaceDir, ".pi", "skills", sk);

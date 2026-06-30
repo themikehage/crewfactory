@@ -12,6 +12,7 @@ import { join, resolve } from "node:path";
 import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
+import { ensureWorkspaceSubdirs } from "../pi/session-manager";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -22,6 +23,8 @@ function ensureAgentWorkspace(username: string, id: string): string {
   for (const d of subdirs) {
     if (!existsSync(d)) mkdirSync(d, { recursive: true });
   }
+  // Crear subestructura completa para el workspace del agente
+  ensureWorkspaceSubdirs(join(dir, "workspace"));
   return dir;
 }
 
@@ -32,15 +35,20 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
   if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
 
-  const { piSessionManager } = await import("../pi/session-manager");
+  const { piSessionManager, getResolvedSkillPaths } = await import("../pi/session-manager");
   const { authStorage, modelRegistry } = piSessionManager.getUserContext(username);
   modelRegistry.refresh();
 
-  const additionalSkillPaths: string[] = [];
+  const additionalSkillPaths = [
+    // Incluir factory skills globales para el agente
+    ...getResolvedSkillPaths(workspaceDir, username),
+  ];
   if (definition.skills && definition.skills.length > 0) {
     for (const skill of definition.skills) {
       const candidate = resolve(workspaceDir, ".pi", "skills", skill);
-      if (existsSync(candidate)) additionalSkillPaths.push(candidate);
+      if (existsSync(candidate) && !additionalSkillPaths.includes(candidate)) {
+        additionalSkillPaths.push(candidate);
+      }
     }
   }
 
