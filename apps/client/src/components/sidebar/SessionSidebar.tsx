@@ -164,6 +164,7 @@ export function SessionSidebar({
   }, [filteredSessions.length, activeRepoName, activeAgent, activeChannel, onNewSession, sessions]);
 
   useEffect(() => {
+    if (currentPage !== "chat") return;
     if (loading || activeSessionId || creating || hasError) return;
 
     if (filteredSessions.length > 0) {
@@ -171,7 +172,7 @@ export function SessionSidebar({
     } else {
       createSession();
     }
-  }, [loading, activeSessionId, filteredSessions, onSelectSession, creating, hasError, createSession]);
+  }, [currentPage, loading, activeSessionId, filteredSessions, onSelectSession, creating, hasError, createSession]);
 
   const deleteSession = useCallback(
     async (id: string) => {
