@@ -297,11 +297,11 @@ previewRouter.get("/*", async (c) => {
         if (mime.startsWith("text/html")) {
           const original = await file.text();
           const rewritten = rewriteHtml(original);
-          return new Response(rewritten, {
+          return c.html(rewritten, {
             headers: buildPreviewHeaders(mime),
           });
         }
-        return new Response(file.stream(), {
+        return c.body(file.stream(), {
           headers: buildPreviewHeaders(mime),
         });
       }
@@ -316,7 +316,7 @@ previewRouter.get("/*", async (c) => {
         if (exists) {
           const original = await file.text();
           const rewritten = rewriteHtml(original);
-          return new Response(rewritten, {
+          return c.html(rewritten, {
             headers: buildPreviewHeaders("text/html; charset=utf-8"),
           });
         }
