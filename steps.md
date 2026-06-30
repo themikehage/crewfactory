@@ -330,3 +330,8 @@ crear un plan de despliegue facil en vps
 - [x] 38.3 Modificar `MainLayout.tsx` para hacer la barra lateral persistente y limpiar el header superior
 - [x] 38.4 Ajustar ancho de árbol de archivos de Workspace a `w-64`
 - [x] 38.5 Verificar compilación de producción del cliente
+- [x] 38.6 Extraer `ensureWorkspaceSubdirs()` de `ensureWorkspaceStructure()` para reutilizar en agentes y canales
+- [x] 38.7 `getResolvedSkillPaths()` acepta `username` opcional e incluye factory skills globales para todas las entidades
+- [x] 38.8 Agents y channels reciben subestructura completa (`.agents/skills/`, `assets/`, `memories/`) en su workspace
+- [x] 38.9 Solo el agente global tiene AGENTS.md y factory skills — proyectos/agentes/canales las ven como referencia read-only
+- [x] 38.10 Validación: compilación servidor y cliente pasa (EXIT 0)
