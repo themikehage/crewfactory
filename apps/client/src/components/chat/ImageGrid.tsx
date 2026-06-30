@@ -43,7 +43,7 @@ export function resolveImageUrl(url: string, sessionId: string | null, activeRep
   if (cleanPath.startsWith("workspace/")) {
     cleanPath = cleanPath.substring("workspace/".length);
   }
-  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}`;
+  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}&raw=true`;
 }
 
 interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {

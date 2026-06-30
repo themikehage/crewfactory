@@ -48,7 +48,7 @@ export function resolveFileUrl(rawUrl: string, sessionId: string | null, activeR
   if (cleanPath.startsWith("workspace/")) {
     cleanPath = cleanPath.substring("workspace/".length);
   }
-  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}`;
+  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}&raw=true`;
 }
 
 export function getFileType(url: string): MediaType {
@@ -67,13 +67,22 @@ export function extractFileMarkers(text: string): FileMarker[] {
 
   const markers: FileMarker[] = [];
 
+  const getBasename = (path: string) => {
+    return path.replace(/\\/g, "/").split("/").pop()?.toLowerCase() ?? "";
+  };
+
+  const isDuplicate = (path: string) => {
+    const base = getBasename(path);
+    return markers.some((m) => getBasename(m.url) === base);
+  };
+
   // Match: === Title ===\npath/url (any extension)
   const markerRegex = /===\s*([^\n]+?)\s*===\s*\n(https?:\/\/[^\s]+|[\w/\\:.-]+\.\w+)/gi;
   let match;
   while ((match = markerRegex.exec(text)) !== null) {
     const title = match[1].trim();
     const url = match[2].trim();
-    if (!markers.some((m) => m.url === url)) {
+    if (!isDuplicate(url)) {
       markers.push({ title, url, type: getFileType(url) });
     }
   }
@@ -82,7 +91,7 @@ export function extractFileMarkers(text: string): FileMarker[] {
   const urlRegex = /(https?:\/\/[^\s]+?\.(?:jpg|jpeg|png|webp|gif|svg))/gi;
   const rawMatches = text.match(urlRegex) ?? [];
   for (const url of rawMatches) {
-    if (!markers.some((m) => m.url === url)) {
+    if (!isDuplicate(url)) {
       markers.push({ title: "", url, type: "image" });
     }
   }
@@ -91,7 +100,7 @@ export function extractFileMarkers(text: string): FileMarker[] {
   const localImageRegex = /(?:[a-zA-Z]:[\\/]|[\/])(?:[\w.-]+[\\/])+\w+\.(?:jpg|jpeg|png|webp|gif|svg)/gi;
   const localMatches = text.match(localImageRegex) ?? [];
   for (const path of localMatches) {
-    if (!markers.some((m) => m.url === path)) {
+    if (!isDuplicate(path)) {
       const fileName = path.split(/[\\/]/).pop();
       markers.push({ url: path, title: fileName ?? "", type: "image" });
     }
