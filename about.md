@@ -138,6 +138,13 @@
 - **Real-Time Streaming API & WS**: Server mounts `/api/pi/projects` endpoints and `/ws/pi` WebSocket handler for live streaming of tool executions and agent responses.
 - **Interactive UI**: `PiProjectWorkspaceView` tab inside `ProjectDetailView` allowing users to chat directly with Pi coding agents, track active skills, and monitor token usage.
 
+### Config & Workspace Backup (Portability)
+- **Lightweight Export**: Generates a compact zip containing only configuration files (`credentials.json`, `auth.json`, `integrations.json`, `env.json`), user programmatic agent definitions, custom channel definitions, and global workspace skills.
+- **Full Workspace Backup**: Generates a complete backup zip including all configurations, agent/channel definitions, short/long-term memories, uploaded assets, and project repositories.
+- **Strict Size/Memory Exclusions**: Walk algorithm automatically filters and ignores memory-intensive build assets (`node_modules/`, `.git/`, `dist/`, `build/`, `.next/`, `.output/`) to prevent server memory bloat.
+- **Merge/Overwrite Restoration Modes**: Supports merging zip configurations with current setups, or cleanly wiping all data before overwrite.
+- **Safety Preflight & Warnings**: Shows warning modals on destructive overwrite imports, offering quick backup downloads and text verification inputs.
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -176,8 +183,10 @@
 | GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
 | GET/POST/DELETE | /api/agents | Agent registration, listing, and management |
 | GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), and message dispatch (`/send`) |
-| WS | /ws | WebSocket for real-time streaming (events: prompt, steer, follow_up, abort, compact, get_context_usage, channel_send, channel_join, channel_abort) |
+| GET | /api/backup/export | Export zip backup (supports ?type=light|full) |
+| POST | /api/backup/import | Import zip backup (supports ?mode=merge|overwrite) |
 | GET | /api/health | Health check |
+
 
 ## Architecture
 
@@ -197,6 +206,7 @@ packages/shared/  Shared Zod schemas and types
 - `pi/preview-watcher.ts` — `fs.watch` on build dir, build status detection, broadcast preview_status via WS
 - `lib/auth-helpers.ts` — Shared `getUsername()` helper supporting `?token=` query param and `Authorization` header
 - `routes/providers.ts` — Dynamic provider configuration API
+- `routes/backup.ts` — Backup Hono router for exporting and importing zip archives.
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
 - `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints
 - `agents/create-agent-server.ts` — Factory for isolated agent Hono servers. Inherits user authStorage and modelRegistry.

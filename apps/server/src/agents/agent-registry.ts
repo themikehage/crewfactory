@@ -137,6 +137,37 @@ class AgentRegistry {
     const entry = this.agents.get(id);
     if (entry) entry.status = status;
   }
+
+  async reloadUserAgents(username: string): Promise<void> {
+    for (const [id, entry] of this.agents.entries()) {
+      if (entry.username === username) {
+        await this.stop(id, false);
+      }
+    }
+    const agentsDir = this.getBaseDir(username);
+    if (existsSync(agentsDir)) {
+      try {
+        const entries = readdirSync(agentsDir, { withFileTypes: true });
+        for (const entry of entries) {
+          if (entry.isDirectory()) {
+            const defPath = join(agentsDir, entry.name, "definition.json");
+            if (existsSync(defPath)) {
+              try {
+                const def = JSON.parse(readFileSync(defPath, "utf-8"));
+                if (!this.agents.has(def.id)) {
+                  await this.register(username, def, false);
+                }
+              } catch (err) {
+                console.error(`[AgentRegistry] Failed to load agent ${entry.name}:`, err);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[AgentRegistry] Failed to scan directory ${agentsDir}:`, err);
+      }
+    }
+  }
 }
 
 export const agentRegistry = new AgentRegistry();

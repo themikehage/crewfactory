@@ -186,6 +186,11 @@ class PiSessionManager {
     return ctx;
   }
 
+  clearUserContext(username: string): void {
+    this.users.delete(username);
+  }
+
+
   async getOrCreateSession(
     username: string,
     sessionId: string,

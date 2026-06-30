@@ -15,6 +15,7 @@ import { integrationsRouter } from "./routes/integrations";
 import { agentsRouter } from "./routes/agents";
 import { channelsRouter } from "./routes/channels";
 import { previewRouter } from "./routes/preview";
+import { backupRouter } from "./routes/backup";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 import { startPreviewServer } from "./preview-server";
 
@@ -36,6 +37,7 @@ app.route("/api/integrations", integrationsRouter);
 app.route("/api/preview", previewRouter);
 app.route("/api/agents", agentsRouter);
 app.route("/api/channels", channelsRouter);
+app.route("/api/backup", backupRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 

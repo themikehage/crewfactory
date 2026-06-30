@@ -310,3 +310,13 @@ migrar la interfaz a una interfaz slack like
 - [x] 36.5 Refactor `ImageGrid.tsx` to handle `activeRepoName` workspace image resolution
 - [x] 36.6 Refactor `ToolResultInspector.tsx` and `MessageList.tsx` to support rendering PDFs inside iframes, audio/video players, and downloadable Office cards
 - [x] 36.7 Validate full build pipeline for client and server (EXIT 0)
+
+## Phase 37: Config & Workspace Import/Export Backup
+- [x] 37.1 Mount backup router `/api/backup` in Hono server
+- [x] 37.2 Expose context clearing helpers in session-manager and agent-registry
+- [x] 37.3 Implement recursive zip walker with exclusions (`node_modules`, `.git`, build outputs)
+- [x] 37.4 Build `GET /api/backup/export` supporting `lightweight` vs `full` zip packaging
+- [x] 37.5 Build `POST /api/backup/import` supporting `merge` vs `overwrite` restoration
+- [x] 37.6 Integrate backup/restore settings cards in React `SettingsPage.tsx`
+- [x] 37.7 Build overwrite destructive warning modal with download-backup shortcut and confirm input field
+- [x] 37.8 Validate server/client builds and run walker exclusion unit tests
