@@ -1,32 +1,31 @@
-import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, statSync, openSync, fstatSync, readSync, closeSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
 
 class ChannelStore {
-  private baseDir = "/tmp/pi-channels";
+  private getBaseDir(username: string): string {
+    return join("/tmp/crewfactory", username, "channels");
+  }
 
-  constructor() {
-    if (!existsSync(this.baseDir)) {
-      mkdirSync(this.baseDir, { recursive: true });
+  private getChannelDir(username: string, id: string): string {
+    const dir = join(this.getBaseDir(username), id);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
     }
+    return dir;
   }
 
-  private getChannelDir(id: string): string {
-    return join(this.baseDir, id);
+  private getChannelJsonPath(username: string, id: string): string {
+    return join(this.getChannelDir(username, id), "channel.json");
   }
 
-  private getChannelJsonPath(id: string): string {
-    return join(this.getChannelDir(id), "channel.json");
+  private getMessagesPath(username: string, id: string): string {
+    return join(this.getChannelDir(username, id), "messages.jsonl");
   }
 
-  private getMessagesPath(id: string): string {
-    return join(this.getChannelDir(id), "messages.jsonl");
-  }
-
-  createChannel(data: CreateChannel): Channel {
+  createChannel(username: string, data: CreateChannel): Channel {
     const id = crypto.randomUUID();
-    const dir = this.getChannelDir(id);
-    mkdirSync(dir, { recursive: true });
+    const dir = this.getChannelDir(username, id);
 
     const now = new Date().toISOString();
     const channel: Channel = {
@@ -40,14 +39,14 @@ class ChannelStore {
       updatedAt: now,
     };
 
-    writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");
-    writeFileSync(this.getMessagesPath(id), "", "utf-8"); // create empty messages file
+    writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
+    writeFileSync(this.getMessagesPath(username, id), "", "utf-8"); // create empty messages file
 
     return channel;
   }
 
-  getChannel(id: string): Channel | null {
-    const jsonPath = this.getChannelJsonPath(id);
+  getChannel(username: string, id: string): Channel | null {
+    const jsonPath = this.getChannelJsonPath(username, id);
     if (!existsSync(jsonPath)) return null;
     try {
       const parsed = JSON.parse(readFileSync(jsonPath, "utf-8"));
@@ -61,22 +60,32 @@ class ChannelStore {
     }
   }
 
-  listChannels(): Channel[] {
-    if (!existsSync(this.baseDir)) return [];
-    const entries = readdirSync(this.baseDir, { withFileTypes: true });
+  listChannels(username: string): Channel[] {
+    const baseDir = this.getBaseDir(username);
+    if (!existsSync(baseDir)) return [];
+    const entries = readdirSync(baseDir, { withFileTypes: true });
     const channels: Channel[] = [];
     for (const entry of entries) {
       if (entry.isDirectory()) {
-        const channel = this.getChannel(entry.name);
-        if (channel) channels.push(channel);
+        const channel = this.getChannel(username, entry.name);
+        if (channel) {
+          const msgPath = this.getMessagesPath(username, entry.name);
+          if (existsSync(msgPath)) {
+            try {
+              const stats = statSync(msgPath);
+              channel.updatedAt = stats.mtime.toISOString();
+            } catch {}
+          }
+          channels.push(channel);
+        }
       }
     }
     channels.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
     return channels;
   }
 
-  updateChannel(id: string, updates: UpdateChannel): Channel | null {
-    const channel = this.getChannel(id);
+  updateChannel(username: string, id: string, updates: UpdateChannel): Channel | null {
+    const channel = this.getChannel(username, id);
     if (!channel) return null;
 
     if (updates.name !== undefined) channel.name = updates.name;
@@ -85,34 +94,34 @@ class ChannelStore {
     if (updates.maxChainDepth !== undefined) channel.maxChainDepth = updates.maxChainDepth;
     channel.updatedAt = new Date().toISOString();
 
-    writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");
+    writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
     return channel;
   }
 
-  updateChannelContext(id: string, context: ChannelContextItem[]): Channel | null {
-    const channel = this.getChannel(id);
+  updateChannelContext(username: string, id: string, context: ChannelContextItem[]): Channel | null {
+    const channel = this.getChannel(username, id);
     if (!channel) return null;
 
     channel.context = context;
     channel.updatedAt = new Date().toISOString();
 
-    writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");
+    writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
     return channel;
   }
 
-  updateMembers(id: string, members: ChannelMember[]): Channel | null {
-    const channel = this.getChannel(id);
+  updateMembers(username: string, id: string, members: ChannelMember[]): Channel | null {
+    const channel = this.getChannel(username, id);
     if (!channel) return null;
 
     channel.members = members;
     channel.updatedAt = new Date().toISOString();
 
-    writeFileSync(this.getChannelJsonPath(id), JSON.stringify(channel, null, 2), "utf-8");
+    writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
     return channel;
   }
 
-  deleteChannel(id: string): boolean {
-    const dir = this.getChannelDir(id);
+  deleteChannel(username: string, id: string): boolean {
+    const dir = this.getChannelDir(username, id);
     if (existsSync(dir)) {
       rmSync(dir, { recursive: true, force: true });
       return true;
@@ -120,39 +129,85 @@ class ChannelStore {
     return false;
   }
 
-  appendMessage(channelId: string, msg: ChannelMessage): void {
-    const dir = this.getChannelDir(channelId);
+  appendMessage(username: string, channelId: string, msg: ChannelMessage): void {
+    const dir = this.getChannelDir(username, channelId);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
-    const messagesPath = this.getMessagesPath(channelId);
+    const messagesPath = this.getMessagesPath(username, channelId);
     appendFileSync(messagesPath, JSON.stringify(msg) + "\n", "utf-8");
 
-    // Touch channel updatedAt
-    const channel = this.getChannel(channelId);
-    if (channel) {
-      channel.updatedAt = new Date().toISOString();
-      writeFileSync(this.getChannelJsonPath(channelId), JSON.stringify(channel, null, 2), "utf-8");
+    try {
+      const stats = statSync(messagesPath);
+      if (stats.size > 10 * 1024 * 1024) {
+        const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
+        const rotatedPath = join(dir, `messages.${timestamp}.jsonl`);
+        renameSync(messagesPath, rotatedPath);
+        writeFileSync(messagesPath, "", "utf-8");
+      }
+    } catch (e) {
+      console.error("Failed to rotate messages.jsonl:", e);
     }
   }
 
-  getMessages(channelId: string, limit: number = 100, sessionId?: string): ChannelMessage[] {
-    const messagesPath = this.getMessagesPath(channelId);
+  getMessages(username: string, channelId: string, limit: number = 100, sessionId?: string): ChannelMessage[] {
+    const messagesPath = this.getMessagesPath(username, channelId);
     if (!existsSync(messagesPath)) return [];
+    
+    let fd: number | null = null;
     try {
-      const content = readFileSync(messagesPath, "utf-8");
-      const lines = content.trim().split("\n").filter((l) => l.trim().length > 0);
+      fd = openSync(messagesPath, "r");
+      const stats = fstatSync(fd);
+      const fileSize = stats.size;
+      if (fileSize === 0) return [];
+
+      const bufferSize = Math.min(65536, fileSize);
+      const buffer = Buffer.alloc(bufferSize);
+      let filePosition = fileSize;
+      let leftover = "";
       const messages: ChannelMessage[] = [];
-      for (const line of lines) {
+
+      while (filePosition > 0 && messages.length < limit) {
+        const readLength = Math.min(bufferSize, filePosition);
+        filePosition -= readLength;
+        readSync(fd, buffer, 0, readLength, filePosition);
+
+        let chunk = buffer.toString("utf-8", 0, readLength) + leftover;
+        const chunkLines = chunk.split("\n");
+        
+        leftover = chunkLines[0];
+        
+        for (let i = chunkLines.length - 1; i >= 1; i--) {
+          const line = chunkLines[i].trim();
+          if (!line) continue;
+          try {
+            const parsed: ChannelMessage = JSON.parse(line);
+            if (!sessionId || parsed.sessionId === sessionId) {
+              messages.unshift(parsed);
+              if (messages.length >= limit) {
+                break;
+              }
+            }
+          } catch {}
+        }
+      }
+
+      if (filePosition === 0 && leftover.trim() && messages.length < limit) {
         try {
-          const parsed: ChannelMessage = JSON.parse(line);
+          const parsed: ChannelMessage = JSON.parse(leftover.trim());
           if (!sessionId || parsed.sessionId === sessionId) {
-            messages.push(parsed);
+            messages.unshift(parsed);
           }
         } catch {}
       }
-      return messages.slice(-limit);
-    } catch {
+
+      return messages;
+    } catch (e) {
+      console.error("Failed to tail-read channel messages:", e);
       return [];
+    } finally {
+      if (fd !== null) {
+        try { closeSync(fd); } catch {}
+      }
     }
   }
 }

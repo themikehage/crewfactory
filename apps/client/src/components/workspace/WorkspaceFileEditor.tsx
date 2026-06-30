@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
 import type { FileInfo } from "shared";
+import { apiFetch } from "@/lib/api";
 
 interface Props {
   file: FileInfo | null;
@@ -99,6 +100,45 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
     [handleSave]
   );
 
+  const [previewBlobUrl, setPreviewBlobUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!file) {
+      setPreviewBlobUrl(null);
+      return;
+    }
+    let active = true;
+    let url = "";
+
+    const loadBlob = async () => {
+      if (!isHtml && !isImage) {
+        setPreviewBlobUrl(null);
+        return;
+      }
+      try {
+        const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
+        const res = await apiFetch(`/api/workspace/${file.path}?raw=true${repoQuery}`);
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (active) {
+          url = URL.createObjectURL(blob);
+          setPreviewBlobUrl(url);
+        }
+      } catch (err) {
+        console.error("Failed to load preview blob:", err);
+      }
+    };
+
+    loadBlob();
+
+    return () => {
+      active = false;
+      if (url) {
+        URL.revokeObjectURL(url);
+      }
+    };
+  }, [file?.path, activeRepoName, isHtml, isImage, saveStatus]);
+
   if (!file) {
     return (
       <div className="h-full flex flex-col items-center justify-center text-text-secondary/50 font-sans border-t border-surface sm:border-t-0 sm:border-l border-surface">
@@ -116,14 +156,43 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
     );
   }
 
-  const token = localStorage.getItem("token");
-  const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
-  const rawFileUrl = `/api/workspace/${file.path}?raw=true&token=${encodeURIComponent(
-    token || ""
-  )}${repoQuery}`;
-  const downloadUrl = `/api/workspace/${file.path}?download=true&token=${encodeURIComponent(
-    token || ""
-  )}${repoQuery}`;
+  const handleOpenRaw = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    if (previewBlobUrl) {
+      window.open(previewBlobUrl, "_blank");
+    } else {
+      try {
+        const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
+        const res = await apiFetch(`/api/workspace/${file.path}?raw=true${repoQuery}`);
+        if (!res.ok) throw new Error("Failed to load raw file");
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        window.open(url, "_blank");
+      } catch (err) {
+        console.error("Error opening file:", err);
+      }
+    }
+  };
+
+  const handleDownload = async (e: React.MouseEvent) => {
+    e.preventDefault();
+    try {
+      const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
+      const res = await apiFetch(`/api/workspace/${file.path}?download=true${repoQuery}`);
+      if (!res.ok) throw new Error("Failed to download");
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = file.name;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error("Error downloading file:", err);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-bg border-t border-surface sm:border-t-0 sm:border-l border-surface">
@@ -135,14 +204,12 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
               Fullscreen Preview - {file.name}
             </span>
             <div className="flex items-center gap-3">
-              <a
-                href={rawFileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="px-2.5 py-1 bg-surfaceHover hover:bg-surfaceHover/80 text-text-primary text-[10px] rounded font-semibold transition-colors flex items-center gap-1"
+              <button
+                onClick={handleOpenRaw}
+                className="px-2.5 py-1 bg-surfaceHover hover:bg-surfaceHover/80 text-text-primary text-[10px] rounded font-semibold transition-colors flex items-center gap-1 cursor-pointer"
               >
                 New Tab
-              </a>
+              </button>
               <button
                 onClick={() => setIsFullscreen(false)}
                 className="px-2.5 py-1 bg-accent hover:bg-accent/80 text-text-primary text-[10px] rounded font-semibold transition-colors cursor-pointer"
@@ -153,7 +220,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
           </div>
           <div className="flex-1 w-full h-full bg-white">
             <iframe
-              src={rawFileUrl}
+              src={previewBlobUrl || ""}
               className="w-full h-full border-0"
               title="Fullscreen HTML Preview"
             />
@@ -251,11 +318,9 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
                 </svg>
                 Fullscreen
               </button>
-              <a
-                href={rawFileUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors"
+              <button
+                onClick={handleOpenRaw}
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors cursor-pointer"
                 title="Open in new tab"
               >
                 <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
@@ -263,14 +328,13 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
                   <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
                 </svg>
                 New Tab
-              </a>
+              </button>
             </>
           )}
 
-          <a
-            href={downloadUrl}
-            download={file.name}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors"
+          <button
+            onClick={handleDownload}
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors cursor-pointer"
             title="Download file"
           >
             <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
@@ -281,7 +345,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
               />
             </svg>
             Download
-          </a>
+          </button>
         </div>
       </div>
 
@@ -302,7 +366,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
         ) : isHtml && activeTab === "preview" ? (
           <div className="w-full h-full bg-white">
             <iframe
-              src={rawFileUrl}
+              src={previewBlobUrl || ""}
               className="w-full h-full border-0"
               title="HTML Preview Pane"
             />
@@ -310,7 +374,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
         ) : isImage ? (
           <div className="w-full h-full overflow-auto bg-black/10 flex items-center justify-center p-4">
             <img
-              src={rawFileUrl}
+              src={previewBlobUrl || ""}
               alt={file.name}
               className="max-w-full max-h-full object-contain rounded border border-surface shadow-md"
             />
@@ -334,13 +398,12 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
             <p className="text-[10px] text-text-secondary/50 mb-4 max-w-xs">
               File: {file.name} ({Math.round(file.size / 1024)} KB)
             </p>
-            <a
-              href={downloadUrl}
-              download={file.name}
-              className="px-4 py-1.5 bg-surfaceHover hover:bg-surfaceHover/80 text-text-primary text-xs rounded font-semibold transition-colors"
+            <button
+              onClick={handleDownload}
+              className="px-4 py-1.5 bg-surfaceHover hover:bg-surfaceHover/80 text-text-primary text-xs rounded font-semibold transition-colors cursor-pointer"
             >
               Download File
-            </a>
+            </button>
           </div>
         )}
       </div>

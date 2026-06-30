@@ -30,6 +30,7 @@ interface Props {
   args: Record<string, unknown>;
   result: ToolResultData | null;
   sessionId: string | null;
+  activeRepoName?: string | null;
 }
 
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
@@ -182,7 +183,7 @@ function ToolBody({ toolName, args, result }: { toolName: string; args: Record<s
   }
 }
 
-export function ToolCallRow({ toolName, args, result, sessionId: _sessionId }: Props) {
+export function ToolCallRow({ toolName, args, result, sessionId: _sessionId, activeRepoName: _activeRepoName }: Props) {
   const [expanded, setExpanded] = useState(
     toolName === "edit" || toolName === "bash"
   );

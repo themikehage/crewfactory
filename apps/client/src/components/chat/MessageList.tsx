@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import { RichMarkdown } from "./RichMarkdown";
 import { ToolCallRow, type ToolResultData } from "./tools/ToolCallRow";
-import { extractFileMarkers, isHtml, HtmlFileFetcher } from "./ToolResultInspector";
+import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher } from "./ToolResultInspector";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
 
@@ -63,6 +63,7 @@ interface Props {
   messages: Message[];
   onNavigate?: (targetId: string) => void;
   sessionId: string | null;
+  activeRepoName?: string | null;
 }
 
 type RenderGroup =
@@ -142,22 +143,102 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
   );
 }
 
-function AssistantTextBlock({ text, sessionId }: { text: string; sessionId: string | null }) {
+function AssistantTextBlock({ text, sessionId, activeRepoName }: { text: string; sessionId: string | null; activeRepoName?: string | null }) {
   const htmlOutput = isHtml(text) ? text : null;
   const markers = extractFileMarkers(text);
   const imageMarkers = markers.filter(m => m.type === "image");
   const htmlMarkers = markers.filter(m => m.type === "html");
+  const pdfMarkers = markers.filter(m => m.type === "pdf");
+  const audioMarkers = markers.filter(m => m.type === "audio");
+  const videoMarkers = markers.filter(m => m.type === "video");
+  const officeMarkers = markers.filter(m => m.type === "office" || m.type === "other");
 
   if (htmlOutput || markers.length > 0) {
+    const token = localStorage.getItem("token");
     return (
       <div className="space-y-3">
         {htmlOutput && <HtmlPreview html={htmlOutput} />}
         {htmlMarkers.map((m, i) => (
-          <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} />
+          <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} activeRepoName={activeRepoName} />
         ))}
         {imageMarkers.length > 0 && (
-          <ImageGrid images={imageMarkers.map(m => ({ url: m.url, title: m.title }))} sessionId={sessionId} />
+          <ImageGrid images={imageMarkers.map(m => ({ url: m.url, title: m.title }))} sessionId={sessionId} activeRepoName={activeRepoName} />
         )}
+        
+        {pdfMarkers.map((m, i) => {
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+          return (
+            <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-surface-hover overflow-hidden bg-surface flex flex-col font-sans">
+              <div className="bg-surface-hover/50 px-3 py-1.5 border-b border-surface-hover flex items-center justify-between text-[11px] text-text-secondary">
+                <span className="font-medium truncate">PDF Preview: {m.title || "Document"}</span>
+                <a
+                  href={fileUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-2 py-0.5 rounded bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent font-semibold transition-colors cursor-pointer"
+                >
+                  Open in New Tab
+                </a>
+              </div>
+              <iframe
+                src={fileUrl}
+                className="w-full flex-1 border-0"
+                title={m.title || "PDF document"}
+              />
+            </div>
+          );
+        })}
+
+        {audioMarkers.map((m, i) => {
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+          return (
+            <div key={`audio-${i}`} className="w-full p-3 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
+              <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Audio output"}</span>
+              <audio controls src={fileUrl} className="w-full h-8 outline-none animate-fade-in" />
+            </div>
+          );
+        })}
+
+        {videoMarkers.map((m, i) => {
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+          return (
+            <div key={`video-${i}`} className="w-full p-2 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
+              <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Video output"}</span>
+              <video controls src={fileUrl} className="w-full rounded border border-surface-hover max-h-96" />
+            </div>
+          );
+        })}
+
+        {officeMarkers.map((m, i) => {
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+          const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
+          const extension = m.url.split(".").pop() || "file";
+          return (
+            <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-surface border border-surface-hover rounded-lg font-sans">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="w-9 h-9 rounded bg-accent/15 flex items-center justify-center text-accent text-[10px] font-extrabold select-none shrink-0 border border-accent/20 uppercase">
+                  {extension.substring(0, 3)}
+                </div>
+                <div className="flex flex-col min-w-0">
+                  <span className="text-xs font-semibold text-text-primary truncate">{filename}</span>
+                  <span className="text-[9px] text-text-secondary/50 uppercase font-mono">{extension}</span>
+                </div>
+              </div>
+              <a
+                href={fileUrl}
+                download={filename}
+                className="px-3 py-1.5 text-[11px] font-semibold rounded bg-accent text-bg hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
+              >
+                Download
+              </a>
+            </div>
+          );
+        })}
+
         {!htmlOutput && <RichMarkdown content={text} />}
       </div>
     );
@@ -169,10 +250,12 @@ function AgentTurn({
   messages,
   sessionId,
   onNavigate,
+  activeRepoName,
 }: {
   messages: Message[];
   sessionId: string | null;
   onNavigate?: (id: string) => void;
+  activeRepoName?: string | null;
 }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
@@ -208,7 +291,7 @@ function AgentTurn({
                 if (block.type === "text" && block.text) {
                   return (
                     <div key={i} className="text-text-primary text-sm leading-relaxed">
-                      <AssistantTextBlock text={block.text} sessionId={sessionId} />
+                      <AssistantTextBlock text={block.text} sessionId={sessionId} activeRepoName={activeRepoName} />
                     </div>
                   );
                 }
@@ -232,6 +315,7 @@ function AgentTurn({
                       args={block.arguments ?? {}}
                       result={resultData}
                       sessionId={sessionId}
+                      activeRepoName={activeRepoName}
                     />
                   );
                 }
@@ -288,7 +372,7 @@ function UserBubble({ msg, onNavigate }: { msg: Message; onNavigate?: (id: strin
   );
 }
 
-export const MessageList: FC<Props> = ({ messages, onNavigate, sessionId }) => {
+export const MessageList: FC<Props> = ({ messages, onNavigate, sessionId, activeRepoName }) => {
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-text-secondary">
@@ -316,7 +400,7 @@ export const MessageList: FC<Props> = ({ messages, onNavigate, sessionId }) => {
             {group.type === "user" ? (
               <UserBubble msg={group.msg} onNavigate={onNavigate} />
             ) : (
-              <AgentTurn messages={group.messages} sessionId={sessionId} onNavigate={onNavigate} />
+              <AgentTurn messages={group.messages} sessionId={sessionId} onNavigate={onNavigate} activeRepoName={activeRepoName} />
             )}
           </motion.div>
         ))}

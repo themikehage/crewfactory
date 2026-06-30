@@ -118,6 +118,7 @@ export function AppRouter() {
       activeRepoName={activeRepoName}
       activeAgent={activeAgent}
       activeChannel={activeChannel}
+      onSelectRepo={handleSelectRepo}
     >
       {route.page === "projects" && (
         <DashboardPage onSelectRepo={handleSelectRepo} />

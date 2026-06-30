@@ -318,7 +318,7 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
   }, [sessionId, subscribe]);
 
   const handleSend = useCallback(
-    (message: string, option?: "steer" | "follow_up", tools?: string[]) => {
+    (message: string, option?: "steer" | "follow_up", tools?: string[], images?: Array<{ type: "image"; data: string; mimeType: string }>) => {
       if (!message.trim() || !sessionId) return;
 
       isAtBottomRef.current = true;
@@ -352,7 +352,7 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
       } else {
         const userMsg: Message = { role: "user", content: message };
         setMessages((prev) => [...prev, userMsg]);
-        send({ type: "prompt", message, sessionId, tools });
+        send({ type: "prompt", message, sessionId, tools, images });
         if (activeChannel) {
           const token = localStorage.getItem("token");
           fetch(`/api/channels/${activeChannel.id}/send`, {
@@ -478,6 +478,7 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           sessionId={sessionId}
           onToolsChange={setSandboxTools}
           runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
+          activeRepoName={activeRepoName}
         />
       </div>
 

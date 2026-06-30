@@ -11,6 +11,7 @@ export interface AgentServer {
 }
 
 export interface AgentEntry {
+  username: string;
   server: AgentServer;
   status: AgentStatus;
   createdAt: string;

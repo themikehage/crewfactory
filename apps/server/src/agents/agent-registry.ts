@@ -6,40 +6,62 @@ import { join } from "node:path";
 
 class AgentRegistry {
   private agents = new Map<string, AgentEntry>();
-  private baseDir = "/tmp/pi-agents";
 
-  constructor() {
-    if (!existsSync(this.baseDir)) {
-      mkdirSync(this.baseDir, { recursive: true });
+  constructor() {}
+
+  private getBaseDir(username: string): string {
+    return join("/tmp/crewfactory", username, "agents");
+  }
+
+  private getAgentDir(username: string, id: string): string {
+    const dir = join(this.getBaseDir(username), id);
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
     }
+    return dir;
   }
 
   async init(): Promise<void> {
-    if (!existsSync(this.baseDir)) return;
-    const entries = readdirSync(this.baseDir, { withFileTypes: true });
-    for (const entry of entries) {
-      if (entry.isDirectory()) {
-        const defPath = join(this.baseDir, entry.name, "definition.json");
-        if (existsSync(defPath)) {
-          try {
-            const def: AgentDefinition = JSON.parse(readFileSync(defPath, "utf-8"));
-            if (!this.agents.has(def.id)) {
-              await this.register(def, false); // don't re-write file
+    const parentDir = "/tmp/crewfactory";
+    if (!existsSync(parentDir)) return;
+    try {
+      const userDirs = readdirSync(parentDir, { withFileTypes: true });
+      for (const userDir of userDirs) {
+        if (userDir.isDirectory()) {
+          const username = userDir.name;
+          const agentsDir = join(parentDir, username, "agents");
+          if (existsSync(agentsDir)) {
+            const entries = readdirSync(agentsDir, { withFileTypes: true });
+            for (const entry of entries) {
+              if (entry.isDirectory()) {
+                const defPath = join(agentsDir, entry.name, "definition.json");
+                if (existsSync(defPath)) {
+                  try {
+                    const def: AgentDefinition = JSON.parse(readFileSync(defPath, "utf-8"));
+                    if (!this.agents.has(def.id)) {
+                      await this.register(username, def, false); // don't re-write file
+                    }
+                  } catch (err) {
+                    console.error(`[AgentRegistry] Failed to load persisted agent ${entry.name} for ${username}:`, err);
+                  }
+                }
+              }
             }
-          } catch (err) {
-            console.error(`[AgentRegistry] Failed to load persisted agent ${entry.name}:`, err);
           }
         }
       }
+    } catch (err) {
+      console.error("[AgentRegistry] Error scanning agents during init:", err);
     }
   }
 
-  async register(definition: AgentDefinition, saveToDisk = true): Promise<AgentEntry> {
+  async register(username: string, definition: AgentDefinition, saveToDisk = true): Promise<AgentEntry> {
     if (this.agents.has(definition.id)) {
       throw new Error(`Agent "${definition.id}" is already registered`);
     }
 
     const entry: AgentEntry = {
+      username,
       server: null as any,
       status: "starting",
       createdAt: new Date().toISOString(),
@@ -47,7 +69,7 @@ class AgentRegistry {
     this.agents.set(definition.id, entry);
 
     try {
-      const server = await createAgentServer(definition);
+      const server = await createAgentServer(definition, username);
       entry.server = server;
       entry.status = "idle";
 
@@ -57,8 +79,7 @@ class AgentRegistry {
       });
 
       if (saveToDisk) {
-        const agentDir = join(this.baseDir, definition.id);
-        if (!existsSync(agentDir)) mkdirSync(agentDir, { recursive: true });
+        const agentDir = this.getAgentDir(username, definition.id);
         writeFileSync(join(agentDir, "definition.json"), JSON.stringify(definition, null, 2), "utf-8");
       }
 
@@ -74,17 +95,19 @@ class AgentRegistry {
     return this.agents.get(id);
   }
 
-  list(): AgentInfo[] {
+  list(username: string): AgentInfo[] {
     const result: AgentInfo[] = [];
     for (const [id, entry] of this.agents) {
-      result.push({
-        id,
-        name: entry.server.definition.name,
-        role: entry.server.definition.role,
-        status: entry.status,
-        port: entry.server.definition.port,
-        createdAt: entry.createdAt,
-      });
+      if (entry.username === username) {
+        result.push({
+          id,
+          name: entry.server.definition.name,
+          role: entry.server.definition.role,
+          status: entry.status,
+          port: entry.server.definition.port,
+          createdAt: entry.createdAt,
+        });
+      }
     }
     return result;
   }
@@ -97,7 +120,7 @@ class AgentRegistry {
     this.agents.delete(id);
 
     if (removeDisk) {
-      const agentDir = join(this.baseDir, id);
+      const agentDir = this.getAgentDir(entry.username, id);
       if (existsSync(agentDir)) {
         rmSync(agentDir, { recursive: true, force: true });
       }

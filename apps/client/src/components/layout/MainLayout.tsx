@@ -1,4 +1,5 @@
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
+import { Logo } from "@/components/ui/Logo";
 import { useState, useCallback, useEffect, useRef } from "react";
 import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
@@ -9,10 +10,11 @@ interface Props {
   activeRepoName: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
+  onSelectRepo?: (repoName: string | null) => void;
   children: ReactNode;
 }
 
-export function MainLayout({ route, onNavigate, activeRepoName, activeAgent, activeChannel = null, children }: Props) {
+export function MainLayout({ route, onNavigate, activeRepoName, activeAgent, activeChannel = null, onSelectRepo, children }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
 
@@ -149,15 +151,21 @@ export function MainLayout({ route, onNavigate, activeRepoName, activeAgent, act
       </nav>
     );
   };
-
   return (
     <div className="h-dvh flex flex-col bg-bg text-text-primary overflow-hidden font-sans">
       <header className="h-10 sm:h-12 border-b border-surface px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-surface/30">
         <div className="flex items-center gap-1.5 sm:gap-2">
+          <button
+            onClick={() => onSelectRepo ? onSelectRepo(null) : onNavigate("/")}
+            className="p-1 text-text-secondary hover:text-text-primary rounded cursor-pointer flex-shrink-0"
+            title="Inicio"
+          >
+            <Logo size={20} className="sm:w-[22px] sm:h-[22px] w-[18px] h-[18px]" />
+          </button>
           {isChat && (
             <button
               onClick={() => setSidebarOpen((p) => !p)}
-              className="sm:hidden p-1 text-text-secondary hover:text-text-primary rounded"
+              className="sm:hidden p-1 text-text-secondary hover:text-text-primary rounded flex-shrink-0"
               title="Toggle sessions"
             >
               <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">

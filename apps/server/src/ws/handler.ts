@@ -255,6 +255,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const sessionId = data.sessionId as string;
     const message = data.message as string;
     const tools = data.tools as string[] | undefined;
+    const images = data.images as any[] | undefined;
 
     const session = await piSessionManager.getOrCreateSession(
       user.username,
@@ -267,7 +268,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
     if (session.isStreaming) {
       try {
-        await session.prompt(message, { streamingBehavior: "followUp" });
+        await session.prompt(message, { streamingBehavior: "followUp", images });
       } catch (error) {
         safeSend(
           ws,
@@ -304,7 +305,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     }
 
     try {
-      await session.prompt(message);
+      await session.prompt(message, { images });
     } catch (error) {
       safeSend(
         ws,

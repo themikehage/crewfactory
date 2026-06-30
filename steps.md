@@ -301,3 +301,12 @@ migrar la interfaz a una interfaz slack like
 - [x] 35.5 Expose port 3001 in Dockerfile for production compatibility
 - [x] 35.6 Revert service worker navigateDenylist since port 3001 is another origin
 - [x] 35.7 Validate full build pipeline for client and server (EXIT 0)
+
+## Phase 36: Multimedia Support in Chat (Images & Documents)
+- [x] 36.1 Update backend WebSocket prompt handler to parse base64 image array (`images?: ImageContent[]`) and apply to Pi agent session prompts
+- [x] 36.2 Implement interactive clip attachment button, file type selector, and horizontal preview list in client `InputArea.tsx`
+- [x] 36.3 Add asynchronous helper to parse images to base64 and upload documents to Workspace uploads folder using Multipart HTTP POST
+- [x] 36.4 Autocomplete prompt text with workspace uploaded document links to inform the agent of their paths
+- [x] 36.5 Refactor `ImageGrid.tsx` to handle `activeRepoName` workspace image resolution
+- [x] 36.6 Refactor `ToolResultInspector.tsx` and `MessageList.tsx` to support rendering PDFs inside iframes, audio/video players, and downloadable Office cards
+- [x] 36.7 Validate full build pipeline for client and server (EXIT 0)

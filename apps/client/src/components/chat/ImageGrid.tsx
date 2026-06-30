@@ -1,4 +1,4 @@
-import { useCallback, useState } from "react";
+import { useCallback, useState, useEffect } from "react";
 
 interface ImageItem {
   url: string;
@@ -8,9 +8,10 @@ interface ImageItem {
 interface Props {
   images: ImageItem[];
   sessionId: string | null;
+  activeRepoName?: string | null;
 }
 
-export function resolveImageUrl(url: string, sessionId: string | null): string {
+export function resolveImageUrl(url: string, sessionId: string | null, activeRepoName?: string | null): string {
   if (!url) return "";
 
   if (url.startsWith("data:image/") || url.startsWith("http://") || url.startsWith("https://")) {
@@ -38,10 +39,61 @@ export function resolveImageUrl(url: string, sessionId: string | null): string {
     }
   }
 
-  return url;
+  let cleanPath = url.replace(/\\/g, "/");
+  if (cleanPath.startsWith("workspace/")) {
+    cleanPath = cleanPath.substring("workspace/".length);
+  }
+  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}`;
 }
 
-export function ImageGrid({ images, sessionId }: Props) {
+interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
+  src: string;
+}
+
+export function AuthenticatedImage({ src, ...props }: AuthenticatedImageProps) {
+  const [blobUrl, setBlobUrl] = useState<string>("");
+
+  useEffect(() => {
+    if (!src) return;
+    if (!src.startsWith("/api/")) {
+      setBlobUrl(src);
+      return;
+    }
+
+    let active = true;
+    let url = "";
+
+    const loadImg = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(src, {
+          headers: token ? { Authorization: `Bearer ${token}` } : {},
+        });
+        if (!res.ok) return;
+        const blob = await res.blob();
+        if (active) {
+          url = URL.createObjectURL(blob);
+          setBlobUrl(url);
+        }
+      } catch (err) {
+        console.error("Failed to load image:", err);
+      }
+    };
+
+    loadImg();
+
+    return () => {
+      active = false;
+      if (url) URL.revokeObjectURL(url);
+    };
+  }, [src]);
+
+  if (!blobUrl) return null;
+
+  return <img src={blobUrl} {...props} />;
+}
+
+export function ImageGrid({ images, sessionId, activeRepoName }: Props) {
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const downloadImage = useCallback(async (resolvedUrl: string, filename?: string) => {
@@ -74,12 +126,29 @@ export function ImageGrid({ images, sessionId }: Props) {
     }
   }, []);
 
+  const openImageInNewTab = async (resolvedUrl: string) => {
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(resolvedUrl, {
+        headers: resolvedUrl.startsWith("/api/") && token
+          ? { Authorization: `Bearer ${token}` }
+          : {},
+      });
+      if (!res.ok) throw new Error("Failed to load image");
+      const blob = await res.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      window.open(blobUrl, "_blank");
+    } catch (err) {
+      console.error("Failed to open image in new tab:", err);
+    }
+  };
+
   const downloadAll = useCallback(async () => {
     for (const img of images) {
-      const resolved = resolveImageUrl(img.url, sessionId);
+      const resolved = resolveImageUrl(img.url, sessionId, activeRepoName);
       await downloadImage(resolved, img.title);
     }
-  }, [images, sessionId, downloadImage]);
+  }, [images, sessionId, activeRepoName, downloadImage]);
 
   if (images.length === 0) return null;
 
@@ -106,20 +175,16 @@ export function ImageGrid({ images, sessionId }: Props) {
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-w-full">
         {images.map((img, i) => {
-          const resolved = resolveImageUrl(img.url, sessionId);
+          const resolved = resolveImageUrl(img.url, sessionId, activeRepoName);
           const isDownloading = downloading === resolved;
-          const token = localStorage.getItem("token");
-          const imgSrc = resolved.startsWith("/api/") && token
-            ? `${resolved}${resolved.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`
-            : resolved;
           return (
             <div
               key={i}
               className="group relative rounded-lg overflow-hidden border border-surface-hover bg-surface hover:border-accent/40 shadow-sm transition-all"
             >
               <div className="aspect-square w-full overflow-hidden bg-black/10 flex items-center justify-center">
-                <img
-                  src={imgSrc}
+                <AuthenticatedImage
+                  src={resolved}
                   alt={img.title || "Image content"}
                   loading="lazy"
                   onError={(e) => {
@@ -146,18 +211,16 @@ export function ImageGrid({ images, sessionId }: Props) {
                     </svg>
                   )}
                 </button>
-                <a
-                  href={imgSrc}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors"
+                <button
+                  onClick={() => openImageInNewTab(resolved)}
+                  className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
                   title="Open in new tab"
                 >
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
                     <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
                     <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
                   </svg>
-                </a>
+                </button>
               </div>
 
               {img.title && (

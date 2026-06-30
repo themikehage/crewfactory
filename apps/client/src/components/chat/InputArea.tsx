@@ -10,24 +10,76 @@ export interface MentionTarget {
   name: string;
 }
 
+interface Attachment {
+  id: string;
+  file: File;
+  type: "image" | "document";
+  previewUrl?: string;
+}
+
+function fileToBase64(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        const base64 = reader.result.split(",")[1];
+        resolve(base64);
+      } else {
+        reject(new Error("Failed to read file as base64"));
+      }
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 interface Props {
-  onSend: (message: string, option?: "steer" | "follow_up", tools?: string[]) => void;
+  onSend: (message: string, option?: "steer" | "follow_up", tools?: string[], images?: Array<{ type: "image"; data: string; mimeType: string }>) => void;
   onAbort: () => void;
   streaming: boolean;
   sessionId: string | null;
   onToolsChange?: (tools: string[]) => void;
   runnerActive?: boolean;
   mentionTargets?: MentionTarget[];
+  activeRepoName?: string | null;
 }
 
-export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false, mentionTargets = [] }: Props) {
+export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false, mentionTargets = [], activeRepoName }: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
   const [showOptions, setShowOptions] = useState(false);
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const optionsRef = useRef<HTMLDivElement>(null);
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files) return;
+    const files = Array.from(e.target.files);
+    const newAttachments = files.map((file) => {
+      const isImg = file.type.startsWith("image/");
+      return {
+        id: Math.random().toString(36).substring(2, 9),
+        file,
+        type: isImg ? "image" as const : "document" as const,
+        previewUrl: isImg ? URL.createObjectURL(file) : undefined,
+      };
+    });
+    setAttachments((prev) => [...prev, ...newAttachments]);
+    e.target.value = "";
+  };
+
+  const removeAttachment = (id: string) => {
+    setAttachments((prev) => {
+      const target = prev.find((a) => a.id === id);
+      if (target?.previewUrl) {
+        URL.revokeObjectURL(target.previewUrl);
+      }
+      return prev.filter((a) => a.id !== id);
+    });
+  };
 
   // Skill autocomplete (/ prefix)
   const [showAutocomplete, setShowAutocomplete] = useState(false);
@@ -200,9 +252,62 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
     }, 0);
   };
 
-  const handleSend = (option?: "steer" | "follow_up") => {
-    if (!input.trim() || runnerActive) return;
-    onSend(input, option, activeTools);
+  const handleSend = async (option?: "steer" | "follow_up") => {
+    if ((!input.trim() && attachments.length === 0) || runnerActive) return;
+
+    const imagesToPass: Array<{ type: "image"; data: string; mimeType: string }> = [];
+    let extraPromptText = "";
+
+    const imageAttachments = attachments.filter((a) => a.type === "image");
+    const docAttachments = attachments.filter((a) => a.type === "document");
+
+    for (const img of imageAttachments) {
+      try {
+        const base64Data = await fileToBase64(img.file);
+        imagesToPass.push({
+          type: "image",
+          data: base64Data,
+          mimeType: img.file.type,
+        });
+      } catch (err) {
+        console.error("Error converting image:", err);
+      }
+    }
+
+    for (const doc of docAttachments) {
+      try {
+        const formData = new FormData();
+        formData.append("file", doc.file);
+        
+        const token = localStorage.getItem("token");
+        const url = `/api/workspace/assets/uploads?repo=${activeRepoName || ""}`;
+        
+        const res = await fetch(url, {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+          body: formData,
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          extraPromptText += `\n[Attached File: ${data.path}] (I have uploaded this file to your workspace at: ${data.path})`;
+        } else {
+          console.error("Failed to upload document", doc.file.name);
+        }
+      } catch (err) {
+        console.error("Error uploading document:", err);
+      }
+    }
+
+    const finalMessage = input + extraPromptText;
+    onSend(finalMessage, option, activeTools, imagesToPass.length > 0 ? imagesToPass : undefined);
+    
+    attachments.forEach((a) => {
+      if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+    });
+    setAttachments([]);
     setInput("");
   };
 
@@ -290,53 +395,118 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
 
   return (
     <div className="border-t border-surface p-3 sm:p-4 bg-bg">
-      <div className="max-w-3xl mx-auto flex gap-2 sm:gap-3 relative">
-        {/* @mention autocomplete dropdown */}
-        {showMentionAC && filteredMentions.length > 0 && (
-          <div
-            ref={mentionACRef}
-            className="absolute bottom-full left-0 mb-1.5 w-56 bg-surface border border-accent/30 rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
+      <div className="max-w-3xl mx-auto flex flex-col gap-2">
+        {attachments.length > 0 && (
+          <div className="flex flex-wrap gap-2 mb-1.5 p-1.5 bg-surface/30 border border-surface-hover rounded-lg max-h-32 overflow-y-auto">
+            {attachments.map((att) => (
+              <div
+                key={att.id}
+                className="relative group flex items-center gap-2 bg-surface border border-surface-hover rounded-md p-1.5 pr-2.5 max-w-[200px] text-[11px] shrink-0"
+              >
+                {att.type === "image" && att.previewUrl ? (
+                  <img
+                    src={att.previewUrl}
+                    alt="preview"
+                    className="w-8 h-8 object-cover rounded border border-surface-hover"
+                  />
+                ) : (
+                  <div className="w-8 h-8 rounded bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-[9px] font-bold">
+                    DOC
+                  </div>
+                )}
+                <div className="flex-1 min-w-0 flex flex-col justify-center">
+                  <span className="text-text-primary truncate font-sans font-medium">
+                    {att.file.name}
+                  </span>
+                  <span className="text-text-secondary/60 text-[9px]">
+                    {(att.file.size / 1024).toFixed(1)} KB
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeAttachment(att.id)}
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-error text-white hover:bg-error/95 flex items-center justify-center cursor-pointer shadow-sm text-[9px] font-bold"
+                >
+                  ×
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+        <div className="flex gap-2 sm:gap-3 relative items-end">
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={runnerActive}
+            className="p-2 sm:p-3 bg-surface border border-surface-hover rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer text-text-secondary h-[42px] sm:h-[46px] w-[42px] sm:w-[46px]"
+            title="Attach files"
           >
-            <div className="px-2.5 py-1.5 text-[10px] font-semibold text-text-secondary border-b border-surface-hover tracking-wide uppercase">
-              Mention
+            <svg
+              width="16"
+              height="16"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            >
+              <path d="M21.44 11.05l-9.19 9.19a6 6 0 0 1-8.49-8.49l9.19-9.19a4 4 0 0 1 5.66 5.66l-9.2 9.19a2 2 0 0 1-2.83-2.83l8.49-8.48" />
+            </svg>
+          </button>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleFileChange}
+            multiple
+            className="hidden"
+          />
+          {/* @mention autocomplete dropdown */}
+          {showMentionAC && filteredMentions.length > 0 && (
+            <div
+              ref={mentionACRef}
+              className="absolute bottom-full left-0 mb-1.5 w-56 bg-surface border border-accent/30 rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
+            >
+              <div className="px-2.5 py-1.5 text-[10px] font-semibold text-text-secondary border-b border-surface-hover tracking-wide uppercase">
+                Mention
+              </div>
+              {filteredMentions.map((t, idx) => (
+                <button
+                  key={t.id}
+                  onMouseDown={(e) => { e.preventDefault(); insertMention(t); }}
+                  className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
+                    idx === selectedMentionIndex
+                      ? "bg-accent/15 text-accent"
+                      : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
+                  }`}
+                >
+                  <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-[9px] shrink-0">
+                    {t.name[0]?.toUpperCase()}
+                  </span>
+                  <span className="font-medium">@{t.name}</span>
+                </button>
+              ))}
             </div>
-            {filteredMentions.map((t, idx) => (
-              <button
-                key={t.id}
-                onMouseDown={(e) => { e.preventDefault(); insertMention(t); }}
-                className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
-                  idx === selectedMentionIndex
-                    ? "bg-accent/15 text-accent"
-                    : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
-                }`}
-              >
-                <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-[9px] shrink-0">
-                  {t.name[0]?.toUpperCase()}
-                </span>
-                <span className="font-medium">@{t.name}</span>
-              </button>
-            ))}
-          </div>
-        )}
-        {showAutocomplete && filteredSkillsForAutocomplete.length > 0 && (
-          <div
-            ref={autocompleteRef}
-            className="absolute bottom-full left-0 mb-1.5 w-64 bg-surface border border-surface-hover rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
-          >
-            {filteredSkillsForAutocomplete.map((s, idx) => (
-              <button
-                key={s.name}
-                onClick={() => insertSkillReference(s.name)}
-                className={`w-full text-left px-3 py-2 flex flex-col gap-0.5 cursor-pointer transition-colors ${
-                  idx === selectedAutocompleteIndex ? "bg-surface-hover text-text-primary" : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
-                }`}
-              >
-                <span className="font-mono font-bold text-text-primary">{`/${s.name}`}</span>
-                <span className="text-[10px] text-text-secondary truncate max-w-full">{s.description}</span>
-              </button>
-            ))}
-          </div>
-        )}
+          )}
+          {showAutocomplete && filteredSkillsForAutocomplete.length > 0 && (
+            <div
+              ref={autocompleteRef}
+              className="absolute bottom-full left-0 mb-1.5 w-64 bg-surface border border-surface-hover rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
+            >
+              {filteredSkillsForAutocomplete.map((s, idx) => (
+                <button
+                  key={s.name}
+                  onClick={() => insertSkillReference(s.name)}
+                  className={`w-full text-left px-3 py-2 flex flex-col gap-0.5 cursor-pointer transition-colors ${
+                    idx === selectedAutocompleteIndex ? "bg-surface-hover text-text-primary" : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
+                  }`}
+                >
+                  <span className="font-mono font-bold text-text-primary">{`/${s.name}`}</span>
+                  <span className="text-[10px] text-text-secondary truncate max-w-full">{s.description}</span>
+                </button>
+              ))}
+            </div>
+          )}
         <textarea
           ref={textareaRef}
           value={input}
@@ -422,6 +592,7 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
           </button>
         )}
       </div>
+    </div>
       <div className="max-w-3xl mx-auto mt-2 flex items-center justify-between relative px-1">
         <ModelSelector sessionId={mentionTargets.length > 0 ? null : sessionId} disabled={runnerActive} />
         <div className="flex items-center gap-3">

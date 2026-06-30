@@ -23,12 +23,12 @@ class ChannelOrchestrator {
   private activeDispatches = new Set<string>(); // channelId currently processing
   private abortedDispatches = new Set<string>(); // `${channelId}:${sessionId || 'default'}`
 
-  abortDispatch(channelId: string, sessionId?: string): void {
+  abortDispatch(username: string, channelId: string, sessionId?: string): void {
     const key = `${channelId}:${sessionId || "default"}`;
     this.abortedDispatches.add(key);
     console.log(`[ChannelOrchestrator] Aborting dispatch for ${key}`);
 
-    const channel = channelStore.getChannel(channelId);
+    const channel = channelStore.getChannel(username, channelId);
     if (channel) {
       for (const member of channel.members) {
         const entry = agentRegistry.get(member.agentId);
@@ -50,11 +50,11 @@ class ChannelOrchestrator {
     return map;
   }
 
-  async dispatchUserMessage(channelId: string, userContent: string, sessionId?: string): Promise<void> {
+  async dispatchUserMessage(username: string, channelId: string, userContent: string, sessionId?: string): Promise<void> {
     const key = `${channelId}:${sessionId || "default"}`;
     this.abortedDispatches.delete(key);
 
-    const channel = channelStore.getChannel(channelId);
+    const channel = channelStore.getChannel(username, channelId);
     if (!channel) throw new Error("Channel not found");
 
     const agentNameMap = this.buildAgentNameMap(channel.members);
@@ -70,19 +70,20 @@ class ChannelOrchestrator {
       createdAt: new Date().toISOString(),
     };
 
-    channelStore.appendMessage(channelId, userMsg);
+    channelStore.appendMessage(username, channelId, userMsg);
     broadcast(channelId, { type: "channel_message", channelId, message: userMsg });
 
     // Start processing round
-    await this.runDispatchRound(channelId, userMsg, 1);
+    await this.runDispatchRound(username, channelId, userMsg, 1);
   }
 
   private async runDispatchRound(
+    username: string,
     channelId: string,
     incomingMsg: ChannelMessage,
     depth: number
   ): Promise<void> {
-    const channel = channelStore.getChannel(channelId);
+    const channel = channelStore.getChannel(username, channelId);
     if (!channel || channel.members.length === 0) return;
 
     const maxDepth = channel.maxChainDepth ?? 10;
@@ -123,7 +124,7 @@ class ChannelOrchestrator {
 
       // Ensure model is set on session before prompting
       if (!agentEntry.server.session.model) {
-        const { modelRegistry } = piSessionManager.getUserContext("admin");
+        const { modelRegistry } = piSessionManager.getUserContext(username);
         modelRegistry.refresh();
         const available = modelRegistry.getAvailable();
         if (available.length > 0) {
@@ -156,7 +157,7 @@ class ChannelOrchestrator {
 
       try {
         // Build prompt with channel context and member roster
-        const recentMessages = channelStore.getMessages(channelId, 20, incomingMsg.sessionId);
+        const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
         const agentNameMap = this.buildAgentNameMap(channel.members);
         const promptText = this.buildAgentPrompt(
           agentEntry.server.definition,
@@ -241,7 +242,7 @@ class ChannelOrchestrator {
           createdAt: new Date().toISOString(),
         };
 
-        channelStore.appendMessage(channelId, agentMsg);
+        channelStore.appendMessage(username, channelId, agentMsg);
 
         broadcast(channelId, {
           type: "channel_message",
@@ -251,7 +252,7 @@ class ChannelOrchestrator {
 
         if (!this.abortedDispatches.has(key)) {
           // Propagate agent messages to next depth round
-          await this.runDispatchRound(channelId, agentMsg, depth + 1);
+          await this.runDispatchRound(username, channelId, agentMsg, depth + 1);
         }
       } catch (err: any) {
         console.error(`[ChannelOrchestrator] Error prompt agent ${member.agentId}:`, err);

@@ -11,6 +11,7 @@ import {
   type AgentSessionEvent,
 } from "@earendil-works/pi-coding-agent";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
+import { readdir, readFile } from "node:fs/promises";
 import { join, resolve, dirname } from "node:path";
 import { AVAILABLE_TOOLS } from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
@@ -241,9 +242,9 @@ class PiSessionManager {
     const workspaceBase = join(userDir, "workspace");
     let workspaceDir = workspaceBase;
     if (resolvedChannelId) {
-      workspaceDir = `/tmp/pi-channels/${resolvedChannelId}/workspace`;
+      workspaceDir = join(userDir, "channels", resolvedChannelId, "workspace");
     } else if (resolvedAgentId) {
-      workspaceDir = `/tmp/pi-agents/${resolvedAgentId}/workspace`;
+      workspaceDir = join(userDir, "agents", resolvedAgentId, "workspace");
     } else if (resolvedRepoName) {
       workspaceDir = resolve(workspaceBase, "repos", resolvedRepoName);
     }
@@ -429,69 +430,84 @@ class PiSessionManager {
     const sessionsDir = join(userDir, "sessions");
     if (!existsSync(sessionsDir)) return [];
 
-    const entries = readdirSync(sessionsDir, { withFileTypes: true });
-    const sessions: SessionListItem[] = [];
+    try {
+      const entries = await readdir(sessionsDir, { withFileTypes: true });
+      const sessionPromises = entries
+        .filter((entry) => entry.isDirectory())
+        .map(async (entry) => {
+          const sessionId = entry.name;
+          const sessionSubdir = join(sessionsDir, sessionId);
+          const metadataPath = join(sessionSubdir, "metadata.json");
+          
+          let metadata: Record<string, unknown> = {};
+          if (existsSync(metadataPath)) {
+            try {
+              const metaContent = await readFile(metadataPath, "utf-8");
+              metadata = JSON.parse(metaContent);
+            } catch {}
+          }
 
-    for (const entry of entries) {
-      if (!entry.isDirectory()) continue;
-      const sessionId = entry.name;
-      const metadataPath = join(sessionsDir, sessionId, "metadata.json");
-      let metadata: Record<string, unknown> = {};
-      if (existsSync(metadataPath)) {
-        try { metadata = JSON.parse(readFileSync(metadataPath, "utf-8")); } catch {}
-      }
-
-      let messageCount = 0;
-      const jsonlFiles = readdirSync(join(sessionsDir, sessionId)).filter((f) => f.endsWith(".jsonl"));
-      for (const file of jsonlFiles) {
-        try {
-          const content = readFileSync(join(sessionsDir, sessionId, file), "utf-8");
-          const lines = content.trim().split("\n");
-          const limit = Math.min(lines.length, 500);
-          for (let i = 0; i < limit; i++) {
-            const entry = JSON.parse(lines[i]);
-            if (entry.type === "message" && entry.message?.role === "user") {
-              messageCount++;
+          let messageCount = 0;
+          try {
+            const files = await readdir(sessionSubdir);
+            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+            for (const file of jsonlFiles) {
+              try {
+                const content = await readFile(join(sessionSubdir, file), "utf-8");
+                const lines = content.trim().split("\n");
+                const limit = Math.min(lines.length, 500);
+                for (let i = 0; i < limit; i++) {
+                  const line = lines[i].trim();
+                  if (!line) continue;
+                  const parsed = JSON.parse(line);
+                  if (parsed.type === "message" && parsed.message?.role === "user") {
+                    messageCount++;
+                  }
+                }
+              } catch {}
             }
-          }
-        } catch {}
-      }
+          } catch {}
 
-      const session = this.sessions.get(this.getSessionKey(username, sessionId));
-      let status: "active" | "streaming" | "task-running" | "sleeping" | undefined;
-      if (session) {
-        if (session.session.isStreaming) {
-          status = "streaming";
-        } else {
-          status = "active";
-        }
-      } else {
-        status = "sleeping";
-      }
-      if (status === "active" || status === "sleeping") {
-        try {
-          const { isTaskRunnerActive } = await import("../pi/task-runner");
-          if (isTaskRunnerActive(sessionId)) {
-            status = "task-running";
+          const session = this.sessions.get(this.getSessionKey(username, sessionId));
+          let status: "active" | "streaming" | "task-running" | "sleeping" | undefined;
+          if (session) {
+            if (session.session.isStreaming) {
+              status = "streaming";
+            } else {
+              status = "active";
+            }
+          } else {
+            status = "sleeping";
           }
-        } catch {}
-      }
+          if (status === "active" || status === "sleeping") {
+            try {
+              const { isTaskRunnerActive } = await import("../pi/task-runner");
+              if (isTaskRunnerActive(sessionId)) {
+                status = "task-running";
+              }
+            } catch {}
+          }
 
-      sessions.push({
-        id: sessionId,
-        name: (metadata.name as string) || sessionId,
-        createdAt: (metadata.createdAt as string) || new Date(0).toISOString(),
-        updatedAt: (metadata.updatedAt as string) || new Date(0).toISOString(),
-        messageCount,
-        status,
-        repoName: metadata.repoName as string | undefined,
-        agentId: metadata.agentId as string | undefined,
-        channelId: metadata.channelId as string | undefined,
-      });
+          return {
+            id: sessionId,
+            name: (metadata.name as string) || sessionId,
+            createdAt: (metadata.createdAt as string) || new Date(0).toISOString(),
+            updatedAt: (metadata.updatedAt as string) || new Date(0).toISOString(),
+            messageCount,
+            status,
+            repoName: metadata.repoName as string | undefined,
+            agentId: metadata.agentId as string | undefined,
+            channelId: metadata.channelId as string | undefined,
+          };
+        });
+
+      const sessions = await Promise.all(sessionPromises);
+      sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      return sessions;
+    } catch (e) {
+      console.error(`Failed to list sessions for ${username}:`, e);
+      return [];
     }
-
-    sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-    return sessions;
   }
 
   persistSessionTools(username: string, sessionId: string, tools: string[]): void {

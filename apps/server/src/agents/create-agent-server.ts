@@ -13,8 +13,8 @@ import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
 
-function ensureAgentWorkspace(id: string): string {
-  const dir = `/tmp/pi-agents/${id}`;
+function ensureAgentWorkspace(username: string, id: string): string {
+  const dir = `/tmp/crewfactory/${username}/agents/${id}`;
   const subdirs = [
     join(dir, "sessions"),
     join(dir, "workspace"),
@@ -25,8 +25,8 @@ function ensureAgentWorkspace(id: string): string {
   return dir;
 }
 
-export async function createAgentServer(definition: AgentDefinition, username = "admin"): Promise<AgentServer> {
-  const agentDir = ensureAgentWorkspace(definition.id);
+export async function createAgentServer(definition: AgentDefinition, username: string): Promise<AgentServer> {
+  const agentDir = ensureAgentWorkspace(username, definition.id);
   const workspaceDir = join(agentDir, "workspace");
   const sessionDir = join(agentDir, "sessions", "main");
 

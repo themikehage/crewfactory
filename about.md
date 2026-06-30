@@ -21,6 +21,15 @@
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
 - Context Window Meter with token usage bar and manual Compact button
 
+### Multimedia Support (Images & Documents)
+- **Hybrid Input Strategy**:
+  - **Images**: converted to base64 on client and sent inline via WebSocket using the pi SDK's native vision parameters (`images?: ImageContent[]`).
+  - **Documents (PDF, Office, etc.)**: uploaded via Multipart HTTP POST directly to the workspace storage folder (`assets/uploads`), auto-appending workspace paths to the prompt so agents can read them.
+- **Visual Preview Templates (Premium UI)**:
+  - **PDFs**: rendered inline via authenticated iframe viewers with "Open in New Tab" controls.
+  - **Audio & Video**: embedded natively using HTML5 `<audio>` and `<video>` players with customizable layouts.
+  - **Office Documents (DOCX, XLSX, PPTX, etc.)**: rendered as premium info cards with extension badges and direct authenticated download buttons.
+
 ### Provider Management
 - Dynamic provider configuration via web UI (no env vars needed)
 - 35 supported providers from pi SDK (Anthropic, OpenAI, Google, DeepSeek, Groq, Mistral, etc.)

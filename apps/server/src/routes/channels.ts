@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
+import { getUsername } from "../lib/auth-helpers";
 import { channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
 import {
@@ -16,54 +17,76 @@ export const channelsRouter = new Hono();
 channelsRouter.use("/*", authMiddleware);
 
 channelsRouter.get("/", (c) => {
-  const channels = channelStore.listChannels();
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const channels = channelStore.listChannels(username);
   return c.json({ channels });
 });
 
 channelsRouter.post("/", zValidator("json", CreateChannelSchema), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const data = c.req.valid("json");
-  const channel = channelStore.createChannel(data);
+  const channel = channelStore.createChannel(username, data);
   return c.json(channel, 201);
 });
 
 channelsRouter.get("/:id", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
-  const channel = channelStore.getChannel(id);
+  const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
   return c.json(channel);
 });
 
 channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const data = c.req.valid("json");
-  const updated = channelStore.updateChannel(id, data);
+  const updated = channelStore.updateChannel(username, id, data);
   if (!updated) return c.json({ error: "Channel not found" }, 404);
   return c.json(updated);
 });
 
 channelsRouter.put("/:id/context", zValidator("json", z.object({ context: z.array(z.object({ key: z.string().min(1), value: z.string() })) })), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const { context } = c.req.valid("json");
-  const updated = channelStore.updateChannelContext(id, context);
+  const updated = channelStore.updateChannelContext(username, id, context);
   if (!updated) return c.json({ error: "Channel not found" }, 404);
   return c.json(updated);
 });
 
 channelsRouter.delete("/:id", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
-  const deleted = channelStore.deleteChannel(id);
+  const deleted = channelStore.deleteChannel(username, id);
   if (!deleted) return c.json({ error: "Channel not found" }, 404);
   return c.body(null, 204);
 });
 
 channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
-  const channel = channelStore.getChannel(id);
+  const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   const data = c.req.valid("json");
-  if (!agentRegistry.get(data.agentId)) {
-    return c.json({ error: `Agent "${data.agentId}" not registered` }, 400);
+  const agentEntry = agentRegistry.get(data.agentId);
+  if (!agentEntry || agentEntry.username !== username) {
+    return c.json({ error: `Agent "${data.agentId}" not registered or not owned by you` }, 400);
   }
 
   const existingIndex = channel.members.findIndex((m) => m.agentId === data.agentId);
@@ -75,14 +98,17 @@ channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => 
     updatedMembers.push(data);
   }
 
-  const updatedChannel = channelStore.updateMembers(id, updatedMembers);
+  const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
   return c.json(updatedChannel);
 });
 
 channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSchema), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const agentId = c.req.param("agentId");
-  const channel = channelStore.getChannel(id);
+  const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   const data = c.req.valid("json");
@@ -96,40 +122,49 @@ channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSch
     ...(data.targetAgentIds !== undefined && { targetAgentIds: data.targetAgentIds }),
   };
 
-  const updatedChannel = channelStore.updateMembers(id, updatedMembers);
+  const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
   return c.json(updatedChannel);
 });
 
 channelsRouter.delete("/:id/members/:agentId", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const agentId = c.req.param("agentId");
-  const channel = channelStore.getChannel(id);
+  const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   const updatedMembers = channel.members.filter((m) => m.agentId !== agentId);
-  const updatedChannel = channelStore.updateMembers(id, updatedMembers);
+  const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
   return c.json(updatedChannel);
 });
 
 channelsRouter.get("/:id/messages", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!) : 100;
   const sessionId = c.req.query("sessionId");
-  const channel = channelStore.getChannel(id);
+  const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
-  const messages = channelStore.getMessages(id, limit, sessionId);
+  const messages = channelStore.getMessages(username, id, limit, sessionId);
   return c.json({ messages });
 });
 
 channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().min(1), sessionId: z.string().optional() })), async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const { message, sessionId } = c.req.valid("json");
-  const channel = channelStore.getChannel(id);
+  const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   // Trigger dispatch asynchronously
-  channelOrchestrator.dispatchUserMessage(id, message, sessionId).catch((err) => {
+  channelOrchestrator.dispatchUserMessage(username, id, message, sessionId).catch((err) => {
     console.error(`[ChannelsRoute] Error dispatching message for channel ${id}:`, err);
   });
 
@@ -137,9 +172,12 @@ channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string
 });
 
 channelsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.string().optional() }).optional()), async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
   const id = c.req.param("id");
   const body = c.req.valid("json");
-  channelOrchestrator.abortDispatch(id, body?.sessionId);
+  channelOrchestrator.abortDispatch(username, id, body?.sessionId);
   return c.json({ success: true });
 });
 

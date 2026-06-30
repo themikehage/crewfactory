@@ -7,15 +7,18 @@ interface Props {
   args?: Record<string, unknown>;
   result: string | unknown;
   sessionId: string | null;
+  activeRepoName?: string | null;
 }
+
+export type MediaType = "image" | "html" | "pdf" | "audio" | "video" | "office" | "other";
 
 interface FileMarker {
   title: string;
   url: string;
-  type: "image" | "html" | "other";
+  type: MediaType;
 }
 
-function resolveSessionUrl(rawUrl: string, sessionId: string | null): string {
+export function resolveFileUrl(rawUrl: string, sessionId: string | null, activeRepoName?: string | null): string {
   if (!rawUrl) return "";
 
   if (rawUrl.startsWith("data:") || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
@@ -41,13 +44,21 @@ function resolveSessionUrl(rawUrl: string, sessionId: string | null): string {
     }
   }
 
-  return rawUrl;
+  let cleanPath = rawUrl.replace(/\\/g, "/");
+  if (cleanPath.startsWith("workspace/")) {
+    cleanPath = cleanPath.substring("workspace/".length);
+  }
+  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}`;
 }
 
-function getFileType(url: string): "image" | "html" | "other" {
+export function getFileType(url: string): MediaType {
   const ext = url.split(".").pop()?.toLowerCase() ?? "";
   if (["jpg", "jpeg", "png", "webp", "gif", "svg"].includes(ext)) return "image";
   if (["html", "htm"].includes(ext)) return "html";
+  if (ext === "pdf") return "pdf";
+  if (["mp3", "wav", "ogg", "m4a", "aac"].includes(ext)) return "audio";
+  if (["mp4", "webm", "ogv", "avi", "mov"].includes(ext)) return "video";
+  if (["doc", "docx", "xls", "xlsx", "ppt", "pptx", "csv", "txt", "md"].includes(ext)) return "office";
   return "other";
 }
 
@@ -106,12 +117,12 @@ export function extractImages(text: string): Array<{ url: string; title?: string
     .map((m) => ({ url: m.url, title: m.title }));
 }
 
-export function HtmlFileFetcher({ url, title, sessionId }: { url: string; title: string; sessionId: string | null }) {
+export function HtmlFileFetcher({ url, title, sessionId, activeRepoName }: { url: string; title: string; sessionId: string | null; activeRepoName?: string | null }) {
   const [html, setHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const resolvedUrl = resolveSessionUrl(url, sessionId);
+  const resolvedUrl = resolveFileUrl(url, sessionId, activeRepoName);
 
   useEffect(() => {
     let cancelled = false;
@@ -168,28 +179,110 @@ export function HtmlFileFetcher({ url, title, sessionId }: { url: string; title:
   return null;
 }
 
-function MediaRenderer({ markers, sessionId }: { markers: FileMarker[]; sessionId: string | null }) {
+function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMarker[]; sessionId: string | null; activeRepoName?: string | null }) {
   const imageMarkers = markers.filter((m) => m.type === "image");
   const htmlMarkers = markers.filter((m) => m.type === "html");
+  const pdfMarkers = markers.filter((m) => m.type === "pdf");
+  const audioMarkers = markers.filter((m) => m.type === "audio");
+  const videoMarkers = markers.filter((m) => m.type === "video");
+  const officeMarkers = markers.filter((m) => m.type === "office" || m.type === "other");
 
   if (markers.length === 0) return null;
+
+  const token = localStorage.getItem("token");
 
   return (
     <div className="space-y-3">
       {htmlMarkers.map((m, i) => (
-        <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} />
+        <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} activeRepoName={activeRepoName} />
       ))}
+      
       {imageMarkers.length > 0 && (
         <ImageGrid
           images={imageMarkers.map((m) => ({ url: m.url, title: m.title }))}
           sessionId={sessionId}
+          activeRepoName={activeRepoName}
         />
       )}
+
+      {pdfMarkers.map((m, i) => {
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+        return (
+          <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-surface-hover overflow-hidden bg-surface flex flex-col font-sans">
+            <div className="bg-surface-hover/50 px-3 py-1.5 border-b border-surface-hover flex items-center justify-between text-[11px] text-text-secondary">
+              <span className="font-medium truncate">PDF Preview: {m.title || "Document"}</span>
+              <a
+                href={fileUrl}
+                target="_blank"
+                rel="noreferrer"
+                className="px-2 py-0.5 rounded bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent font-semibold transition-colors cursor-pointer"
+              >
+                Open in New Tab
+              </a>
+            </div>
+            <iframe
+              src={fileUrl}
+              className="w-full flex-1 border-0"
+              title={m.title || "PDF document"}
+            />
+          </div>
+        );
+      })}
+
+      {audioMarkers.map((m, i) => {
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+        return (
+          <div key={`audio-${i}`} className="w-full p-3 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
+            <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Audio output"}</span>
+            <audio controls src={fileUrl} className="w-full h-8 outline-none" />
+          </div>
+        );
+      })}
+
+      {videoMarkers.map((m, i) => {
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+        return (
+          <div key={`video-${i}`} className="w-full p-2 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
+            <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Video output"}</span>
+            <video controls src={fileUrl} className="w-full rounded border border-surface-hover max-h-96" />
+          </div>
+        );
+      })}
+
+      {officeMarkers.map((m, i) => {
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
+        const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
+        const extension = m.url.split(".").pop() || "file";
+        return (
+          <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-surface border border-surface-hover rounded-lg font-sans">
+            <div className="flex items-center gap-2.5 min-w-0">
+              <div className="w-9 h-9 rounded bg-accent/15 flex items-center justify-center text-accent text-[10px] font-extrabold select-none shrink-0 border border-accent/20 uppercase">
+                {extension.substring(0, 3)}
+              </div>
+              <div className="flex flex-col min-w-0">
+                <span className="text-xs font-semibold text-text-primary truncate">{filename}</span>
+                <span className="text-[9px] text-text-secondary/50 uppercase font-mono">{extension}</span>
+              </div>
+            </div>
+            <a
+              href={fileUrl}
+              download={filename}
+              className="px-3 py-1.5 text-[11px] font-semibold rounded bg-accent text-bg hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
+            >
+              Download
+            </a>
+          </div>
+        );
+      })}
     </div>
   );
 }
 
-export function ToolResultInspector({ toolName, args, result, sessionId }: Props) {
+export function ToolResultInspector({ toolName, args, result, sessionId, activeRepoName }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   const resultStr = typeof result === "string"
@@ -240,7 +333,7 @@ export function ToolResultInspector({ toolName, args, result, sessionId }: Props
             {hasInlineHtml ? (
               <HtmlPreview html={htmlOutput} />
             ) : hasMediaMarkers ? (
-              <MediaRenderer markers={markers} sessionId={sessionId} />
+              <MediaRenderer markers={markers} sessionId={sessionId} activeRepoName={activeRepoName} />
             ) : (
               <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-code-bg p-2.5 rounded-md max-h-96 overflow-y-auto">
                 {resultStr}
