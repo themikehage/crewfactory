@@ -234,8 +234,8 @@ export function SessionSidebar({
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
             >
               <svg
-                width="8"
-                height="8"
+                width="12"
+                height="12"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenRepos ? "rotate-90" : ""}`}
@@ -253,7 +253,9 @@ export function SessionSidebar({
               className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Projects"
             >
-              +
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
             </button>
           </div>
 
@@ -302,8 +304,8 @@ export function SessionSidebar({
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
             >
               <svg
-                width="8"
-                height="8"
+                width="12"
+                height="12"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenAgents ? "rotate-90" : ""}`}
@@ -321,7 +323,9 @@ export function SessionSidebar({
               className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Agents"
             >
-              +
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
             </button>
           </div>
 
@@ -374,8 +378,8 @@ export function SessionSidebar({
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
             >
               <svg
-                width="8"
-                height="8"
+                width="12"
+                height="12"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenChannels ? "rotate-90" : ""}`}
@@ -393,7 +397,9 @@ export function SessionSidebar({
               className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Channels"
             >
-              +
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
             </button>
           </div>
 
