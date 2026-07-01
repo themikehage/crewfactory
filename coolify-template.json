@@ -1,0 +1,70 @@
+{
+  "name": "crewfactory",
+  "displayName": "CrewFactory",
+  "description": "Multi-agent AI development platform. Create, orchestrate, and optimize AI agents in your browser. Supports Claude, GPT, and Qwen out of the box.",
+  "documentation": "https://github.com/themikehage/crewfactory/blob/main/DEPLOY.md",
+  "slogan": "AI agent orchestration platform — deploy in one click",
+  "tags": ["ai", "agents", "llm", "multi-agent", "developer-tools"],
+  "logo": "https://raw.githubusercontent.com/themikehage/crewfactory/main/blueprints/crewfactory/logo.svg",
+  "screenshots": [],
+  "minVersion": "4.x",
+  "services": [
+    {
+      "name": "crewfactory",
+      "documentation": "https://github.com/themikehage/crewfactory",
+      "image": "ghcr.io/themikehage/crewfactory:latest",
+      "ports": ["3000:3000", "3001:3001"],
+      "volumes": [
+        {
+          "mountPath": "/tmp/crewfactory",
+          "description": "Persistent workspace data (sessions, repos, uploads)"
+        }
+      ],
+      "healthcheck": {
+        "test": ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"],
+        "interval": "30s",
+        "timeout": "3s",
+        "startPeriod": "10s",
+        "retries": 3
+      },
+      "environment": [
+        {
+          "key": "JWT_SECRET",
+          "description": "JWT signing secret. Generate with: openssl rand -base64 32",
+          "required": true,
+          "generator": "secret"
+        },
+        {
+          "key": "AUTH_USERNAME",
+          "description": "Login username",
+          "required": true,
+          "default": "admin"
+        },
+        {
+          "key": "AUTH_PASSWORD_HASH",
+          "description": "Base64-encoded bcrypt hash of your password. See DEPLOY.md for generation instructions.",
+          "required": true,
+          "generator": "bcrypt_base64"
+        },
+        {
+          "key": "ANTHROPIC_API_KEY",
+          "description": "Anthropic API key (Claude models). Optional — at least one LLM key required.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "key": "OPENAI_API_KEY",
+          "description": "OpenAI API key (GPT models). Optional.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "key": "DASHSCOPE_API_KEY",
+          "description": "Alibaba DashScope API key (Qwen models). Optional.",
+          "required": false,
+          "default": ""
+        }
+      ]
+    }
+  ]
+}

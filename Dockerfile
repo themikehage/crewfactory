@@ -2,8 +2,10 @@ FROM oven/bun:1-slim AS base
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates git ripgrep \
-  && rm -rf /var/lib/apt/lists/*
+  && apt-get install -y --no-install-recommends bash ca-certificates git ripgrep wget \
+  && rm -rf /var/lib/apt/lists/* \
+  && addgroup --system crewfactory \
+  && adduser --system --ingroup crewfactory --no-create-home crewfactory
 
 FROM base AS builder
 WORKDIR /app
@@ -29,11 +31,16 @@ COPY --from=builder /app/apps/server/dist ./dist
 COPY --from=builder /app/apps/client/dist ./public
 COPY --from=builder /app/node_modules ./node_modules
 
-RUN mkdir -p /tmp/crewfactory
+RUN mkdir -p /tmp/crewfactory && chown crewfactory:crewfactory /tmp/crewfactory
 
 EXPOSE 3000
 EXPOSE 3001
 
 ENV PORT=3000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD wget -qO- http://localhost:3000/api/health || exit 1
+
+USER crewfactory
 
 CMD ["bun", "run", "dist/index.js"]

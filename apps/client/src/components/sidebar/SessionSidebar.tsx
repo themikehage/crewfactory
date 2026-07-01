@@ -228,7 +228,7 @@ export function SessionSidebar({
       <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-3">
         {/* Repos Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
             <button
               onClick={() => setIsOpenRepos((prev) => !prev)}
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
@@ -250,7 +250,7 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/projects")}
-              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Projects"
             >
               +
@@ -260,9 +260,9 @@ export function SessionSidebar({
           {isOpenRepos && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingRepos ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : repos.length === 0 ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1">No projects</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1">No projects</div>
               ) : (
                 repos.map((repo) => {
                   const isActive = activeRepoName === repo.id && !activeAgent && !activeChannel;
@@ -296,7 +296,7 @@ export function SessionSidebar({
 
         {/* Agents Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
             <button
               onClick={() => setIsOpenAgents((prev) => !prev)}
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
@@ -318,7 +318,7 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/agents")}
-              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Agents"
             >
               +
@@ -328,9 +328,9 @@ export function SessionSidebar({
           {isOpenAgents && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingAgents ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : agents.length === 0 ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1">No agents</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1">No agents</div>
               ) : (
                 agents.map((agent) => {
                   const isActive = activeAgent?.id === agent.id && !activeChannel;
@@ -368,7 +368,7 @@ export function SessionSidebar({
 
         {/* Channels Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
             <button
               onClick={() => setIsOpenChannels((prev) => !prev)}
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
@@ -390,7 +390,7 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/channels")}
-              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Channels"
             >
               +
@@ -400,9 +400,9 @@ export function SessionSidebar({
           {isOpenChannels && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingChannels ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : channels.length === 0 ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1">No channels</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1">No channels</div>
               ) : (
                 channels.map((channel) => {
                   const isActive = activeChannel?.id === channel.id;
@@ -429,7 +429,7 @@ export function SessionSidebar({
 
       {/* Admin Links */}
       <div className="p-2 border-t border-surface/60 bg-surface/10 space-y-1 flex-shrink-0">
-        <div className="px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/60">
+        <div className="px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/60">
           Admin
         </div>
         {adminItems.map((item) => {
