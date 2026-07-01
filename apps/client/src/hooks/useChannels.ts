@@ -46,6 +46,7 @@ export function useChannels() {
     }
     const channel = await res.json();
     await fetchChannels();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "channel" } }));
     return channel;
   }, [fetchChannels]);
 
@@ -64,6 +65,7 @@ export function useChannels() {
     }
     const channel = await res.json();
     await fetchChannels();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "channel" } }));
     return channel;
   }, [fetchChannels]);
 
@@ -76,6 +78,7 @@ export function useChannels() {
       throw new Error(`HTTP ${res.status}`);
     }
     await fetchChannels();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "channel" } }));
   }, [fetchChannels]);
 
   return {

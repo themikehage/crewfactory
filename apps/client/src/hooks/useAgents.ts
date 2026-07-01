@@ -46,6 +46,7 @@ export function useAgents() {
     }
     const agent = await res.json();
     await fetchAgents();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "agent" } }));
     return agent;
   }, [fetchAgents]);
 
@@ -58,6 +59,7 @@ export function useAgents() {
       throw new Error(`HTTP ${res.status}`);
     }
     await fetchAgents();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "agent" } }));
   }, [fetchAgents]);
 
   const promptAgent = useCallback(async (id: string, message: string): Promise<string> => {
@@ -99,6 +101,7 @@ export function useAgents() {
     }
     const agent = await res.json();
     await fetchAgents();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "agent" } }));
     return agent;
   }, [fetchAgents]);
 

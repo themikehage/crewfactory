@@ -106,6 +106,26 @@ export function SessionSidebar({
     fetchChannels();
   }, [fetchRepos, fetchAgents, fetchChannels]);
 
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const type = customEvent.detail?.type;
+      if (type === "repo") {
+        fetchRepos();
+      } else if (type === "agent") {
+        fetchAgents();
+      } else if (type === "channel") {
+        fetchChannels();
+      } else {
+        fetchRepos();
+        fetchAgents();
+        fetchChannels();
+      }
+    };
+    window.addEventListener("entity-updated", handleUpdate);
+    return () => window.removeEventListener("entity-updated", handleUpdate);
+  }, [fetchRepos, fetchAgents, fetchChannels]);
+
   const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
 
   const handleGoFactory = useCallback(() => {

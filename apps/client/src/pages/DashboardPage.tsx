@@ -81,6 +81,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
         throw new Error(err.error || "Failed to rename project");
       }
       await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
       setRenameRepo(null);
       setNewName("");
     } catch (err: any) {
@@ -107,6 +108,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
         throw new Error(err.error || "Failed to delete project");
       }
       await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
       setDeleteRepo(null);
       setConfirmDeleteName("");
     } catch (err: any) {
@@ -143,6 +145,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
       }
 
       await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
       setShowModal(false);
       setRepoName("");
       setCloneUrl("");
