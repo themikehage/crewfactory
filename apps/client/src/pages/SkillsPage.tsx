@@ -19,6 +19,29 @@ export function SkillsPage() {
   const [mobileShowDetails, setMobileShowDetails] = useState(false);
 
   const token = localStorage.getItem("token");
+  const [resetting, setResetting] = useState(false);
+
+  const handleResetSkills = useCallback(async () => {
+    if (!window.confirm("¿Estás seguro de que querés restablecer las Skills por defecto de Manager? Se sobrescribirán todos los cambios manuales en las skills que empiezan con 'factory-'.")) {
+      return;
+    }
+    setResetting(true);
+    try {
+      const res = await fetch("/api/skills/reset", {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to reset skills");
+      
+      // Emitir evento para notificar al resto del sistema de la actualización
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "skill" } }));
+      alert("Skills de Manager restablecidas con éxito.");
+    } catch (err: any) {
+      alert("Error al restablecer las skills: " + err.message);
+    } finally {
+      setResetting(false);
+    }
+  }, [token]);
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -85,25 +108,41 @@ export function SkillsPage() {
         <div className="flex-1 flex min-h-0">
           <div className={`w-full md:w-80 lg:w-96 border-r border-surface flex flex-col flex-shrink-0 bg-bg ${mobileShowDetails ? "hidden md:flex" : "flex"}`}>
             <div className="p-3 border-b border-surface flex flex-col gap-2">
-              <div className="relative">
-                <svg
-                  className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                  strokeWidth={2}
+              <div className="flex gap-2">
+                <div className="relative flex-1">
+                  <svg
+                    className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-secondary pointer-events-none"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    strokeWidth={2}
+                  >
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
+                  </svg>
+                  <input
+                    type="text"
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    placeholder="Search skills..."
+                    className="w-full pl-9 pr-3 py-2 bg-surface border border-surface-hover rounded-lg
+                               text-text-primary placeholder-text-secondary outline-none
+                               focus:border-accent transition-colors text-xs font-sans"
+                  />
+                </div>
+                <button
+                  onClick={handleResetSkills}
+                  disabled={resetting || loading}
+                  title="Restablecer Skills de Manager (Factory)"
+                  className="p-2 bg-surface hover:bg-surface-hover border border-surface-hover text-text-secondary hover:text-accent rounded-lg transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer disabled:opacity-50"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-4.35-4.35M11 19a8 8 0 100-16 8 8 0 000 16z" />
-                </svg>
-                <input
-                  type="text"
-                  value={search}
-                  onChange={(e) => setSearch(e.target.value)}
-                  placeholder="Search skills..."
-                  className="w-full pl-9 pr-3 py-2 bg-surface border border-surface-hover rounded-lg
-                             text-text-primary placeholder-text-secondary outline-none
-                             focus:border-accent transition-colors text-xs font-sans"
-                />
+                  {resetting ? (
+                    <div className="w-3.5 h-3.5 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 7.89H18v3" />
+                    </svg>
+                  )}
+                </button>
               </div>
               <div className="text-[10px] text-text-secondary select-none font-medium px-0.5">
                 {skills.length} skill{skills.length !== 1 ? "s" : ""} loaded

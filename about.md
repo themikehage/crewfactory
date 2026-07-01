@@ -212,6 +212,7 @@
 | GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), and message dispatch (`/send`) |
 | GET | /api/backup/export | Export zip backup (supports ?type=light|full) |
 | POST | /api/backup/import | Import zip backup (supports ?mode=merge|overwrite) |
+| POST | /api/skills/reset | Reset default manager skills (prefixed with factory-) |
 | GET | /api/health | Health check |
 
 
