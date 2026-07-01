@@ -165,6 +165,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
         messages={messages}
         streamingAgents={streamingAgents}
         mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
+        sessionId={sessionId}
       />
 
       {/* Reused InputArea shared with normal chat */}

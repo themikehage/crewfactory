@@ -5,13 +5,15 @@ import type { Channel } from "shared";
 interface Props {
   channel: Channel;
   onClose: () => void;
-  onSave: (updates: { name?: string; description?: string; maxChainDepth?: number }) => Promise<void>;
+  onSave: (updates: { name?: string; description?: string; maxChainDepth?: number; showThinking?: boolean; showTools?: boolean }) => Promise<void>;
 }
 
 export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const [name, setName] = useState(channel.name);
   const [description, setDescription] = useState(channel.description || "");
   const [maxChainDepth, setMaxChainDepth] = useState(channel.maxChainDepth ?? 5);
+  const [showThinking, setShowThinking] = useState(channel.showThinking ?? false);
+  const [showTools, setShowTools] = useState(channel.showTools ?? false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -24,6 +26,8 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
         name: name.trim(),
         description: description.trim() || undefined,
         maxChainDepth: Number(maxChainDepth),
+        showThinking,
+        showTools,
       });
       onClose();
     } catch (err: any) {
@@ -106,6 +110,28 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
             <p className="text-[10px] text-text-secondary/60 mt-1">
               Número máximo de respuestas seguidas entre agentes por cada mensaje del usuario antes de frenar la cadena.
             </p>
+          </div>
+
+          <div className="flex flex-col gap-2.5 pt-2 border-t border-surface-hover/40">
+            <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showThinking}
+                onChange={(e) => setShowThinking(e.target.checked)}
+                className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+              />
+              <span>Mostrar pensamientos de agentes</span>
+            </label>
+
+            <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
+              <input
+                type="checkbox"
+                checked={showTools}
+                onChange={(e) => setShowTools(e.target.checked)}
+                className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+              />
+              <span>Mostrar uso de herramientas (tools)</span>
+            </label>
           </div>
 
           <div className="flex justify-end gap-2 pt-2">

@@ -222,6 +222,8 @@ export const ChannelSchema = z.object({
   members: z.array(ChannelMemberSchema),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -232,6 +234,8 @@ export const CreateChannelSchema = z.object({
   description: z.string().optional(),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
 });
 export type CreateChannel = z.infer<typeof CreateChannelSchema>;
 
@@ -240,6 +244,8 @@ export const UpdateChannelSchema = z.object({
   description: z.string().optional(),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
 });
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;
 
@@ -267,7 +273,19 @@ export const ChannelMessageSchema = z.object({
   agentId: z.string().optional(),
   agentName: z.string().optional(),
   content: z.string(),
+  thinking: z.string().optional(),
+  toolCalls: z.array(z.any()).optional(),
   mentions: z.array(z.string()).optional(),
   createdAt: z.string(),
 });
 export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;
+
+export interface GlobalLogEvent {
+  timestamp: string;
+  sourceType: "session" | "channel";
+  sourceId: string;
+  sourceName: string;
+  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error";
+  agentName?: string;
+  detail?: any;
+}

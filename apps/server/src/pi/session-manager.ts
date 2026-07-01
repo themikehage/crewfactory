@@ -12,9 +12,10 @@ import {
 } from "@earendil-works/pi-coding-agent";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { join, resolve, dirname } from "node:path";
 import { AVAILABLE_TOOLS } from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
+import { eventBroker } from "../lib/event-broker";
+import { join, resolve, dirname } from "node:path";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
@@ -368,11 +369,86 @@ class PiSessionManager {
       session.setActiveToolsByName(persistedTools);
     }
 
+    // Subscribe to global logs forwarding
+    const globalLogUnsub = session.subscribe((evt) => {
+      const ev = evt as any;
+      const getSessionName = () => {
+        try {
+          const metaPath = join(sessionDir, "metadata.json");
+          if (existsSync(metaPath)) {
+            return JSON.parse(readFileSync(metaPath, "utf-8")).name || sessionId;
+          }
+        } catch {}
+        return sessionId;
+      };
+
+      if (evt.type === "agent_start") {
+        eventBroker.publishEvent(username, {
+          sourceType: "session",
+          sourceId: sessionId,
+          sourceName: getSessionName(),
+          eventType: "agent_start",
+        });
+      } else if (evt.type === "agent_end") {
+        eventBroker.publishEvent(username, {
+          sourceType: "session",
+          sourceId: sessionId,
+          sourceName: getSessionName(),
+          eventType: "agent_end",
+        });
+      } else if (evt.type === "message_update") {
+        if (ev.assistantMessageEvent?.type === "text_delta" && ev.assistantMessageEvent.delta) {
+          eventBroker.publishEvent(username, {
+            sourceType: "session",
+            sourceId: sessionId,
+            sourceName: getSessionName(),
+            eventType: "text_delta",
+            detail: ev.assistantMessageEvent.delta,
+          });
+        } else if (ev.assistantMessageEvent?.type === "thinking_delta" && ev.assistantMessageEvent.delta) {
+          eventBroker.publishEvent(username, {
+            sourceType: "session",
+            sourceId: sessionId,
+            sourceName: getSessionName(),
+            eventType: "thinking_delta",
+            detail: ev.assistantMessageEvent.delta,
+          });
+        }
+      } else if (evt.type === "tool_execution_start") {
+        eventBroker.publishEvent(username, {
+          sourceType: "session",
+          sourceId: sessionId,
+          sourceName: getSessionName(),
+          eventType: "tool_start",
+          detail: { toolName: ev.toolName, args: ev.args, toolCallId: ev.toolCallId },
+        });
+      } else if (evt.type === "tool_execution_end") {
+        eventBroker.publishEvent(username, {
+          sourceType: "session",
+          sourceId: sessionId,
+          sourceName: getSessionName(),
+          eventType: "tool_end",
+          detail: { toolName: ev.toolName, result: ev.result, isError: ev.isError, toolCallId: ev.toolCallId },
+        });
+      } else if (evt.type === "agent_error") {
+        eventBroker.publishEvent(username, {
+          sourceType: "session",
+          sourceId: sessionId,
+          sourceName: getSessionName(),
+          eventType: "error",
+          detail: ev.error,
+        });
+      }
+    });
+
     const unsubscribe = session.subscribe(() => {});
 
     this.sessions.set(key, {
       session,
-      unsubscribe,
+      unsubscribe: () => {
+        unsubscribe();
+        globalLogUnsub();
+      },
     });
 
     return session;

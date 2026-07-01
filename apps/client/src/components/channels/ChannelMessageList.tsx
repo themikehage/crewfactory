@@ -1,12 +1,39 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { ChannelMessage } from "shared";
 import type { StreamingAgentState } from "@/hooks/useChannel";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
+import { ToolCallRow } from "@/components/chat/tools/ToolCallRow";
 
 interface Props {
   messages: ChannelMessage[];
   streamingAgents: Record<string, StreamingAgentState>;
   mentionNames?: string[];
+  sessionId?: string | null;
+}
+
+function ThinkingBlock({ thinking }: { thinking: string }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <div className="my-1.5">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 text-[11px] text-text-secondary/50 hover:text-text-secondary transition-colors cursor-pointer select-none"
+      >
+        <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
+          <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+        </svg>
+        <span className="font-sans">{open ? "Ocultar" : "Mostrar"} razonamiento</span>
+        <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+        </svg>
+      </button>
+      {open && (
+        <div className="mt-1.5 pl-4 border-l-2 border-accent/20 text-[11px] text-text-secondary/60 font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+          {thinking}
+        </div>
+      )}
+    </div>
+  );
 }
 
 function highlightMentions(content: string, names: string[]): string {
@@ -21,7 +48,7 @@ function highlightMentions(content: string, names: string[]): string {
   return result;
 }
 
-export function ChannelMessageList({ messages, streamingAgents, mentionNames = [] }: Props) {
+export function ChannelMessageList({ messages, streamingAgents, mentionNames = [], sessionId = null }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -75,6 +102,16 @@ export function ChannelMessageList({ messages, streamingAgents, mentionNames = [
                 : "bg-surface text-text-primary border border-surface-hover rounded-tl-none shadow-sm"
             }`}
           >
+            {msg.thinking && <ThinkingBlock thinking={msg.thinking} />}
+            {msg.toolCalls && msg.toolCalls.map((tc, idx) => (
+              <ToolCallRow
+                key={idx}
+                toolName={tc.name}
+                args={tc.arguments}
+                result={tc.result}
+                sessionId={msg.sessionId || null}
+              />
+            ))}
             <RichMarkdown content={highlightMentions(msg.content, mentionNames)} />
           </div>
         </div>
@@ -96,21 +133,33 @@ export function ChannelMessageList({ messages, streamingAgents, mentionNames = [
           </div>
 
           <div className="max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl rounded-tl-none bg-surface text-text-primary border border-surface-hover shadow-sm text-sm leading-relaxed">
+            {stream.thinking && <ThinkingBlock thinking={stream.thinking} />}
+            {stream.toolCalls && Object.entries(stream.toolCalls).map(([id, tc]) => (
+              <ToolCallRow
+                key={id}
+                toolName={tc.toolName}
+                args={tc.args}
+                result={tc.result}
+                sessionId={sessionId}
+              />
+            ))}
             {stream.text ? (
               <RichMarkdown content={stream.text} />
             ) : (
-              <div className="flex items-center gap-2 h-6 text-text-secondary/60 italic text-xs">
-                <span>Generating response...</span>
-                <div className="flex gap-1 items-center">
-                  {[0, 1, 2].map((i) => (
-                    <span
-                      key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce"
-                      style={{ animationDelay: `${i * 0.15}s` }}
-                    />
-                  ))}
+              !stream.thinking && !stream.toolCalls && (
+                <div className="flex items-center gap-2 h-6 text-text-secondary/60 italic text-xs">
+                  <span>Generating response...</span>
+                  <div className="flex gap-1 items-center">
+                    {[0, 1, 2].map((i) => (
+                      <span
+                        key={i}
+                        className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce"
+                        style={{ animationDelay: `${i * 0.15}s` }}
+                      />
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )
             )}
           </div>
         </div>

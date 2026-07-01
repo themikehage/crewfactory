@@ -3,6 +3,7 @@ import { agentRegistry } from "../agents";
 import { piSessionManager } from "../pi/session-manager";
 import { parseMentions } from "./mention-parser";
 import type { Channel, ChannelMember, ChannelMessage } from "shared";
+import { eventBroker } from "../lib/event-broker";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -72,6 +73,14 @@ class ChannelOrchestrator {
 
     channelStore.appendMessage(username, channelId, userMsg);
     broadcast(channelId, { type: "channel_message", channelId, message: userMsg });
+
+    eventBroker.publishEvent(username, {
+      sourceType: "channel",
+      sourceId: channelId,
+      sourceName: channel.name,
+      eventType: "user_message",
+      detail: userContent,
+    });
 
     // Start processing round
     await this.runDispatchRound(username, channelId, userMsg, 1);
@@ -155,6 +164,14 @@ class ChannelOrchestrator {
         agentName,
       });
 
+      eventBroker.publishEvent(username, {
+        sourceType: "channel",
+        sourceId: channelId,
+        sourceName: channel.name,
+        eventType: "agent_start",
+        agentName,
+      });
+
       try {
         // Build prompt with channel context and member roster
         const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
@@ -172,8 +189,8 @@ class ChannelOrchestrator {
 
         // Subscribe to agent streaming events to forward tokens via WS
         const unsub = agentEntry.server.session.subscribe((evt) => {
+          const ev = evt as any;
           if (evt.type === "message_update") {
-            const ev = evt as any;
             if (ev.assistantMessageEvent?.type === "text_delta") {
               const delta = ev.assistantMessageEvent.delta;
               if (delta) {
@@ -185,8 +202,72 @@ class ChannelOrchestrator {
                   agentId: member.agentId,
                   token: delta,
                 });
+                eventBroker.publishEvent(username, {
+                  sourceType: "channel",
+                  sourceId: channelId,
+                  sourceName: channel.name,
+                  eventType: "text_delta",
+                  agentName,
+                  detail: delta,
+                });
+              }
+            } else if (ev.assistantMessageEvent?.type === "thinking_delta" && channel.showThinking) {
+              const delta = ev.assistantMessageEvent.delta;
+              if (delta) {
+                broadcast(channelId, {
+                  type: "channel_agent_thinking",
+                  channelId,
+                  sessionId: incomingMsg.sessionId,
+                  agentId: member.agentId,
+                  token: delta,
+                });
+                eventBroker.publishEvent(username, {
+                  sourceType: "channel",
+                  sourceId: channelId,
+                  sourceName: channel.name,
+                  eventType: "thinking_delta",
+                  agentName,
+                  detail: delta,
+                });
               }
             }
+          } else if (evt.type === "tool_execution_start" && channel.showTools) {
+            broadcast(channelId, {
+              type: "channel_agent_tool_start",
+              channelId,
+              sessionId: incomingMsg.sessionId,
+              agentId: member.agentId,
+              toolName: ev.toolName,
+              args: ev.args,
+              toolCallId: ev.toolCallId,
+            });
+            eventBroker.publishEvent(username, {
+              sourceType: "channel",
+              sourceId: channelId,
+              sourceName: channel.name,
+              eventType: "tool_start",
+              agentName,
+              detail: { toolName: ev.toolName, args: ev.args, toolCallId: ev.toolCallId },
+            });
+          } else if (evt.type === "tool_execution_end" && channel.showTools) {
+            broadcast(channelId, {
+              type: "channel_agent_tool_end",
+              channelId,
+              sessionId: incomingMsg.sessionId,
+              agentId: member.agentId,
+              toolName: ev.toolName,
+              result: ev.result,
+              isError: ev.isError,
+              toolCallId: ev.toolCallId,
+            });
+            eventBroker.publishEvent(username, {
+              sourceType: "channel",
+              sourceId: channelId,
+              sourceName: channel.name,
+              eventType: "tool_end",
+              agentName,
+              detail: { toolName: ev.toolName, result: ev.result, isError: ev.isError, toolCallId: ev.toolCallId },
+            });
           }
         });
 
@@ -225,9 +306,48 @@ class ChannelOrchestrator {
           agentId: member.agentId,
         });
 
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: channelId,
+          sourceName: channel.name,
+          eventType: "agent_end",
+          agentName,
+        });
+
         if (isSilent) {
           console.log(`[ChannelOrchestrator] Agent ${member.agentId} produced silent response, suppressing message`);
           continue;
+        }
+
+        let finalThinking = "";
+        let finalToolCalls: any[] = [];
+
+        if (channel.showThinking || channel.showTools) {
+          const msgs = agentEntry.server.session.messages;
+          const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
+          if (lastMsg && Array.isArray(lastMsg.content)) {
+            for (const block of lastMsg.content) {
+              if (block.type === "thinking" && block.thinking && channel.showThinking) {
+                finalThinking += block.thinking;
+              }
+              if (block.type === "toolCall" && channel.showTools) {
+                const matchedResult = msgs.find(m => m.role === "toolResult" && m.toolCallId === block.id);
+                finalToolCalls.push({
+                  id: block.id,
+                  name: block.name,
+                  arguments: block.arguments,
+                  result: matchedResult ? {
+                    toolName: matchedResult.toolName ?? block.name,
+                    content: Array.isArray(matchedResult.content)
+                      ? matchedResult.content
+                      : [{ type: "text", text: String(matchedResult.content) }],
+                    isError: matchedResult.isError ?? false,
+                    details: (matchedResult as any).details
+                  } : null
+                });
+              }
+            }
+          }
         }
 
         const agentMsg: ChannelMessage = {
@@ -238,6 +358,8 @@ class ChannelOrchestrator {
           agentId: member.agentId,
           agentName,
           content: fullResponse,
+          thinking: finalThinking || undefined,
+          toolCalls: finalToolCalls.length > 0 ? finalToolCalls : undefined,
           mentions: agentMentions.length > 0 ? agentMentions : undefined,
           createdAt: new Date().toISOString(),
         };
@@ -248,6 +370,15 @@ class ChannelOrchestrator {
           type: "channel_message",
           channelId,
           message: agentMsg,
+        });
+
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: channelId,
+          sourceName: channel.name,
+          eventType: "agent_message",
+          agentName,
+          detail: fullResponse,
         });
 
         if (!this.abortedDispatches.has(key)) {
@@ -262,6 +393,15 @@ class ChannelOrchestrator {
           sessionId: incomingMsg.sessionId,
           agentId: member.agentId,
           error: String(err.message || err),
+        });
+
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: channelId,
+          sourceName: channel.name,
+          eventType: "error",
+          agentName,
+          detail: String(err.message || err),
         });
       }
     }

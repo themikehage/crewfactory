@@ -6,6 +6,7 @@ import { SkillsPage } from "@/pages/SkillsPage";
 import { AgentsPage } from "@/pages/AgentsPage";
 import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
+import { LogsConsolePage } from "@/pages/LogsConsolePage";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
@@ -136,6 +137,9 @@ export function AppRouter() {
       )}
       {route.page === "channels" && (
         <ChannelsPage onNavigate={navigate} onSelectChannel={handleSelectChannel} />
+      )}
+      {route.page === "logs" && (
+        <LogsConsolePage />
       )}
       {route.page === "channel" && (
         <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />

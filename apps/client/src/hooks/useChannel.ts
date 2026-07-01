@@ -9,6 +9,8 @@ export interface StreamingAgentState {
   agentId: string;
   agentName?: string;
   text: string;
+  thinking?: string;
+  toolCalls?: Record<string, { toolName: string; args: any; result: any | null; isError: boolean }>;
 }
 
 export function useChannel(channelId: string | null, sessionId?: string | null) {
@@ -109,6 +111,47 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
             return {
               ...prev,
               [data.agentId]: { ...current, text: current.text + data.token },
+            };
+          });
+        } else if (data.type === "channel_agent_thinking") {
+          setStreamingAgents((prev) => {
+            const current = prev[data.agentId];
+            if (!current) return prev;
+            return {
+              ...prev,
+              [data.agentId]: { ...current, thinking: (current.thinking || "") + data.token },
+            };
+          });
+        } else if (data.type === "channel_agent_tool_start") {
+          setStreamingAgents((prev) => {
+            const current = prev[data.agentId];
+            if (!current) return prev;
+            const tools = { ...(current.toolCalls || {}) };
+            tools[data.toolCallId] = { toolName: data.toolName, args: data.args, result: null, isError: false };
+            return {
+              ...prev,
+              [data.agentId]: { ...current, toolCalls: tools },
+            };
+          });
+        } else if (data.type === "channel_agent_tool_end") {
+          setStreamingAgents((prev) => {
+            const current = prev[data.agentId];
+            if (!current) return prev;
+            const tools = { ...(current.toolCalls || {}) };
+            if (tools[data.toolCallId]) {
+              tools[data.toolCallId] = {
+                ...tools[data.toolCallId],
+                result: {
+                  toolName: data.toolName,
+                  content: Array.isArray(data.result) ? data.result : [{ type: "text", text: String(data.result) }],
+                  isError: data.isError
+                },
+                isError: data.isError
+              };
+            }
+            return {
+              ...prev,
+              [data.agentId]: { ...current, toolCalls: tools },
             };
           });
         } else if (data.type === "channel_agent_end" || data.type === "channel_agent_error") {

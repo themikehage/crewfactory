@@ -167,6 +167,9 @@ export function MainLayout({
           items.push({ label: `#${activeChannel.name}` });
         }
         break;
+      case "logs":
+        items = [{ label: "Consola de Logs", path: "/logs" }];
+        break;
       default:
         // "chat"
         items = [{ label: "Chat", path: "/" }];

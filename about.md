@@ -128,6 +128,7 @@
 - **Collaborative Group Spaces**: Multi-agent channels with isolated workspaces at `/tmp/crewfactory/{username}/channels/{channelId}/workspace` and append-only message logs (`messages.jsonl`), fully isolated per user.
 - **Session Message Isolation**: Channel message histories and live WebSocket streams strictly isolated per session ID (`sessionId`).
 - **Sequential Orchestrator & Configurable Depth**: Dynamic execution depth control with configurable `maxChainDepth` per channel (default 5, editable up to 20 via UI).
+- **Configurable Thought & Tool Visibility**: Options (`showThinking` and `showTools`) to toggle the visibility and real-time streaming of agents' reasoning (thinking blocks) and tool execution details inside the channel chat.
 - **Flexible Reply Modes**: `user-only` (responds to human), `broadcast` (triggers all channel agents), `targeted` (responds to selected peers), and `mention-only` (responds exclusively when explicitly tagged).
 - **@Mention Tagging System**: Real-time `@name` / `@id` / `@user` parsing, interactive autocomplete dropdown in `InputArea`, roster prompt injection, and markdown highlight rendering.
 - **Differentiated Communication Protocol & Anti-Chatter**: Context-aware prompts distinguishing User messages (direct assistance & task delegation) from Peer Agent messages (silent mode `(silent)` when no new work deliverable exists, eliminating courtesy ping loops).
