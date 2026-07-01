@@ -134,6 +134,7 @@ type SessionListItem = {
   repoName?: string;
   agentId?: string;
   channelId?: string;
+  isExecution?: boolean;
 };
 
 class PiSessionManager {
@@ -628,9 +629,136 @@ class PiSessionManager {
           };
         });
 
-      const sessions = await Promise.all(sessionPromises);
-      sessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      return sessions;
+      const userSessions = await Promise.all(sessionPromises);
+      const virtualSessions: SessionListItem[] = [];
+
+      // 1. Ejecuciones de Agentes
+      try {
+        const { agentRegistry } = await import("../agents");
+        const agentsList = agentRegistry.list(username);
+        for (const agent of agentsList) {
+          const execsDir = join(userDir, "agents", agent.id, "executions");
+          if (existsSync(execsDir)) {
+            const execFolders = readdirSync(execsDir);
+            for (const f of execFolders) {
+              try {
+                const summaryPath = join(execsDir, f, "summary.json");
+                if (existsSync(summaryPath)) {
+                  const summary = JSON.parse(readFileSync(summaryPath, "utf-8"));
+                  virtualSessions.push({
+                    id: `exec_agent_${agent.id}_${f}`,
+                    name: `API: ${summary.prompt ? summary.prompt.slice(0, 30) + (summary.prompt.length > 30 ? "..." : "") : f}`,
+                    createdAt: summary.createdAt || new Date().toISOString(),
+                    updatedAt: summary.createdAt || new Date().toISOString(),
+                    messageCount: 0,
+                    status: "sleeping",
+                    agentId: agent.id,
+                    isExecution: true as any,
+                  });
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to list virtual agent sessions:", e);
+      }
+
+      // 2. Ejecuciones de Repositorios (Proyectos)
+      try {
+        const reposDir = join(userDir, "repos");
+        if (existsSync(reposDir)) {
+          const repoFolders = readdirSync(reposDir, { withFileTypes: true });
+          for (const entry of repoFolders) {
+            if (entry.isDirectory()) {
+              const execsDir = join(reposDir, entry.name, "executions");
+              if (existsSync(execsDir)) {
+                const execFolders = readdirSync(execsDir);
+                for (const f of execFolders) {
+                  try {
+                    const summaryPath = join(execsDir, f, "summary.json");
+                    if (existsSync(summaryPath)) {
+                      const summary = JSON.parse(readFileSync(summaryPath, "utf-8"));
+                      virtualSessions.push({
+                        id: `exec_repo_${entry.name}_${f}`,
+                        name: `API: ${summary.prompt ? summary.prompt.slice(0, 30) + (summary.prompt.length > 30 ? "..." : "") : f}`,
+                        createdAt: summary.createdAt || new Date().toISOString(),
+                        updatedAt: summary.createdAt || new Date().toISOString(),
+                        messageCount: 0,
+                        status: "sleeping",
+                        repoName: entry.name,
+                        isExecution: true as any,
+                      });
+                    }
+                  } catch {}
+                }
+              }
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to list virtual repo sessions:", e);
+      }
+
+      // 3. Ejecuciones de Canales (CLI)
+      try {
+        const { channelStore } = await import("../channels");
+        const channelsList = channelStore.listChannels(username);
+        for (const channel of channelsList) {
+          const msgsPath = join(userDir, "channels", channel.id, "messages.jsonl");
+          if (existsSync(msgsPath)) {
+            const fileContent = readFileSync(msgsPath, "utf-8");
+            const lines = fileContent.trim().split("\n");
+            const channelSessions = new Map<string, { firstMsgTime: string, lastMsgTime: string, firstPrompt: string }>();
+            for (const line of lines) {
+              if (!line.trim()) continue;
+              try {
+                const parsed = JSON.parse(line);
+                const sId = parsed.sessionId;
+                if (sId && sId.startsWith("cli-channel-")) {
+                  const time = parsed.timestamp || new Date().toISOString();
+                  let text = parsed.content || "";
+                  if (typeof text !== "string" && parsed.message?.content) {
+                    text = parsed.message.content;
+                  }
+                  if (channelSessions.has(sId)) {
+                    const entry = channelSessions.get(sId)!;
+                    entry.lastMsgTime = time;
+                    if (!entry.firstPrompt && parsed.role === "user" && text) {
+                      entry.firstPrompt = text;
+                    }
+                  } else {
+                    channelSessions.set(sId, {
+                      firstMsgTime: time,
+                      lastMsgTime: time,
+                      firstPrompt: parsed.role === "user" ? text : "",
+                    });
+                  }
+                }
+              } catch {}
+            }
+            
+            for (const [sId, info] of channelSessions.entries()) {
+              virtualSessions.push({
+                id: `exec_channel_${channel.id}_${sId}`,
+                name: `CLI: ${info.firstPrompt ? info.firstPrompt.slice(0, 30) + (info.firstPrompt.length > 30 ? "..." : "") : sId}`,
+                createdAt: info.firstMsgTime,
+                updatedAt: info.lastMsgTime,
+                messageCount: 0,
+                status: "sleeping",
+                channelId: channel.id,
+                isExecution: true as any,
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error("Failed to list virtual channel sessions:", e);
+      }
+
+      const allSessions = [...userSessions, ...virtualSessions];
+      allSessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      return allSessions;
     } catch (e) {
       console.error(`Failed to list sessions for ${username}:`, e);
       return [];

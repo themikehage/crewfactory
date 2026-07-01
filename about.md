@@ -20,6 +20,7 @@
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
 - Context Window Meter with token usage bar and manual Compact button
+- **Virtualized Execution Sessions:** API and CLI executions for Agents, Repositories, and Channels are virtualized as read-only sessions in the chat UI. Toggled via a switch in the session popover, showing historical log messages with distinct "API" / "CLI" badges and locking the chat input to prevent interactive steer inputs.
 
 ### Multimedia Support (Images & Documents)
 - **Hybrid Input Strategy**:

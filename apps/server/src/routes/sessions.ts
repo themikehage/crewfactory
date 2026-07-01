@@ -299,6 +299,79 @@ sessionsRouter.get("/:id/messages", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
+  if (sessionId.startsWith("exec_")) {
+    const parts = sessionId.split("_");
+    const tipo = parts[1];
+    const entidad = parts[2];
+    const execId = parts.slice(3).join("_");
+
+    if (tipo === "agent") {
+      const messagesPath = join("/tmp/crewfactory", username, "agents", entidad, "executions", execId, "messages.jsonl");
+      if (!existsSync(messagesPath)) {
+        return c.json({ messages: [] });
+      }
+      try {
+        const content = readFileSync(messagesPath, "utf-8");
+        const messages = content.trim().split("\n").filter(Boolean).map(line => {
+          const parsed = JSON.parse(line);
+          // Asegurar campos básicos esperados en UI
+          if (parsed.message) {
+            return {
+              id: parsed.id || parsed.message.id || crypto.randomUUID(),
+              role: parsed.message.role,
+              content: parsed.message.content,
+              timestamp: parsed.timestamp || new Date().toISOString(),
+            };
+          }
+          return parsed;
+        });
+        return c.json({ messages });
+      } catch (err) {
+        return c.json({ messages: [] });
+      }
+    } else if (tipo === "repo") {
+      const messagesPath = join("/tmp/crewfactory", username, "repos", entidad, "executions", execId, "messages.jsonl");
+      if (!existsSync(messagesPath)) {
+        return c.json({ messages: [] });
+      }
+      try {
+        const content = readFileSync(messagesPath, "utf-8");
+        const messages = content.trim().split("\n").filter(Boolean).map(line => {
+          const parsed = JSON.parse(line);
+          if (parsed.message) {
+            return {
+              id: parsed.id || parsed.message.id || crypto.randomUUID(),
+              role: parsed.message.role,
+              content: parsed.message.content,
+              timestamp: parsed.timestamp || new Date().toISOString(),
+            };
+          }
+          return parsed;
+        });
+        return c.json({ messages });
+      } catch (err) {
+        return c.json({ messages: [] });
+      }
+    } else if (tipo === "channel") {
+      try {
+        const { channelStore } = await import("../channels");
+        const messages = channelStore.getMessages(username, entidad, 100, execId);
+        const mapped = messages.map((m: any) => ({
+          id: m.id || crypto.randomUUID(),
+          role: m.role === "agent" ? "assistant" : m.role,
+          content: m.content,
+          agentName: m.agentName,
+          timestamp: m.timestamp,
+        }));
+        return c.json({ messages: mapped });
+      } catch (err) {
+        return c.json({ messages: [] });
+      }
+    }
+
+    return c.json({ messages: [] });
+  }
+
   const session = piSessionManager.getSession(username, sessionId);
   if (!session) {
     return c.json({ messages: [] });
@@ -360,6 +433,10 @@ sessionsRouter.post("/:id/abort", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ success: true });
+  }
+
   const session = piSessionManager.getSession(username, sessionId);
   if (!session) {
     return c.json({ error: "Session not found" }, 404);
@@ -374,6 +451,10 @@ sessionsRouter.delete("/:id", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot delete API executions from UI" }, 400);
+  }
+
   await piSessionManager.destroySession(username, sessionId);
 
   return c.json({ success: true });
@@ -383,6 +464,10 @@ sessionsRouter.patch("/:id", zValidator("json", z.object({ name: z.string().min(
   const sessionId = c.req.param("id");
   const { name } = c.req.valid("json");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot rename API executions" }, 400);
+  }
 
   piSessionManager.saveSessionMetadata(username, sessionId, { name });
 
@@ -396,6 +481,11 @@ sessionsRouter.post(
     const sessionId = c.req.param("id");
     const { provider, modelId, thinkingLevel } = c.req.valid("json");
     const { username } = getAuthPayload(c);
+
+    if (sessionId.startsWith("exec_")) {
+      return c.json({ error: "Cannot modify model settings for execution logs" }, 400);
+    }
+
     const { modelRegistry } = piSessionManager.getUserContext(username);
 
     const model = modelRegistry.find(provider, modelId);
@@ -428,6 +518,11 @@ sessionsRouter.post(
 sessionsRouter.get("/:id/context", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ contextUsage: null, sessionStats: null });
+  }
+
   const session = piSessionManager.getSession(username, sessionId);
   if (!session) {
     return c.json({ contextUsage: null, sessionStats: null });
@@ -444,6 +539,10 @@ sessionsRouter.get("/:id/context", async (c) => {
 sessionsRouter.get("/:id/skills", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ skills: [], diagnostics: [] });
+  }
 
   try {
     const session = await piSessionManager.getOrCreateSession(username, sessionId);
@@ -483,6 +582,10 @@ sessionsRouter.post(
     const { tools } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
+    if (sessionId.startsWith("exec_")) {
+      return c.json({ error: "Cannot modify tool permissions for execution logs" }, 400);
+    }
+
     const session = piSessionManager.getSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
@@ -499,6 +602,10 @@ sessionsRouter.get("/:id/tools", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ tools: [] });
+  }
+
   const tools = piSessionManager.getSessionTools(username, sessionId);
   return c.json({ tools });
 });
@@ -506,6 +613,11 @@ sessionsRouter.get("/:id/tools", async (c) => {
 sessionsRouter.get("/:id/tasks", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ tasks: [], status: "idle", currentStepIndex: 0, logs: {} });
+  }
+
   const state = loadTasksState(username, sessionId);
   return c.json(state);
 });
@@ -513,6 +625,11 @@ sessionsRouter.get("/:id/tasks", async (c) => {
 sessionsRouter.post("/:id/tasks", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot modify tasks for execution logs" }, 400);
+  }
+
   try {
     const { tasks } = await c.req.json();
     const state = loadTasksState(username, sessionId);
@@ -531,6 +648,11 @@ sessionsRouter.post("/:id/tasks", async (c) => {
 sessionsRouter.post("/:id/tasks/decompose", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot run tasks for execution logs" }, 400);
+  }
+
   try {
     const { objective } = await c.req.json();
     if (!objective || typeof objective !== "string") {
@@ -546,6 +668,11 @@ sessionsRouter.post("/:id/tasks/decompose", async (c) => {
 sessionsRouter.post("/:id/tasks/run", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot run tasks for execution logs" }, 400);
+  }
+
   try {
     await startTaskRunner(username, sessionId);
     return c.json({ success: true });
@@ -557,6 +684,11 @@ sessionsRouter.post("/:id/tasks/run", async (c) => {
 sessionsRouter.post("/:id/tasks/pause", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot pause tasks for execution logs" }, 400);
+  }
+
   try {
     await pauseTaskRunner(username, sessionId);
     return c.json({ success: true });
@@ -568,6 +700,11 @@ sessionsRouter.post("/:id/tasks/pause", async (c) => {
 sessionsRouter.post("/:id/tasks/reset", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
+
+  if (sessionId.startsWith("exec_")) {
+    return c.json({ error: "Cannot reset tasks for execution logs" }, 400);
+  }
+
   try {
     resetTasks(username, sessionId);
     return c.json({ success: true });

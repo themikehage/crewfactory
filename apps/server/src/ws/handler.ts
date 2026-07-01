@@ -166,48 +166,53 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
           existingUnsub();
         }
 
-          const session = await piSessionManager.getOrCreateSession(
-            user.username,
-            sessionId
-          );
+        if (sessionId.startsWith("exec_")) {
+          safeSend(ws, JSON.stringify({ type: "auth_success", wsId: ws.wsId }));
+          return;
+        }
 
-          const BUILD_REGEX = /\b(build|vite build|next build|nuxt build|astro build|bun run build|npm run build|pnpm run build|yarn build|tsc|webpack|parcel build|rollup -c)\b/;
-          const sessionRepoName = getRepoNameForSession(user.username, sessionId);
-          let hadBuildInSession = false;
+        const session = await piSessionManager.getOrCreateSession(
+          user.username,
+          sessionId
+        );
 
-          const unsub = session.subscribe((agentEvent) => {
-            safeSend(ws, JSON.stringify(agentEvent));
+        const BUILD_REGEX = /\b(build|vite build|next build|nuxt build|astro build|bun run build|npm run build|pnpm run build|yarn build|tsc|webpack|parcel build|rollup -c)\b/;
+        const sessionRepoName = getRepoNameForSession(user.username, sessionId);
+        let hadBuildInSession = false;
 
-            if (agentEvent.type === "tool_execution_start") {
-              const ev = agentEvent as any;
+        const unsub = session.subscribe((agentEvent) => {
+          safeSend(ws, JSON.stringify(agentEvent));
+
+          if (agentEvent.type === "tool_execution_start") {
+            const ev = agentEvent as any;
+            const cmd = ev.args?.command as string | undefined;
+            if (ev.toolName === "bash" && cmd && BUILD_REGEX.test(cmd) && sessionRepoName) {
+              hadBuildInSession = true;
+              setBuilding(user.username, sessionRepoName);
+            }
+          }
+
+          if (agentEvent.type === "tool_execution_end") {
+            const ev = agentEvent as any;
+            if (ev.toolName === "bash" && sessionRepoName) {
               const cmd = ev.args?.command as string | undefined;
-              if (ev.toolName === "bash" && cmd && BUILD_REGEX.test(cmd) && sessionRepoName) {
-                hadBuildInSession = true;
-                setBuilding(user.username, sessionRepoName);
+              if (ev.isError) {
+                const resultStr = typeof ev.result === "string" ? ev.result : JSON.stringify(ev.result).slice(0, 500);
+                setError(user.username, sessionRepoName, resultStr || "Build failed");
+                hadBuildInSession = false;
+              } else if (cmd && BUILD_REGEX.test(cmd)) {
+                hadBuildInSession = false;
+                setReady(user.username, sessionRepoName);
               }
             }
+          }
 
-            if (agentEvent.type === "tool_execution_end") {
-              const ev = agentEvent as any;
-              if (ev.toolName === "bash" && sessionRepoName) {
-                const cmd = ev.args?.command as string | undefined;
-                if (ev.isError) {
-                  const resultStr = typeof ev.result === "string" ? ev.result : JSON.stringify(ev.result).slice(0, 500);
-                  setError(user.username, sessionRepoName, resultStr || "Build failed");
-                  hadBuildInSession = false;
-                } else if (cmd && BUILD_REGEX.test(cmd)) {
-                  hadBuildInSession = false;
-                  setReady(user.username, sessionRepoName);
-                }
-              }
-            }
+          if (agentEvent.type === "agent_end" && sessionRepoName && hadBuildInSession) {
+            ensureWatcher(user.username, sessionRepoName);
+            hadBuildInSession = false;
+          }
 
-            if (agentEvent.type === "agent_end" && sessionRepoName && hadBuildInSession) {
-              ensureWatcher(user.username, sessionRepoName);
-              hadBuildInSession = false;
-            }
-
-            const sendContextUsage = () => {
+          const sendContextUsage = () => {
             try {
               const contextUsage = session.getContextUsage();
               const sessionStats = session.getSessionStats();
@@ -256,6 +261,14 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const message = data.message as string;
     const tools = data.tools as string[] | undefined;
     const images = data.images as any[] | undefined;
+
+    if (sessionId && sessionId.startsWith("exec_")) {
+      safeSend(
+        ws,
+        JSON.stringify({ type: "agent_error", sessionId, error: "Esta sesión de ejecución es de solo lectura y no acepta prompts." })
+      );
+      return;
+    }
 
     const session = await piSessionManager.getOrCreateSession(
       user.username,
