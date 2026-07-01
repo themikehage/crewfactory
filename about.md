@@ -32,7 +32,7 @@
 
 ### Provider Management
 - Dynamic provider configuration via web UI (no env vars needed)
-- 35 supported providers from pi SDK (Anthropic, OpenAI, Google, DeepSeek, Groq, Mistral, etc.)
+- 35 supported providers from pi SDK plus native Qwen Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, Mistral, Qwen, etc.)
 - API key management: add/remove keys per provider, persisted to auth.json
 - Model selector below chat input: shows only configured providers, nested dropdown for model selection
 - Model persistence in localStorage, applied to sessions via SDK's setModel()

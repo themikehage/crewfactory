@@ -16,6 +16,7 @@ import { AVAILABLE_TOOLS } from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
 import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
+import { registerQwenProvider } from "./qwen-provider";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
@@ -194,6 +195,7 @@ class PiSessionManager {
     const modelRegistry = ModelRegistry.create(authStorage);
 
     modelRegistry.refresh();
+    registerQwenProvider(modelRegistry);
 
     const ctx: UserContext = { authStorage, modelRegistry };
     this.users.set(username, ctx);
