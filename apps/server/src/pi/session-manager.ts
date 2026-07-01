@@ -83,7 +83,7 @@ export function ensureWorkspaceStructure(username: string): string {
   const skillsBaseDir = join(workspaceDir, ".agents", "skills");
 
   ensureWorkspaceSubdirs(workspaceDir);
-  mkdirSync(join(workspaceDir, "repos"), { recursive: true });
+  mkdirSync(join(userDir, "repos"), { recursive: true });
 
   const agentsMdPath = join(workspaceDir, "AGENTS.md");
   if (!existsSync(agentsMdPath)) {
@@ -265,7 +265,7 @@ class PiSessionManager {
     } else if (resolvedAgentId) {
       workspaceDir = join(userDir, "agents", resolvedAgentId, "workspace");
     } else if (resolvedRepoName) {
-      workspaceDir = resolve(workspaceBase, "repos", resolvedRepoName);
+      workspaceDir = resolve(userDir, "repos", resolvedRepoName, "workspace");
     }
 
     if (!existsSync(workspaceDir)) {
@@ -273,7 +273,7 @@ class PiSessionManager {
     }
 
     // Crear subestructura completa para workspaces no-globales (skills, assets, memorias)
-    if (resolvedChannelId || resolvedAgentId) {
+    if (resolvedChannelId || resolvedAgentId || resolvedRepoName) {
       ensureWorkspaceSubdirs(workspaceDir);
     }
 
@@ -537,6 +537,18 @@ class PiSessionManager {
     Object.assign(metadata, data);
     writeFileSync(metadataPath, JSON.stringify(metadata, null, 2), "utf-8");
   }
+
+  getSessionMetadata(username: string, sessionId: string): Record<string, any> | null {
+    const userDir = this.ensureUserDir(username);
+    const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");
+    if (existsSync(metadataPath)) {
+      try {
+        return JSON.parse(readFileSync(metadataPath, "utf-8"));
+      } catch {}
+    }
+    return null;
+  }
+
 
   async listSessions(username: string): Promise<SessionListItem[]> {
     const userDir = this.ensureUserDir(username);

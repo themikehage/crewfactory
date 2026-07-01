@@ -42,9 +42,22 @@ interface Props {
   runnerActive?: boolean;
   mentionTargets?: MentionTarget[];
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
-export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false, mentionTargets = [], activeRepoName }: Props) {
+export function InputArea({
+  onSend,
+  onAbort,
+  streaming,
+  sessionId,
+  onToolsChange,
+  runnerActive = false,
+  mentionTargets = [],
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
   const [showOptions, setShowOptions] = useState(false);
@@ -275,7 +288,11 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         formData.append("file", img.file);
         
         const token = localStorage.getItem("token");
-        const url = `/api/workspace/assets/uploads?repo=${activeRepoName || ""}`;
+        const params = new URLSearchParams();
+        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeAgentId) params.append("agentId", activeAgentId);
+        if (activeChannelId) params.append("channelId", activeChannelId);
+        const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
         
         const res = await fetch(url, {
           method: "POST",
@@ -300,7 +317,11 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         formData.append("file", doc.file);
         
         const token = localStorage.getItem("token");
-        const url = `/api/workspace/assets/uploads?repo=${activeRepoName || ""}`;
+        const params = new URLSearchParams();
+        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeAgentId) params.append("agentId", activeAgentId);
+        if (activeChannelId) params.append("channelId", activeChannelId);
+        const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
         
         const res = await fetch(url, {
           method: "POST",

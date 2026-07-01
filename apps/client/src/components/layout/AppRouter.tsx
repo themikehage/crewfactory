@@ -20,8 +20,12 @@ export function AppRouter() {
   const { route, navigate } = useRouter();
 
   // Cargar el repo, agente o canal activo y el estado de contexto desde localStorage
-  const [activeRepoName, setActiveRepoName] = useState<string | null>(() => {
-    return localStorage.getItem("active-repo") || null;
+  const [activeRepoId, setActiveRepoId] = useState<string | null>(() => {
+    return localStorage.getItem("active-repo-id") || null;
+  });
+
+  const [activeRepoFriendlyName, setActiveRepoFriendlyName] = useState<string | null>(() => {
+    return localStorage.getItem("active-repo-name") || null;
   });
 
   const [activeAgent, setActiveAgent] = useState<{ id: string; name: string } | null>(() => {
@@ -46,16 +50,19 @@ export function AppRouter() {
     return localStorage.getItem("has-context") === "true";
   });
 
-  const handleSelectRepo = useCallback((repoName: string | null) => {
-    if (repoName === null) {
-      localStorage.removeItem("active-repo");
+  const handleSelectRepo = useCallback((repoId: string | null, repoName: string | null) => {
+    if (repoId === null) {
+      localStorage.removeItem("active-repo-id");
+      localStorage.removeItem("active-repo-name");
     } else {
-      localStorage.setItem("active-repo", repoName);
+      localStorage.setItem("active-repo-id", repoId);
+      localStorage.setItem("active-repo-name", repoName || "");
     }
     localStorage.removeItem("active-agent");
     localStorage.removeItem("active-channel");
     localStorage.setItem("has-context", "true");
-    setActiveRepoName(repoName);
+    setActiveRepoId(repoId);
+    setActiveRepoFriendlyName(repoName);
     setActiveAgent(null);
     setActiveChannel(null);
     setHasContext(true);
@@ -69,11 +76,13 @@ export function AppRouter() {
     } else {
       localStorage.setItem("active-agent", JSON.stringify(agent));
     }
-    localStorage.removeItem("active-repo");
+    localStorage.removeItem("active-repo-id");
+    localStorage.removeItem("active-repo-name");
     localStorage.removeItem("active-channel");
     localStorage.setItem("has-context", "true");
     setActiveAgent(agent);
-    setActiveRepoName(null);
+    setActiveRepoId(null);
+    setActiveRepoFriendlyName(null);
     setActiveChannel(null);
     setHasContext(true);
     navigate("/");
@@ -85,11 +94,13 @@ export function AppRouter() {
     } else {
       localStorage.setItem("active-channel", JSON.stringify(channel));
     }
-    localStorage.removeItem("active-repo");
+    localStorage.removeItem("active-repo-id");
+    localStorage.removeItem("active-repo-name");
     localStorage.removeItem("active-agent");
     localStorage.setItem("has-context", "true");
     setActiveChannel(channel);
-    setActiveRepoName(null);
+    setActiveRepoId(null);
+    setActiveRepoFriendlyName(null);
     setActiveAgent(null);
     setHasContext(true);
     navigate("/");
@@ -109,14 +120,15 @@ export function AppRouter() {
 
   // Si el usuario no tiene contexto, establecer modo global automáticamente
   if (!hasContext) {
-    handleSelectRepo(null);
+    // handleSelectRepo(null, null);
   }
 
   return (
     <MainLayout
       route={route}
       onNavigate={navigate}
-      activeRepoName={activeRepoName}
+      activeRepoName={activeRepoFriendlyName}
+      activeRepoId={activeRepoId}
       activeAgent={activeAgent}
       activeChannel={activeChannel}
       onSelectRepo={handleSelectRepo}
@@ -124,7 +136,7 @@ export function AppRouter() {
       onSelectChannel={handleSelectChannel}
     >
       {route.page === "projects" && (
-        <DashboardPage onSelectRepo={handleSelectRepo} />
+        <DashboardPage onNavigate={navigate} onSelectRepo={handleSelectRepo} />
       )}
       {route.page === "settings" && (
         <SettingsPage />
@@ -150,7 +162,12 @@ export function AppRouter() {
         <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
       )}
       {route.page === "workspace" && (
-        <WorkspacePanel key={activeRepoName || "global"} activeRepoName={activeRepoName} />
+        <WorkspacePanel
+          key={activeRepoId || activeAgent?.id || activeChannel?.id || "global"}
+          activeRepoName={activeRepoId}
+          activeAgentId={activeAgent?.id}
+          activeChannelId={activeChannel?.id}
+        />
       )}
       {route.page === "chat" && (
         activeChannel ? (
@@ -161,16 +178,16 @@ export function AppRouter() {
           />
         ) : (
           <ChatArea
-            key={`${route.sessionId}-${activeRepoName}-${activeAgent?.id}`}
+            key={`${route.sessionId}-${activeRepoId}-${activeAgent?.id}`}
             sessionId={route.sessionId}
-            activeRepoName={activeRepoName}
+            activeRepoName={activeRepoId}
+            activeAgent={activeAgent}
           />
         )
       )}
       {route.page === "preview" && (
-        <PreviewPanel activeRepoName={activeRepoName} />
+        <PreviewPanel activeRepoName={activeRepoId} />
       )}
     </MainLayout>
-
   );
 }

@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 interface UseSessionResolverParams {
   sessionId: string | null;
   activeRepoName: string | null;
+  activeRepoFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
   currentPage: string;
@@ -13,6 +14,7 @@ interface UseSessionResolverParams {
 export function useSessionResolver({
   sessionId,
   activeRepoName,
+  activeRepoFriendlyName = null,
   activeAgent,
   activeChannel,
   currentPage,
@@ -55,8 +57,8 @@ export function useSessionResolver({
           ? `#${activeChannel.name} - Session ${sessionCount + 1}`
           : activeAgent
           ? `${activeAgent.name} - Session ${sessionCount + 1}`
-          : activeRepoName
-          ? `${activeRepoName} - Session ${sessionCount + 1}`
+          : activeRepoFriendlyName
+          ? `${activeRepoFriendlyName} - Session ${sessionCount + 1}`
           : `Global Session ${sessionCount + 1}`;
 
         const createRes = await apiFetch("/api/sessions", {

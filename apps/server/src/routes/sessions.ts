@@ -1,7 +1,9 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { existsSync, readFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { join } from "node:path";
+import { streamSSE } from "hono/streaming";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { piSessionManager } from "../pi/session-manager";
 import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema } from "shared";
@@ -64,12 +66,232 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   const { username } = getAuthPayload(c);
 
   const session = await piSessionManager.getOrCreateSession(username, sessionId);
+  const metadata = piSessionManager.getSessionMetadata(username, sessionId) || {};
+  const repoName = metadata.repoName;
+
+  const execId = crypto.randomUUID();
+  let execDir: string | null = null;
+  let toolCalls: any[] = [];
+  const errors: string[] = [];
+  const startTime = Date.now();
+
+  if (repoName) {
+    const userDir = piSessionManager.ensureUserDir(username);
+    const repoExecsDir = join(userDir, "repos", repoName, "executions");
+    if (!existsSync(repoExecsDir)) mkdirSync(repoExecsDir, { recursive: true });
+    execDir = join(repoExecsDir, execId);
+    mkdirSync(execDir, { recursive: true });
+
+    writeFileSync(join(execDir, "prompt.json"), JSON.stringify({ prompt: message, createdAt: new Date().toISOString() }, null, 2));
+  }
+
+  const unsubLog = execDir ? session.subscribe((event: any) => {
+    if (event.type === "tool_execution_start") {
+      toolCalls.push({
+        id: event.toolCall.id,
+        name: event.toolCall.name,
+        args: event.toolCall.arguments,
+        startedAt: new Date().toISOString(),
+      });
+    } else if (event.type === "tool_execution_end") {
+      const tc = toolCalls.find((t) => t.id === event.toolCall.id);
+      if (tc) {
+        tc.result = event.result;
+        tc.isError = event.isError;
+        tc.endedAt = new Date().toISOString();
+      }
+    } else if (event.type === "agent_error") {
+      errors.push(event.error || "Unknown error");
+    }
+  }) : () => {};
+
+  const finalize = () => {
+    unsubLog();
+    if (execDir) {
+      const durationMs = Date.now() - startTime;
+      try {
+        const msgs = session.messages;
+        writeFileSync(join(execDir, "messages.jsonl"), msgs.map(m => JSON.stringify(m)).join("\n"));
+        writeFileSync(join(execDir, "tool-calls.json"), JSON.stringify(toolCalls, null, 2));
+        writeFileSync(join(execDir, "errors.json"), JSON.stringify(errors, null, 2));
+        writeFileSync(join(execDir, "summary.json"), JSON.stringify({
+          id: execId,
+          prompt: message,
+          durationMs,
+          errors,
+          createdAt: new Date().toISOString(),
+        }, null, 2));
+      } catch (e) {
+        console.error(`[SessionsRoute] Failed to save execution log for repo ${repoName}:`, e);
+      }
+    }
+  };
 
   try {
     await session.prompt(message);
     return c.json({ success: true });
   } catch (error) {
+    errors.push(String(error));
     return c.json({ success: false, error: String(error) }, 500);
+  } finally {
+    finalize();
+  }
+});
+
+sessionsRouter.post(
+  "/:id/prompt/stream",
+  zValidator("json", PromptSchema),
+  async (c) => {
+    const sessionId = c.req.param("id");
+    const { message } = c.req.valid("json");
+    const { username } = getAuthPayload(c);
+
+    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const metadata = piSessionManager.getSessionMetadata(username, sessionId) || {};
+    const repoName = metadata.repoName;
+
+    const execId = crypto.randomUUID();
+    let execDir: string | null = null;
+    let toolCalls: any[] = [];
+    const errors: string[] = [];
+    const startTime = Date.now();
+
+    if (repoName) {
+      const userDir = piSessionManager.ensureUserDir(username);
+      const repoExecsDir = join(userDir, "repos", repoName, "executions");
+      if (!existsSync(repoExecsDir)) mkdirSync(repoExecsDir, { recursive: true });
+      execDir = join(repoExecsDir, execId);
+      mkdirSync(execDir, { recursive: true });
+
+      writeFileSync(join(execDir, "prompt.json"), JSON.stringify({ prompt: message, createdAt: new Date().toISOString() }, null, 2));
+    }
+
+    const unsubLog = execDir ? session.subscribe((event: any) => {
+      if (event.type === "tool_execution_start") {
+        toolCalls.push({
+          id: event.toolCall.id,
+          name: event.toolCall.name,
+          args: event.toolCall.arguments,
+          startedAt: new Date().toISOString(),
+        });
+      } else if (event.type === "tool_execution_end") {
+        const tc = toolCalls.find((t) => t.id === event.toolCall.id);
+        if (tc) {
+          tc.result = event.result;
+          tc.isError = event.isError;
+          tc.endedAt = new Date().toISOString();
+        }
+      } else if (event.type === "agent_error") {
+        errors.push(event.error || "Unknown error");
+      }
+    }) : () => {};
+
+    const finalize = () => {
+      unsubLog();
+      if (execDir) {
+        const durationMs = Date.now() - startTime;
+        try {
+          const msgs = session.messages;
+          writeFileSync(join(execDir, "messages.jsonl"), msgs.map(m => JSON.stringify(m)).join("\n"));
+          writeFileSync(join(execDir, "tool-calls.json"), JSON.stringify(toolCalls, null, 2));
+          writeFileSync(join(execDir, "errors.json"), JSON.stringify(errors, null, 2));
+          writeFileSync(join(execDir, "summary.json"), JSON.stringify({
+            id: execId,
+            prompt: message,
+            durationMs,
+            errors,
+            createdAt: new Date().toISOString(),
+          }, null, 2));
+        } catch (e) {
+          console.error(`[SessionsRoute] Failed to save execution log for repo ${repoName}:`, e);
+        }
+      }
+    };
+
+    return streamSSE(c, async (sse) => {
+      const unsub = session.subscribe((event) => {
+        sse.writeSSE({ data: JSON.stringify(event), event: event.type }).catch(() => {});
+      });
+
+      try {
+        await session.prompt(message);
+      } catch (err) {
+        errors.push(String(err));
+        await sse.writeSSE({ data: JSON.stringify({ type: "agent_error", error: String(err) }), event: "agent_error" });
+      } finally {
+        unsub();
+        finalize();
+        await sse.writeSSE({ data: "{}", event: "done" });
+      }
+    });
+  }
+);
+
+sessionsRouter.get("/repos/:repoName/executions", async (c) => {
+  const { username } = getAuthPayload(c);
+  const repoName = c.req.param("repoName");
+  
+  const userDir = piSessionManager.ensureUserDir(username);
+  const execsDir = join(userDir, "repos", repoName, "executions");
+  if (!existsSync(execsDir)) return c.json({ executions: [] });
+
+  const folders = readdirSync(execsDir);
+  const executions: any[] = [];
+  for (const f of folders) {
+    try {
+      const summaryPath = join(execsDir, f, "summary.json");
+      if (existsSync(summaryPath)) {
+        executions.push(JSON.parse(readFileSync(summaryPath, "utf-8")));
+      }
+    } catch {}
+  }
+  executions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+  return c.json({ executions });
+});
+
+sessionsRouter.get("/repos/:repoName/executions/:execId", async (c) => {
+  const { username } = getAuthPayload(c);
+  const repoName = c.req.param("repoName");
+  const execId = c.req.param("execId");
+
+  const userDir = piSessionManager.ensureUserDir(username);
+  const execDir = join(userDir, "repos", repoName, "executions", execId);
+  if (!existsSync(execDir)) return c.json({ error: "Execution not found" }, 404);
+
+  try {
+    const prompt = JSON.parse(readFileSync(join(execDir, "prompt.json"), "utf-8")).prompt;
+    
+    let messages: any[] = [];
+    const msgFile = join(execDir, "messages.jsonl");
+    if (existsSync(msgFile)) {
+      messages = readFileSync(msgFile, "utf-8")
+        .split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+    }
+
+    const toolCalls = existsSync(join(execDir, "tool-calls.json"))
+      ? JSON.parse(readFileSync(join(execDir, "tool-calls.json"), "utf-8"))
+      : [];
+
+    const errors = existsSync(join(execDir, "errors.json"))
+      ? JSON.parse(readFileSync(join(execDir, "errors.json"), "utf-8"))
+      : [];
+
+    const summary = existsSync(join(execDir, "summary.json"))
+      ? JSON.parse(readFileSync(join(execDir, "summary.json"), "utf-8"))
+      : {};
+
+    return c.json({
+      id: execId,
+      prompt,
+      messages,
+      toolCalls,
+      errors,
+      ...summary
+    });
+  } catch (e) {
+    return c.json({ error: String(e) }, 500);
   }
 });
 

@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 
 interface RepoItem {
+  id?: string;
   name: string;
   path: string;
   lastModified: string;
 }
 
 interface Props {
-  onSelectRepo: (repoName: string | null) => void;
+  onNavigate?: (path: string) => void;
+  onSelectRepo: (repoId: string | null, repoName: string | null) => void;
 }
 
 export function DashboardPage({ onSelectRepo }: Props) {
@@ -97,7 +99,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => onSelectRepo(null)}
+                onClick={() => onSelectRepo(null, null)}
                 className="text-xs bg-surface-hover/20 text-text-secondary hover:text-text-primary border border-surface-hover/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
                 Workspace Global
@@ -143,7 +145,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     </p>
                   </div>
                   <button
-                    onClick={() => onSelectRepo(repo.name)}
+                    onClick={() => onSelectRepo(repo.id || repo.name, repo.name)}
                     className="w-full mt-4 py-1.5 bg-surface-hover/20 hover:bg-accent hover:text-bg text-text-primary rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
                   >
                     Abrir

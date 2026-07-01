@@ -9,9 +9,17 @@ interface Props {
   images: ImageItem[];
   sessionId: string | null;
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
-export function resolveImageUrl(url: string, sessionId: string | null, activeRepoName?: string | null): string {
+export function resolveImageUrl(
+  url: string,
+  sessionId: string | null,
+  activeRepoName?: string | null,
+  activeAgentId?: string | null,
+  activeChannelId?: string | null
+): string {
   if (!url) return "";
 
   if (url.startsWith("data:image/") || url.startsWith("http://") || url.startsWith("https://")) {
@@ -43,7 +51,12 @@ export function resolveImageUrl(url: string, sessionId: string | null, activeRep
   if (cleanPath.startsWith("workspace/")) {
     cleanPath = cleanPath.substring("workspace/".length);
   }
-  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}&raw=true`;
+  const params = new URLSearchParams();
+  if (activeRepoName) params.append("repo", activeRepoName);
+  if (activeAgentId) params.append("agentId", activeAgentId);
+  if (activeChannelId) params.append("channelId", activeChannelId);
+  params.append("raw", "true");
+  return `/api/workspace/${cleanPath}?${params.toString()}`;
 }
 
 interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -93,7 +106,13 @@ export function AuthenticatedImage({ src, ...props }: AuthenticatedImageProps) {
   return <img src={blobUrl} {...props} />;
 }
 
-export function ImageGrid({ images, sessionId, activeRepoName }: Props) {
+export function ImageGrid({
+  images,
+  sessionId,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: Props) {
   const [downloading, setDownloading] = useState<string | null>(null);
 
   const downloadImage = useCallback(async (resolvedUrl: string, filename?: string) => {
@@ -153,10 +172,10 @@ export function ImageGrid({ images, sessionId, activeRepoName }: Props) {
 
   const downloadAll = useCallback(async () => {
     for (const img of images) {
-      const resolved = resolveImageUrl(img.url, sessionId, activeRepoName);
+      const resolved = resolveImageUrl(img.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
       await downloadImage(resolved, img.title);
     }
-  }, [images, sessionId, activeRepoName, downloadImage]);
+  }, [images, sessionId, activeRepoName, activeAgentId, activeChannelId, downloadImage]);
 
   if (images.length === 0) return null;
 
@@ -183,7 +202,7 @@ export function ImageGrid({ images, sessionId, activeRepoName }: Props) {
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-w-full">
         {images.map((img, i) => {
-          const resolved = resolveImageUrl(img.url, sessionId, activeRepoName);
+          const resolved = resolveImageUrl(img.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const isDownloading = downloading === resolved;
           return (
             <div

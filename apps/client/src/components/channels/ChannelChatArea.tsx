@@ -166,6 +166,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
         streamingAgents={streamingAgents}
         mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
         sessionId={sessionId}
+        activeChannelId={activeChannel.id}
       />
 
       {/* Reused InputArea shared with normal chat */}
@@ -176,6 +177,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           onSend={(msg) => handleSend(msg)}
           onAbort={abortDispatch}
           mentionTargets={mentionTargets}
+          activeChannelId={activeChannel.id}
         />
       </div>
 

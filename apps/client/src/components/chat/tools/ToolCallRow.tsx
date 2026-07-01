@@ -31,6 +31,8 @@ interface Props {
   result: ToolResultData | null;
   sessionId: string | null;
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
@@ -183,7 +185,15 @@ function ToolBody({ toolName, args, result }: { toolName: string; args: Record<s
   }
 }
 
-export function ToolCallRow({ toolName, args, result, sessionId: _sessionId, activeRepoName: _activeRepoName }: Props) {
+export function ToolCallRow({
+  toolName,
+  args,
+  result,
+  sessionId: _sessionId,
+  activeRepoName: _activeRepoName,
+  activeAgentId: _activeAgentId = null,
+  activeChannelId: _activeChannelId = null,
+}: Props) {
   const [expanded, setExpanded] = useState(
     toolName === "edit" || toolName === "bash"
   );

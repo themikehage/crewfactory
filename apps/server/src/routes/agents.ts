@@ -62,6 +62,7 @@ agentsRouter.get("/:id", (c) => {
     port: entry.server.definition.port,
     createdAt: entry.createdAt,
     definition: entry.server.definition,
+    activeObservers: entry.server.getActiveObservers ? entry.server.getActiveObservers() : 0,
   });
 });
 
@@ -122,3 +123,50 @@ agentsRouter.post("/:id/abort", async (c) => {
   }
   return c.json({ aborted: true });
 });
+
+agentsRouter.get("/:id/observe", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const entry = agentRegistry.get(id);
+  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+
+  return entry.server.app.fetch(
+    new Request(`http://internal/observe`, {
+      method: "GET",
+    }),
+    c.env
+  );
+});
+
+agentsRouter.get("/:id/executions", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const entry = agentRegistry.get(id);
+  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+
+  return entry.server.app.fetch(
+    new Request(`http://internal/executions`, {
+      method: "GET",
+    }),
+    c.env
+  );
+});
+
+agentsRouter.get("/:id/executions/:execId", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const execId = c.req.param("execId");
+  const entry = agentRegistry.get(id);
+  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+
+  return entry.server.app.fetch(
+    new Request(`http://internal/executions/${execId}`, {
+      method: "GET",
+    }),
+    c.env
+  );
+});
+

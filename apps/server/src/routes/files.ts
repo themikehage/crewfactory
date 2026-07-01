@@ -5,11 +5,17 @@ import { getUsername } from "../lib/auth-helpers";
 
 export const filesRouter = new Hono();
 
-function validateWorkspacePath(username: string, relativePath: string, repoName?: string): string {
+function validateWorkspacePath(username: string, relativePath: string, repoName?: string, agentId?: string, channelId?: string): string {
   const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
-  const workspaceDir = repoName
-    ? resolve(workspaceBase, "repos", repoName)
-    : workspaceBase;
+  let workspaceDir = workspaceBase;
+
+  if (channelId) {
+    workspaceDir = resolve(`/tmp/crewfactory/${username}/channels/${channelId}/workspace`);
+  } else if (agentId) {
+    workspaceDir = resolve(`/tmp/crewfactory/${username}/agents/${agentId}/workspace`);
+  } else if (repoName) {
+    workspaceDir = resolve(`/tmp/crewfactory/${username}/repos/${repoName}/workspace`);
+  }
 
   if (!existsSync(workspaceDir)) {
     mkdirSync(workspaceDir, { recursive: true });
@@ -100,7 +106,9 @@ const handleGetWorkspace = async (c: any) => {
 
   try {
     const repoName = c.req.query("repo");
-    const fullPath = validateWorkspacePath(username, relativePath, repoName);
+    const agentId = c.req.query("agentId");
+    const channelId = c.req.query("channelId");
+    const fullPath = validateWorkspacePath(username, relativePath, repoName, agentId, channelId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "Path does not exist" }, 404);
     }
@@ -199,23 +207,38 @@ filesRouter.get("/workspace-repos", async (c) => {
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   try {
-    const reposDir = resolve(`/tmp/crewfactory/${username}/workspace/repos`);
+    const reposDir = resolve(`/tmp/crewfactory/${username}/repos`);
     if (!existsSync(reposDir)) {
       mkdirSync(reposDir, { recursive: true });
     }
 
     const entries = readdirSync(reposDir, { withFileTypes: true });
-    const repos = entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => {
+    const repos = [];
+    for (const entry of entries) {
+      if (entry.isDirectory()) {
         const entryPath = join(reposDir, entry.name);
+        const jsonPath = join(entryPath, "project.json");
+        let projName = entry.name;
+        if (existsSync(jsonPath)) {
+          try {
+            const proj = JSON.parse(readFileSync(jsonPath, "utf-8"));
+            projName = proj.name || entry.name;
+          } catch {}
+        } else {
+          // Auto-generate project.json for legacy projects
+          try {
+            writeFileSync(jsonPath, JSON.stringify({ id: entry.name, name: entry.name }, null, 2), "utf-8");
+          } catch {}
+        }
         const stat = statSync(entryPath);
-        return {
-          name: entry.name,
+        repos.push({
+          id: entry.name,
+          name: projName,
           path: entry.name,
           lastModified: stat.mtime.toISOString(),
-        };
-      });
+        });
+      }
+    }
 
     return c.json({ repos });
   } catch (err: any) {
@@ -236,26 +259,28 @@ filesRouter.post("/workspace-repos", async (c) => {
       return c.json({ error: "Invalid repository name" }, 400);
     }
 
-    const reposDir = resolve(`/tmp/crewfactory/${username}/workspace/repos`);
+    const reposDir = resolve(`/tmp/crewfactory/${username}/repos`);
     if (!existsSync(reposDir)) {
       mkdirSync(reposDir, { recursive: true });
     }
 
-    const targetDir = join(reposDir, name);
-    if (existsSync(targetDir)) {
-      return c.json({ error: "Repository or directory already exists" }, 409);
-    }
+    // Generate unique project ID
+    const repoId = crypto.randomUUID();
+    const baseDir = join(reposDir, repoId);
+    const targetDir = join(baseDir, "workspace");
 
     if (cloneUrl) {
       if (typeof cloneUrl !== "string" || !cloneUrl.startsWith("http")) {
         return c.json({ error: "Invalid clone URL" }, 400);
       }
 
-      const proc = Bun.spawn(["git", "clone", cloneUrl, name], {
-        cwd: reposDir,
+      mkdirSync(baseDir, { recursive: true });
+      const proc = Bun.spawn(["git", "clone", cloneUrl, "workspace"], {
+        cwd: baseDir,
       });
       await proc.exited;
       if (proc.exitCode !== 0) {
+        rmSync(baseDir, { recursive: true, force: true });
         return c.json({ error: "Git clone failed" }, 500);
       }
     } else {
@@ -266,10 +291,20 @@ filesRouter.post("/workspace-repos", async (c) => {
       await proc.exited;
     }
 
+    // Write project.json file
+    const projectJson = {
+      id: repoId,
+      name: name,
+      cloneUrl: cloneUrl || null,
+      createdAt: new Date().toISOString(),
+    };
+    writeFileSync(join(baseDir, "project.json"), JSON.stringify(projectJson, null, 2), "utf-8");
+
     const stat = statSync(targetDir);
     return c.json({
+      id: repoId,
       name,
-      path: name,
+      path: repoId,
       lastModified: stat.mtime.toISOString(),
     }, 201);
   } catch (err: any) {
@@ -293,7 +328,9 @@ const handlePutWorkspace = async (c: any) => {
 
   try {
     const repoName = c.req.query("repo");
-    const fullPath = validateWorkspacePath(username, relativePath, repoName);
+    const agentId = c.req.query("agentId");
+    const channelId = c.req.query("channelId");
+    const fullPath = validateWorkspacePath(username, relativePath, repoName, agentId, channelId);
     const body = await c.req.json().catch(() => ({}));
     const { type, content } = body;
 
@@ -340,7 +377,9 @@ const handlePostWorkspace = async (c: any) => {
 
   try {
     const repoName = c.req.query("repo");
-    const fullPath = validateWorkspacePath(username, relativePath, repoName);
+    const agentId = c.req.query("agentId");
+    const channelId = c.req.query("channelId");
+    const fullPath = validateWorkspacePath(username, relativePath, repoName, agentId, channelId);
     const body = await c.req.parseBody();
     const file = body.file as File | undefined;
     if (!file) {
@@ -353,9 +392,14 @@ const handlePostWorkspace = async (c: any) => {
     // Validate the final resolved file save path
     const resolvedSavePath = resolve(savePath);
     const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
-    const workspaceDir = repoName
-      ? resolve(workspaceBase, "repos", repoName)
-      : workspaceBase;
+    let workspaceDir = workspaceBase;
+    if (channelId) {
+      workspaceDir = resolve(`/tmp/crewfactory/${username}/channels/${channelId}/workspace`);
+    } else if (agentId) {
+      workspaceDir = resolve(`/tmp/crewfactory/${username}/agents/${agentId}/workspace`);
+    } else if (repoName) {
+      workspaceDir = resolve(workspaceBase, "repos", repoName);
+    }
     if (!resolvedSavePath.startsWith(workspaceDir + sep) && resolvedSavePath !== workspaceDir) {
       return c.json({ error: "Forbidden path traversal in upload" }, 403);
     }
@@ -390,7 +434,9 @@ const handleDeleteWorkspace = async (c: any) => {
 
   try {
     const repoName = c.req.query("repo");
-    const fullPath = validateWorkspacePath(username, relativePath, repoName);
+    const agentId = c.req.query("agentId");
+    const channelId = c.req.query("channelId");
+    const fullPath = validateWorkspacePath(username, relativePath, repoName, agentId, channelId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "File not found" }, 404);
     }
@@ -423,7 +469,9 @@ const handlePatchWorkspace = async (c: any) => {
 
   try {
     const repoName = c.req.query("repo");
-    const fullPath = validateWorkspacePath(username, relativePath, repoName);
+    const agentId = c.req.query("agentId");
+    const channelId = c.req.query("channelId");
+    const fullPath = validateWorkspacePath(username, relativePath, repoName, agentId, channelId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "Source file not found" }, 404);
     }
@@ -434,7 +482,7 @@ const handlePatchWorkspace = async (c: any) => {
       return c.json({ error: "Invalid target path" }, 400);
     }
 
-    const targetFullPath = validateWorkspacePath(username, newPath, repoName);
+    const targetFullPath = validateWorkspacePath(username, newPath, repoName, agentId, channelId);
     mkdirSync(dirname(targetFullPath), { recursive: true });
     renameSync(fullPath, targetFullPath);
 

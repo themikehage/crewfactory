@@ -289,3 +289,20 @@ export interface GlobalLogEvent {
   agentName?: string;
   detail?: any;
 }
+
+export const AgentExecutionSchema = z.object({
+  id: z.string(),
+  prompt: z.string(),
+  messages: z.array(z.any()),
+  toolCalls: z.array(z.any()),
+  errors: z.array(z.string()),
+  durationMs: z.number().optional(),
+  tokenUsage: z.object({
+    promptTokens: z.number(),
+    completionTokens: z.number(),
+    totalTokens: z.number(),
+  }).optional(),
+  createdAt: z.string(),
+});
+export type AgentExecution = z.infer<typeof AgentExecutionSchema>;
+

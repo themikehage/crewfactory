@@ -60,14 +60,16 @@
 
 ### Workspace & Hybrid Agent Instantiation
 - Structured directory per user at `/tmp/crewfactory/{username}/`:
-  - `workspace/` — User workspace root (contains `repos/` for Git projects, `assets/` for uploads/generated, `memories/` for repository and session notes, `.agents/skills/` for factory skills, and `AGENTS.md` — the only entity with manager-level instructions)
-  - `agents/{id}/workspace/` — Programmatic agent workspace with same subdirs (`.agents/skills/`, `assets/`, `memories/`) but NO AGENTS.md or factory skill provisioning — they see global factory skills as read-only via `getResolvedSkillPaths(username)`
+  - `workspace/` — User global workspace root (contains `.agents/skills/` for factory skills, `AGENTS.md` — the only entity with manager-level instructions, `assets/` for uploads/generated, and memories/ for short-term and session notes)
+  - `repos/{repoId}/workspace/` — Git repository workspace (contains `.agents/skills/`, `assets/`, `memories/` skeleton for repo context, identified by a unique UUID `repoId` to support renaming)
+  - `repos/{repoId}/project.json` — Repository metadata mapping the UUID to its friendly name and clone settings
+  - `agents/{id}/workspace/` — Programmatic agent workspace with same subdirs skeleton but NO AGENTS.md or factory skill provisioning — they see global factory skills as read-only via `getResolvedSkillPaths(username)`
   - `channels/{id}/workspace/` — Multi-agent channel workspace, same structure as agents
   - `sessions/` — User chat sessions and metadata
   - `agents/{id}/sessions/` — Agent chat sessions
   - `channels/{id}/` — Channel definitions and message logs
 - **Global mode:** Agent CWD is the workspace root. Used for cross-repo tasks, admin, and skill authorship.
-- **Repo mode:** Agent CWD is `repos/{repoName}`. Sessions tagged with `repoName` in `metadata.json`.
+- **Repo mode:** Agent CWD is `repos/{repoId}/workspace`. Sessions tagged with `repoId` in `metadata.json`.
 - **Agent/Channel mode:** Agent CWD is the entity's workspace. Global factory skills injected via `getResolvedSkillPaths()`.
 - `ensureWorkspaceSubdirs()` creates the common subdirectory skeleton for any entity workspace.
 - Dashboard view (initial screen) lets users list, create or clone Git repositories.
@@ -155,6 +157,13 @@
 - **Merge/Overwrite Restoration Modes**: Supports merging zip configurations with current setups, or cleanly wiping all data before overwrite.
 - **Safety Preflight & Warnings**: Shows warning modals on destructive overwrite imports, offering quick backup downloads and text verification inputs.
 
+### Task Delegation & Meta-Agent Optimization Loop
+- **Unified CLI Delegation**: Command-line helper script `scripts/delegate.ts` executed via Bun. Lets the global meta-agent delegate prompt execution to programmatic agents (`--agent`), channels (`--channel`), or repository sessions (`--repo`) with live SSE streams rendered directly to stdout.
+- **Active Observation API**: Endpoint `GET /api/agents/:id/observe` (SSE) providing live streaming of internal agent execution events (thoughts, text deltas, tool calls, errors).
+- **Execution Log Store**: Structured folder persistence under `/tmp/crewfactory/{username}/[agents|repos]/{id}/executions/{execId}/` saving prompt execution detail files (`prompt.json`, `messages.jsonl`, `tool-calls.json`, `errors.json`, `summary.json`) upon completion.
+- **Continuous Optimization Loop**: Factory skills `factory-delegate`, `factory-observe`, and `factory-quick-actions` teaching the global director how to delegate tasks, inspect execution reports, detect repetitive sequences, and compile/register optimized Quick Actions.
+- **Rich Monitoring UI**: "Historial" (Executions) logs tab in `AgentsPage.tsx` with collapsable tool detail pre-blocks and real-time Observed status indicators in `ChatArea.tsx`.
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -179,7 +188,7 @@
 | GET | /api/preview/{username}/{repoName}/* | Serve static files from repo build dir with SPA fallback (path-based isolation, no token) |
 | GET | /api/workspace-repos | List repos in workspace/repos/ |
 | POST | /api/workspace-repos | Create empty repo or clone from Git URL |
-| GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name` scoping) |
+| GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name`, `?agentId=id`, `?channelId=id` scoping) |
 | GET | /api/sessions/:id/tools | Get active tool permissions for session |
 | POST | /api/sessions/:id/tools | Set and persist tool permissions for session |
 | GET | /api/sessions/:id/tasks | Get session task runner state |
@@ -192,6 +201,12 @@
 | POST | /api/integrations/templates | Update or define new integrations and custom quick actions |
 | GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
 | GET/POST/DELETE | /api/agents | Agent registration, listing, and management |
+| GET | /api/agents/:id/observe | SSE event stream of agent actions, thoughts, and tools |
+| GET | /api/agents/:id/executions | List saved execution logs for the agent |
+| GET | /api/agents/:id/executions/:execId | Retrieve detail logs of a specific agent execution |
+| POST | /api/sessions/:id/prompt/stream | Stream prompts (SSE) for standard repository-scoped sessions |
+| GET | /api/sessions/repos/:repoName/executions | List saved execution logs for the repository |
+| GET | /api/sessions/repos/:repoName/executions/:execId | Retrieve detail logs of a specific repository execution |
 | GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), and message dispatch (`/send`) |
 | GET | /api/backup/export | Export zip backup (supports ?type=light|full) |
 | POST | /api/backup/import | Import zip backup (supports ?mode=merge|overwrite) |

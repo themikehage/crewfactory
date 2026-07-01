@@ -364,3 +364,22 @@ crear un plan de despliegue facil en vps
 - [x] 41.12 Combine consecutive token deltas inside consolidated logs console tab
 - [x] 41.13 Validate full build and push changes
 
+## Phase 42: Robust Task Delegation & Meta-Agent Optimization Loop
+- [x] 42.1 Defined Zod schemas for execution logs in shared packages
+- [x] 42.2 Implemented agent observation API (`GET /api/agents/:id/observe`) and execution log storage on Hono server
+- [x] 42.3 Implemented repository session SSE prompting (`POST /api/sessions/:id/prompt/stream`) and execution logging on backend
+- [x] 42.4 Created Bun CLI helper script `scripts/delegate.ts` for unified task delegation to agents, channels, and repos
+- [x] 42.5 Configured new and updated factory skills (`factory-delegate`, `factory-observe`, `factory-quick-actions`)
+- [x] 42.6 Implemented frontend "Executions" detail logs modal in `AgentsPage.tsx`
+- [x] 42.7 Implemented visual observed status indicator badge in `ChatArea.tsx` header
+
+## Phase 43: Agent & Channel Workspace Isolation
+- [x] 43.1 backend files.ts path validation support for agentId and channelId
+- [x] 43.2 client routing and prop propagation for activeAgent and activeChannel
+- [x] 43.3 client ImageGrid, ToolCallRow, resolveFileUrl, resolveImageUrl, InputArea, WorkspacePanel update to append scoping parameters
+- [x] 43.4 verification of build compilation of server and client
+- [x] 43.5 Homogenized repository workspace directories to `repos/{repoName}/workspace` to match agents and channels folders layout
+- [x] 43.6 Decoupled repository workspaces to use a unique UUID-based repoId instead of human-readable repoName, adding project.json metadata mapping and client-side selection support
+
+
+

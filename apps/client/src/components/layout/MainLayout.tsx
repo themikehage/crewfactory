@@ -10,9 +10,10 @@ interface Props {
   route: Route;
   onNavigate: (path: string) => void;
   activeRepoName: string | null;
+  activeRepoId?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
-  onSelectRepo?: (repoName: string | null) => void;
+  onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   children: ReactNode;
@@ -22,6 +23,7 @@ export function MainLayout({
   route,
   onNavigate,
   activeRepoName,
+  activeRepoId = null,
   activeAgent,
   activeChannel = null,
   onSelectRepo,
@@ -75,7 +77,8 @@ export function MainLayout({
 
   useSessionResolver({
     sessionId,
-    activeRepoName,
+    activeRepoName: activeRepoId,
+    activeRepoFriendlyName: activeRepoName,
     activeAgent,
     activeChannel,
     currentPage: route.page,
@@ -216,7 +219,7 @@ export function MainLayout({
       <header className="h-10 sm:h-12 border-b border-surface px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-surface/30">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
-            onClick={() => onSelectRepo ? onSelectRepo(null) : onNavigate("/")}
+            onClick={() => onSelectRepo ? onSelectRepo(null, null) : onNavigate("/")}
             className="p-1 text-text-secondary hover:text-text-primary rounded cursor-pointer flex-shrink-0"
             title="Inicio"
           >
@@ -249,7 +252,8 @@ export function MainLayout({
             isOpen={sessionPopoverOpen}
             onClose={() => setSessionPopoverOpen(false)}
             activeSessionId={sessionId}
-            activeRepoName={activeRepoName}
+            activeRepoName={activeRepoId}
+            activeRepoFriendlyName={activeRepoName}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
             onSelectSession={handleSelectSession}
@@ -270,7 +274,7 @@ export function MainLayout({
           } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-surface bg-bg transition-transform duration-200`}
         >
           <SessionSidebar
-            activeRepoName={activeRepoName}
+            activeRepoName={activeRepoId}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
             currentPage={route.page}

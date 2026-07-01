@@ -54,10 +54,11 @@ interface Message {
 interface Props {
   sessionId: string | null;
   activeRepoName: string | null;
+  activeAgent?: { id: string; name: string } | null;
   activeChannel?: { id: string; name: string } | null;
 }
 
-export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
+export function ChatArea({ sessionId, activeRepoName, activeAgent = null, activeChannel = null }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,6 +73,7 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
     contextUsage: { tokens: number | null; contextWindow: number | null; percent: number | null } | null;
     sessionStats: { tokens: { input: number; output: number; total: number } } | null;
   } | null>(null);
+  const [activeObservers, setActiveObservers] = useState(0);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
@@ -413,6 +415,42 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
     }
   }, [sessionId, loadMessages]);
 
+  useEffect(() => {
+    if (!sessionId) {
+      setActiveObservers(0);
+      return;
+    }
+
+    const checkObservers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const sessionsRes = await fetch("/api/sessions", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!sessionsRes.ok) return;
+        const { sessions } = await sessionsRes.json();
+        const s = sessions.find((item: any) => item.id === sessionId);
+        if (s && s.agentId) {
+          const agentRes = await fetch(`/api/agents/${s.agentId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (agentRes.ok) {
+            const data = await agentRes.json();
+            setActiveObservers(data.activeObservers || 0);
+            return;
+          }
+        }
+        setActiveObservers(0);
+      } catch {
+        setActiveObservers(0);
+      }
+    };
+
+    checkObservers();
+    const interval = setInterval(checkObservers, 3000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
   if (!sessionId) {
     return (
       <div className="h-full flex items-center justify-center text-text-secondary">
@@ -430,6 +468,12 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           />
           {connected ? "Connected" : "Reconnecting..."}
           {streaming && <span className="ml-2 text-accent">Streaming...</span>}
+          {activeObservers > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-[10px] animate-pulse flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-blue-400" />
+              Observado ({activeObservers})
+            </span>
+          )}
           {tasksState.status !== "idle" && (
             <span className="ml-2 px-1.5 py-0.2 rounded bg-accent/15 text-accent font-semibold text-[10px]">
               Task Queue: {tasksState.status}
@@ -461,7 +505,14 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           className="flex-1 overflow-y-auto min-h-0"
         >
           <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <MessageList messages={messages} onNavigate={handleNavigate} sessionId={sessionId} activeRepoName={activeRepoName} />
+            <MessageList
+              messages={messages}
+              onNavigate={handleNavigate}
+              sessionId={sessionId}
+              activeRepoName={activeRepoName}
+              activeAgentId={activeAgent?.id}
+              activeChannelId={activeChannel?.id}
+            />
             <div ref={messagesEndRef} />
           </div>
         </div>
@@ -479,6 +530,8 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           onToolsChange={setSandboxTools}
           runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
           activeRepoName={activeRepoName}
+          activeAgentId={activeAgent?.id}
+          activeChannelId={activeChannel?.id}
         />
       </div>
 

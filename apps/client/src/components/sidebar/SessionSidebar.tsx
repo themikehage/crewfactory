@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 // --- Component ---
 
 interface RepoItem {
+  id?: string;
   name: string;
   path: string;
   lastModified: string;
@@ -30,7 +31,7 @@ interface Props {
   activeChannel: { id: string; name: string } | null;
   currentPage?: string;
   onNavigate?: (path: string) => void;
-  onSelectRepo?: (repoName: string | null) => void;
+  onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
 }
@@ -108,15 +109,15 @@ export function SessionSidebar({
   const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
 
   const handleGoFactory = useCallback(() => {
-    if (onSelectRepo) onSelectRepo(null);
+    if (onSelectRepo) onSelectRepo(null, null);
     if (onSelectAgent) onSelectAgent(null);
     if (onSelectChannel) onSelectChannel(null);
     if (onNavigate) onNavigate("/");
   }, [onSelectRepo, onSelectAgent, onSelectChannel, onNavigate]);
 
   const handleSelectRepoClick = useCallback(
-    (repoName: string) => {
-      if (onSelectRepo) onSelectRepo(repoName);
+    (repoId: string, repoName: string) => {
+      if (onSelectRepo) onSelectRepo(repoId, repoName);
       if (onNavigate) onNavigate("/");
     },
     [onSelectRepo, onNavigate]
@@ -244,11 +245,11 @@ export function SessionSidebar({
                 <div className="text-[10px] text-text-secondary/40 px-3 py-1">No projects</div>
               ) : (
                 repos.map((repo) => {
-                  const isActive = activeRepoName === repo.name && !activeAgent && !activeChannel;
+                  const isActive = activeRepoName === repo.id && !activeAgent && !activeChannel;
                   return (
                     <button
-                      key={repo.name}
-                      onClick={() => handleSelectRepoClick(repo.name)}
+                      key={repo.id || repo.name}
+                      onClick={() => handleSelectRepoClick(repo.id || repo.name, repo.name)}
                       className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
                         isActive
                           ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"

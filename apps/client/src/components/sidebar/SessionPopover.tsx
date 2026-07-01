@@ -19,6 +19,7 @@ interface Props {
   onClose: () => void;
   activeSessionId: string | null;
   activeRepoName: string | null;
+  activeRepoFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
   onSelectSession: (id: string) => void;
@@ -37,6 +38,7 @@ export function SessionPopover({
   onClose,
   activeSessionId,
   activeRepoName,
+  activeRepoFriendlyName = null,
   activeAgent,
   activeChannel,
   onSelectSession,
@@ -107,8 +109,8 @@ export function SessionPopover({
         ? `#${activeChannel.name} - Session ${sessionCount + 1}`
         : activeAgent
         ? `${activeAgent.name} - Session ${sessionCount + 1}`
-        : activeRepoName
-        ? `${activeRepoName} - Session ${sessionCount + 1}`
+        : activeRepoFriendlyName
+        ? `${activeRepoFriendlyName} - Session ${sessionCount + 1}`
         : `Global Session ${sessionCount + 1}`;
 
       const res = await apiFetch("/api/sessions", {
@@ -177,9 +179,9 @@ export function SessionPopover({
   const contextLabel = useMemo(() => {
     if (activeChannel) return `#${activeChannel.name}`;
     if (activeAgent) return activeAgent.name;
-    if (activeRepoName) return activeRepoName;
+    if (activeRepoFriendlyName) return activeRepoFriendlyName;
     return "Global";
-  }, [activeChannel, activeAgent, activeRepoName]);
+  }, [activeChannel, activeAgent, activeRepoFriendlyName]);
 
   if (!isOpen) return null;
 
