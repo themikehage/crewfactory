@@ -359,4 +359,8 @@ crear un plan de despliegue facil en vps
 - [x] 41.7 Add link to SessionSidebar.tsx and breadcrumbs support in MainLayout.tsx
 - [x] 41.8 Implement LogsConsolePage.tsx with filters and autoscroll control
 - [x] 41.9 Verify build and run production check
+- [x] 41.10 Update session metadata updatedAt timestamp on backend agent events
+- [x] 41.11 Refactor control page to display cards for all streaming/active sessions
+- [x] 41.12 Combine consecutive token deltas inside consolidated logs console tab
+- [x] 41.13 Validate full build and push changes
 
