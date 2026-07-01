@@ -396,8 +396,13 @@ crear un plan de despliegue facil en vps
 - [x] 45.1 Create backend file `qwen-provider.ts` defining dynamic provider registration for official Qwen 3.7, 3.6, and 3.5 models
 - [x] 45.2 Update `session-manager.ts` to register the new Qwen provider upon user context initialization
 - [x] 45.3 Verify successful server compilation and run model registration validation
-
-
-
-
+## Phase 46: Hierarchical Roles & Visual Org Chart in Channels
+- [x] 46.1 Define ChannelRole schema and update ChannelMember schemas in packages/shared
+- [x] 46.2 Update member endpoints to support role persistence in apps/server Hono routes
+- [x] 46.3 Add Role selection dropdowns in client AddMemberModal and ChannelMembersModal
+- [x] 46.4 Sort and display role badges in right panel MembersPanel
+- [x] 46.5 Render interactive SVG-based Org Chart view with orthogonal connections on desktop and cards layout on mobile
+- [x] 46.6 Integrate toggle view button and Lead details in ChannelChatArea sub-header
+- [x] 46.7 Resolve Lead indicators in ChannelCard and load agents on ChannelsPage mount
+- [x] 46.8 Verify successful builds of server and client applications
 

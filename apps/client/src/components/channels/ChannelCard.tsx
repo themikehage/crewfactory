@@ -1,15 +1,21 @@
 import { motion } from "framer-motion";
-import type { Channel } from "shared";
+import type { Channel, AgentInfo } from "shared";
 
 interface Props {
   channel: Channel;
+  registeredAgents?: AgentInfo[];
   onOpen: (id: string) => void;
   onDelete: (id: string) => void;
   onManageMembers?: (channel: Channel) => void;
   onManageContext?: (channel: Channel) => void;
 }
 
-export function ChannelCard({ channel, onOpen, onDelete, onManageMembers, onManageContext }: Props) {
+export function ChannelCard({ channel, registeredAgents, onOpen, onDelete, onManageMembers, onManageContext }: Props) {
+  const leadMember = channel.members?.find((m) => m.role === "lead");
+  const leadAgent = leadMember && registeredAgents
+    ? registeredAgents.find((a) => a.id === leadMember.agentId)
+    : null;
+
   return (
     <motion.div
       layout
@@ -28,6 +34,11 @@ export function ChannelCard({ channel, onOpen, onDelete, onManageMembers, onMana
             <h3 className="font-medium text-text-primary text-sm truncate">{channel.name}</h3>
             {channel.description && (
               <p className="text-text-secondary text-xs truncate mt-0.5">{channel.description}</p>
+            )}
+            {leadAgent && (
+              <p className="text-[11px] text-accent font-medium truncate mt-0.5">
+                Lead: @{leadAgent.name}
+              </p>
             )}
           </div>
         </div>

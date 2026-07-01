@@ -107,6 +107,7 @@ class AgentRegistry {
           status: entry.status,
           port: entry.server.definition.port,
           createdAt: entry.createdAt,
+          skills: entry.server.definition.skills,
         });
       }
     }

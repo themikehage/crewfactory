@@ -107,11 +107,15 @@ channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => 
 
   const existingIndex = channel.members.findIndex((m) => m.agentId === data.agentId);
   const updatedMembers = [...channel.members];
+  const memberWithRole = {
+    ...data,
+    role: data.role || "member",
+  };
 
   if (existingIndex >= 0) {
-    updatedMembers[existingIndex] = data;
+    updatedMembers[existingIndex] = memberWithRole;
   } else {
-    updatedMembers.push(data);
+    updatedMembers.push(memberWithRole);
   }
 
   const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
@@ -136,6 +140,7 @@ channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSch
     ...updatedMembers[index],
     ...(data.replyMode !== undefined && { replyMode: data.replyMode }),
     ...(data.targetAgentIds !== undefined && { targetAgentIds: data.targetAgentIds }),
+    ...(data.role !== undefined && { role: data.role }),
   };
 
   const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);

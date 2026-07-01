@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { ChannelMember, AgentInfo, ReplyMode, AddMember, UpdateMember } from "shared";
+import type { ChannelMember, AgentInfo, ReplyMode, AddMember, UpdateMember, ChannelRole } from "shared";
 import { AddMemberModal } from "./AddMemberModal";
 
 interface Props {
@@ -34,6 +34,15 @@ export function ChannelMembersModal({
     setUpdatingId(agentId);
     try {
       await onUpdateMember(agentId, { replyMode: mode });
+    } finally {
+      setUpdatingId(null);
+    }
+  };
+
+  const handleRoleChange = async (agentId: string, role: ChannelRole) => {
+    setUpdatingId(agentId);
+    try {
+      await onUpdateMember(agentId, { role });
     } finally {
       setUpdatingId(null);
     }
@@ -129,25 +138,40 @@ export function ChannelMembersModal({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-surface-hover/50 items-center">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-surface-hover/50 items-start">
                   <div>
-                    <label className="text-xs font-medium text-text-secondary block mb-1">Modo de Respuesta</label>
+                    <label className="text-xs font-medium text-text-secondary block mb-1">Reply Mode</label>
                     <select
                       disabled={updatingId === m.agentId}
                       value={m.replyMode}
                       onChange={(e) => handleModeChange(m.agentId, e.target.value as ReplyMode)}
                       className="w-full bg-surface border border-surface-hover rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50 capitalize cursor-pointer"
                     >
-                      <option value="user-only">User-only (Solo al usuario)</option>
-                      <option value="broadcast">Broadcast (A todos los agentes)</option>
-                      <option value="targeted">Targeted (A agentes específicos)</option>
-                      <option value="mention-only">Mention-only (Solo cuando lo mencionan)</option>
+                      <option value="user-only">User-only</option>
+                      <option value="broadcast">Broadcast</option>
+                      <option value="targeted">Targeted</option>
+                      <option value="mention-only">Mention-only</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="text-xs font-medium text-text-secondary block mb-1">Role</label>
+                    <select
+                      disabled={updatingId === m.agentId}
+                      value={m.role || "member"}
+                      onChange={(e) => handleRoleChange(m.agentId, e.target.value as ChannelRole)}
+                      className="w-full bg-surface border border-surface-hover rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50 capitalize cursor-pointer"
+                    >
+                      <option value="lead">Lead</option>
+                      <option value="senior">Senior</option>
+                      <option value="member">Member</option>
+                      <option value="observer">Observer</option>
                     </select>
                   </div>
 
                   {m.replyMode === "targeted" && (
-                    <div>
-                      <label className="text-xs font-medium text-text-secondary block mb-1">Agentes Objetivo</label>
+                    <div className="sm:col-span-2">
+                      <label className="text-xs font-medium text-text-secondary block mb-1">Target Agents</label>
                       <button
                         type="button"
                         onClick={() => setEditingTargetsAgentId(isEditingTargets ? null : m.agentId)}
@@ -155,8 +179,8 @@ export function ChannelMembersModal({
                       >
                         <span className="truncate">
                           {m.targetAgentIds && m.targetAgentIds.length > 0
-                            ? `${m.targetAgentIds.length} agente(s) seleccionado(s)`
-                            : "Seleccionar objetivos..."}
+                            ? `${m.targetAgentIds.length} agent(s) selected`
+                            : "Select targets..."}
                         </span>
                         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${isEditingTargets ? "rotate-180" : ""}`}>
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />

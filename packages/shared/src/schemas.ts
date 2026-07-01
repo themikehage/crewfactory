@@ -199,16 +199,21 @@ export const AgentInfoSchema = z.object({
   status: AgentStatusSchema,
   port: z.number().optional(),
   createdAt: z.string(),
+  skills: z.array(z.string()).optional(),
 });
 export type AgentInfo = z.infer<typeof AgentInfoSchema>;
 
 export const ReplyModeSchema = z.enum(["user-only", "broadcast", "targeted", "mention-only"]);
 export type ReplyMode = z.infer<typeof ReplyModeSchema>;
 
+export const ChannelRoleSchema = z.enum(["lead", "senior", "member", "observer"]);
+export type ChannelRole = z.infer<typeof ChannelRoleSchema>;
+
 export const ChannelMemberSchema = z.object({
   agentId: z.string(),
   replyMode: ReplyModeSchema,
   targetAgentIds: z.array(z.string()).optional(),
+  role: ChannelRoleSchema.optional(),
 });
 export type ChannelMember = z.infer<typeof ChannelMemberSchema>;
 
@@ -256,12 +261,14 @@ export const AddMemberSchema = z.object({
   agentId: z.string(),
   replyMode: ReplyModeSchema,
   targetAgentIds: z.array(z.string()).optional(),
+  role: ChannelRoleSchema.optional(),
 });
 export type AddMember = z.infer<typeof AddMemberSchema>;
 
 export const UpdateMemberSchema = z.object({
   replyMode: ReplyModeSchema.optional(),
   targetAgentIds: z.array(z.string()).optional(),
+  role: ChannelRoleSchema.optional(),
 });
 export type UpdateMember = z.infer<typeof UpdateMemberSchema>;
 

@@ -140,6 +140,8 @@
 - **Execution Abort Mechanism**: Instant server-side cancellation (`abortDispatch`) triggered via WS `channel_abort`, REST `/api/channels/:id/abort`, or the UI Stop button.
 - **Environmental Context Variables**: Structured key-value context array per channel (`context: ChannelContextItem[]`), dynamically injected into agent prompts.
 - **Clean Sub-header & Modal Management**: Floating `ChannelMembersModal`, `ChannelContextModal`, and `ChannelSettingsModal` accessible via subtle header icon buttons with numeric counter badges.
+- **Hierarchical Roles & Visual Org Chart**: Channel members can be assigned hierarchical roles (`lead`, `senior`, `member`, `observer`). Displays Lead indicators in the sub-header and card previews. Features an interactive SVG-based Org Chart view rendering orthogonal branching tree connections on desktop, with a grouped card list fallback on mobile devices.
+
 
 ### Global Logs Console
 - **Real-Time System Monitoring**: Live dashboard showing all system operations (user/agent messages, raw reasoning deltas, tool start/end parameters/results) across any session or channel.

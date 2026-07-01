@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { AgentInfo, AddMember, ReplyMode } from "shared";
+import type { AgentInfo, AddMember, ReplyMode, ChannelRole } from "shared";
 
 interface Props {
   availableAgents: AgentInfo[];
@@ -15,6 +15,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
   const [selectedAgentId, setSelectedAgentId] = useState(candidates[0]?.id || "");
   const [replyMode, setReplyMode] = useState<ReplyMode>("user-only");
   const [targetAgentIds, setTargetAgentIds] = useState<string[]>([]);
+  const [role, setRole] = useState<ChannelRole>("member");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -28,6 +29,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
         agentId: selectedAgentId,
         replyMode,
         targetAgentIds: replyMode === "targeted" ? targetAgentIds : undefined,
+        role,
       });
       onClose();
     } catch (err: any) {
@@ -84,6 +86,20 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
                       {a.name} ({a.role})
                     </option>
                   ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs font-medium text-text-secondary block mb-1.5">Channel Role</label>
+                <select
+                  value={role}
+                  onChange={(e) => setRole(e.target.value as ChannelRole)}
+                  className="w-full bg-bg border border-surface-hover rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50 capitalize"
+                >
+                  <option value="lead">Lead</option>
+                  <option value="senior">Senior</option>
+                  <option value="member">Member</option>
+                  <option value="observer">Observer</option>
                 </select>
               </div>
 
