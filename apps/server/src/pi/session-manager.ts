@@ -372,6 +372,20 @@ class PiSessionManager {
     // Subscribe to global logs forwarding
     const globalLogUnsub = session.subscribe((evt) => {
       const ev = evt as any;
+
+      if (
+        evt.type === "agent_start" ||
+        evt.type === "agent_end" ||
+        evt.type === "tool_execution_start" ||
+        evt.type === "tool_execution_end" ||
+        evt.type === "agent_error"
+      ) {
+        try {
+          this.saveSessionMetadata(username, sessionId, {
+            updatedAt: new Date().toISOString(),
+          });
+        } catch {}
+      }
       const getSessionName = () => {
         try {
           const metaPath = join(sessionDir, "metadata.json");
