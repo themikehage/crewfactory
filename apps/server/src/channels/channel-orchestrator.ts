@@ -4,6 +4,8 @@ import { piSessionManager } from "../pi/session-manager";
 import { parseMentions } from "./mention-parser";
 import type { Channel, ChannelMember, ChannelMessage } from "shared";
 import { eventBroker } from "../lib/event-broker";
+import { AgentWorkQueue } from "./agent-work-queue";
+import type { DispatchResult } from "./agent-work-queue";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -21,27 +23,57 @@ function broadcast(channelId: string, data: any) {
 const MAX_CHAIN_DEPTH = 5;
 
 class ChannelOrchestrator {
-  private activeDispatches = new Set<string>(); // channelId currently processing
   private abortedDispatches = new Set<string>(); // `${channelId}:${sessionId || 'default'}`
+  private agentQueues = new Map<string, AgentWorkQueue>();
+  private channelAbortControllers = new Map<string, AbortController>(); // key = channelId:sessionId
+
+  private getOrCreateQueue(agentId: string): AgentWorkQueue {
+    let q = this.agentQueues.get(agentId);
+    if (!q) {
+      q = new AgentWorkQueue();
+      this.agentQueues.set(agentId, q);
+    }
+    return q;
+  }
+
+  removeAgentQueue(agentId: string): void {
+    const q = this.agentQueues.get(agentId);
+    if (q) {
+      q.abortCurrent();
+      q.clear();
+      this.agentQueues.delete(agentId);
+    }
+  }
 
   abortDispatch(username: string, channelId: string, sessionId?: string): void {
     const key = `${channelId}:${sessionId || "default"}`;
     this.abortedDispatches.add(key);
     console.log(`[ChannelOrchestrator] Aborting dispatch for ${key}`);
 
+    // Signal the AbortController for this dispatch
+    const controller = this.channelAbortControllers.get(key);
+    controller?.abort();
+    this.channelAbortControllers.delete(key);
+
+    // Abort in-flight prompts and clear queues for all channel members
     const channel = channelStore.getChannel(username, channelId);
     if (channel) {
       for (const member of channel.members) {
+        const q = this.agentQueues.get(member.agentId);
+        if (q) {
+          q.abortCurrent();
+          q.clear();
+        }
         const entry = agentRegistry.get(member.agentId);
         if (entry && entry.server.session.isStreaming) {
           entry.server.session.abort().catch(() => {});
         }
       }
     }
+
     broadcast(channelId, { type: "channel_dispatch_aborted", channelId, sessionId });
   }
 
-  /** Build a name map agentId -> displayName for the current channel members */
   private buildAgentNameMap(members: ChannelMember[]): Map<string, string> {
     const map = new Map<string, string>();
     for (const member of members) {
@@ -82,311 +114,295 @@ class ChannelOrchestrator {
       detail: userContent,
     });
 
-    // Start processing round
-    await this.runDispatchRound(username, channelId, userMsg, 1);
+    // Create a new AbortController for this dispatch chain
+    const controller = new AbortController();
+    this.channelAbortControllers.set(key, controller);
+
+    // Fire-and-forget: do not await — returns immediately
+    this.runDispatchRound(username, channelId, userMsg, 1, controller.signal);
   }
 
-  private async runDispatchRound(
+  /**
+   * Fire-and-forget dispatch round.
+   * Enqueues each eligible agent independently — does NOT await their completion.
+   * Each agent posts to the channel on its own timeline.
+   */
+  private runDispatchRound(
     username: string,
     channelId: string,
     incomingMsg: ChannelMessage,
-    depth: number
-  ): Promise<void> {
+    depth: number,
+    signal: AbortSignal
+  ): void {
+    if (signal.aborted) return;
+
+    const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
+    if (this.abortedDispatches.has(key)) return;
+
     const channel = channelStore.getChannel(username, channelId);
     if (!channel || channel.members.length === 0) return;
 
-    const maxDepth = channel.maxChainDepth ?? 10;
+    const maxDepth = channel.maxChainDepth ?? MAX_CHAIN_DEPTH;
     if (depth > maxDepth) {
       console.warn(`[ChannelOrchestrator] Max chain depth reached (${maxDepth}) for channel ${channelId}`);
       broadcast(channelId, { type: "channel_chain_limit", channelId, maxChainDepth: maxDepth });
       return;
     }
 
-    // Determine which members should receive this incoming message
     const targetMembers = this.resolveRecipients(channel, incomingMsg);
     if (targetMembers.length === 0) return;
 
+    // Dispatch each agent independently — fire-and-forget
+    for (const member of targetMembers) {
+      this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
+        console.error(`[ChannelOrchestrator] Unexpected error dispatching to ${member.agentId}:`, err);
+      });
+    }
+  }
+
+  /**
+   * Runs a single agent dispatch through the per-agent queue.
+   * Awaits completion of this specific agent, then posts and chains.
+   */
+  private async dispatchToAgentAsync(
+    username: string,
+    channelId: string,
+    member: ChannelMember,
+    incomingMsg: ChannelMessage,
+    depth: number,
+    signal: AbortSignal
+  ): Promise<void> {
+    if (signal.aborted) return;
+
     const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
-    if (this.abortedDispatches.has(key)) {
-      console.log(`[ChannelOrchestrator] Stopping dispatch for ${key} due to abort`);
+    if (this.abortedDispatches.has(key)) return;
+
+    const agentEntry = agentRegistry.get(member.agentId);
+    if (!agentEntry || agentEntry.status === "stopped") {
+      broadcast(channelId, {
+        type: "channel_agent_error",
+        channelId,
+        agentId: member.agentId,
+        error: `Agent "${member.agentId}" is not available`,
+      });
       return;
     }
 
-    // Execute agent responses in series to preserve chronological order and avoid race conditions
-    for (const member of targetMembers) {
-      if (this.abortedDispatches.has(key)) {
-        console.log(`[ChannelOrchestrator] Stopping loop for ${key} due to abort`);
-        break;
-      }
-      const agentEntry = agentRegistry.get(member.agentId);
-      if (!agentEntry || agentEntry.status === "stopped") {
-        broadcast(channelId, {
-          type: "channel_agent_error",
-          channelId,
-          agentId: member.agentId,
-          error: `Agent "${member.agentId}" is not available`,
-        });
-        continue;
-      }
+    const queue = this.getOrCreateQueue(member.agentId);
 
-      const agentName = agentEntry.server.definition.name;
-
-      // Ensure model is set on session before prompting
-      if (!agentEntry.server.session.model) {
-        const { modelRegistry } = piSessionManager.getUserContext(username);
-        modelRegistry.refresh();
-        const available = modelRegistry.getAvailable();
-        if (available.length > 0) {
-          try {
-            await agentEntry.server.session.setModel(available[0]);
-            console.log(`[ChannelOrchestrator] Dynamic model assigned to ${member.agentId}: ${available[0].provider}/${available[0].id}`);
-          } catch (e) {
-            console.error(`[ChannelOrchestrator] Failed to assign model to ${member.agentId}:`, e);
-          }
-        }
-      }
-
-      if (!agentEntry.server.session.model) {
-        broadcast(channelId, {
-          type: "channel_agent_error",
-          channelId,
-          agentId: member.agentId,
-          error: `No LLM providers or models available for agent "${agentName}". Please configure API keys in Settings.`,
-        });
-        continue;
-      }
-
-      broadcast(channelId, {
-        type: "channel_agent_start",
-        channelId,
-        sessionId: incomingMsg.sessionId,
-        agentId: member.agentId,
-        agentName,
+    let result: DispatchResult;
+    try {
+      result = await queue.enqueue({
+        id: crypto.randomUUID(),
+        signal,
+        execute: () => this.runAgentPrompt(username, channelId, member, incomingMsg, signal),
       });
+    } catch (err: any) {
+      // Aborted or cleared — no broadcast needed
+      if (err.message === "Aborted before enqueue" || err.message === "Aborted while queued" || err.message === "Queue cleared") {
+        return;
+      }
+      console.error(`[ChannelOrchestrator] Queue error for agent ${member.agentId}:`, err);
+      return;
+    }
 
+    if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) return;
+
+    channelStore.appendMessage(username, channelId, result.agentMsg);
+    broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
+
+    const channel = channelStore.getChannel(username, channelId);
+    if (channel) {
       eventBroker.publishEvent(username, {
         sourceType: "channel",
         sourceId: channelId,
         sourceName: channel.name,
-        eventType: "agent_start",
-        agentName,
+        eventType: "agent_message",
+        agentName: result.agentMsg.agentName,
+        detail: result.agentMsg.content,
       });
+    }
 
-      try {
-        // Build prompt with channel context and member roster
-        const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
-        const agentNameMap = this.buildAgentNameMap(channel.members);
-        const promptText = this.buildAgentPrompt(
-          agentEntry.server.definition,
-          incomingMsg,
-          recentMessages,
-          channel.context || [],
-          channel.members,
-          agentNameMap
-        );
+    // Chain to next round — also fire-and-forget
+    this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
+  }
 
-        let fullResponse = "";
+  /**
+   * Runs a single agent prompt. Called inside the AgentWorkQueue executor.
+   * This is the only place that awaits session.prompt().
+   */
+  private async runAgentPrompt(
+    username: string,
+    channelId: string,
+    member: ChannelMember,
+    incomingMsg: ChannelMessage,
+    signal: AbortSignal
+  ): Promise<DispatchResult> {
+    if (signal.aborted) return { agentMsg: null };
 
-        // Subscribe to agent streaming events to forward tokens via WS
-        const unsub = agentEntry.server.session.subscribe((evt) => {
-          const ev = evt as any;
-          if (evt.type === "message_update") {
-            if (ev.assistantMessageEvent?.type === "text_delta") {
-              const delta = ev.assistantMessageEvent.delta;
-              if (delta) {
-                fullResponse += delta;
-                broadcast(channelId, {
-                  type: "channel_agent_token",
-                  channelId,
-                  sessionId: incomingMsg.sessionId,
-                  agentId: member.agentId,
-                  token: delta,
-                });
-                eventBroker.publishEvent(username, {
-                  sourceType: "channel",
-                  sourceId: channelId,
-                  sourceName: channel.name,
-                  eventType: "text_delta",
-                  agentName,
-                  detail: delta,
-                });
-              }
-            } else if (ev.assistantMessageEvent?.type === "thinking_delta" && channel.showThinking) {
-              const delta = ev.assistantMessageEvent.delta;
-              if (delta) {
-                broadcast(channelId, {
-                  type: "channel_agent_thinking",
-                  channelId,
-                  sessionId: incomingMsg.sessionId,
-                  agentId: member.agentId,
-                  token: delta,
-                });
-                eventBroker.publishEvent(username, {
-                  sourceType: "channel",
-                  sourceId: channelId,
-                  sourceName: channel.name,
-                  eventType: "thinking_delta",
-                  agentName,
-                  detail: delta,
-                });
-              }
-            }
-          } else if (evt.type === "tool_execution_start" && channel.showTools) {
-            broadcast(channelId, {
-              type: "channel_agent_tool_start",
-              channelId,
-              sessionId: incomingMsg.sessionId,
-              agentId: member.agentId,
-              toolName: ev.toolName,
-              args: ev.args,
-              toolCallId: ev.toolCallId,
-            });
-            eventBroker.publishEvent(username, {
-              sourceType: "channel",
-              sourceId: channelId,
-              sourceName: channel.name,
-              eventType: "tool_start",
-              agentName,
-              detail: { toolName: ev.toolName, args: ev.args, toolCallId: ev.toolCallId },
-            });
-          } else if (evt.type === "tool_execution_end" && channel.showTools) {
-            broadcast(channelId, {
-              type: "channel_agent_tool_end",
-              channelId,
-              sessionId: incomingMsg.sessionId,
-              agentId: member.agentId,
-              toolName: ev.toolName,
-              result: ev.result,
-              isError: ev.isError,
-              toolCallId: ev.toolCallId,
-            });
-            eventBroker.publishEvent(username, {
-              sourceType: "channel",
-              sourceId: channelId,
-              sourceName: channel.name,
-              eventType: "tool_end",
-              agentName,
-              detail: { toolName: ev.toolName, result: ev.result, isError: ev.isError, toolCallId: ev.toolCallId },
-            });
-          }
-        });
+    const channel = channelStore.getChannel(username, channelId);
+    if (!channel) return { agentMsg: null };
 
+    const agentEntry = agentRegistry.get(member.agentId);
+    if (!agentEntry || agentEntry.status === "stopped") {
+      broadcast(channelId, {
+        type: "channel_agent_error",
+        channelId,
+        agentId: member.agentId,
+        error: `Agent "${member.agentId}" is not available`,
+      });
+      return { agentMsg: null };
+    }
+
+    const agentName = agentEntry.server.definition.name;
+
+    // Ensure model is set
+    if (!agentEntry.server.session.model) {
+      const { modelRegistry } = piSessionManager.getUserContext(username);
+      modelRegistry.refresh();
+      const available = modelRegistry.getAvailable();
+      if (available.length > 0) {
         try {
-          // Reset internal agent runtime state so prior sessions/channels do not bleed into this channel dispatch
-          if ((agentEntry.server.session as any).agent?.reset) {
-            (agentEntry.server.session as any).agent.reset();
-          }
-          await agentEntry.server.session.prompt(promptText);
-        } finally {
-          unsub();
+          await agentEntry.server.session.setModel(available[0]);
+        } catch (e) {
+          console.error(`[ChannelOrchestrator] Failed to assign model to ${member.agentId}:`, e);
         }
+      }
+    }
 
-        // Extract final response from session messages if streaming didn't capture full content
-        if (!fullResponse.trim()) {
-          const msgs = agentEntry.server.session.messages;
-          const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-          if (lastMsg) {
-            if (typeof lastMsg.content === "string") fullResponse = lastMsg.content;
-            else if (Array.isArray(lastMsg.content)) {
-              fullResponse = lastMsg.content.map((c: any) => c.text || "").join("\n");
-            }
+    if (!agentEntry.server.session.model) {
+      broadcast(channelId, {
+        type: "channel_agent_error",
+        channelId,
+        agentId: member.agentId,
+        error: `No LLM providers or models available for agent "${agentName}". Please configure API keys in Settings.`,
+      });
+      return { agentMsg: null };
+    }
+
+    broadcast(channelId, {
+      type: "channel_agent_start",
+      channelId,
+      sessionId: incomingMsg.sessionId,
+      agentId: member.agentId,
+      agentName,
+    });
+
+    eventBroker.publishEvent(username, {
+      sourceType: "channel",
+      sourceId: channelId,
+      sourceName: channel.name,
+      eventType: "agent_start",
+      agentName,
+    });
+
+    const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
+    const agentNameMap = this.buildAgentNameMap(channel.members);
+    const promptText = this.buildAgentPrompt(
+      agentEntry.server.definition,
+      incomingMsg,
+      recentMessages,
+      channel.context || [],
+      channel.members,
+      agentNameMap
+    );
+
+    let fullResponse = "";
+
+    const unsub = agentEntry.server.session.subscribe((evt) => {
+      const ev = evt as any;
+      if (evt.type === "message_update") {
+        if (ev.assistantMessageEvent?.type === "text_delta") {
+          const delta = ev.assistantMessageEvent.delta;
+          if (delta) {
+            fullResponse += delta;
+            broadcast(channelId, {
+              type: "channel_agent_token",
+              channelId,
+              sessionId: incomingMsg.sessionId,
+              agentId: member.agentId,
+              token: delta,
+            });
+            eventBroker.publishEvent(username, {
+              sourceType: "channel",
+              sourceId: channelId,
+              sourceName: channel.name,
+              eventType: "text_delta",
+              agentName,
+              detail: delta,
+            });
+          }
+        } else if (ev.assistantMessageEvent?.type === "thinking_delta" && channel.showThinking) {
+          const delta = ev.assistantMessageEvent.delta;
+          if (delta) {
+            broadcast(channelId, {
+              type: "channel_agent_thinking",
+              channelId,
+              sessionId: incomingMsg.sessionId,
+              agentId: member.agentId,
+              token: delta,
+            });
+            eventBroker.publishEvent(username, {
+              sourceType: "channel",
+              sourceId: channelId,
+              sourceName: channel.name,
+              eventType: "thinking_delta",
+              agentName,
+              detail: delta,
+            });
           }
         }
-
-        const agentNameMap2 = this.buildAgentNameMap(channel.members);
-        const agentMentions = parseMentions(fullResponse, channel.members, agentNameMap2);
-
-        const trimmed = fullResponse.trim();
-        const isSilent = !trimmed || trimmed.toLowerCase() === "(silent)" || trimmed.toLowerCase() === "(silencioso)";
-
+      } else if (evt.type === "tool_execution_start" && channel.showTools) {
         broadcast(channelId, {
-          type: "channel_agent_end",
+          type: "channel_agent_tool_start",
           channelId,
           sessionId: incomingMsg.sessionId,
           agentId: member.agentId,
+          toolName: ev.toolName,
+          args: ev.args,
+          toolCallId: ev.toolCallId,
         });
-
         eventBroker.publishEvent(username, {
           sourceType: "channel",
           sourceId: channelId,
           sourceName: channel.name,
-          eventType: "agent_end",
+          eventType: "tool_start",
           agentName,
+          detail: { toolName: ev.toolName, args: ev.args, toolCallId: ev.toolCallId },
         });
-
-        if (isSilent) {
-          console.log(`[ChannelOrchestrator] Agent ${member.agentId} produced silent response, suppressing message`);
-          continue;
-        }
-
-        let finalThinking = "";
-        let finalToolCalls: any[] = [];
-
-        if (channel.showThinking || channel.showTools) {
-          const msgs = agentEntry.server.session.messages;
-          const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-          if (lastMsg && Array.isArray(lastMsg.content)) {
-            for (const block of lastMsg.content) {
-              if (block.type === "thinking" && block.thinking && channel.showThinking) {
-                finalThinking += block.thinking;
-              }
-              if (block.type === "toolCall" && channel.showTools) {
-                const matchedResult = msgs.find(m => m.role === "toolResult" && m.toolCallId === block.id);
-                finalToolCalls.push({
-                  id: block.id,
-                  name: block.name,
-                  arguments: block.arguments,
-                  result: matchedResult ? {
-                    toolName: matchedResult.toolName ?? block.name,
-                    content: Array.isArray(matchedResult.content)
-                      ? matchedResult.content
-                      : [{ type: "text", text: String(matchedResult.content) }],
-                    isError: matchedResult.isError ?? false,
-                    details: (matchedResult as any).details
-                  } : null
-                });
-              }
-            }
-          }
-        }
-
-        const agentMsg: ChannelMessage = {
-          id: crypto.randomUUID(),
+      } else if (evt.type === "tool_execution_end" && channel.showTools) {
+        broadcast(channelId, {
+          type: "channel_agent_tool_end",
           channelId,
           sessionId: incomingMsg.sessionId,
-          role: "agent",
           agentId: member.agentId,
-          agentName,
-          content: fullResponse,
-          thinking: finalThinking || undefined,
-          toolCalls: finalToolCalls.length > 0 ? finalToolCalls : undefined,
-          mentions: agentMentions.length > 0 ? agentMentions : undefined,
-          createdAt: new Date().toISOString(),
-        };
-
-        channelStore.appendMessage(username, channelId, agentMsg);
-
-        broadcast(channelId, {
-          type: "channel_message",
-          channelId,
-          message: agentMsg,
+          toolName: ev.toolName,
+          result: ev.result,
+          isError: ev.isError,
+          toolCallId: ev.toolCallId,
         });
-
         eventBroker.publishEvent(username, {
           sourceType: "channel",
           sourceId: channelId,
           sourceName: channel.name,
-          eventType: "agent_message",
+          eventType: "tool_end",
           agentName,
-          detail: fullResponse,
+          detail: { toolName: ev.toolName, result: ev.result, isError: ev.isError, toolCallId: ev.toolCallId },
         });
+      }
+    });
 
-        if (!this.abortedDispatches.has(key)) {
-          // Propagate agent messages to next depth round
-          await this.runDispatchRound(username, channelId, agentMsg, depth + 1);
-        }
-      } catch (err: any) {
-        console.error(`[ChannelOrchestrator] Error prompt agent ${member.agentId}:`, err);
+    try {
+      // Reset internal agent runtime state before each prompt
+      if ((agentEntry.server.session as any).agent?.reset) {
+        (agentEntry.server.session as any).agent.reset();
+      }
+      await agentEntry.server.session.prompt(promptText);
+    } catch (err: any) {
+      unsub();
+      const isAbort = signal.aborted || err.message?.includes("abort") || err.message?.includes("cancel");
+      if (!isAbort) {
+        console.error(`[ChannelOrchestrator] Error prompting agent ${member.agentId}:`, err);
         broadcast(channelId, {
           type: "channel_agent_error",
           channelId,
@@ -394,7 +410,6 @@ class ChannelOrchestrator {
           agentId: member.agentId,
           error: String(err.message || err),
         });
-
         eventBroker.publishEvent(username, {
           sourceType: "channel",
           sourceId: channelId,
@@ -404,7 +419,103 @@ class ChannelOrchestrator {
           detail: String(err.message || err),
         });
       }
+      broadcast(channelId, {
+        type: "channel_agent_end",
+        channelId,
+        sessionId: incomingMsg.sessionId,
+        agentId: member.agentId,
+      });
+      return { agentMsg: null };
+    } finally {
+      unsub();
     }
+
+    // Extract full response from session messages if streaming didn't capture it
+    if (!fullResponse.trim()) {
+      const msgs = agentEntry.server.session.messages;
+      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
+      if (lastMsg) {
+        if (typeof lastMsg.content === "string") fullResponse = lastMsg.content;
+        else if (Array.isArray(lastMsg.content)) {
+          fullResponse = lastMsg.content.map((c: any) => c.text || "").join("\n");
+        }
+      }
+    }
+
+    const trimmed = fullResponse.trim();
+    const isSilent = !trimmed || trimmed.toLowerCase() === "(silent)" || trimmed.toLowerCase() === "(silencioso)";
+
+    broadcast(channelId, {
+      type: "channel_agent_end",
+      channelId,
+      sessionId: incomingMsg.sessionId,
+      agentId: member.agentId,
+    });
+
+    eventBroker.publishEvent(username, {
+      sourceType: "channel",
+      sourceId: channelId,
+      sourceName: channel.name,
+      eventType: "agent_end",
+      agentName,
+    });
+
+    if (isSilent) {
+      console.log(`[ChannelOrchestrator] Agent ${member.agentId} produced silent response`);
+      return { agentMsg: null };
+    }
+
+    let finalThinking = "";
+    let finalToolCalls: any[] = [];
+
+    if (channel.showThinking || channel.showTools) {
+      const msgs = agentEntry.server.session.messages;
+      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
+      if (lastMsg && Array.isArray(lastMsg.content)) {
+        for (const block of lastMsg.content) {
+          if (block.type === "thinking" && block.thinking && channel.showThinking) {
+            finalThinking += block.thinking;
+          }
+          if (block.type === "toolCall" && channel.showTools) {
+            const matchedResult = msgs.find((m) => m.role === "toolResult" && m.toolCallId === block.id);
+            finalToolCalls.push({
+              id: block.id,
+              name: block.name,
+              arguments: block.arguments,
+              result: matchedResult
+                ? {
+                    toolName: matchedResult.toolName ?? block.name,
+                    content: Array.isArray(matchedResult.content)
+                      ? matchedResult.content
+                      : [{ type: "text", text: String(matchedResult.content) }],
+                    isError: matchedResult.isError ?? false,
+                    details: (matchedResult as any).details,
+                  }
+                : null,
+            });
+          }
+        }
+      }
+    }
+
+    const agentNameMap2 = this.buildAgentNameMap(channel.members);
+    const agentMentions = parseMentions(fullResponse, channel.members, agentNameMap2);
+
+    const agentMsg: ChannelMessage = {
+      id: crypto.randomUUID(),
+      channelId,
+      sessionId: incomingMsg.sessionId,
+      role: "agent",
+      agentId: member.agentId,
+      agentName,
+      content: fullResponse,
+      thinking: finalThinking || undefined,
+      toolCalls: finalToolCalls.length > 0 ? finalToolCalls : undefined,
+      mentions: agentMentions.length > 0 ? agentMentions : undefined,
+      createdAt: new Date().toISOString(),
+    };
+
+    return { agentMsg };
   }
 
   private resolveRecipients(channel: Channel, incomingMsg: ChannelMessage): ChannelMember[] {
@@ -413,7 +524,6 @@ class ChannelOrchestrator {
     const result: ChannelMember[] = [];
 
     for (const member of channel.members) {
-      // Never route a message back to the agent that sent it
       if (incomingMsg.role === "agent" && incomingMsg.agentId === member.agentId) {
         continue;
       }
@@ -422,10 +532,8 @@ class ChannelOrchestrator {
       let addedByMode = false;
 
       if (member.replyMode === "mention-only") {
-        // Only responds when explicitly @mentioned — skip all other routing
         if (isMentioned) addedByMode = true;
       } else if (incomingMsg.role === "user") {
-        // Receiver-side: which members listen to user messages?
         if (member.replyMode === "user-only" || member.replyMode === "broadcast") {
           addedByMode = true;
         } else if (member.replyMode === "targeted" && member.targetAgentIds?.includes("__user__")) {
@@ -433,7 +541,6 @@ class ChannelOrchestrator {
         }
       } else if (incomingMsg.role === "agent") {
         const senderId = incomingMsg.agentId!;
-        // Receiver-side: which members listen to this specific agent?
         if (member.replyMode === "broadcast") {
           addedByMode = true;
         } else if (member.replyMode === "targeted" && member.targetAgentIds?.includes(senderId)) {
@@ -441,7 +548,6 @@ class ChannelOrchestrator {
         }
       }
 
-      // Mention overlay: explicitly mentioned members always get added (except self)
       if ((addedByMode || isMentioned) && !recipientSet.has(member.agentId)) {
         recipientSet.add(member.agentId);
         result.push(member);
@@ -459,7 +565,6 @@ class ChannelOrchestrator {
     members: ChannelMember[] = [],
     agentNameMap: Map<string, string> = new Map()
   ): string {
-    // Channel member roster — lets agents know how and when to @mention peers
     let rosterBlock = "";
     if (members.length > 0) {
       const lines = ["- @user (the human user)"];
@@ -506,9 +611,7 @@ class ChannelOrchestrator {
     }
 
     const senderLabel =
-      incomingMsg.role === "user"
-        ? "User"
-        : incomingMsg.agentName || incomingMsg.agentId;
+      incomingMsg.role === "user" ? "User" : incomingMsg.agentName || incomingMsg.agentId;
 
     return (
       rosterBlock +
@@ -521,3 +624,4 @@ class ChannelOrchestrator {
 }
 
 export const channelOrchestrator = new ChannelOrchestrator();
+export { ChannelOrchestrator };

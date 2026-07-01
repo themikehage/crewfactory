@@ -392,7 +392,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const channelId = data.channelId as string;
     const sessionId = data.sessionId as string | undefined;
     if (channelId) {
-      channelOrchestrator.abortDispatch(channelId, sessionId);
+      channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
     }
   }
 }

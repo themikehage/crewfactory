@@ -3,6 +3,7 @@ import type { AgentDefinition, AgentInfo, AgentStatus } from "shared";
 import type { AgentEntry } from "./types";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { channelOrchestrator } from "../channels/channel-orchestrator";
 
 class AgentRegistry {
   private agents = new Map<string, AgentEntry>();
@@ -116,6 +117,7 @@ class AgentRegistry {
     const entry = this.agents.get(id);
     if (!entry) return;
     entry.status = "stopped";
+    channelOrchestrator.removeAgentQueue(id);
     await entry.server.stop();
     this.agents.delete(id);
 
