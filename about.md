@@ -136,6 +136,11 @@
 - **Environmental Context Variables**: Structured key-value context array per channel (`context: ChannelContextItem[]`), dynamically injected into agent prompts.
 - **Clean Sub-header & Modal Management**: Floating `ChannelMembersModal`, `ChannelContextModal`, and `ChannelSettingsModal` accessible via subtle header icon buttons with numeric counter badges.
 
+### Global Logs Console
+- **Real-Time System Monitoring**: Live dashboard showing all system operations (user/agent messages, raw reasoning deltas, tool start/end parameters/results) across any session or channel.
+- **Central Event Broker**: Singleton server module (`eventBroker`) buffering recent logs in-memory and broadcasting events via WebSockets.
+- **Rich Interactive Control**: Filtering by source type (Sessions/Channels) and event type (Messages/Thoughts/Tools), manual scrolling freezer, screen log clearing, and WebSocket connection status badges.
+
 ### AutoConsulting Multi-Agent Pi Integration (`autoconsulting`)
 - **WebBuilder Agent**: Autonomous A2A agent powered directly by `@earendil-works/pi-coding-agent` SDK (port 4104).
 - **Project Workspaces**: Each project maintains its own isolated workspace at `/tmp/ac-projects/{projectId}`.

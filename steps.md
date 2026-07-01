@@ -349,3 +349,14 @@ crear un plan de despliegue facil en vps
 - [x] 40.5 Integrar `SessionPopover` en `MainLayout.tsx` dentro de un contenedor relativo y eliminar `SessionDrawer.tsx`
 - [x] 40.6 Verificar que la compilación de TypeScript no contenga errores
 
+## Phase 41: Global Monitoring Console & Real-time Event Broker
+- [x] 41.1 Define shared schemas and interfaces (GlobalLogEvent)
+- [x] 41.2 Create apps/server/src/lib/event-broker.ts singleton
+- [x] 41.3 Create apps/server/src/routes/logs.ts and register in index.ts
+- [x] 41.4 Subscribe and forward events in pi/session-manager.ts
+- [x] 41.5 Subscribe and forward events in channels/channel-orchestrator.ts
+- [x] 41.6 Add client routing for /logs page in useRouter.ts and AppRouter.tsx
+- [x] 41.7 Add link to SessionSidebar.tsx and breadcrumbs support in MainLayout.tsx
+- [x] 41.8 Implement LogsConsolePage.tsx with filters and autoscroll control
+- [x] 41.9 Verify build and run production check
+
