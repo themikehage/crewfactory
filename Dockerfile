@@ -13,6 +13,7 @@ WORKDIR /app
 COPY package.json bun.lock* ./
 COPY apps/client/package.json ./apps/client/
 COPY apps/server/package.json ./apps/server/
+COPY apps/landing/package.json ./apps/landing/
 COPY packages/shared/package.json ./packages/shared/
 RUN bun install --frozen-lockfile
 
