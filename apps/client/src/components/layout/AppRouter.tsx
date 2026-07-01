@@ -139,7 +139,12 @@ export function AppRouter() {
         <ChannelsPage onNavigate={navigate} onSelectChannel={handleSelectChannel} />
       )}
       {route.page === "logs" && (
-        <LogsConsolePage />
+        <LogsConsolePage
+          onSelectRepo={handleSelectRepo}
+          onSelectAgent={handleSelectAgent}
+          onSelectChannel={handleSelectChannel}
+          onNavigate={navigate}
+        />
       )}
       {route.page === "channel" && (
         <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
