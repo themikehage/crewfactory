@@ -69,7 +69,7 @@ export default function Hero() {
               animation: "pulse 2s ease-in-out infinite",
             }}
           />
-          Open Source · MIT License
+          Open Source · MIT License · Powered by Qwen
         </div>
 
         <h1
@@ -106,7 +106,7 @@ export default function Hero() {
           }}
         >
           Create, orchestrate, and optimize AI agents in your browser. Self-hosted,
-          open-source, and deployable in one click. Supports Claude, GPT, and Qwen.
+          open-source, and deployable in one click. Powered by Qwen.
         </p>
 
         <div
