@@ -6,6 +6,7 @@ import type { MentionTarget } from "@/components/chat/InputArea";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
+import { ChannelOrgChart } from "./ChannelOrgChart";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
@@ -21,6 +22,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
+  const [viewMode, setViewMode] = useState<"chat" | "org">("chat");
 
   const mentionTargets: MentionTarget[] = [
     { id: "__user__", name: "user" },
@@ -100,6 +102,9 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
     sendMessage(text.trim());
   };
 
+  const leadMember = channelMembers.find((m) => m.role === "lead");
+  const leadAgent = leadMember ? registeredAgents.find((a) => a.id === leadMember.agentId) : null;
+
   return (
     <div className="flex-1 flex flex-col h-full bg-bg overflow-hidden relative">
       {/* Sub-header for channel info and quick actions */}
@@ -115,9 +120,38 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
               <span className="truncate hidden sm:inline">{channel.description}</span>
             </>
           )}
+          {leadAgent && (
+            <>
+              <span className="text-surface-hover">|</span>
+              <span className="text-accent font-medium truncate">Lead: @{leadAgent.name}</span>
+            </>
+          )}
         </div>
 
         <div className="flex items-center gap-1">
+          <div className="flex items-center gap-1 bg-bg border border-surface-hover rounded-lg p-0.5 mr-2">
+            <button
+              onClick={() => setViewMode("chat")}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === "chat"
+                  ? "bg-surface text-text-primary border border-surface-hover/80"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Chat
+            </button>
+            <button
+              onClick={() => setViewMode("org")}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === "org"
+                  ? "bg-surface text-text-primary border border-surface-hover/80"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Org Chart
+            </button>
+          </div>
+
           <button
             onClick={() => setShowContextModal(true)}
             className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors relative"
@@ -160,24 +194,35 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
         </div>
       </div>
 
-      {/* Messages area specialized for multi-agent channels */}
-      <ChannelMessageList
-        messages={messages}
-        streamingAgents={streamingAgents}
-        mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
-        sessionId={sessionId}
-      />
-
-      {/* Reused InputArea shared with normal chat */}
-      <div className="p-3 sm:p-4 border-t border-surface/60 bg-surface/10 flex-shrink-0">
-        <InputArea
-          sessionId={sessionId}
-          streaming={isStreaming}
-          onSend={(msg) => handleSend(msg)}
-          onAbort={abortDispatch}
-          mentionTargets={mentionTargets}
+      {/* Messages area or Org Chart */}
+      {viewMode === "org" ? (
+        <ChannelOrgChart
+          members={channelMembers}
+          registeredAgents={registeredAgents}
         />
-      </div>
+      ) : (
+        <>
+          <ChannelMessageList
+            messages={messages}
+            streamingAgents={streamingAgents}
+            mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
+            sessionId={sessionId}
+            activeChannelId={activeChannel.id}
+          />
+
+          {/* Reused InputArea shared with normal chat */}
+          <div className="p-3 sm:p-4 border-t border-surface/60 bg-surface/10 flex-shrink-0">
+            <InputArea
+              sessionId={sessionId}
+              streaming={isStreaming}
+              onSend={(msg) => handleSend(msg)}
+              onAbort={abortDispatch}
+              mentionTargets={mentionTargets}
+              activeChannelId={activeChannel.id}
+            />
+          </div>
+        </>
+      )}
 
       {showMembersModal && (
         <ChannelMembersModal

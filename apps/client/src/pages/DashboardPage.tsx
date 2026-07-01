@@ -1,13 +1,15 @@
 import { useState, useEffect } from "react";
 
 interface RepoItem {
+  id?: string;
   name: string;
   path: string;
   lastModified: string;
 }
 
 interface Props {
-  onSelectRepo: (repoName: string | null) => void;
+  onNavigate?: (path: string) => void;
+  onSelectRepo: (repoId: string | null, repoName: string | null) => void;
 }
 
 export function DashboardPage({ onSelectRepo }: Props) {
@@ -21,6 +23,13 @@ export function DashboardPage({ onSelectRepo }: Props) {
   const [cloneUrl, setCloneUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Rename & Delete states
+  const [renameRepo, setRenameRepo] = useState<RepoItem | null>(null);
+  const [newName, setNewName] = useState("");
+  const [deleteRepo, setDeleteRepo] = useState<RepoItem | null>(null);
+  const [confirmDeleteName, setConfirmDeleteName] = useState("");
+  const [deleting, setDeleting] = useState(false);
 
   const fetchRepos = async () => {
     try {
@@ -46,6 +55,68 @@ export function DashboardPage({ onSelectRepo }: Props) {
   useEffect(() => {
     fetchRepos();
   }, []);
+
+  const handleStartRename = (repo: RepoItem) => {
+    setRenameRepo(repo);
+    setNewName(repo.name);
+  };
+
+  const handleRename = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!renameRepo || !newName.trim()) return;
+
+    const id = renameRepo.id || renameRepo.name;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`/api/workspace-repos/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ name: newName.trim() }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to rename project" }));
+        throw new Error(err.error || "Failed to rename project");
+      }
+      await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
+      setRenameRepo(null);
+      setNewName("");
+    } catch (err: any) {
+      alert(err.message);
+    }
+  };
+
+  const handleDeleteRepo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!deleteRepo || confirmDeleteName !== deleteRepo.name) return;
+
+    setDeleting(true);
+    const id = deleteRepo.id || deleteRepo.name;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`/api/workspace-repos/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to delete project" }));
+        throw new Error(err.error || "Failed to delete project");
+      }
+      await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
+      setDeleteRepo(null);
+      setConfirmDeleteName("");
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setDeleting(false);
+    }
+  };
 
   const handleCreateRepo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -74,6 +145,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
       }
 
       await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
       setShowModal(false);
       setRepoName("");
       setCloneUrl("");
@@ -97,7 +169,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => onSelectRepo(null)}
+                onClick={() => onSelectRepo(null, null)}
                 className="text-xs bg-surface-hover/20 text-text-secondary hover:text-text-primary border border-surface-hover/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
                 Workspace Global
@@ -138,20 +210,44 @@ export function DashboardPage({ onSelectRepo }: Props) {
                       </div>
                       <span className="font-semibold text-sm text-text-primary truncate">{repo.name}</span>
                     </div>
-                    <p className="text-[11px] text-text-secondary">
+                    <p className="text-[11px] text-text-secondary font-mono truncate">
+                      ID: {repo.id || repo.name}
+                    </p>
+                    <p className="text-[11px] text-text-secondary mt-1">
                       Última modificación: {new Date(repo.lastModified).toLocaleDateString()}
                     </p>
                   </div>
-                  <button
-                    onClick={() => onSelectRepo(repo.name)}
-                    className="w-full mt-4 py-1.5 bg-surface-hover/20 hover:bg-accent hover:text-bg text-text-primary rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
-                  >
-                    Abrir
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                      <line x1="5" y1="12" x2="19" y2="12" />
-                      <polyline points="12 5 19 12 12 19" />
-                    </svg>
-                  </button>
+                  <div className="flex items-center gap-2 mt-4">
+                    <button
+                      onClick={() => onSelectRepo(repo.id || repo.name, repo.name)}
+                      className="flex-1 py-1.5 bg-surface-hover/20 hover:bg-accent hover:text-bg text-text-primary border border-surface-hover/30 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
+                    >
+                      Abrir
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                        <line x1="5" y1="12" x2="19" y2="12" />
+                        <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleStartRename(repo)}
+                      className="p-1.5 bg-surface-hover/20 hover:bg-blue-400 hover:text-bg text-text-secondary hover:text-text-primary rounded-lg transition-all cursor-pointer border border-transparent hover:border-blue-400/30"
+                      title="Renombrar Proyecto"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 20h9" />
+                        <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => setDeleteRepo(repo)}
+                      className="p-1.5 bg-surface-hover/20 hover:bg-error hover:text-bg text-text-secondary hover:text-text-primary rounded-lg transition-all cursor-pointer border border-transparent hover:border-error/30"
+                      title="Eliminar Proyecto"
+                    >
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
+                      </svg>
+                    </button>
+                  </div>
                 </div>
               ))}
 
@@ -182,10 +278,10 @@ export function DashboardPage({ onSelectRepo }: Props) {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-surface border border-surface-hover rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-xl font-bold text-text-primary mb-4">Nuevo Proyecto / Repositorio</h2>
+            <h2 className="text-base font-bold text-text-primary mb-4">Nuevo Proyecto / Repositorio</h2>
             <form onSubmit={handleCreateRepo} className="space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
                   Nombre del Proyecto
                 </label>
                 <input
@@ -199,7 +295,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
               </div>
 
               <div>
-                <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
                   URL de Clonación Git (Opcional)
                 </label>
                 <input
@@ -233,9 +329,96 @@ export function DashboardPage({ onSelectRepo }: Props) {
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-accent hover:opacity-90 disabled:opacity-50 text-bg rounded-lg text-sm font-semibold transition-opacity cursor-pointer font-bold"
+                  className="px-4 py-2 bg-accent hover:opacity-90 disabled:opacity-50 text-bg rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
                   {submitting ? "Creando..." : "Crear Proyecto"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {renameRepo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-surface border border-surface-hover rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h2 className="text-base font-bold text-text-primary mb-4">Renombrar Proyecto</h2>
+            <form onSubmit={handleRename} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                  Nuevo Nombre del Proyecto
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={newName}
+                  onChange={(e) => setNewName(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setRenameRepo(null);
+                    setNewName("");
+                  }}
+                  className="px-4 py-2 border border-surface-hover rounded-lg text-sm hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 bg-accent hover:opacity-90 text-bg rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
+                >
+                  Guardar
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {deleteRepo && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-surface border border-surface-hover rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h2 className="text-base font-bold text-error mb-2">Eliminar Proyecto</h2>
+            <p className="text-xs text-text-secondary mb-4 leading-relaxed">
+              Esta acción es destructiva. Se borrará la carpeta de código, los archivos subidos y todas las sesiones de chat asociadas.
+            </p>
+            <form onSubmit={handleDeleteRepo} className="space-y-4">
+              <div>
+                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                  Escribí <span className="font-mono text-text-primary font-bold">{deleteRepo.name}</span> para confirmar:
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="Nombre del proyecto"
+                  value={confirmDeleteName}
+                  onChange={(e) => setConfirmDeleteName(e.target.value)}
+                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                />
+              </div>
+
+              <div className="flex justify-end gap-3 mt-6">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setDeleteRepo(null);
+                    setConfirmDeleteName("");
+                  }}
+                  className="px-4 py-2 border border-surface-hover rounded-lg text-sm hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+                >
+                  Cancelar
+                </button>
+                <button
+                  type="submit"
+                  disabled={confirmDeleteName !== deleteRepo.name || deleting}
+                  className="px-4 py-2 bg-error hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-text-primary rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
+                >
+                  {deleting ? "Eliminando..." : "Eliminar de todos modos"}
                 </button>
               </div>
             </form>

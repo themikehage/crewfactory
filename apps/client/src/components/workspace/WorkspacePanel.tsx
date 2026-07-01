@@ -5,9 +5,11 @@ import type { FileInfo } from "shared";
 
 interface Props {
   activeRepoName: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
-export function WorkspacePanel({ activeRepoName }: Props) {
+export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeChannelId = null }: Props) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -17,11 +19,16 @@ export function WorkspacePanel({ activeRepoName }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [addingRootType, setAddingRootType] = useState<"file" | "folder" | null>(null);
 
-  // Helper centralizado para construir las URLs con scoping de repositorio
+  // Helper centralizado para construir las URLs con scoping de repositorio/agente/canal
   const getWorkspaceUrl = useCallback((path: string) => {
     const base = `/api/workspace/${path}`;
-    return activeRepoName ? `${base}?repo=${encodeURIComponent(activeRepoName)}` : base;
-  }, [activeRepoName]);
+    const params = new URLSearchParams();
+    if (activeRepoName) params.append("repo", activeRepoName);
+    if (activeAgentId) params.append("agentId", activeAgentId);
+    if (activeChannelId) params.append("channelId", activeChannelId);
+    const query = params.toString();
+    return query ? `${base}?${query}` : base;
+  }, [activeRepoName, activeAgentId, activeChannelId]);
 
   // Helper for auth headers
   const getHeaders = useCallback(() => {
@@ -391,7 +398,13 @@ export function WorkspacePanel({ activeRepoName }: Props) {
         </div>
 
         <div className="flex-1 min-w-0 overflow-hidden flex flex-col bg-bg h-full">
-          <WorkspaceFileEditor file={selectedFile} activeRepoName={activeRepoName} onSave={handleSaveFile} />
+          <WorkspaceFileEditor
+            file={selectedFile}
+            activeRepoName={activeRepoName}
+            activeAgentId={activeAgentId}
+            activeChannelId={activeChannelId}
+            onSave={handleSaveFile}
+          />
         </div>
       </div>
     </div>

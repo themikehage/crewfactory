@@ -10,9 +10,10 @@ interface Props {
   route: Route;
   onNavigate: (path: string) => void;
   activeRepoName: string | null;
+  activeRepoId?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
-  onSelectRepo?: (repoName: string | null) => void;
+  onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   children: ReactNode;
@@ -22,6 +23,7 @@ export function MainLayout({
   route,
   onNavigate,
   activeRepoName,
+  activeRepoId = null,
   activeAgent,
   activeChannel = null,
   onSelectRepo,
@@ -57,25 +59,37 @@ export function MainLayout({
     }
   }, [route.page]);
 
+  const getSessionPath = useCallback((id: string) => {
+    if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
+    if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
+    if (activeRepoId) return `/repos/${activeRepoId}/session/${id}`;
+    return `/session/${id}`;
+  }, [activeChannel?.id, activeAgent?.id, activeRepoId]);
+
   const handleSelectSession = useCallback((id: string) => {
     if (id) {
-      onNavigate(`/session/${id}`);
+      onNavigate(getSessionPath(id));
     } else {
-      onNavigate("/");
+      let basePath = "";
+      if (activeChannel) basePath = `/channels/${activeChannel.id}/chat`;
+      else if (activeAgent) basePath = `/agents/${activeAgent.id}/chat`;
+      else if (activeRepoId) basePath = `/repos/${activeRepoId}/chat`;
+      onNavigate(basePath || "/");
     }
     setSidebarOpen(false);
-  }, [onNavigate]);
+  }, [onNavigate, getSessionPath, activeChannel?.id, activeAgent?.id, activeRepoId]);
 
   const handleNewSession = useCallback((id: string) => {
-    onNavigate(`/session/${id}`);
+    onNavigate(getSessionPath(id));
     setSidebarOpen(false);
-  }, [onNavigate]);
+  }, [onNavigate, getSessionPath]);
 
   const sessionId = route.page === "chat" ? route.sessionId : null;
 
   useSessionResolver({
     sessionId,
-    activeRepoName,
+    activeRepoName: activeRepoId,
+    activeRepoFriendlyName: activeRepoName,
     activeAgent,
     activeChannel,
     currentPage: route.page,
@@ -85,11 +99,16 @@ export function MainLayout({
   const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview";
 
   const contextTabs = useMemo(() => {
+    let basePath = "";
+    if (activeChannel) basePath = `/channels/${activeChannel.id}`;
+    else if (activeAgent) basePath = `/agents/${activeAgent.id}`;
+    else if (activeRepoId) basePath = `/repos/${activeRepoId}`;
+
     const list = [
       {
         id: "chat",
         label: "Chat",
-        path: sessionId ? `/session/${sessionId}` : "/",
+        path: sessionId ? `${basePath}/session/${sessionId}` : (basePath ? `${basePath}/chat` : "/"),
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
@@ -99,7 +118,7 @@ export function MainLayout({
       {
         id: "workspace",
         label: "Files",
-        path: "/workspace",
+        path: basePath ? `${basePath}/workspace` : "/workspace",
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -108,11 +127,11 @@ export function MainLayout({
       }
     ];
 
-    if (activeRepoName) {
+    if (activeRepoName || activeRepoId) {
       list.push({
         id: "preview",
         label: "Preview",
-        path: "/preview",
+        path: basePath ? `${basePath}/preview` : "/preview",
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM4.332 8.027a6.012 6.012 0 011.912-2.706C6.512 5.73 6.974 6 7.5 6A1.5 1.5 0 019 7.5V8a2 2 0 004 0 2 2 0 01-1.523-1.943A5.977 5.977 0 0116 10c0 .34-.028.675-.083 1H15a2 2 0 00-2 2v2.197A5.973 5.973 0 0110 16v-2a2 2 0 00-2-2 2 2 0 01-2-2 2 2 0 00-1.668-1.973z" clipRule="evenodd" />
@@ -122,61 +141,58 @@ export function MainLayout({
     }
 
     return list;
-  }, [sessionId, activeRepoName]);
+  }, [sessionId, activeRepoId, activeRepoName, activeAgent, activeChannel]);
 
   const renderBreadcrumbs = () => {
     let items: { label: string; path?: string }[] = [];
 
-    const contextLabel = activeChannel
-      ? `Channel: #${activeChannel.name}`
-      : activeAgent
-      ? `Agent: ${activeAgent.name}`
-      : activeRepoName
-      ? `${activeRepoName}`
-      : "Global";
+    const currentRepo = activeRepoId;
+    const currentRepoFriendly = activeRepoName || activeRepoId;
+    const currentAgent = activeAgent;
+    const currentChannel = activeChannel;
 
-    switch (route.page) {
-      case "projects":
-        items = [{ label: "Proyectos", path: "/projects" }];
-        break;
-      case "settings":
-        items = [{ label: "Settings", path: "/settings" }];
-        if (contextLabel) items.push({ label: contextLabel });
-        break;
-      case "skills":
-        items = [{ label: "Skills", path: "/skills" }];
-        if (contextLabel) items.push({ label: contextLabel });
-        break;
-      case "workspace":
-        items = [{ label: "Workspace", path: "/workspace" }];
-        if (contextLabel) items.push({ label: contextLabel });
-        break;
-      case "preview":
-        items = [{ label: "Preview", path: "/preview" }];
-        if (activeRepoName) items.push({ label: activeRepoName });
-        break;
-      case "agents":
-        items = [{ label: "Agents", path: "/agents" }];
-        break;
-      case "channels":
-        items = [{ label: "Channels", path: "/channels" }];
-        break;
-      case "channel":
-        items = [{ label: "Channels", path: "/channels" }];
-        if (activeChannel) {
-          items.push({ label: `#${activeChannel.name}` });
-        }
-        break;
-      case "logs":
-        items = [{ label: "Consola de Logs", path: "/logs" }];
-        break;
-      default:
-        // "chat"
-        items = [{ label: "Chat", path: "/" }];
-        if (contextLabel) {
-          items.push({ label: contextLabel });
-        }
-        break;
+    if (currentRepo) {
+      items = [
+        { label: "Proyectos", path: "/projects" },
+        { label: currentRepoFriendly || currentRepo, path: `/repos/${currentRepo}/chat` }
+      ];
+    } else if (currentAgent) {
+      items = [
+        { label: "Agentes", path: "/agents" },
+        { label: currentAgent.name, path: `/agents/${currentAgent.id}/chat` }
+      ];
+    } else if (currentChannel) {
+      items = [
+        { label: "Canales", path: "/channels" },
+        { label: `#${currentChannel.name}`, path: `/channels/${currentChannel.id}/chat` }
+      ];
+    } else {
+      items = [{ label: "Factory", path: "/" }];
+    }
+
+    if (route.page === "workspace") {
+      items.push({ label: "Files" });
+    } else if (route.page === "preview") {
+      items.push({ label: "Preview" });
+    } else if (route.page === "chat") {
+      items.push({ label: "Chat" });
+    } else if (route.page === "settings") {
+      items = [{ label: "Settings" }];
+    } else if (route.page === "skills") {
+      items = [{ label: "Skills" }];
+    } else if (route.page === "logs") {
+      items = [{ label: "Logs" }];
+    } else if (route.page === "projects") {
+      items = [{ label: "Proyectos" }];
+    } else if (route.page === "agents") {
+      items = [{ label: "Agentes" }];
+    } else if (route.page === "channels") {
+      items = [{ label: "Canales" }];
+    } else if (route.page === "channel") {
+      items = [{ label: "Canales", path: "/channels" }];
+      if (activeChannel) {
+        items.push({ label: `#${activeChannel.name}` });
+      }
     }
 
     return (
@@ -216,7 +232,7 @@ export function MainLayout({
       <header className="h-10 sm:h-12 border-b border-surface px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-surface/30">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
-            onClick={() => onSelectRepo ? onSelectRepo(null) : onNavigate("/")}
+            onClick={() => onSelectRepo ? onSelectRepo(null, null) : onNavigate("/")}
             className="p-1 text-text-secondary hover:text-text-primary rounded cursor-pointer flex-shrink-0"
             title="Inicio"
           >
@@ -233,29 +249,6 @@ export function MainLayout({
           </button>
           {renderBreadcrumbs()}
         </div>
-        <div className="flex items-center gap-2 relative">
-          {/* Botón para abrir el popover de sesiones */}
-          <button
-            onClick={() => setSessionPopoverOpen((p) => !p)}
-            className="flex items-center gap-1.5 px-2.5 py-1 sm:px-3 sm:py-1.5 rounded-lg text-xs font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
-            title="Ver sesiones"
-          >
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
-            </svg>
-            <span className="hidden sm:inline">Sesiones</span>
-          </button>
-          <SessionPopover
-            isOpen={sessionPopoverOpen}
-            onClose={() => setSessionPopoverOpen(false)}
-            activeSessionId={sessionId}
-            activeRepoName={activeRepoName}
-            activeAgent={activeAgent}
-            activeChannel={activeChannel}
-            onSelectSession={handleSelectSession}
-            onNewSession={handleNewSession}
-          />
-        </div>
       </header>
       <div className="flex flex-1 min-h-0 relative">
         {sidebarOpen && (
@@ -270,7 +263,7 @@ export function MainLayout({
           } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-surface bg-bg transition-transform duration-200`}
         >
           <SessionSidebar
-            activeRepoName={activeRepoName}
+            activeRepoName={activeRepoId}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
             currentPage={route.page}
@@ -282,26 +275,53 @@ export function MainLayout({
         </aside>
         <main className="flex-1 min-w-0 flex flex-col h-full bg-bg">
           {isContextView && (
-            <div className="flex px-4 gap-1 border-b border-surface bg-surface/5 flex-shrink-0">
-              {contextTabs.map((tab) => {
-                const isActive = route.page === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => onNavigate(tab.path)}
-                    className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                      isActive
-                        ? "text-accent border-accent font-semibold"
-                        : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
-                    }`}
-                  >
-                    <span className={isActive ? "text-accent" : "text-text-secondary"}>
-                      {tab.icon}
-                    </span>
-                    {tab.label}
-                  </button>
-                );
-              })}
+            <div className="flex items-center justify-between px-4 border-b border-surface bg-surface/5 flex-shrink-0">
+              <div className="flex gap-1">
+                {contextTabs.map((tab) => {
+                  const isActive = route.page === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      onClick={() => onNavigate(tab.path)}
+                      className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                        isActive
+                          ? "text-accent border-accent font-semibold"
+                          : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
+                      }`}
+                    >
+                      <span className={isActive ? "text-accent" : "text-text-secondary"}>
+                        {tab.icon}
+                      </span>
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Botón de sesiones pegado a la derecha en la barra de pestañas */}
+              <div className="relative py-1 flex items-center gap-2">
+                <button
+                  onClick={() => setSessionPopoverOpen((p) => !p)}
+                  className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
+                  title="Ver sesiones"
+                >
+                  <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
+                  </svg>
+                  <span>Sesiones</span>
+                </button>
+                <SessionPopover
+                  isOpen={sessionPopoverOpen}
+                  onClose={() => setSessionPopoverOpen(false)}
+                  activeSessionId={sessionId}
+                  activeRepoName={activeRepoId}
+                  activeRepoFriendlyName={activeRepoName}
+                  activeAgent={activeAgent}
+                  activeChannel={activeChannel}
+                  onSelectSession={handleSelectSession}
+                  onNewSession={handleNewSession}
+                />
+              </div>
             </div>
           )}
           <div className="flex-1 min-h-0 relative">

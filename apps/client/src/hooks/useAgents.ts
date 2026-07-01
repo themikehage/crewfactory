@@ -46,6 +46,7 @@ export function useAgents() {
     }
     const agent = await res.json();
     await fetchAgents();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "agent" } }));
     return agent;
   }, [fetchAgents]);
 
@@ -58,6 +59,7 @@ export function useAgents() {
       throw new Error(`HTTP ${res.status}`);
     }
     await fetchAgents();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "agent" } }));
   }, [fetchAgents]);
 
   const promptAgent = useCallback(async (id: string, message: string): Promise<string> => {
@@ -84,5 +86,24 @@ export function useAgents() {
     return "";
   }, []);
 
-  return { agents, loading, error, fetchAgents, registerAgent, stopAgent, promptAgent };
+  const updateAgent = useCallback(async (id: string, updates: Partial<Omit<AgentDefinition, "id">>): Promise<AgentInfo> => {
+    const res = await fetch(`/api/agents/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const agent = await res.json();
+    await fetchAgents();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "agent" } }));
+    return agent;
+  }, [fetchAgents]);
+
+  return { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent, promptAgent };
 }

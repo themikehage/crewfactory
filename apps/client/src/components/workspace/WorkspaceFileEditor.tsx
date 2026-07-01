@@ -5,6 +5,8 @@ import { apiFetch } from "@/lib/api";
 interface Props {
   file: FileInfo | null;
   activeRepoName: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
   onSave: (path: string, content: string) => Promise<void>;
 }
 
@@ -22,7 +24,13 @@ function decodeBase64Unicode(str: string): string {
   }
 }
 
-export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
+export function WorkspaceFileEditor({
+  file,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+  onSave,
+}: Props) {
   const [content, setContent] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -116,8 +124,12 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
         return;
       }
       try {
-        const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
-        const res = await apiFetch(`/api/workspace/${file.path}?raw=true${repoQuery}`);
+        const params = new URLSearchParams();
+        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeAgentId) params.append("agentId", activeAgentId);
+        if (activeChannelId) params.append("channelId", activeChannelId);
+        const contextQuery = params.toString() ? `&${params.toString()}` : "";
+        const res = await apiFetch(`/api/workspace/${file.path}?raw=true${contextQuery}`);
         if (!res.ok) return;
         const blob = await res.blob();
         if (active) {
@@ -137,7 +149,7 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
         URL.revokeObjectURL(url);
       }
     };
-  }, [file?.path, activeRepoName, isHtml, isImage, saveStatus]);
+  }, [file?.path, activeRepoName, activeAgentId, activeChannelId, isHtml, isImage, saveStatus]);
 
   if (!file) {
     return (
@@ -162,8 +174,12 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
       window.open(previewBlobUrl, "_blank");
     } else {
       try {
-        const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
-        const res = await apiFetch(`/api/workspace/${file.path}?raw=true${repoQuery}`);
+        const params = new URLSearchParams();
+        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeAgentId) params.append("agentId", activeAgentId);
+        if (activeChannelId) params.append("channelId", activeChannelId);
+        const contextQuery = params.toString() ? `&${params.toString()}` : "";
+        const res = await apiFetch(`/api/workspace/${file.path}?raw=true${contextQuery}`);
         if (!res.ok) throw new Error("Failed to load raw file");
         const blob = await res.blob();
         const url = URL.createObjectURL(blob);
@@ -177,8 +193,12 @@ export function WorkspaceFileEditor({ file, activeRepoName, onSave }: Props) {
   const handleDownload = async (e: React.MouseEvent) => {
     e.preventDefault();
     try {
-      const repoQuery = activeRepoName ? `&repo=${encodeURIComponent(activeRepoName)}` : "";
-      const res = await apiFetch(`/api/workspace/${file.path}?download=true${repoQuery}`);
+      const params = new URLSearchParams();
+      if (activeRepoName) params.append("repo", activeRepoName);
+      if (activeAgentId) params.append("agentId", activeAgentId);
+      if (activeChannelId) params.append("channelId", activeChannelId);
+      const contextQuery = params.toString() ? `&${params.toString()}` : "";
+      const res = await apiFetch(`/api/workspace/${file.path}?download=true${contextQuery}`);
       if (!res.ok) throw new Error("Failed to download");
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);

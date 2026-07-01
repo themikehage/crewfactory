@@ -1,0 +1,57 @@
+[config]
+name = "CrewFactory"
+description = "Multi-agent AI development platform. Create, orchestrate, and optimize AI agents in your browser."
+tags = ["ai", "agents", "llm", "developer-tools"]
+logo = "logo.svg"
+documentation = "https://github.com/themikehage/crewfactory/blob/main/DEPLOY.md"
+repository = "https://github.com/themikehage/crewfactory"
+
+[[config.env]]
+label = "JWT Secret"
+name = "JWT_SECRET"
+description = "JWT signing secret. Generate with: openssl rand -base64 32"
+required = true
+generator = "secret"
+
+[[config.env]]
+label = "Auth Username"
+name = "AUTH_USERNAME"
+description = "Login username"
+required = true
+default = "admin"
+
+[[config.env]]
+label = "Auth Password Hash"
+name = "AUTH_PASSWORD_HASH"
+description = "Base64-encoded bcrypt hash. See DEPLOY.md for generation instructions."
+required = true
+
+[[config.env]]
+label = "Anthropic API Key"
+name = "ANTHROPIC_API_KEY"
+description = "Anthropic API key (Claude). Optional."
+required = false
+default = ""
+
+[[config.env]]
+label = "OpenAI API Key"
+name = "OPENAI_API_KEY"
+description = "OpenAI API key (GPT). Optional."
+required = false
+default = ""
+
+[[config.env]]
+label = "DashScope API Key"
+name = "DASHSCOPE_API_KEY"
+description = "Alibaba DashScope API key (Qwen). Optional."
+required = false
+default = ""
+
+[[config.domains]]
+serviceName = "crewfactory"
+port = 3000
+
+[[config.mounts]]
+serviceName = "crewfactory"
+mountPath = "/tmp/crewfactory"
+description = "Persistent workspace data"

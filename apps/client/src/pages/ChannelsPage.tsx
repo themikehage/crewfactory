@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChannels } from "@/hooks/useChannels";
 import { ChannelCard } from "@/components/channels/ChannelCard";
@@ -117,6 +117,16 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
   const [contextChannel, setContextChannel] = useState<Channel | null>(null);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("/api/agents", { headers: { Authorization: `Bearer ${token}` } })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data) setRegisteredAgents(data.agents || []);
+      })
+      .catch(() => {});
+  }, []);
 
   const loadChannelDetails = useCallback(async (channelId: string) => {
     const token = localStorage.getItem("token");
@@ -264,6 +274,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
                 <ChannelCard
                   key={ch.id}
                   channel={ch}
+                  registeredAgents={registeredAgents}
                   onOpen={(id) => {
                     if (onSelectChannel) {
                       onSelectChannel({ id: ch.id, name: ch.name });

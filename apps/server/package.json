@@ -15,6 +15,7 @@
     "zod": "^3"
   },
   "devDependencies": {
+    "@types/adm-zip": "^0.5.8",
     "@types/bcryptjs": "^2.4",
     "@types/bun": "latest",
     "@types/jsonwebtoken": "^9",

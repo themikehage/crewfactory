@@ -364,3 +364,45 @@ crear un plan de despliegue facil en vps
 - [x] 41.12 Combine consecutive token deltas inside consolidated logs console tab
 - [x] 41.13 Validate full build and push changes
 
+## Phase 42: Robust Task Delegation & Meta-Agent Optimization Loop
+- [x] 42.1 Defined Zod schemas for execution logs in shared packages
+- [x] 42.2 Implemented agent observation API (`GET /api/agents/:id/observe`) and execution log storage on Hono server
+- [x] 42.3 Implemented repository session SSE prompting (`POST /api/sessions/:id/prompt/stream`) and execution logging on backend
+- [x] 42.4 Created Bun CLI helper script `scripts/delegate.ts` for unified task delegation to agents, channels, and repos
+- [x] 42.5 Configured new and updated factory skills (`factory-delegate`, `factory-observe`, `factory-quick-actions`)
+- [x] 42.6 Implemented frontend "Executions" detail logs modal in `AgentsPage.tsx`
+- [x] 42.7 Implemented visual observed status indicator badge in `ChatArea.tsx` header
+
+## Phase 43: Agent & Channel Workspace Isolation
+- [x] 43.1 backend files.ts path validation support for agentId and channelId
+- [x] 43.2 client routing and prop propagation for activeAgent and activeChannel
+- [x] 43.3 client ImageGrid, ToolCallRow, resolveFileUrl, resolveImageUrl, InputArea, WorkspacePanel update to append scoping parameters
+- [x] 43.4 verification of build compilation of server and client
+- [x] 43.5 Homogenized repository workspace directories to `repos/{repoName}/workspace` to match agents and channels folders layout
+- [x] 43.6 Decoupled repository workspaces to use a unique UUID-based repoId instead of human-readable repoName, adding project.json metadata mapping and client-side selection support
+
+## Phase 44: Entity Deletion & Configuration Updating
+- [x] 44.1 Shared schemas: Define `UpdateAgentDefinitionSchema` in `schemas.ts`
+- [x] 44.2 Server `AgentRegistry`: Implement `update` method to restart Hono server on definition changes
+- [x] 44.3 Server Agents API: Add `PATCH /api/agents/:id` endpoint and cascading session deletes in `DELETE /api/agents/:id`
+- [x] 44.4 Server Channels API: Add cascading session deletes in `DELETE /api/channels/:id`
+- [x] 44.5 Server Repos API: Add `DELETE /api/workspace-repos/:id` with cascading session and folder deletes, and `PATCH /api/workspace-repos/:id` to update project name
+- [x] 44.6 Client `useAgents` hook: Add `updateAgent` method
+- [x] 44.7 Client Agents Page: Add edit/delete buttons, deletion confirmation, and reuse `RegisterModal` for editing
+- [x] 44.8 Client Projects Dashboard: Add edit/delete buttons, name rename modal, and secure name-matching delete confirmation modal
+- [x] 44.9 Verification: Run client type checking and verify clean builds
+
+## Phase 45: Qwen Cloud Provider Integration
+- [x] 45.1 Create backend file `qwen-provider.ts` defining dynamic provider registration for official Qwen 3.7, 3.6, and 3.5 models
+- [x] 45.2 Update `session-manager.ts` to register the new Qwen provider upon user context initialization
+- [x] 45.3 Verify successful server compilation and run model registration validation
+## Phase 46: Hierarchical Roles & Visual Org Chart in Channels
+- [x] 46.1 Define ChannelRole schema and update ChannelMember schemas in packages/shared
+- [x] 46.2 Update member endpoints to support role persistence in apps/server Hono routes
+- [x] 46.3 Add Role selection dropdowns in client AddMemberModal and ChannelMembersModal
+- [x] 46.4 Sort and display role badges in right panel MembersPanel
+- [x] 46.5 Render interactive SVG-based Org Chart view with orthogonal connections on desktop and cards layout on mobile
+- [x] 46.6 Integrate toggle view button and Lead details in ChannelChatArea sub-header
+- [x] 46.7 Resolve Lead indicators in ChannelCard and load agents on ChannelsPage mount
+- [x] 46.8 Verify successful builds of server and client applications
+

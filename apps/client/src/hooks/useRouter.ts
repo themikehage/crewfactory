@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 
 export type Route =
-  | { page: "chat"; sessionId: string | null }
+  | { page: "chat"; sessionId: string | null; repoName?: string | null; agentId?: string | null; channelId?: string | null }
   | { page: "projects" }
   | { page: "settings" }
   | { page: "skills" }
-  | { page: "workspace" }
-  | { page: "preview" }
+  | { page: "workspace"; repoName?: string | null; agentId?: string | null; channelId?: string | null }
+  | { page: "preview"; repoName?: string | null }
   | { page: "agents" }
   | { page: "channels" }
   | { page: "channel"; channelId: string }
@@ -14,6 +14,62 @@ export type Route =
 
 function parseRoute(): Route {
   const path = window.location.pathname;
+
+  // Formato: /repos/{repoName}/...
+  if (path.startsWith("/repos/")) {
+    const parts = path.slice("/repos/".length).split("/");
+    const repoName = parts[0];
+    const subPage = parts[1];
+
+    if (subPage === "session") {
+      const sessionId = parts.slice(2).join("/");
+      return { page: "chat", sessionId: sessionId || null, repoName };
+    }
+    if (subPage === "workspace") {
+      return { page: "workspace", repoName };
+    }
+    if (subPage === "preview") {
+      return { page: "preview", repoName };
+    }
+    // Default
+    return { page: "chat", sessionId: null, repoName };
+  }
+
+  // Formato: /agents/{agentId}/...
+  if (path.startsWith("/agents/")) {
+    const parts = path.slice("/agents/".length).split("/");
+    const agentId = parts[0];
+    const subPage = parts[1];
+
+    if (subPage === "session") {
+      const sessionId = parts.slice(2).join("/");
+      return { page: "chat", sessionId: sessionId || null, agentId };
+    }
+    if (subPage === "workspace") {
+      return { page: "workspace", agentId };
+    }
+    // Default
+    return { page: "chat", sessionId: null, agentId };
+  }
+
+  // Formato: /channels/{channelId}/...
+  if (path.startsWith("/channels/")) {
+    const parts = path.slice("/channels/".length).split("/");
+    const channelId = parts[0];
+    const subPage = parts[1];
+
+    if (subPage === "session") {
+      const sessionId = parts.slice(2).join("/");
+      return { page: "chat", sessionId: sessionId || null, channelId };
+    }
+    if (subPage === "workspace") {
+      return { page: "workspace", channelId };
+    }
+    // Default
+    return { page: "chat", sessionId: null, channelId };
+  }
+
+  // Formato global heredado y otras páginas fijas
   if (path.startsWith("/session/")) {
     const id = path.slice("/session/".length);
     return { page: "chat", sessionId: id || null };
@@ -22,30 +78,15 @@ function parseRoute(): Route {
     const id = path.slice("/channel/".length);
     return { page: "channel", channelId: id };
   }
-  if (path === "/projects") {
-    return { page: "projects" };
-  }
-  if (path === "/settings") {
-    return { page: "settings" };
-  }
-  if (path === "/skills") {
-    return { page: "skills" };
-  }
-  if (path === "/workspace") {
-    return { page: "workspace" };
-  }
-  if (path === "/preview") {
-    return { page: "preview" };
-  }
-  if (path === "/agents") {
-    return { page: "agents" };
-  }
-  if (path === "/channels") {
-    return { page: "channels" };
-  }
-  if (path === "/logs") {
-    return { page: "logs" };
-  }
+  if (path === "/projects") return { page: "projects" };
+  if (path === "/settings") return { page: "settings" };
+  if (path === "/skills") return { page: "skills" };
+  if (path === "/workspace") return { page: "workspace" };
+  if (path === "/preview") return { page: "preview" };
+  if (path === "/agents") return { page: "agents" };
+  if (path === "/channels") return { page: "channels" };
+  if (path === "/logs") return { page: "logs" };
+
   return { page: "chat", sessionId: null };
 }
 

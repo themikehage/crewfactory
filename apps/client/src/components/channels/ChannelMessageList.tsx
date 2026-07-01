@@ -9,6 +9,7 @@ interface Props {
   streamingAgents: Record<string, StreamingAgentState>;
   mentionNames?: string[];
   sessionId?: string | null;
+  activeChannelId?: string | null;
 }
 
 function ThinkingBlock({ thinking }: { thinking: string }) {
@@ -48,7 +49,13 @@ function highlightMentions(content: string, names: string[]): string {
   return result;
 }
 
-export function ChannelMessageList({ messages, streamingAgents, mentionNames = [], sessionId = null }: Props) {
+export function ChannelMessageList({
+  messages,
+  streamingAgents,
+  mentionNames = [],
+  sessionId = null,
+  activeChannelId = null,
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -110,6 +117,7 @@ export function ChannelMessageList({ messages, streamingAgents, mentionNames = [
                 args={tc.arguments}
                 result={tc.result}
                 sessionId={msg.sessionId || null}
+                activeChannelId={activeChannelId}
               />
             ))}
             <RichMarkdown content={highlightMentions(msg.content, mentionNames)} />
@@ -141,6 +149,7 @@ export function ChannelMessageList({ messages, streamingAgents, mentionNames = [
                 args={tc.args}
                 result={tc.result}
                 sessionId={sessionId}
+                activeChannelId={activeChannelId}
               />
             ))}
             {stream.text ? (

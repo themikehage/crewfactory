@@ -41,7 +41,7 @@ function isAsset(filePath: string): boolean {
 const BUILD_DIRS = ["dist", "build", ".output"] as const;
 
 function resolveBuildDir(username: string, repo: string): string {
-  const repoDir = resolve(`/tmp/crewfactory/${username}/workspace/repos/${repo}`);
+  const repoDir = resolve(`/tmp/crewfactory/${username}/repos/${repo}/workspace`);
   for (const dir of BUILD_DIRS) {
     const candidate = resolve(repoDir, dir);
     if (existsSync(candidate)) return candidate;

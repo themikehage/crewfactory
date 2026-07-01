@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from "react";
 import { ModelSelector } from "./ModelSelector";
 import { ToolsSelector } from "./ToolsSelector";
 import { SkillsSelector, type SkillInfo } from "./SkillsSelector";
@@ -42,9 +42,22 @@ interface Props {
   runnerActive?: boolean;
   mentionTargets?: MentionTarget[];
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
-export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange, runnerActive = false, mentionTargets = [], activeRepoName }: Props) {
+export function InputArea({
+  onSend,
+  onAbort,
+  streaming,
+  sessionId,
+  onToolsChange,
+  runnerActive = false,
+  mentionTargets = [],
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
   const [showOptions, setShowOptions] = useState(false);
@@ -119,31 +132,44 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
     fetchTools();
   }, [sessionId]);
 
-  // Fetch session skills when sessionId changes
-  useEffect(() => {
+  const fetchSessionSkills = useCallback(async () => {
     if (!sessionId) {
       setSkills([]);
       return;
     }
-    const fetchSessionSkills = async () => {
-      setSkillsLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/skills`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSkills(data.skills ?? []);
-        }
-      } catch (err) {
-        console.error("Error loading session skills:", err);
-      } finally {
-        setSkillsLoading(false);
+    setSkillsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sessions/${sessionId}/skills`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSkills(data.skills ?? []);
+      }
+    } catch (err) {
+      console.error("Error loading session skills:", err);
+    } finally {
+      setSkillsLoading(false);
+    }
+  }, [sessionId]);
+
+  // Fetch session skills when sessionId changes
+  useEffect(() => {
+    fetchSessionSkills();
+  }, [fetchSessionSkills]);
+
+  // Listen for entity-updated events to refresh skills
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.type === "skill" || !customEvent.detail?.type) {
+        fetchSessionSkills();
       }
     };
-    fetchSessionSkills();
-  }, [sessionId]);
+    window.addEventListener("entity-updated", handleUpdate);
+    return () => window.removeEventListener("entity-updated", handleUpdate);
+  }, [fetchSessionSkills]);
 
   // Click outside to close options
   useEffect(() => {
@@ -275,7 +301,11 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         formData.append("file", img.file);
         
         const token = localStorage.getItem("token");
-        const url = `/api/workspace/assets/uploads?repo=${activeRepoName || ""}`;
+        const params = new URLSearchParams();
+        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeAgentId) params.append("agentId", activeAgentId);
+        if (activeChannelId) params.append("channelId", activeChannelId);
+        const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
         
         const res = await fetch(url, {
           method: "POST",
@@ -300,7 +330,11 @@ export function InputArea({ onSend, onAbort, streaming, sessionId, onToolsChange
         formData.append("file", doc.file);
         
         const token = localStorage.getItem("token");
-        const url = `/api/workspace/assets/uploads?repo=${activeRepoName || ""}`;
+        const params = new URLSearchParams();
+        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeAgentId) params.append("agentId", activeAgentId);
+        if (activeChannelId) params.append("channelId", activeChannelId);
+        const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
         
         const res = await fetch(url, {
           method: "POST",

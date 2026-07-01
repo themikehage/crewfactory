@@ -3,16 +3,32 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
+    restart: unless-stopped
+    init: true
     ports:
       - "3000:3000"
+      - "3001:3001"
     environment:
-      - JWT_SECRET=change-me-in-production
-      - AUTH_USERNAME=admin
-      - AUTH_PASSWORD_HASH=JDJhJDEwJGVBV2JvSWIzeVZleWFWQk45QldMeS5EaHA2ZkhJaTJmUEx0SllxOVBPcFRtbW8zQ3BReDhx
+      - JWT_SECRET=${JWT_SECRET:?Must set JWT_SECRET (openssl rand -base64 32)}
+      - AUTH_USERNAME=${AUTH_USERNAME:?Must set AUTH_USERNAME}
+      - AUTH_PASSWORD_HASH=${AUTH_PASSWORD_HASH:?Must set AUTH_PASSWORD_HASH}
       - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
       - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - DASHSCOPE_API_KEY=${DASHSCOPE_API_KEY:-}
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 3s
+      start_period: 10s
+      retries: 3
     volumes:
       - crewfactory-data:/tmp/crewfactory
+    deploy:
+      resources:
+        limits:
+          memory: 2G
+        reservations:
+          memory: 512M
 
 volumes:
   crewfactory-data:

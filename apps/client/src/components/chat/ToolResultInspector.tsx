@@ -18,7 +18,13 @@ interface FileMarker {
   type: MediaType;
 }
 
-export function resolveFileUrl(rawUrl: string, sessionId: string | null, activeRepoName?: string | null): string {
+export function resolveFileUrl(
+  rawUrl: string,
+  sessionId: string | null,
+  activeRepoName?: string | null,
+  activeAgentId?: string | null,
+  activeChannelId?: string | null
+): string {
   if (!rawUrl) return "";
 
   if (rawUrl.startsWith("data:") || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
@@ -48,7 +54,12 @@ export function resolveFileUrl(rawUrl: string, sessionId: string | null, activeR
   if (cleanPath.startsWith("workspace/")) {
     cleanPath = cleanPath.substring("workspace/".length);
   }
-  return `/api/workspace/${cleanPath}?repo=${activeRepoName || ""}&raw=true`;
+  const params = new URLSearchParams();
+  if (activeRepoName) params.append("repo", activeRepoName);
+  if (activeAgentId) params.append("agentId", activeAgentId);
+  if (activeChannelId) params.append("channelId", activeChannelId);
+  params.append("raw", "true");
+  return `/api/workspace/${cleanPath}?${params.toString()}`;
 }
 
 export function getFileType(url: string): MediaType {
@@ -126,12 +137,26 @@ export function extractImages(text: string): Array<{ url: string; title?: string
     .map((m) => ({ url: m.url, title: m.title }));
 }
 
-export function HtmlFileFetcher({ url, title, sessionId, activeRepoName }: { url: string; title: string; sessionId: string | null; activeRepoName?: string | null }) {
+export function HtmlFileFetcher({
+  url,
+  title,
+  sessionId,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: {
+  url: string;
+  title: string;
+  sessionId: string | null;
+  activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
+}) {
   const [html, setHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const resolvedUrl = resolveFileUrl(url, sessionId, activeRepoName);
+  const resolvedUrl = resolveFileUrl(url, sessionId, activeRepoName, activeAgentId, activeChannelId);
 
   useEffect(() => {
     let cancelled = false;
@@ -188,7 +213,19 @@ export function HtmlFileFetcher({ url, title, sessionId, activeRepoName }: { url
   return null;
 }
 
-function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMarker[]; sessionId: string | null; activeRepoName?: string | null }) {
+function MediaRenderer({
+  markers,
+  sessionId,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: {
+  markers: FileMarker[];
+  sessionId: string | null;
+  activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
+}) {
   const imageMarkers = markers.filter((m) => m.type === "image");
   const htmlMarkers = markers.filter((m) => m.type === "html");
   const pdfMarkers = markers.filter((m) => m.type === "pdf");
@@ -203,7 +240,15 @@ function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMa
   return (
     <div className="space-y-3">
       {htmlMarkers.map((m, i) => (
-        <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} activeRepoName={activeRepoName} />
+        <HtmlFileFetcher
+          key={`html-${i}`}
+          url={m.url}
+          title={m.title}
+          sessionId={sessionId}
+          activeRepoName={activeRepoName}
+          activeAgentId={activeAgentId}
+          activeChannelId={activeChannelId}
+        />
       ))}
       
       {imageMarkers.length > 0 && (
@@ -211,11 +256,13 @@ function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMa
           images={imageMarkers.map((m) => ({ url: m.url, title: m.title }))}
           sessionId={sessionId}
           activeRepoName={activeRepoName}
+          activeAgentId={activeAgentId}
+          activeChannelId={activeChannelId}
         />
       )}
 
       {pdfMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-surface-hover overflow-hidden bg-surface flex flex-col font-sans">
@@ -240,7 +287,7 @@ function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMa
       })}
 
       {audioMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`audio-${i}`} className="w-full p-3 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
@@ -251,7 +298,7 @@ function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMa
       })}
 
       {videoMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`video-${i}`} className="w-full p-2 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
@@ -262,7 +309,7 @@ function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMa
       })}
 
       {officeMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
         const extension = m.url.split(".").pop() || "file";
@@ -291,7 +338,25 @@ function MediaRenderer({ markers, sessionId, activeRepoName }: { markers: FileMa
   );
 }
 
-export function ToolResultInspector({ toolName, args, result, sessionId, activeRepoName }: Props) {
+interface Props {
+  toolName: string;
+  args?: Record<string, unknown>;
+  result: string | unknown;
+  sessionId: string | null;
+  activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
+}
+
+export function ToolResultInspector({
+  toolName,
+  args,
+  result,
+  sessionId,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   const resultStr = typeof result === "string"
@@ -342,7 +407,13 @@ export function ToolResultInspector({ toolName, args, result, sessionId, activeR
             {hasInlineHtml ? (
               <HtmlPreview html={htmlOutput} />
             ) : hasMediaMarkers ? (
-              <MediaRenderer markers={markers} sessionId={sessionId} activeRepoName={activeRepoName} />
+              <MediaRenderer
+                markers={markers}
+                sessionId={sessionId}
+                activeRepoName={activeRepoName}
+                activeAgentId={activeAgentId}
+                activeChannelId={activeChannelId}
+              />
             ) : (
               <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-code-bg p-2.5 rounded-md max-h-96 overflow-y-auto">
                 {resultStr}

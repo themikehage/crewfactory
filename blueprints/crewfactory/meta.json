@@ -1,0 +1,22 @@
+{
+  "name": "CrewFactory",
+  "version": "latest",
+  "description": "Multi-agent AI development platform. Create, orchestrate, and optimize AI agents in your browser.",
+  "repository": "https://github.com/themikehage/crewfactory",
+  "license": "MIT",
+  "author": "themikehage",
+  "categories": ["ai", "developer-tools", "productivity"],
+  "ports": {
+    "main": 3000,
+    "preview": 3001
+  },
+  "volumes": [
+    {
+      "path": "/tmp/crewfactory",
+      "description": "Persistent workspace: sessions, repos, uploads, memories"
+    }
+  ],
+  "healthCheck": "http://localhost:3000/api/health",
+  "minimumMemory": "512Mi",
+  "recommendedMemory": "2Gi"
+}

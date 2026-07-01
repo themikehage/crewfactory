@@ -8,6 +8,7 @@ export interface AgentServer {
   app: Hono;
   start(): Promise<void>;
   stop(): Promise<void>;
+  getActiveObservers?(): number;
 }
 
 export interface AgentEntry {

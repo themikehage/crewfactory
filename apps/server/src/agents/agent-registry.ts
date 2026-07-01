@@ -3,6 +3,7 @@ import type { AgentDefinition, AgentInfo, AgentStatus } from "shared";
 import type { AgentEntry } from "./types";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { channelOrchestrator } from "../channels/channel-orchestrator";
 
 class AgentRegistry {
   private agents = new Map<string, AgentEntry>();
@@ -106,6 +107,7 @@ class AgentRegistry {
           status: entry.status,
           port: entry.server.definition.port,
           createdAt: entry.createdAt,
+          skills: entry.server.definition.skills,
         });
       }
     }
@@ -116,6 +118,7 @@ class AgentRegistry {
     const entry = this.agents.get(id);
     if (!entry) return;
     entry.status = "stopped";
+    channelOrchestrator.removeAgentQueue(id);
     await entry.server.stop();
     this.agents.delete(id);
 
@@ -125,6 +128,28 @@ class AgentRegistry {
         rmSync(agentDir, { recursive: true, force: true });
       }
     }
+  }
+
+  async update(username: string, id: string, updates: Partial<Omit<AgentDefinition, "id">>): Promise<AgentEntry> {
+    const entry = this.agents.get(id);
+    if (!entry || entry.username !== username) {
+      throw new Error(`Agent "${id}" not found`);
+    }
+
+    const oldCreatedAt = entry.createdAt;
+    const newDefinition = {
+      ...entry.server.definition,
+      ...updates,
+    };
+
+    // Stop active instance without removing disk
+    await this.stop(id, false);
+
+    // Save updated definition to disk and re-register
+    const newEntry = await this.register(username, newDefinition, true);
+    newEntry.createdAt = oldCreatedAt;
+
+    return newEntry;
   }
 
   async stopAll(): Promise<void> {

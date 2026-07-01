@@ -15,7 +15,7 @@ interface SessionItem {
 }
 
 interface LogsConsolePageProps {
-  onSelectRepo: (repoName: string | null) => void;
+  onSelectRepo: (repoId: string | null, repoName: string | null) => void;
   onSelectAgent: (agent: { id: string; name: string } | null) => void;
   onSelectChannel: (channel: { id: string; name: string } | null) => void;
   onNavigate: (path: string) => void;
@@ -242,7 +242,7 @@ export function LogsConsolePage({
   const handleOpenSession = (s: SessionItem) => {
     // 1. Establecer el contexto
     if (s.repoName) {
-      onSelectRepo(s.repoName);
+      onSelectRepo(s.repoName, s.repoName);
     } else if (s.channelId) {
       const name = channelNamesMap.get(s.channelId) || s.channelId;
       onSelectChannel({ id: s.channelId, name });
@@ -250,7 +250,7 @@ export function LogsConsolePage({
       const name = agentNamesMap.get(s.agentId) || s.agentId;
       onSelectAgent({ id: s.agentId, name });
     } else {
-      onSelectRepo(null);
+      onSelectRepo(null, null);
       onSelectAgent(null);
       onSelectChannel(null);
     }

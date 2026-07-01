@@ -19,6 +19,7 @@ interface Props {
   onClose: () => void;
   activeSessionId: string | null;
   activeRepoName: string | null;
+  activeRepoFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
   onSelectSession: (id: string) => void;
@@ -37,6 +38,7 @@ export function SessionPopover({
   onClose,
   activeSessionId,
   activeRepoName,
+  activeRepoFriendlyName = null,
   activeAgent,
   activeChannel,
   onSelectSession,
@@ -90,14 +92,19 @@ export function SessionPopover({
     return () => window.removeEventListener("renameSession", handleRename);
   }, []);
 
+  const [showExecutions, setShowExecutions] = useState(false);
+
   const filteredSessions = useMemo(() => {
     return sessions.filter((s) => {
+      const isExec = s.id.startsWith("exec_") || (s as any).isExecution;
+      if (isExec && !showExecutions) return false;
+
       if (activeChannel) return s.channelId === activeChannel.id;
       if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
       if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
       return !s.repoName && !s.agentId && !s.channelId;
     });
-  }, [sessions, activeRepoName, activeAgent, activeChannel]);
+  }, [sessions, activeRepoName, activeAgent, activeChannel, showExecutions]);
 
   const createSession = useCallback(async () => {
     setCreating(true);
@@ -107,8 +114,8 @@ export function SessionPopover({
         ? `#${activeChannel.name} - Session ${sessionCount + 1}`
         : activeAgent
         ? `${activeAgent.name} - Session ${sessionCount + 1}`
-        : activeRepoName
-        ? `${activeRepoName} - Session ${sessionCount + 1}`
+        : activeRepoFriendlyName
+        ? `${activeRepoFriendlyName} - Session ${sessionCount + 1}`
         : `Global Session ${sessionCount + 1}`;
 
       const res = await apiFetch("/api/sessions", {
@@ -177,9 +184,9 @@ export function SessionPopover({
   const contextLabel = useMemo(() => {
     if (activeChannel) return `#${activeChannel.name}`;
     if (activeAgent) return activeAgent.name;
-    if (activeRepoName) return activeRepoName;
+    if (activeRepoFriendlyName) return activeRepoFriendlyName;
     return "Global";
-  }, [activeChannel, activeAgent, activeRepoName]);
+  }, [activeChannel, activeAgent, activeRepoFriendlyName]);
 
   if (!isOpen) return null;
 
@@ -213,7 +220,7 @@ export function SessionPopover({
         </div>
 
         {/* Nueva Sesión */}
-        <div className="p-2 border-b border-surface-hover flex-shrink-0">
+        <div className="p-2 border-b border-surface-hover flex-shrink-0 flex flex-col gap-2">
           <button
             onClick={createSession}
             disabled={creating}
@@ -230,6 +237,16 @@ export function SessionPopover({
               </>
             )}
           </button>
+          
+          <label className="flex items-center justify-between px-1.5 py-0.5 text-[10px] text-text-secondary hover:text-text-primary transition-colors cursor-pointer select-none font-medium">
+            <span>Ver Ejecuciones API/CLI</span>
+            <input
+              type="checkbox"
+              checked={showExecutions}
+              onChange={(e) => setShowExecutions(e.target.checked)}
+              className="accent-accent w-3 h-3 rounded border-surface-hover bg-bg cursor-pointer"
+            />
+          </label>
         </div>
 
         {/* Lista */}
@@ -245,6 +262,7 @@ export function SessionPopover({
             </div>
           ) : (
             filteredSessions.map((s) => {
+              const isExec = s.id.startsWith("exec_") || (s as any).isExecution;
               const cfg = s.status ? statusConfig[s.status] : null;
               const isActive = activeSessionId === s.id;
               return (
@@ -261,30 +279,39 @@ export function SessionPopover({
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
-                      {cfg && (
+                      {cfg && !isExec && (
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.color}`} title={cfg.label} />
+                      )}
+                      {isExec && (
+                        <span className={`text-[8px] px-1 py-0.2 rounded font-bold uppercase flex-shrink-0 ${
+                          s.id.includes("_channel_") ? "bg-accent/15 text-accent border border-accent/20" : "bg-purple-500/15 text-purple-400 border border-purple-500/20"
+                        }`}>
+                          {s.id.includes("_channel_") ? "CLI" : "API"}
+                        </span>
                       )}
                       <span className="truncate flex-1 font-medium font-sans">{s.name}</span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5 text-[9px] text-text-secondary/60">
-                      <span>{s.messageCount} mensajes</span>
-                      {s.status && s.status !== "sleeping" && (
+                      <span>{isExec ? "Ejecución histórica" : `${s.messageCount} mensajes`}</span>
+                      {s.status && s.status !== "sleeping" && !isExec && (
                         <span className={`font-semibold ${cfg?.color.replace("bg-", "text-") || "text-text-secondary/50"}`}>
                           {cfg?.label}
                         </span>
                       )}
                     </div>
                   </button>
-                  <button
-                    onClick={(e) => handleDeleteClick(e, s.id)}
-                    className="absolute right-2 top-1/2 -translate-y-1/2
-                               text-text-secondary hover:text-error transition-colors p-1 rounded hover:bg-surface-hover opacity-0 group-hover:opacity-100 cursor-pointer"
-                    title="Eliminar Sesión"
-                  >
-                    <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
-                      <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                    </svg>
-                  </button>
+                  {!isExec && (
+                    <button
+                      onClick={(e) => handleDeleteClick(e, s.id)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2
+                                 text-text-secondary hover:text-error transition-colors p-1 rounded hover:bg-surface-hover opacity-0 group-hover:opacity-100 cursor-pointer"
+                      title="Eliminar Sesión"
+                    >
+                      <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
+                        <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" />
+                      </svg>
+                    </button>
+                  )}
                 </div>
               );
             })

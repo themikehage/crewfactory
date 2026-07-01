@@ -54,10 +54,11 @@ interface Message {
 interface Props {
   sessionId: string | null;
   activeRepoName: string | null;
+  activeAgent?: { id: string; name: string } | null;
   activeChannel?: { id: string; name: string } | null;
 }
 
-export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
+export function ChatArea({ sessionId, activeRepoName, activeAgent = null, activeChannel = null }: Props) {
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,12 +73,14 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
     contextUsage: { tokens: number | null; contextWindow: number | null; percent: number | null } | null;
     sessionStats: { tokens: { input: number; output: number; total: number } } | null;
   } | null>(null);
+  const [activeObservers, setActiveObservers] = useState(0);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
   const firstMessageSentRef = useRef(false);
 
+  const isReadOnlyExecution = sessionId?.startsWith("exec_") ?? false;
   const SCROLL_THRESHOLD = 50;
 
   const handleScroll = useCallback(() => {
@@ -413,6 +416,42 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
     }
   }, [sessionId, loadMessages]);
 
+  useEffect(() => {
+    if (!sessionId) {
+      setActiveObservers(0);
+      return;
+    }
+
+    const checkObservers = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const sessionsRes = await fetch("/api/sessions", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (!sessionsRes.ok) return;
+        const { sessions } = await sessionsRes.json();
+        const s = sessions.find((item: any) => item.id === sessionId);
+        if (s && s.agentId) {
+          const agentRes = await fetch(`/api/agents/${s.agentId}`, {
+            headers: { Authorization: `Bearer ${token}` }
+          });
+          if (agentRes.ok) {
+            const data = await agentRes.json();
+            setActiveObservers(data.activeObservers || 0);
+            return;
+          }
+        }
+        setActiveObservers(0);
+      } catch {
+        setActiveObservers(0);
+      }
+    };
+
+    checkObservers();
+    const interval = setInterval(checkObservers, 3000);
+    return () => clearInterval(interval);
+  }, [sessionId]);
+
   if (!sessionId) {
     return (
       <div className="h-full flex items-center justify-center text-text-secondary">
@@ -430,6 +469,12 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           />
           {connected ? "Connected" : "Reconnecting..."}
           {streaming && <span className="ml-2 text-accent">Streaming...</span>}
+          {activeObservers > 0 && (
+            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-[10px] animate-pulse flex items-center gap-1">
+              <span className="w-1 h-1 rounded-full bg-blue-400" />
+              Observado ({activeObservers})
+            </span>
+          )}
           {tasksState.status !== "idle" && (
             <span className="ml-2 px-1.5 py-0.2 rounded bg-accent/15 text-accent font-semibold text-[10px]">
               Task Queue: {tasksState.status}
@@ -461,25 +506,51 @@ export function ChatArea({ sessionId, activeRepoName, activeChannel }: Props) {
           className="flex-1 overflow-y-auto min-h-0"
         >
           <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <MessageList messages={messages} onNavigate={handleNavigate} sessionId={sessionId} activeRepoName={activeRepoName} />
+            <MessageList
+              messages={messages}
+              onNavigate={handleNavigate}
+              sessionId={sessionId}
+              activeRepoName={activeRepoName}
+              activeAgentId={activeAgent?.id}
+              activeChannelId={activeChannel?.id}
+            />
             <div ref={messagesEndRef} />
           </div>
         </div>
-        <ContextMeter
-          contextUsage={contextData?.contextUsage ?? null}
-          sessionStats={contextData?.sessionStats ?? null}
-          onCompact={handleCompact}
-          onRefresh={handleRefreshContext}
-        />
-        <InputArea
-          onSend={handleSend}
-          onAbort={handleAbort}
-          streaming={streaming}
-          sessionId={sessionId}
-          onToolsChange={setSandboxTools}
-          runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
-          activeRepoName={activeRepoName}
-        />
+        {!isReadOnlyExecution && (
+          <ContextMeter
+            contextUsage={contextData?.contextUsage ?? null}
+            sessionStats={contextData?.sessionStats ?? null}
+            onCompact={handleCompact}
+            onRefresh={handleRefreshContext}
+          />
+        )}
+        {isReadOnlyExecution ? (
+          <div className="p-4 bg-surface border-t border-surface-hover flex flex-col items-center justify-center gap-2 flex-shrink-0 text-text-secondary/70">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-[10px] uppercase tracking-wider font-mono">
+              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+              </svg>
+              {sessionId.includes("_channel_") ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
+            </div>
+            <p className="text-[11px] text-center max-w-md font-sans">
+              Esta conversación corresponde a una ejecución automática externa. Podés navegar el historial de mensajes y tool calls, pero no es interactiva.
+            </p>
+          </div>
+        ) : (
+          <InputArea
+            onSend={handleSend}
+            onAbort={handleAbort}
+            streaming={streaming}
+            sessionId={sessionId}
+            onToolsChange={setSandboxTools}
+            runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
+            activeRepoName={activeRepoName}
+            activeAgentId={activeAgent?.id}
+            activeChannelId={activeChannel?.id}
+          />
+        )}
       </div>
 
       <AnimatePresence>

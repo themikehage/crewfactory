@@ -4,6 +4,7 @@ import { apiFetch } from "@/lib/api";
 // --- Component ---
 
 interface RepoItem {
+  id?: string;
   name: string;
   path: string;
   lastModified: string;
@@ -30,7 +31,7 @@ interface Props {
   activeChannel: { id: string; name: string } | null;
   currentPage?: string;
   onNavigate?: (path: string) => void;
-  onSelectRepo?: (repoName: string | null) => void;
+  onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
 }
@@ -105,18 +106,38 @@ export function SessionSidebar({
     fetchChannels();
   }, [fetchRepos, fetchAgents, fetchChannels]);
 
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      const type = customEvent.detail?.type;
+      if (type === "repo") {
+        fetchRepos();
+      } else if (type === "agent") {
+        fetchAgents();
+      } else if (type === "channel") {
+        fetchChannels();
+      } else {
+        fetchRepos();
+        fetchAgents();
+        fetchChannels();
+      }
+    };
+    window.addEventListener("entity-updated", handleUpdate);
+    return () => window.removeEventListener("entity-updated", handleUpdate);
+  }, [fetchRepos, fetchAgents, fetchChannels]);
+
   const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
 
   const handleGoFactory = useCallback(() => {
-    if (onSelectRepo) onSelectRepo(null);
+    if (onSelectRepo) onSelectRepo(null, null);
     if (onSelectAgent) onSelectAgent(null);
     if (onSelectChannel) onSelectChannel(null);
     if (onNavigate) onNavigate("/");
   }, [onSelectRepo, onSelectAgent, onSelectChannel, onNavigate]);
 
   const handleSelectRepoClick = useCallback(
-    (repoName: string) => {
-      if (onSelectRepo) onSelectRepo(repoName);
+    (repoId: string, repoName: string) => {
+      if (onSelectRepo) onSelectRepo(repoId, repoName);
       if (onNavigate) onNavigate("/");
     },
     [onSelectRepo, onNavigate]
@@ -207,14 +228,14 @@ export function SessionSidebar({
       <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-3">
         {/* Repos Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
             <button
               onClick={() => setIsOpenRepos((prev) => !prev)}
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
             >
               <svg
-                width="8"
-                height="8"
+                width="12"
+                height="12"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenRepos ? "rotate-90" : ""}`}
@@ -229,26 +250,28 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/projects")}
-              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Projects"
             >
-              +
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
             </button>
           </div>
 
           {isOpenRepos && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingRepos ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : repos.length === 0 ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1">No projects</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1">No projects</div>
               ) : (
                 repos.map((repo) => {
-                  const isActive = activeRepoName === repo.name && !activeAgent && !activeChannel;
+                  const isActive = activeRepoName === repo.id && !activeAgent && !activeChannel;
                   return (
                     <button
-                      key={repo.name}
-                      onClick={() => handleSelectRepoClick(repo.name)}
+                      key={repo.id || repo.name}
+                      onClick={() => handleSelectRepoClick(repo.id || repo.name, repo.name)}
                       className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
                         isActive
                           ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
@@ -275,14 +298,14 @@ export function SessionSidebar({
 
         {/* Agents Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
             <button
               onClick={() => setIsOpenAgents((prev) => !prev)}
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
             >
               <svg
-                width="8"
-                height="8"
+                width="12"
+                height="12"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenAgents ? "rotate-90" : ""}`}
@@ -297,19 +320,21 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/agents")}
-              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Agents"
             >
-              +
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
             </button>
           </div>
 
           {isOpenAgents && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingAgents ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : agents.length === 0 ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1">No agents</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1">No agents</div>
               ) : (
                 agents.map((agent) => {
                   const isActive = activeAgent?.id === agent.id && !activeChannel;
@@ -347,14 +372,14 @@ export function SessionSidebar({
 
         {/* Channels Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
             <button
               onClick={() => setIsOpenChannels((prev) => !prev)}
               className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
             >
               <svg
-                width="8"
-                height="8"
+                width="12"
+                height="12"
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenChannels ? "rotate-90" : ""}`}
@@ -369,19 +394,21 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/channels")}
-              className="opacity-0 group-hover/title:opacity-100 p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Channels"
             >
-              +
+            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+            </svg>
             </button>
           </div>
 
           {isOpenChannels && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingChannels ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : channels.length === 0 ? (
-                <div className="text-[10px] text-text-secondary/40 px-3 py-1">No channels</div>
+                <div className="text-xs text-text-secondary/40 px-3 py-1">No channels</div>
               ) : (
                 channels.map((channel) => {
                   const isActive = activeChannel?.id === channel.id;
@@ -408,7 +435,7 @@ export function SessionSidebar({
 
       {/* Admin Links */}
       <div className="p-2 border-t border-surface/60 bg-surface/10 space-y-1 flex-shrink-0">
-        <div className="px-3 py-1 text-[9px] uppercase tracking-wider font-semibold text-text-secondary/60">
+        <div className="px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/60">
           Admin
         </div>
         {adminItems.map((item) => {

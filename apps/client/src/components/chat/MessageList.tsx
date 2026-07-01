@@ -64,6 +64,8 @@ interface Props {
   onNavigate?: (targetId: string) => void;
   sessionId: string | null;
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
 type RenderGroup =
@@ -143,7 +145,19 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
   );
 }
 
-function AssistantTextBlock({ text, sessionId, activeRepoName }: { text: string; sessionId: string | null; activeRepoName?: string | null }) {
+function AssistantTextBlock({
+  text,
+  sessionId,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}: {
+  text: string;
+  sessionId: string | null;
+  activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
+}) {
   const htmlOutput = isHtml(text) ? text : null;
   const markers = extractFileMarkers(text);
   const imageMarkers = markers.filter(m => m.type === "image");
@@ -159,14 +173,28 @@ function AssistantTextBlock({ text, sessionId, activeRepoName }: { text: string;
       <div className="space-y-3">
         {htmlOutput && <HtmlPreview html={htmlOutput} />}
         {htmlMarkers.map((m, i) => (
-          <HtmlFileFetcher key={`html-${i}`} url={m.url} title={m.title} sessionId={sessionId} activeRepoName={activeRepoName} />
+          <HtmlFileFetcher
+            key={`html-${i}`}
+            url={m.url}
+            title={m.title}
+            sessionId={sessionId}
+            activeRepoName={activeRepoName}
+            activeAgentId={activeAgentId}
+            activeChannelId={activeChannelId}
+          />
         ))}
         {imageMarkers.length > 0 && (
-          <ImageGrid images={imageMarkers.map(m => ({ url: m.url, title: m.title }))} sessionId={sessionId} activeRepoName={activeRepoName} />
+          <ImageGrid
+            images={imageMarkers.map(m => ({ url: m.url, title: m.title }))}
+            sessionId={sessionId}
+            activeRepoName={activeRepoName}
+            activeAgentId={activeAgentId}
+            activeChannelId={activeChannelId}
+          />
         )}
         
         {pdfMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-surface-hover overflow-hidden bg-surface flex flex-col font-sans">
@@ -191,7 +219,7 @@ function AssistantTextBlock({ text, sessionId, activeRepoName }: { text: string;
         })}
 
         {audioMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`audio-${i}`} className="w-full p-3 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
@@ -202,7 +230,7 @@ function AssistantTextBlock({ text, sessionId, activeRepoName }: { text: string;
         })}
 
         {videoMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`video-${i}`} className="w-full p-2 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
@@ -213,7 +241,7 @@ function AssistantTextBlock({ text, sessionId, activeRepoName }: { text: string;
         })}
 
         {officeMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName);
+          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
           const extension = m.url.split(".").pop() || "file";
@@ -251,11 +279,15 @@ function AgentTurn({
   sessionId,
   onNavigate,
   activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
 }: {
   messages: Message[];
   sessionId: string | null;
   onNavigate?: (id: string) => void;
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
@@ -291,7 +323,13 @@ function AgentTurn({
                 if (block.type === "text" && block.text) {
                   return (
                     <div key={i} className="text-text-primary text-sm leading-relaxed">
-                      <AssistantTextBlock text={block.text} sessionId={sessionId} activeRepoName={activeRepoName} />
+                      <AssistantTextBlock
+                        text={block.text}
+                        sessionId={sessionId}
+                        activeRepoName={activeRepoName}
+                        activeAgentId={activeAgentId}
+                        activeChannelId={activeChannelId}
+                      />
                     </div>
                   );
                 }
@@ -316,6 +354,8 @@ function AgentTurn({
                       result={resultData}
                       sessionId={sessionId}
                       activeRepoName={activeRepoName}
+                      activeAgentId={activeAgentId}
+                      activeChannelId={activeChannelId}
                     />
                   );
                 }
@@ -381,11 +421,15 @@ function UserBubble({
   onNavigate,
   sessionId,
   activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
 }: {
   msg: Message;
   onNavigate?: (id: string) => void;
   sessionId: string | null;
   activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }) {
   const rawText = typeof msg.content === "string"
     ? msg.content
@@ -419,6 +463,8 @@ function UserBubble({
               images={images.map(img => ({ url: img.path, title: img.name }))}
               sessionId={sessionId}
               activeRepoName={activeRepoName}
+              activeAgentId={activeAgentId}
+              activeChannelId={activeChannelId}
             />
           </div>
         )}
@@ -426,7 +472,7 @@ function UserBubble({
         {nonImages.length > 0 && (
           <div className="space-y-1.5 w-64">
             {nonImages.map((att, idx) => {
-              const resolved = resolveFileUrl(att.path, sessionId, activeRepoName);
+              const resolved = resolveFileUrl(att.path, sessionId, activeRepoName, activeAgentId, activeChannelId);
               const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
               return (
                 <div key={idx} className="flex items-center justify-between p-2.5 bg-surface border border-surface-hover rounded-lg font-sans text-left w-full">
@@ -457,7 +503,14 @@ function UserBubble({
   );
 }
 
-export const MessageList: FC<Props> = ({ messages, onNavigate, sessionId, activeRepoName }) => {
+export const MessageList: FC<Props> = ({
+  messages,
+  onNavigate,
+  sessionId,
+  activeRepoName,
+  activeAgentId = null,
+  activeChannelId = null,
+}) => {
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-text-secondary">
@@ -483,9 +536,23 @@ export const MessageList: FC<Props> = ({ messages, onNavigate, sessionId, active
             transition={{ duration: 0.15 }}
           >
             {group.type === "user" ? (
-              <UserBubble msg={group.msg} onNavigate={onNavigate} sessionId={sessionId} activeRepoName={activeRepoName} />
+              <UserBubble
+                msg={group.msg}
+                onNavigate={onNavigate}
+                sessionId={sessionId}
+                activeRepoName={activeRepoName}
+                activeAgentId={activeAgentId}
+                activeChannelId={activeChannelId}
+              />
             ) : (
-              <AgentTurn messages={group.messages} sessionId={sessionId} onNavigate={onNavigate} activeRepoName={activeRepoName} />
+              <AgentTurn
+                messages={group.messages}
+                sessionId={sessionId}
+                onNavigate={onNavigate}
+                activeRepoName={activeRepoName}
+                activeAgentId={activeAgentId}
+                activeChannelId={activeChannelId}
+              />
             )}
           </motion.div>
         ))}

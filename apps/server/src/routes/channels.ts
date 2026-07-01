@@ -5,6 +5,7 @@ import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
+import { piSessionManager } from "../pi/session-manager";
 import {
   CreateChannelSchema,
   UpdateChannelSchema,
@@ -65,11 +66,26 @@ channelsRouter.put("/:id/context", zValidator("json", z.object({ context: z.arra
   return c.json(updated);
 });
 
-channelsRouter.delete("/:id", (c) => {
+channelsRouter.delete("/:id", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  // Cascading delete: destroy all active chat sessions associated with this channel
+  try {
+    const sessions = await piSessionManager.listSessions(username);
+    for (const s of sessions) {
+      if (s.channelId === id) {
+        await piSessionManager.destroySession(username, s.id);
+      }
+    }
+  } catch (err) {
+    console.error(`[ChannelsRoute] Failed to delete sessions for channel ${id}:`, err);
+  }
+
   const deleted = channelStore.deleteChannel(username, id);
   if (!deleted) return c.json({ error: "Channel not found" }, 404);
   return c.body(null, 204);
@@ -91,11 +107,15 @@ channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => 
 
   const existingIndex = channel.members.findIndex((m) => m.agentId === data.agentId);
   const updatedMembers = [...channel.members];
+  const memberWithRole = {
+    ...data,
+    role: data.role || "member",
+  };
 
   if (existingIndex >= 0) {
-    updatedMembers[existingIndex] = data;
+    updatedMembers[existingIndex] = memberWithRole;
   } else {
-    updatedMembers.push(data);
+    updatedMembers.push(memberWithRole);
   }
 
   const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
@@ -120,6 +140,7 @@ channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSch
     ...updatedMembers[index],
     ...(data.replyMode !== undefined && { replyMode: data.replyMode }),
     ...(data.targetAgentIds !== undefined && { targetAgentIds: data.targetAgentIds }),
+    ...(data.role !== undefined && { role: data.role }),
   };
 
   const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
@@ -153,6 +174,20 @@ channelsRouter.get("/:id/messages", (c) => {
   const messages = channelStore.getMessages(username, id, limit, sessionId);
   return c.json({ messages });
 });
+
+channelsRouter.get("/:id/active-streamings", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const sessionId = c.req.query("sessionId");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const streams = channelOrchestrator.getActiveStreams(id, sessionId);
+  return c.json({ streamingAgents: streams });
+});
+
 
 channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().min(1), sessionId: z.string().optional() })), async (c) => {
   const username = getUsername(c);
