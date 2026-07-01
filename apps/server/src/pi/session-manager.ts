@@ -144,7 +144,7 @@ class PiSessionManager {
     return `${username}:${sessionId}`;
   }
 
-  private ensureUserDir(username: string): string {
+  ensureUserDir(username: string): string {
     const dir = `/tmp/crewfactory/${username}`;
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
@@ -372,7 +372,7 @@ class PiSessionManager {
     }
 
     // Subscribe to global logs forwarding
-    const globalLogUnsub = session.subscribe((evt) => {
+    const globalLogUnsub = session.subscribe((evt: any) => {
       const ev = evt as any;
 
       if (

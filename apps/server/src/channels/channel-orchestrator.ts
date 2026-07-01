@@ -551,7 +551,7 @@ class ChannelOrchestrator {
             finalThinking += block.thinking;
           }
           if (block.type === "toolCall" && channel.showTools) {
-            const matchedResult = msgs.find((m) => m.role === "toolResult" && m.toolCallId === block.id);
+            const matchedResult = msgs.find((m) => m.role === "toolResult" && (m as any).toolCallId === block.id) as any;
             finalToolCalls.push({
               id: block.id,
               name: block.name,
