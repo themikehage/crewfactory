@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, type KeyboardEvent } from "react";
+import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from "react";
 import { ModelSelector } from "./ModelSelector";
 import { ToolsSelector } from "./ToolsSelector";
 import { SkillsSelector, type SkillInfo } from "./SkillsSelector";
@@ -132,31 +132,44 @@ export function InputArea({
     fetchTools();
   }, [sessionId]);
 
-  // Fetch session skills when sessionId changes
-  useEffect(() => {
+  const fetchSessionSkills = useCallback(async () => {
     if (!sessionId) {
       setSkills([]);
       return;
     }
-    const fetchSessionSkills = async () => {
-      setSkillsLoading(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/skills`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setSkills(data.skills ?? []);
-        }
-      } catch (err) {
-        console.error("Error loading session skills:", err);
-      } finally {
-        setSkillsLoading(false);
+    setSkillsLoading(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sessions/${sessionId}/skills`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setSkills(data.skills ?? []);
+      }
+    } catch (err) {
+      console.error("Error loading session skills:", err);
+    } finally {
+      setSkillsLoading(false);
+    }
+  }, [sessionId]);
+
+  // Fetch session skills when sessionId changes
+  useEffect(() => {
+    fetchSessionSkills();
+  }, [fetchSessionSkills]);
+
+  // Listen for entity-updated events to refresh skills
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.type === "skill" || !customEvent.detail?.type) {
+        fetchSessionSkills();
       }
     };
-    fetchSessionSkills();
-  }, [sessionId]);
+    window.addEventListener("entity-updated", handleUpdate);
+    return () => window.removeEventListener("entity-updated", handleUpdate);
+  }, [fetchSessionSkills]);
 
   // Click outside to close options
   useEffect(() => {

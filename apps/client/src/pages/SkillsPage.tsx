@@ -45,6 +45,17 @@ export function SkillsPage() {
     fetchSkills();
   }, [fetchSkills]);
 
+  useEffect(() => {
+    const handleUpdate = (e: Event) => {
+      const customEvent = e as CustomEvent;
+      if (customEvent.detail?.type === "skill" || !customEvent.detail?.type) {
+        fetchSkills();
+      }
+    };
+    window.addEventListener("entity-updated", handleUpdate);
+    return () => window.removeEventListener("entity-updated", handleUpdate);
+  }, [fetchSkills]);
+
   const filteredSkills = skills.filter(
     (s) =>
       s.name.toLowerCase().includes(search.toLowerCase()) ||

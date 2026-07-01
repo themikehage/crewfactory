@@ -44,6 +44,10 @@ export function useWebSocket(sessionId: string | null): WebSocketState {
           ws.close();
           return;
         }
+        if (data.type === "entity-updated") {
+          window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: data.entityType } }));
+          return;
+        }
         const cbs = handlersRef.current.get(data.type);
         cbs?.forEach((cb) => cb(data));
 

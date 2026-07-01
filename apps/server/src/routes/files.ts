@@ -381,6 +381,26 @@ filesRouter.patch("/workspace-repos/:id", async (c) => {
   }
 });
 
+filesRouter.post("/workspace/refresh", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const { type } = body;
+
+    const { broadcastToUser } = await import("../ws/handler");
+    broadcastToUser(username, {
+      type: "entity-updated",
+      entityType: type || "all",
+    });
+
+    return c.json({ success: true });
+  } catch (err: any) {
+    return c.json({ error: err.message || "Failed to refresh workspace" }, 500);
+  }
+});
+
 filesRouter.get("/workspace", handleGetWorkspace);
 filesRouter.get("/workspace/*", handleGetWorkspace);
 

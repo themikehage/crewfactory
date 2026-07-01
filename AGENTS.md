@@ -16,6 +16,12 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 - `bun run build` - Build server (from apps/server)
 - `cd apps/client && bun run build` - Build client
 - `cd apps/client && bun run dev` - Dev server with hot reload
+- `bun scripts/refresh.ts --type <repo|agent|channel|skill|all>` - Trigger a frontend UI refresh after mutating entities from tools
+
+## AI Agent UI Refresh Rule
+Whenever you (the AI agent) create, update, or delete a repository/project, agent, channel, or custom skill, you MUST execute the refresh script to notify the user's frontend. 
+- Example from root: `bun scripts/refresh.ts --type repo`
+- Example from inside a repo workspace subdirectory: `bun ../../scripts/refresh.ts --type agent`
 
 ## Code Conventions
 - TypeScript strict mode, no `any` types
