@@ -22,10 +22,24 @@ function broadcast(channelId: string, data: any) {
 
 const MAX_CHAIN_DEPTH = 5;
 
+export interface ActiveAgentStream {
+  agentId: string;
+  agentName: string;
+  text: string;
+  thinking: string;
+  toolCalls: Record<string, {
+    toolName: string;
+    args: any;
+    result: any | null;
+    isError: boolean;
+  }>;
+}
+
 class ChannelOrchestrator {
   private abortedDispatches = new Set<string>(); // `${channelId}:${sessionId || 'default'}`
   private agentQueues = new Map<string, AgentWorkQueue>();
   private channelAbortControllers = new Map<string, AbortController>(); // key = channelId:sessionId
+  private activeStreams = new Map<string, Map<string, ActiveAgentStream>>();
 
   private getOrCreateQueue(agentId: string): AgentWorkQueue {
     let q = this.agentQueues.get(agentId);
@@ -34,6 +48,18 @@ class ChannelOrchestrator {
       this.agentQueues.set(agentId, q);
     }
     return q;
+  }
+
+  getActiveStreams(channelId: string, sessionId?: string): Record<string, ActiveAgentStream> {
+    const key = `${channelId}:${sessionId || "default"}`;
+    const map = this.activeStreams.get(key);
+    if (!map) return {};
+
+    const result: Record<string, ActiveAgentStream> = {};
+    for (const [agentId, stream] of map.entries()) {
+      result[agentId] = stream;
+    }
+    return result;
   }
 
   removeAgentQueue(agentId: string): void {
@@ -49,6 +75,9 @@ class ChannelOrchestrator {
     const key = `${channelId}:${sessionId || "default"}`;
     this.abortedDispatches.add(key);
     console.log(`[ChannelOrchestrator] Aborting dispatch for ${key}`);
+
+    // Remove active stream snapshots
+    this.activeStreams.delete(key);
 
     // Signal the AbortController for this dispatch
     const controller = this.channelAbortControllers.get(key);
@@ -73,6 +102,7 @@ class ChannelOrchestrator {
 
     broadcast(channelId, { type: "channel_dispatch_aborted", channelId, sessionId });
   }
+
 
   private buildAgentNameMap(members: ChannelMember[]): Map<string, string> {
     const map = new Map<string, string>();
@@ -280,6 +310,20 @@ class ChannelOrchestrator {
       return { agentMsg: null };
     }
 
+    const streamKey = `${channelId}:${incomingMsg.sessionId || "default"}`;
+    let channelStreams = this.activeStreams.get(streamKey);
+    if (!channelStreams) {
+      channelStreams = new Map();
+      this.activeStreams.set(streamKey, channelStreams);
+    }
+    channelStreams.set(member.agentId, {
+      agentId: member.agentId,
+      agentName,
+      text: "",
+      thinking: "",
+      toolCalls: {},
+    });
+
     broadcast(channelId, {
       type: "channel_agent_start",
       channelId,
@@ -316,6 +360,10 @@ class ChannelOrchestrator {
           const delta = ev.assistantMessageEvent.delta;
           if (delta) {
             fullResponse += delta;
+            const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
+            if (stream) {
+              stream.text += delta;
+            }
             broadcast(channelId, {
               type: "channel_agent_token",
               channelId,
@@ -335,6 +383,10 @@ class ChannelOrchestrator {
         } else if (ev.assistantMessageEvent?.type === "thinking_delta" && channel.showThinking) {
           const delta = ev.assistantMessageEvent.delta;
           if (delta) {
+            const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
+            if (stream) {
+              stream.thinking += delta;
+            }
             broadcast(channelId, {
               type: "channel_agent_thinking",
               channelId,
@@ -353,6 +405,15 @@ class ChannelOrchestrator {
           }
         }
       } else if (evt.type === "tool_execution_start" && channel.showTools) {
+        const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
+        if (stream) {
+          stream.toolCalls[ev.toolCallId] = {
+            toolName: ev.toolName,
+            args: ev.args,
+            result: null,
+            isError: false,
+          };
+        }
         broadcast(channelId, {
           type: "channel_agent_tool_start",
           channelId,
@@ -371,6 +432,11 @@ class ChannelOrchestrator {
           detail: { toolName: ev.toolName, args: ev.args, toolCallId: ev.toolCallId },
         });
       } else if (evt.type === "tool_execution_end" && channel.showTools) {
+        const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
+        if (stream && stream.toolCalls[ev.toolCallId]) {
+          stream.toolCalls[ev.toolCallId].result = ev.result;
+          stream.toolCalls[ev.toolCallId].isError = ev.isError;
+        }
         broadcast(channelId, {
           type: "channel_agent_tool_end",
           channelId,
@@ -428,7 +494,15 @@ class ChannelOrchestrator {
       return { agentMsg: null };
     } finally {
       unsub();
+      const activeStreamsMap = this.activeStreams.get(streamKey);
+      if (activeStreamsMap) {
+        activeStreamsMap.delete(member.agentId);
+        if (activeStreamsMap.size === 0) {
+          this.activeStreams.delete(streamKey);
+        }
+      }
     }
+
 
     // Extract full response from session messages if streaming didn't capture it
     if (!fullResponse.trim()) {

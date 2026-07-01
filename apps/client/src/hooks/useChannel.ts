@@ -51,17 +51,34 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     }
   }, [channelId, sessionId]);
 
+  const fetchActiveStreamings = useCallback(async () => {
+    if (!channelId) return;
+    try {
+      const url = `/api/channels/${channelId}/active-streamings${sessionId ? `?sessionId=${sessionId}` : ""}`;
+      const res = await fetch(url, {
+        headers: { Authorization: `Bearer ${getToken()}` },
+      });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+      setStreamingAgents(data.streamingAgents || {});
+    } catch (err: any) {
+      console.error("Failed to load active channel streamings:", err);
+    }
+  }, [channelId, sessionId]);
+
   useEffect(() => {
     if (!channelId) {
       setChannel(null);
       setMessages([]);
+      setStreamingAgents({});
       setLoading(false);
       return;
     }
     setLoading(true);
     setError(null);
-    Promise.all([fetchChannel(), fetchMessages()]).finally(() => setLoading(false));
-  }, [channelId, fetchChannel, fetchMessages]);
+    Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings()]).finally(() => setLoading(false));
+  }, [channelId, fetchChannel, fetchMessages, fetchActiveStreamings]);
+
 
   // WebSocket Connection for channel events
   useEffect(() => {

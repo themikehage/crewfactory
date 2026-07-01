@@ -154,6 +154,20 @@ channelsRouter.get("/:id/messages", (c) => {
   return c.json({ messages });
 });
 
+channelsRouter.get("/:id/active-streamings", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const sessionId = c.req.query("sessionId");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const streams = channelOrchestrator.getActiveStreams(id, sessionId);
+  return c.json({ streamingAgents: streams });
+});
+
+
 channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().min(1), sessionId: z.string().optional() })), async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
