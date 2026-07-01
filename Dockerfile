@@ -2,7 +2,7 @@ FROM oven/bun:1-slim AS base
 WORKDIR /app
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends bash ca-certificates git ripgrep wget \
+  && apt-get install -y --no-install-recommends adduser bash ca-certificates git ripgrep wget \
   && rm -rf /var/lib/apt/lists/* \
   && addgroup --system crewfactory \
   && adduser --system --ingroup crewfactory --no-create-home crewfactory
