@@ -47,8 +47,15 @@ export function useSessionResolver({
           return !s.repoName && !s.agentId && !s.channelId;
         });
 
+        const getSessionPath = (id: string) => {
+          if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
+          if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
+          if (activeRepoName) return `/repos/${activeRepoName}/session/${id}`;
+          return `/session/${id}`;
+        };
+
         if (filtered.length > 0) {
-          onNavigate(`/session/${filtered[0].id}`);
+          onNavigate(getSessionPath(filtered[0].id));
           return;
         }
 
@@ -75,7 +82,7 @@ export function useSessionResolver({
         if (!createRes.ok) return;
 
         const session = await createRes.json();
-        onNavigate(`/session/${session.id}`);
+        onNavigate(getSessionPath(session.id));
       } finally {
         resolvingRef.current = false;
       }

@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/pages/LoginPage";
 import { SettingsPage } from "@/pages/SettingsPage";
@@ -50,60 +50,117 @@ export function AppRouter() {
     return localStorage.getItem("has-context") === "true";
   });
 
+  // Sincronizar estado y localStorage con los parámetros de la URL
+  useEffect(() => {
+    const routeRepo = "repoName" in route ? route.repoName : null;
+    const routeAgent = "agentId" in route ? route.agentId : null;
+    const routeChannel = "channelId" in route ? route.channelId : null;
+
+    if (routeRepo && routeRepo !== activeRepoId) {
+      localStorage.setItem("active-repo-id", routeRepo);
+      localStorage.setItem("active-repo-name", routeRepo);
+      localStorage.removeItem("active-agent");
+      localStorage.removeItem("active-channel");
+      localStorage.setItem("has-context", "true");
+      setActiveRepoId(routeRepo);
+      setActiveRepoFriendlyName(routeRepo);
+      setActiveAgent(null);
+      setActiveChannel(null);
+      setHasContext(true);
+    } else if (routeAgent && (!activeAgent || activeAgent.id !== routeAgent)) {
+      const agentObj = { id: routeAgent, name: routeAgent };
+      localStorage.setItem("active-agent", JSON.stringify(agentObj));
+      localStorage.removeItem("active-repo-id");
+      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-channel");
+      localStorage.setItem("has-context", "true");
+      setActiveAgent(agentObj);
+      setActiveRepoId(null);
+      setActiveRepoFriendlyName(null);
+      setActiveChannel(null);
+      setHasContext(true);
+    } else if (routeChannel && (!activeChannel || activeChannel.id !== routeChannel)) {
+      const channelObj = { id: routeChannel, name: routeChannel };
+      localStorage.setItem("active-channel", JSON.stringify(channelObj));
+      localStorage.removeItem("active-repo-id");
+      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-agent");
+      localStorage.setItem("has-context", "true");
+      setActiveChannel(channelObj);
+      setActiveRepoId(null);
+      setActiveRepoFriendlyName(null);
+      setActiveAgent(null);
+      setHasContext(true);
+    }
+  }, [route, activeRepoId, activeAgent, activeChannel]);
+
   const handleSelectRepo = useCallback((repoId: string | null, repoName: string | null) => {
     if (repoId === null) {
       localStorage.removeItem("active-repo-id");
       localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-agent");
+      localStorage.removeItem("active-channel");
+      setActiveRepoId(null);
+      setActiveRepoFriendlyName(null);
+      setActiveAgent(null);
+      setActiveChannel(null);
+      setHasContext(false);
+      navigate("/");
     } else {
       localStorage.setItem("active-repo-id", repoId);
-      localStorage.setItem("active-repo-name", repoName || "");
+      localStorage.setItem("active-repo-name", repoName || repoId);
+      localStorage.removeItem("active-agent");
+      localStorage.removeItem("active-channel");
+      localStorage.setItem("has-context", "true");
+      setActiveRepoId(repoId);
+      setActiveRepoFriendlyName(repoName || repoId);
+      setActiveAgent(null);
+      setActiveChannel(null);
+      setHasContext(true);
+      navigate(`/repos/${repoId}/chat`);
     }
-    localStorage.removeItem("active-agent");
-    localStorage.removeItem("active-channel");
-    localStorage.setItem("has-context", "true");
-    setActiveRepoId(repoId);
-    setActiveRepoFriendlyName(repoName);
-    setActiveAgent(null);
-    setActiveChannel(null);
-    setHasContext(true);
-    // Redirigir a home/chat al cambiar de repositorio
-    navigate("/");
   }, [navigate]);
 
   const handleSelectAgent = useCallback((agent: { id: string; name: string } | null) => {
     if (agent === null) {
       localStorage.removeItem("active-agent");
+      setActiveAgent(null);
+      setHasContext(false);
+      navigate("/");
     } else {
       localStorage.setItem("active-agent", JSON.stringify(agent));
+      localStorage.removeItem("active-repo-id");
+      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-channel");
+      localStorage.setItem("has-context", "true");
+      setActiveAgent(agent);
+      setActiveRepoId(null);
+      setActiveRepoFriendlyName(null);
+      setActiveChannel(null);
+      setHasContext(true);
+      navigate(`/agents/${agent.id}/chat`);
     }
-    localStorage.removeItem("active-repo-id");
-    localStorage.removeItem("active-repo-name");
-    localStorage.removeItem("active-channel");
-    localStorage.setItem("has-context", "true");
-    setActiveAgent(agent);
-    setActiveRepoId(null);
-    setActiveRepoFriendlyName(null);
-    setActiveChannel(null);
-    setHasContext(true);
-    navigate("/");
   }, [navigate]);
 
   const handleSelectChannel = useCallback((channel: { id: string; name: string } | null) => {
     if (channel === null) {
       localStorage.removeItem("active-channel");
+      setActiveChannel(null);
+      setHasContext(false);
+      navigate("/");
     } else {
       localStorage.setItem("active-channel", JSON.stringify(channel));
+      localStorage.removeItem("active-repo-id");
+      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-agent");
+      localStorage.setItem("has-context", "true");
+      setActiveChannel(channel);
+      setActiveRepoId(null);
+      setActiveRepoFriendlyName(null);
+      setActiveAgent(null);
+      setHasContext(true);
+      navigate(`/channels/${channel.id}/chat`);
     }
-    localStorage.removeItem("active-repo-id");
-    localStorage.removeItem("active-repo-name");
-    localStorage.removeItem("active-agent");
-    localStorage.setItem("has-context", "true");
-    setActiveChannel(channel);
-    setActiveRepoId(null);
-    setActiveRepoFriendlyName(null);
-    setActiveAgent(null);
-    setHasContext(true);
-    navigate("/");
   }, [navigate]);
 
   if (loading) {
