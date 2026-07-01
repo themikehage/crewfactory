@@ -17,7 +17,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -30,7 +31,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -43,7 +45,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -56,7 +59,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -69,7 +73,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -82,7 +87,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -95,7 +101,8 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       },
       {
@@ -108,9 +115,11 @@ export function registerQwenProvider(registry: ModelRegistry) {
         maxTokens: 64000,
         compat: {
           maxTokensField: "max_tokens",
-          thinkingFormat: "qwen"
+          thinkingFormat: "qwen",
+          supportsDeveloperRole: false
         }
       }
     ]
   });
 }
+
