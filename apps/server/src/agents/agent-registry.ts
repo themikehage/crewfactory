@@ -129,6 +129,28 @@ class AgentRegistry {
     }
   }
 
+  async update(username: string, id: string, updates: Partial<Omit<AgentDefinition, "id">>): Promise<AgentEntry> {
+    const entry = this.agents.get(id);
+    if (!entry || entry.username !== username) {
+      throw new Error(`Agent "${id}" not found`);
+    }
+
+    const oldCreatedAt = entry.createdAt;
+    const newDefinition = {
+      ...entry.server.definition,
+      ...updates,
+    };
+
+    // Stop active instance without removing disk
+    await this.stop(id, false);
+
+    // Save updated definition to disk and re-register
+    const newEntry = await this.register(username, newDefinition, true);
+    newEntry.createdAt = oldCreatedAt;
+
+    return newEntry;
+  }
+
   async stopAll(): Promise<void> {
     for (const id of [...this.agents.keys()]) {
       await this.stop(id, false);

@@ -381,5 +381,17 @@ crear un plan de despliegue facil en vps
 - [x] 43.5 Homogenized repository workspace directories to `repos/{repoName}/workspace` to match agents and channels folders layout
 - [x] 43.6 Decoupled repository workspaces to use a unique UUID-based repoId instead of human-readable repoName, adding project.json metadata mapping and client-side selection support
 
+## Phase 44: Entity Deletion & Configuration Updating
+- [x] 44.1 Shared schemas: Define `UpdateAgentDefinitionSchema` in `schemas.ts`
+- [x] 44.2 Server `AgentRegistry`: Implement `update` method to restart Hono server on definition changes
+- [x] 44.3 Server Agents API: Add `PATCH /api/agents/:id` endpoint and cascading session deletes in `DELETE /api/agents/:id`
+- [x] 44.4 Server Channels API: Add cascading session deletes in `DELETE /api/channels/:id`
+- [x] 44.5 Server Repos API: Add `DELETE /api/workspace-repos/:id` with cascading session and folder deletes, and `PATCH /api/workspace-repos/:id` to update project name
+- [x] 44.6 Client `useAgents` hook: Add `updateAgent` method
+- [x] 44.7 Client Agents Page: Add edit/delete buttons, deletion confirmation, and reuse `RegisterModal` for editing
+- [x] 44.8 Client Projects Dashboard: Add edit/delete buttons, name rename modal, and secure name-matching delete confirmation modal
+- [x] 44.9 Verification: Run client type checking and verify clean builds
+
+
 
 

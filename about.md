@@ -188,6 +188,7 @@
 | GET | /api/preview/{username}/{repoName}/* | Serve static files from repo build dir with SPA fallback (path-based isolation, no token) |
 | GET | /api/workspace-repos | List repos in workspace/repos/ |
 | POST | /api/workspace-repos | Create empty repo or clone from Git URL |
+| PATCH/DELETE | /api/workspace-repos/:id | Rename project name or delete project (and sessions) |
 | GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name`, `?agentId=id`, `?channelId=id` scoping) |
 | GET | /api/sessions/:id/tools | Get active tool permissions for session |
 | POST | /api/sessions/:id/tools | Set and persist tool permissions for session |
@@ -200,7 +201,7 @@
 | GET | /api/integrations/templates | List all configured integration templates |
 | POST | /api/integrations/templates | Update or define new integrations and custom quick actions |
 | GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
-| GET/POST/DELETE | /api/agents | Agent registration, listing, and management |
+| GET/POST/PATCH/DELETE | /api/agents | Agent registration, listing, updating (restarts server), and deletion (and sessions) |
 | GET | /api/agents/:id/observe | SSE event stream of agent actions, thoughts, and tools |
 | GET | /api/agents/:id/executions | List saved execution logs for the agent |
 | GET | /api/agents/:id/executions/:execId | Retrieve detail logs of a specific agent execution |

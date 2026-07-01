@@ -5,6 +5,7 @@ import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
+import { piSessionManager } from "../pi/session-manager";
 import {
   CreateChannelSchema,
   UpdateChannelSchema,
@@ -65,11 +66,26 @@ channelsRouter.put("/:id/context", zValidator("json", z.object({ context: z.arra
   return c.json(updated);
 });
 
-channelsRouter.delete("/:id", (c) => {
+channelsRouter.delete("/:id", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  // Cascading delete: destroy all active chat sessions associated with this channel
+  try {
+    const sessions = await piSessionManager.listSessions(username);
+    for (const s of sessions) {
+      if (s.channelId === id) {
+        await piSessionManager.destroySession(username, s.id);
+      }
+    }
+  } catch (err) {
+    console.error(`[ChannelsRoute] Failed to delete sessions for channel ${id}:`, err);
+  }
+
   const deleted = channelStore.deleteChannel(username, id);
   if (!deleted) return c.json({ error: "Channel not found" }, 404);
   return c.body(null, 204);

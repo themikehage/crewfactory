@@ -186,6 +186,9 @@ export const AgentDefinitionSchema = z.object({
 });
 export type AgentDefinition = z.infer<typeof AgentDefinitionSchema>;
 
+export const UpdateAgentDefinitionSchema = AgentDefinitionSchema.partial().omit({ id: true });
+export type UpdateAgentDefinition = z.infer<typeof UpdateAgentDefinitionSchema>;
+
 export const AgentStatusSchema = z.enum(["starting", "idle", "streaming", "error", "stopped"]);
 export type AgentStatus = z.infer<typeof AgentStatusSchema>;
 

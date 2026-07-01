@@ -1,7 +1,8 @@
 import { Hono } from "hono";
 import { resolve, normalize, sep, join, basename, dirname } from "node:path";
-import { existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, rmSync, renameSync } from "node:fs";
+import { existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, rmSync, renameSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
+import { piSessionManager } from "../pi/session-manager";
 
 export const filesRouter = new Hono();
 
@@ -309,6 +310,74 @@ filesRouter.post("/workspace-repos", async (c) => {
     }, 201);
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to create repository" }, 500);
+  }
+});
+
+filesRouter.delete("/workspace-repos/:id", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+
+  try {
+    const reposDir = resolve(`/tmp/crewfactory/${username}/repos`);
+    const repoPath = join(reposDir, id);
+
+    if (!existsSync(repoPath)) {
+      return c.json({ error: "Repository not found" }, 404);
+    }
+
+    // Cascading delete: destroy all active chat sessions associated with this repository
+    const sessions = await piSessionManager.listSessions(username);
+    for (const s of sessions) {
+      if (s.repoName === id) {
+        await piSessionManager.destroySession(username, s.id);
+      }
+    }
+
+    // Physically delete directory
+    rmSync(repoPath, { recursive: true, force: true });
+    return c.body(null, 204);
+  } catch (err: any) {
+    return c.json({ error: err.message || "Failed to delete repository" }, 500);
+  }
+});
+
+filesRouter.patch("/workspace-repos/:id", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+
+  try {
+    const body = await c.req.json().catch(() => ({}));
+    const { name } = body;
+
+    if (!name || typeof name !== "string") {
+      return c.json({ error: "Invalid repository name" }, 400);
+    }
+
+    const reposDir = resolve(`/tmp/crewfactory/${username}/repos`);
+    const repoPath = join(reposDir, id);
+    const jsonPath = join(repoPath, "project.json");
+
+    if (!existsSync(repoPath) || !existsSync(jsonPath)) {
+      return c.json({ error: "Repository not found" }, 404);
+    }
+
+    // Read project.json
+    const projectJson = JSON.parse(readFileSync(jsonPath, "utf-8"));
+    projectJson.name = name;
+
+    // Save back to project.json
+    writeFileSync(jsonPath, JSON.stringify(projectJson, null, 2), "utf-8");
+
+    return c.json({
+      id,
+      name,
+      path: id,
+      lastModified: statSync(repoPath).mtime.toISOString(),
+    });
+  } catch (err: any) {
+    return c.json({ error: err.message || "Failed to update repository name" }, 500);
   }
 });
 

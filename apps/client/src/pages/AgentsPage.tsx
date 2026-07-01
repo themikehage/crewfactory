@@ -42,23 +42,32 @@ const DEFAULT_FORM: AgentDefinition = {
 
 function AgentCard({
   agent,
-  onStop,
+  onDelete,
+  onEdit,
   onChat,
   onExecutions,
 }: {
   agent: AgentInfo;
-  onStop: (id: string) => void;
+  onDelete: (id: string) => void;
+  onEdit: (agent: AgentInfo) => void;
   onChat: (agent: { id: string; name: string }) => void;
   onExecutions: (agent: { id: string; name: string }) => void;
 }) {
-  const [stopping, setStopping] = useState(false);
+  const [deleting, setDeleting] = useState(false);
 
-  const handleStop = async () => {
-    setStopping(true);
+  const handleDelete = async () => {
+    if (
+      !window.confirm(
+        `¿Estás seguro de que querés eliminar al agente "${agent.name}"? Esto detendrá su servidor y eliminará todas sus sesiones de chat asociadas de manera permanente.`
+      )
+    ) {
+      return;
+    }
+    setDeleting(true);
     try {
-      await onStop(agent.id);
+      await onDelete(agent.id);
     } finally {
-      setStopping(false);
+      setDeleting(false);
     }
   };
 
@@ -124,11 +133,17 @@ function AgentCard({
           Historial
         </button>
         <button
-          onClick={handleStop}
-          disabled={stopping || agent.status === "stopped"}
-          className="py-1.5 px-2.5 text-[11px] font-medium text-error border border-error/20 rounded-lg hover:bg-error/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+          onClick={() => onEdit(agent)}
+          className="py-1.5 px-2 text-[11px] font-medium text-blue-400 border border-blue-400/20 rounded-lg hover:bg-blue-400/10 transition-colors"
         >
-          {stopping ? "Stopping..." : "Stop"}
+          Editar
+        </button>
+        <button
+          onClick={handleDelete}
+          disabled={deleting}
+          className="py-1.5 px-2 text-[11px] font-medium text-error border border-error/20 rounded-lg hover:bg-error/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+        >
+          {deleting ? "Eliminando..." : "Eliminar"}
         </button>
       </div>
     </motion.div>
@@ -136,16 +151,41 @@ function AgentCard({
 }
 
 function RegisterModal({
+  agent,
   onClose,
-  onRegister,
+  onSubmit,
 }: {
+  agent?: AgentInfo | null;
   onClose: () => void;
-  onRegister: (def: AgentDefinition) => Promise<unknown>;
+  onSubmit: (def: AgentDefinition) => Promise<unknown>;
 }) {
   const [form, setForm] = useState<AgentDefinition>(DEFAULT_FORM);
   const [skillsInput, setSkillsInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (agent) {
+      const fetchDetail = async () => {
+        try {
+          const token = localStorage.getItem("token");
+          const res = await fetch(`/api/agents/${agent.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (res.ok) {
+            const data = await res.json();
+            if (data.definition) {
+              setForm(data.definition);
+              setSkillsInput(data.definition.skills?.join(", ") || "");
+            }
+          }
+        } catch (err) {
+          console.error("Failed to load agent detail:", err);
+        }
+      };
+      fetchDetail();
+    }
+  }, [agent]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -156,15 +196,18 @@ function RegisterModal({
         ...form,
         id: form.id.trim().toLowerCase().replace(/\s+/g, "-"),
         skills: skillsInput
-          ? skillsInput.split(",").map((s) => s.trim()).filter(Boolean)
+          ? skillsInput
+              .split(",")
+              .map((s) => s.trim())
+              .filter(Boolean)
           : undefined,
         model: form.model?.trim() || undefined,
         port: form.port || undefined,
       };
-      await onRegister(def);
+      await onSubmit(def);
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to register agent");
+      setError(err.message || "Failed to save agent");
     } finally {
       setSubmitting(false);
     }
@@ -175,10 +218,7 @@ function RegisterModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm"
-        onClick={onClose}
-      />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -188,8 +228,12 @@ function RegisterModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-surface-hover">
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Register Agent</h2>
-            <p className="text-xs text-text-secondary mt-0.5">Define a new programmatic agent</p>
+            <h2 className="text-sm font-semibold text-text-primary">
+              {agent ? "Editar Agente" : "Register Agent"}
+            </h2>
+            <p className="text-xs text-text-secondary mt-0.5">
+              {agent ? "Modificá la configuración del agente" : "Define a new programmatic agent"}
+            </p>
           </div>
           <button
             onClick={onClose}
@@ -207,12 +251,13 @@ function RegisterModal({
               <label className="text-xs font-medium text-text-secondary block mb-1">ID *</label>
               <input
                 required
+                disabled={!!agent}
                 value={form.id}
                 onChange={set("id")}
                 placeholder="web-builder"
                 pattern="[a-z0-9-]+"
                 title="lowercase letters, numbers, and dashes only"
-                className="w-full bg-bg border border-surface-hover rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:border-accent/50 font-mono"
+                className="w-full bg-bg border border-surface-hover rounded-lg px-3 py-2 text-sm text-text-primary placeholder:text-text-secondary/40 focus:outline-none focus:border-accent/50 font-mono disabled:opacity-50"
               />
             </div>
             <div>
@@ -308,7 +353,7 @@ function RegisterModal({
               disabled={submitting}
               className="flex-1 py-2 text-sm font-medium bg-accent text-bg rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
             >
-              {submitting ? "Starting..." : "Register Agent"}
+              {submitting ? "Guardando..." : agent ? "Guardar Cambios" : "Register Agent"}
             </button>
           </div>
         </form>
@@ -317,16 +362,30 @@ function RegisterModal({
   );
 }
 
-
-
 interface AgentsPageProps {
   onSelectAgent?: (agent: { id: string; name: string }) => void;
 }
 
 export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
-  const { agents, loading, error, fetchAgents, registerAgent, stopAgent } = useAgents();
+  const { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent } = useAgents();
   const [showRegister, setShowRegister] = useState(false);
+  const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
   const [selectedAgentForExecutions, setSelectedAgentForExecutions] = useState<{ id: string; name: string } | null>(null);
+
+  const handleEditClick = (agent: AgentInfo) => {
+    setEditingAgent(agent);
+    setShowRegister(true);
+  };
+
+  const handleRegisterOrUpdate = async (def: AgentDefinition) => {
+    if (editingAgent) {
+      // Exclude ID from updates
+      const { id, ...updates } = def;
+      await updateAgent(editingAgent.id, updates);
+    } else {
+      await registerAgent(def);
+    }
+  };
 
   return (
     <div className="h-full flex flex-col bg-bg overflow-hidden">
@@ -348,7 +407,10 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
             </svg>
           </button>
           <button
-            onClick={() => setShowRegister(true)}
+            onClick={() => {
+              setEditingAgent(null);
+              setShowRegister(true);
+            }}
             className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-accent text-bg rounded-lg hover:bg-accent/90 transition-colors"
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -387,7 +449,10 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
               <p className="text-xs mt-1">Register your first agent to get started</p>
             </div>
             <button
-              onClick={() => setShowRegister(true)}
+              onClick={() => {
+                setEditingAgent(null);
+                setShowRegister(true);
+              }}
               className="px-4 py-2 text-xs font-medium bg-accent/10 text-accent border border-accent/20 rounded-lg hover:bg-accent/20 transition-colors"
             >
               Register Agent
@@ -402,7 +467,8 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
                 <AgentCard
                   key={agent.id}
                   agent={agent}
-                  onStop={stopAgent}
+                  onDelete={stopAgent}
+                  onEdit={handleEditClick}
                   onChat={(agentObj) => onSelectAgent?.(agentObj)}
                   onExecutions={(agentObj) => setSelectedAgentForExecutions(agentObj)}
                 />
@@ -415,8 +481,12 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
       <AnimatePresence>
         {showRegister && (
           <RegisterModal
-            onClose={() => setShowRegister(false)}
-            onRegister={registerAgent}
+            agent={editingAgent}
+            onClose={() => {
+              setShowRegister(false);
+              setEditingAgent(null);
+            }}
+            onSubmit={handleRegisterOrUpdate}
           />
         )}
       </AnimatePresence>

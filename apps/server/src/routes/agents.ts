@@ -4,7 +4,8 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { agentRegistry } from "../agents";
-import { AgentDefinitionSchema } from "shared";
+import { AgentDefinitionSchema, UpdateAgentDefinitionSchema } from "shared";
+import { piSessionManager } from "../pi/session-manager";
 
 export const agentsRouter = new Hono();
 
@@ -73,9 +74,48 @@ agentsRouter.delete("/:id", async (c) => {
   const entry = agentRegistry.get(id);
   if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
 
+  // Cascading delete: destroy all active chat sessions associated with this agent
+  try {
+    const sessions = await piSessionManager.listSessions(username);
+    for (const s of sessions) {
+      if (s.agentId === id) {
+        await piSessionManager.destroySession(username, s.id);
+      }
+    }
+  } catch (err) {
+    console.error(`[AgentsRoute] Failed to delete sessions for agent ${id}:`, err);
+  }
+
   await agentRegistry.stop(id);
   return c.body(null, 204);
 });
+
+agentsRouter.patch(
+  "/:id",
+  zValidator("json", UpdateAgentDefinitionSchema),
+  async (c) => {
+    const username = getUsername(c);
+    if (!username) return c.json({ error: "Unauthorized" }, 401);
+    const id = c.req.param("id");
+    const updates = c.req.valid("json");
+
+    const entry = agentRegistry.get(id);
+    if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+
+    try {
+      const updatedEntry = await agentRegistry.update(username, id, updates);
+      return c.json({
+        id,
+        name: updatedEntry.server.definition.name,
+        role: updatedEntry.server.definition.role,
+        status: updatedEntry.status,
+        createdAt: updatedEntry.createdAt,
+      });
+    } catch (err) {
+      return c.json({ error: String(err) }, 500);
+    }
+  }
+);
 
 agentsRouter.post(
   "/:id/prompt",

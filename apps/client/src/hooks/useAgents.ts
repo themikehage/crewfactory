@@ -84,5 +84,23 @@ export function useAgents() {
     return "";
   }, []);
 
-  return { agents, loading, error, fetchAgents, registerAgent, stopAgent, promptAgent };
+  const updateAgent = useCallback(async (id: string, updates: Partial<Omit<AgentDefinition, "id">>): Promise<AgentInfo> => {
+    const res = await fetch(`/api/agents/${id}`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${getToken()}`,
+      },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const agent = await res.json();
+    await fetchAgents();
+    return agent;
+  }, [fetchAgents]);
+
+  return { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent, promptAgent };
 }
