@@ -258,6 +258,12 @@ export const DelegationPatternSchema = z.object({
 });
 export type DelegationPattern = z.infer<typeof DelegationPatternSchema>;
 
+export const ChannelBenchmarkConfigSchema = z.object({
+  enabled: z.boolean().default(false),
+  baselineModelId: z.string().optional(),
+});
+export type ChannelBenchmarkConfig = z.infer<typeof ChannelBenchmarkConfigSchema>;
+
 export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -270,6 +276,7 @@ export const ChannelSchema = z.object({
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
+  benchmark: ChannelBenchmarkConfigSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
 });
@@ -285,6 +292,7 @@ export const CreateChannelSchema = z.object({
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
+  benchmark: ChannelBenchmarkConfigSchema.optional(),
 });
 export type CreateChannel = z.infer<typeof CreateChannelSchema>;
 
@@ -298,6 +306,7 @@ export const UpdateChannelSchema = z.object({
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
+  benchmark: ChannelBenchmarkConfigSchema.optional(),
 });
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;
 
@@ -339,7 +348,7 @@ export interface GlobalLogEvent {
   sourceType: "session" | "channel";
   sourceId: string;
   sourceName: string;
-  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error";
+  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error" | "benchmark_start" | "benchmark_token" | "benchmark_complete" | "benchmark_error" | "judge_start" | "judge_complete" | "judge_error";
   agentName?: string;
   detail?: any;
 }

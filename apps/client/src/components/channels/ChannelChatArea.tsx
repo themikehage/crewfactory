@@ -10,6 +10,7 @@ import { ChannelOrgChart } from "./ChannelOrgChart";
 import { ChannelTaskLedger } from "./ChannelTaskLedger";
 import { ChannelBenchmarkPanel } from "./ChannelBenchmarkPanel";
 import { ChannelOptimizePanel } from "./ChannelOptimizePanel";
+import { BenchmarkLiveTab } from "./BenchmarkLiveTab";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
@@ -25,7 +26,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
-  const [viewMode, setViewMode] = useState<"chat" | "org" | "ledger" | "benchmark" | "optimize">("chat");
+  const [viewMode, setViewMode] = useState<"chat" | "org" | "ledger" | "benchmark" | "optimize" | "benchmark_live">("chat");
 
   const mentionTargets: MentionTarget[] = [
     { id: "__user__", name: "user" },
@@ -143,6 +144,19 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
             >
               Chat
             </button>
+            {channel?.benchmark?.enabled && (
+              <button
+                onClick={() => setViewMode("benchmark_live")}
+                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors relative ${
+                  viewMode === "benchmark_live"
+                    ? "bg-surface text-text-primary border border-surface-hover/80"
+                    : "text-text-secondary hover:text-text-primary"
+                }`}
+              >
+                Benchmark
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-accent animate-pulse" />
+              </button>
+            )}
             <button
               onClick={() => setViewMode("org")}
               className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
@@ -162,16 +176,6 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
               }`}
             >
               Tareas
-            </button>
-            <button
-              onClick={() => setViewMode("benchmark")}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
-                viewMode === "benchmark"
-                  ? "bg-surface text-text-primary border border-surface-hover/80"
-                  : "text-text-secondary hover:text-text-primary"
-              }`}
-            >
-              Benchmark
             </button>
             <button
               onClick={() => setViewMode("optimize")}
@@ -236,6 +240,13 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
       ) : viewMode === "ledger" ? (
         <ChannelTaskLedger
           channelId={activeChannel.id}
+        />
+      ) : viewMode === "benchmark_live" ? (
+        <BenchmarkLiveTab
+          channelId={activeChannel.id}
+          channel={channel}
+          sessionId={sessionId}
+          channelMessages={messages.map((m) => `[${m.agentName || "agent"}]: ${m.content}`).join("\n\n")}
         />
       ) : viewMode === "benchmark" ? (
         <ChannelBenchmarkPanel

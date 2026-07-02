@@ -17,13 +17,26 @@ interface SelectedModel {
 interface Props {
   sessionId: string | null;
   disabled?: boolean;
+  value?: string;
+  onChange?: (modelId: string) => void;
 }
 
 const STORAGE_KEY = "pi-selected-model";
 
-export function ModelSelector({ sessionId, disabled = false }: Props) {
+function parseModelString(modelId: string): SelectedModel | null {
+  const idx = modelId.indexOf("/");
+  if (idx === -1) return null;
+  return { provider: modelId.slice(0, idx), modelId: modelId.slice(idx + 1), modelName: modelId.slice(idx + 1) };
+}
+
+export function ModelSelector({ sessionId, disabled = false, value, onChange }: Props) {
+  const controlled = onChange !== undefined;
+
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [selected, setSelected] = useState<SelectedModel | null>(() => {
+    if (controlled) {
+      return value ? parseModelString(value) : null;
+    }
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       return raw ? JSON.parse(raw) : null;
@@ -41,6 +54,13 @@ export function ModelSelector({ sessionId, disabled = false }: Props) {
   useEffect(() => {
     selectedRef.current = selected;
   }, [selected]);
+
+  useEffect(() => {
+    if (controlled && value) {
+      const parsed = parseModelString(value);
+      if (parsed) setSelected(parsed);
+    }
+  }, [controlled, value]);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
@@ -109,14 +129,20 @@ export function ModelSelector({ sessionId, disabled = false }: Props) {
       const newSelection: SelectedModel = { provider, modelId, modelName };
       setSelected(newSelection);
       selectedRef.current = newSelection;
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
       setOpen(false);
       setActiveProvider(null);
+
+      if (controlled) {
+        onChange(`${provider}/${modelId}`);
+        return;
+      }
+
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(newSelection));
 
       if (!sessionId) return;
       await applyModelToSession(newSelection, sessionId);
     },
-    [sessionId, applyModelToSession]
+    [controlled, onChange, sessionId, applyModelToSession]
   );
 
   const currentProvider = activeProvider

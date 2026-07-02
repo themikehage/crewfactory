@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import type { Channel } from "shared";
+import { ModelSelector } from "@/components/chat/ModelSelector";
+import type { Channel, ChannelBenchmarkConfig } from "shared";
 
 interface Props {
   channel: Channel;
@@ -14,6 +15,7 @@ interface Props {
     negotiationProtocol?: any;
     scoringRubric?: any;
     delegationPattern?: any;
+    benchmark?: ChannelBenchmarkConfig;
   }) => Promise<void>;
 }
 
@@ -23,6 +25,8 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const [maxChainDepth, setMaxChainDepth] = useState(channel.maxChainDepth ?? 5);
   const [showThinking, setShowThinking] = useState(channel.showThinking ?? false);
   const [showTools, setShowTools] = useState(channel.showTools ?? false);
+  const [benchmarkEnabled, setBenchmarkEnabled] = useState(channel.benchmark?.enabled ?? false);
+  const [benchmarkModel, setBenchmarkModel] = useState(channel.benchmark?.baselineModelId || "");
   
   const [negotiationRaw, setNegotiationRaw] = useState(
     channel.negotiationProtocol ? JSON.stringify(channel.negotiationProtocol, null, 2) : ""
@@ -87,6 +91,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
         negotiationProtocol,
         scoringRubric,
         delegationPattern,
+        benchmark: { enabled: benchmarkEnabled, baselineModelId: benchmarkModel || undefined },
       });
       onClose();
     } catch (err: any) {
@@ -98,13 +103,13 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
+      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }} />
       <motion.div
         initial={{ opacity: 0, scale: 0.95, y: 8 }}
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ duration: 0.18 }}
-        className="relative w-full max-w-md bg-surface border border-surface-hover rounded-2xl shadow-2xl overflow-hidden flex flex-col"
+        className="relative w-full max-w-md bg-surface border border-surface-hover rounded-2xl shadow-2xl flex flex-col overflow-visible"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-surface-hover flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -125,7 +130,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh] overflow-hidden">
+        <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh] overflow-visible rounded-2xl">
           <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
             {error && (
               <div className="p-3 bg-error/10 border border-error/20 text-error rounded-lg">
@@ -192,6 +197,34 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
                 />
                 <span>Mostrar uso de herramientas (tools)</span>
               </label>
+            </div>
+
+            <div className="pt-2 border-t border-surface-hover/40 space-y-3">
+              <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={benchmarkEnabled}
+                  onChange={(e) => setBenchmarkEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+                />
+                <span>Enable inline benchmarking</span>
+              </label>
+
+              {benchmarkEnabled && (
+                <div className="pl-6 space-y-1">
+                  <span className="text-[10px] text-text-secondary/60 block">
+                    A single-agent baseline session runs in parallel with every message to compare performance.
+                  </span>
+                  <div className="flex items-center gap-2 pt-1">
+                    <span className="text-[10px] text-text-secondary flex-shrink-0">Baseline model:</span>
+                    <ModelSelector
+                      sessionId={null}
+                      value={benchmarkModel}
+                      onChange={setBenchmarkModel}
+                    />
+                  </div>
+                </div>
+              )}
             </div>
 
             <div className="pt-2 border-t border-surface-hover/40">

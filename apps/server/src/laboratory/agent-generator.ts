@@ -2,6 +2,23 @@ import { piSessionManager } from "../pi/session-manager";
 import { DICHOTOMY_TEMPLATES } from "./dichotomy-templates";
 import { type LabStance } from "shared";
 
+function extractJsonFromMessages(messages: Iterable<any>): string {
+  const msgs = [...messages];
+  const lastMsg = msgs.reverse().find((m: any) => m.role === "assistant");
+  let rawJson = "";
+  if (lastMsg) {
+    if (typeof lastMsg.content === "string") rawJson = lastMsg.content;
+    else if (Array.isArray(lastMsg.content)) {
+      rawJson = lastMsg.content.map((c: any) => c.text || "").join("\n");
+    }
+  }
+  rawJson = rawJson.trim();
+  if (rawJson.startsWith("```")) {
+    rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
+  }
+  return rawJson;
+}
+
 export class AgentGenerator {
   static async analyzeTask(
     username: string,
@@ -34,22 +51,7 @@ Output ONLY a JSON object matching this structure (no additional text, explanati
 
     try {
       await session.prompt(promptText);
-      const msgs = session.messages;
-      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-      let rawJson = "";
-      if (lastMsg) {
-        if (typeof lastMsg.content === "string") rawJson = lastMsg.content;
-        else if (Array.isArray(lastMsg.content)) {
-          rawJson = lastMsg.content.map((c: any) => c.text || "").join("\n");
-        }
-      }
-
-      // Clean markdown code blocks if any
-      rawJson = rawJson.trim();
-      if (rawJson.startsWith("```")) {
-        rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
-      }
-
+      const rawJson = extractJsonFromMessages(session.messages);
       const parsed = JSON.parse(rawJson);
       return {
         suggestedDichotomies: parsed.suggestedDichotomies || [],
@@ -74,7 +76,6 @@ Output ONLY a JSON object matching this structure (no additional text, explanati
     const sessionId = `briefings_${crypto.randomUUID()}`;
     const session = await piSessionManager.getOrCreateSession(username, sessionId);
 
-    // Build the request
     const selectedTemplates = DICHOTOMY_TEMPLATES.filter((t) => dichotomies.includes(t.id));
     if (selectedTemplates.length === 0) return [];
 
@@ -103,21 +104,7 @@ Output ONLY a JSON object matching this structure (no additional text, explanati
 
     try {
       await session.prompt(promptText);
-      const msgs = session.messages;
-      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-      let rawJson = "";
-      if (lastMsg) {
-        if (typeof lastMsg.content === "string") rawJson = lastMsg.content;
-        else if (Array.isArray(lastMsg.content)) {
-          rawJson = lastMsg.content.map((c: any) => c.text || "").join("\n");
-        }
-      }
-
-      rawJson = rawJson.trim();
-      if (rawJson.startsWith("```")) {
-        rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
-      }
-
+      const rawJson = extractJsonFromMessages(session.messages);
       const parsed = JSON.parse(rawJson);
       const briefings = parsed.briefings || {};
 
@@ -145,7 +132,6 @@ Output ONLY a JSON object matching this structure (no additional text, explanati
       return stances;
     } catch (e) {
       console.error("[AgentGenerator] Failed to generate briefings:", e);
-      // Fallback to defaults
       const stances: LabStance[] = [];
       for (const t of selectedTemplates) {
         stances.push({

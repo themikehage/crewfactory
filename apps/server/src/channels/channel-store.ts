@@ -48,6 +48,7 @@ class ChannelStore {
       negotiationProtocol: data.negotiationProtocol,
       scoringRubric: data.scoringRubric,
       delegationPattern: data.delegationPattern,
+      benchmark: data.benchmark,
       createdAt: now,
       updatedAt: now,
     };
@@ -69,6 +70,7 @@ class ChannelStore {
         maxChainDepth: parsed.maxChainDepth ?? 5,
         showThinking: parsed.showThinking ?? false,
         showTools: parsed.showTools ?? false,
+        benchmark: parsed.benchmark || undefined,
       };
     } catch {
       return null;
@@ -112,6 +114,7 @@ class ChannelStore {
     if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
     if (updates.scoringRubric !== undefined) channel.scoringRubric = updates.scoringRubric;
     if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
+    if (updates.benchmark !== undefined) channel.benchmark = updates.benchmark;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");

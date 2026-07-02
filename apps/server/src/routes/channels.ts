@@ -8,6 +8,8 @@ import { agentRegistry } from "../agents";
 import { piSessionManager } from "../pi/session-manager";
 import { runBenchmarkSuite } from "../benchmark/harness";
 import { runOptimizationStep } from "../benchmark/optimizer";
+import { runBaselineAndCompare, listBenchmarkRuns, getBenchmarkRun, saveJudgeResult } from "../benchmark/baseline-runner";
+import { runJudge } from "../benchmark/llm-judge";
 import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema } from "shared";
 import { eventBroker } from "../lib/event-broker";
 
@@ -214,6 +216,14 @@ channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string
     console.error(`[ChannelsRoute] Error dispatching message for channel ${id}:`, err);
   });
 
+  // Trigger baseline benchmark if enabled
+  if (channel.benchmark?.enabled) {
+    const baselineModel = channel.benchmark.baselineModelId || "anthropic/claude-3-5-sonnet";
+    runBaselineAndCompare(username, id, message, baselineModel, sessionId || `chan_${id}`).catch((err) => {
+      console.error(`[ChannelsRoute] Error running baseline benchmark for channel ${id}:`, err);
+    });
+  }
+
   return c.json({ success: true });
 });
 
@@ -404,5 +414,70 @@ channelsRouter.post("/:id/optimize", async (c) => {
   return c.json({ success: true, message: "Optimization Loop started in background" });
 });
 
+channelsRouter.get("/:id/benchmark/history", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
 
+  const id = c.req.param("id");
+  const runs = listBenchmarkRuns(username, id);
+  return c.json({ runs });
+});
 
+channelsRouter.get("/:id/benchmark/history/:runId", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const runId = c.req.param("runId");
+  const run = getBenchmarkRun(username, id, runId);
+  if (!run) return c.json({ error: "Benchmark run not found" }, 404);
+  return c.json(run);
+});
+
+channelsRouter.post("/:id/benchmark/history/:runId/judge", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const runId = c.req.param("runId");
+  const metrics = getBenchmarkRun(username, id, runId);
+  if (!metrics) return c.json({ error: "Benchmark run not found" }, 404);
+
+  eventBroker.publishEvent(username, {
+    sourceType: "channel",
+    sourceId: id,
+    sourceName: id,
+    eventType: "judge_start",
+    detail: { runId },
+  });
+
+  try {
+    const result = await runJudge(
+      username,
+      metrics.baseline.prompt,
+      metrics.channel.output,
+      metrics.baseline.output
+    );
+
+    saveJudgeResult(username, id, runId, result);
+
+    eventBroker.publishEvent(username, {
+      sourceType: "channel",
+      sourceId: id,
+      sourceName: id,
+      eventType: "judge_complete",
+      detail: { runId, result },
+    });
+
+    return c.json({ success: true, result });
+  } catch (err: any) {
+    eventBroker.publishEvent(username, {
+      sourceType: "channel",
+      sourceId: id,
+      sourceName: id,
+      eventType: "judge_error",
+      detail: { runId, error: err.message },
+    });
+    return c.json({ error: err.message }, 500);
+  }
+});

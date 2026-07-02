@@ -280,7 +280,7 @@ packages/shared/  Shared Zod schemas and types
 - `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
 - `hooks/useWebSocket.ts` — WebSocket client with auto-reconnect, event subscription
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
-- `pages/SettingsPage.tsx` — Provider, global env variables, and Integrations Hub template editor.
+- `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
 - `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and a right-side SessionDrawer trigger button.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.

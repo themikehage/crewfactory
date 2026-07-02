@@ -2,8 +2,8 @@ import { Hono } from "hono";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { ExperimentStore } from "../laboratory/experiment-store";
-import { AgentGenerator } from "../laboratory/agent-generator";
 import { ExperimentRunner } from "../laboratory/experiment-runner";
+import { piSessionManager } from "../pi/session-manager";
 import { type LabStance, type LabAgent, type LabExperiment } from "shared";
 
 export const experimentsRouter = new Hono();
@@ -18,28 +18,18 @@ experimentsRouter.get("/", async (c) => {
   return c.json({ experiments: list });
 });
 
+// Get default model for the user
+experimentsRouter.get("/default-model", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const model = piSessionManager.getUserDefaultModel(username);
+  return c.json({ model });
+});
+
 // Get blueprints
 experimentsRouter.get("/blueprints", async (c) => {
   const blueprints = await ExperimentStore.listBlueprints();
   return c.json({ blueprints });
-});
-
-// Analyze task prompt
-experimentsRouter.post("/analyze", async (c) => {
-  const username = getUsername(c);
-  if (!username) return c.json({ error: "Unauthorized" }, 401);
-  const { taskPrompt } = await c.req.json();
-  const analysis = await AgentGenerator.analyzeTask(username, taskPrompt);
-  return c.json(analysis);
-});
-
-// Generate briefings for stances
-experimentsRouter.post("/generate-briefings", async (c) => {
-  const username = getUsername(c);
-  if (!username) return c.json({ error: "Unauthorized" }, 401);
-  const { taskPrompt, dichotomies } = await c.req.json();
-  const briefings = await AgentGenerator.generateStanceBriefings(username, taskPrompt, dichotomies);
-  return c.json({ briefings });
 });
 
 // Get experiment detail
@@ -62,8 +52,8 @@ experimentsRouter.post("/", async (c) => {
   const id = crypto.randomUUID();
   let experiment: LabExperiment;
 
-  const defaultModels = ["anthropic/claude-3-5-sonnet", "openai/gpt-4o", "google/gemini-1.5-pro"];
-  const fallbackModel = defaultModels[0]; // fallback default
+  const userDefaultModel = piSessionManager.getUserDefaultModel(username);
+  const fallbackModel = userDefaultModel || "anthropic/claude-3-5-sonnet";
 
   if (blueprintId) {
     const blueprint = await ExperimentStore.getBlueprint(blueprintId);
@@ -162,11 +152,51 @@ experimentsRouter.post("/:id/run", async (c) => {
   }
 });
 
+// Stop experiment
+experimentsRouter.post("/:id/stop", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  if (!ExperimentRunner.isRunning(id)) {
+    return c.json({ error: "Experiment is not running" }, 400);
+  }
+  await ExperimentRunner.stopExperiment(username, id);
+  return c.json({ success: true });
+});
+
+// Update experiment
+experimentsRouter.patch("/:id", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const exp = await ExperimentStore.getExperiment(username, id);
+  if (!exp) return c.json({ error: "Experiment not found" }, 404);
+  if (exp.status === "running") return c.json({ error: "Cannot edit a running experiment" }, 409);
+
+  const body = await c.req.json();
+  const updatableFields = ["name", "taskPrompt", "criteria", "positions", "variants", "judge"];
+  for (const field of updatableFields) {
+    if (body[field] !== undefined) {
+      (exp as any)[field] = body[field];
+    }
+  }
+  if (body.autoEvaluate !== undefined) {
+    exp.judge.autoEvaluate = body.autoEvaluate;
+  }
+
+  exp.status = "designing";
+  await ExperimentStore.saveExperiment(username, exp);
+  return c.json({ experiment: exp });
+});
+
 // Delete experiment
 experimentsRouter.delete("/:id", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
+  if (ExperimentRunner.isRunning(id)) {
+    return c.json({ error: "Cannot delete a running experiment" }, 409);
+  }
   await ExperimentStore.deleteExperiment(username, id);
   return c.json({ success: true });
 });

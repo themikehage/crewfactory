@@ -11,10 +11,54 @@ import { rmSync, existsSync } from "node:fs";
 import { join } from "node:path";
 
 export class ExperimentRunner {
-  private static activeRuns = new Set<string>(); // Set of experimentIds currently running
+  private static activeRuns = new Set<string>();
+  private static abortControllers = new Map<string, AbortController>();
 
   static isRunning(experimentId: string): boolean {
     return this.activeRuns.has(experimentId);
+  }
+
+  static async stopExperiment(username: string, experimentId: string): Promise<void> {
+    const controller = this.abortControllers.get(experimentId);
+    if (controller) {
+      controller.abort();
+      this.abortControllers.delete(experimentId);
+    }
+
+    const channelIds = [
+      `lab_${experimentId}_single`,
+      `lab_${experimentId}_multiNoLeader`,
+      `lab_${experimentId}_multiWithLeader`
+    ];
+    for (const channelId of channelIds) {
+      try {
+        channelOrchestrator.abortDispatch(username, channelId);
+      } catch {}
+    }
+
+    try {
+      const { agentRegistry } = await import("../agents");
+      const agents = agentRegistry.list(username);
+      for (const ag of agents) {
+        if (ag.id.startsWith(`lab_${experimentId}_`)) {
+          try { await agentRegistry.stop(ag.id, false); } catch {}
+        }
+      }
+    } catch {}
+
+    this.activeRuns.delete(experimentId);
+
+    const exp = await ExperimentStore.getExperiment(username, experimentId);
+    if (exp) {
+      exp.status = "failed";
+      await ExperimentStore.saveExperiment(username, exp);
+      broadcastToUser(username, {
+        type: "experiment_status",
+        experimentId,
+        status: "failed",
+        error: "Stopped by user"
+      });
+    }
   }
 
   static async runExperiment(username: string, experimentId: string): Promise<void> {
@@ -25,12 +69,14 @@ export class ExperimentRunner {
     const exp = await ExperimentStore.getExperiment(username, experimentId);
     if (!exp) throw new Error("Experiment not found");
 
+    const controller = new AbortController();
+    this.abortControllers.set(experimentId, controller);
+
     this.activeRuns.add(experimentId);
     exp.status = "running";
     exp.startedAt = new Date().toISOString();
     await ExperimentStore.saveExperiment(username, exp);
 
-    // Broadcast starting status
     broadcastToUser(username, {
       type: "experiment_status",
       experimentId,
@@ -38,17 +84,17 @@ export class ExperimentRunner {
       activeVariant: "single"
     });
 
-    // Execute in the background
-    this.executeAllVariants(username, exp).finally(() => {
+    this.executeAllVariants(username, exp, controller.signal).finally(() => {
       this.activeRuns.delete(experimentId);
+      this.abortControllers.delete(experimentId);
     });
   }
 
-  private static async executeAllVariants(username: string, exp: LabExperiment): Promise<void> {
+  private static async executeAllVariants(username: string, exp: LabExperiment, signal: AbortSignal): Promise<void> {
     try {
-      // 1. Run Single Agent
+      if (signal.aborted) return;
       broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "single" });
-      const singleResult = await this.runSingleVariant(username, exp);
+      const singleResult = await this.runSingleVariant(username, exp, signal);
       exp.variants.single.result = singleResult;
       await ExperimentStore.saveExperiment(username, exp);
 
@@ -58,19 +104,21 @@ export class ExperimentRunner {
       };
 
       // 2. Run Multi-Agent No Leader
+      if (signal.aborted) return;
       broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "multiNoLeader" });
-      const noLeaderResult = await this.runMultiVariant(username, exp, "multiNoLeader", baselineStats);
+      const noLeaderResult = await this.runMultiVariant(username, exp, "multiNoLeader", baselineStats, signal);
       exp.variants.multiNoLeader.result = noLeaderResult;
       await ExperimentStore.saveExperiment(username, exp);
 
       // 3. Run Multi-Agent With Leader
+      if (signal.aborted) return;
       broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "multiWithLeader" });
-      const withLeaderResult = await this.runMultiVariant(username, exp, "multiWithLeader", baselineStats);
+      const withLeaderResult = await this.runMultiVariant(username, exp, "multiWithLeader", baselineStats, signal);
       exp.variants.multiWithLeader.result = withLeaderResult;
       await ExperimentStore.saveExperiment(username, exp);
 
       // 4. Scoring & Judge Evaluation
-      if (exp.judge.autoEvaluate) {
+      if (exp.judge.autoEvaluate && !signal.aborted) {
         broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "judging" });
         const judgeResults = await LabJudge.evaluateRuns(username, exp.taskPrompt, exp.judge.criteria, {
           single: singleResult.finalOutput,
@@ -143,7 +191,7 @@ export class ExperimentRunner {
     }
   }
 
-  private static async runSingleVariant(username: string, exp: LabExperiment): Promise<VariantRunResult> {
+  private static async runSingleVariant(username: string, exp: LabExperiment, signal: AbortSignal): Promise<VariantRunResult> {
     const startTime = Date.now();
     const run = exp.variants.single;
     const channelId = `lab_${exp.id}_single`;
@@ -162,12 +210,22 @@ export class ExperimentRunner {
     if (agentRegistry.get(regId)) {
       try { await agentRegistry.stop(regId, false); } catch {}
     }
+
+    // Resolve model: if not configured, fallback to first configured model
+    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const configuredModels = modelRegistry.getAvailable();
+    let resolvedModel = ag.model;
+    const foundModel = configuredModels.find(m => m.id === ag.model || `${m.provider}/${m.id}` === ag.model);
+    if (!foundModel && configuredModels.length > 0) {
+      resolvedModel = `${configuredModels[0].provider}/${configuredModels[0].id}`;
+    }
+
     await agentRegistry.register(username, {
       id: regId,
       name: ag.name,
       role: ag.role,
       systemPrompt: ag.systemPrompt || "Eres un asistente general de IA. Responde en español.",
-      model: ag.model,
+      model: resolvedModel,
       skills: []
     }, false);
 
@@ -249,7 +307,8 @@ export class ExperimentRunner {
     username: string,
     exp: LabExperiment,
     variantKey: "multiNoLeader" | "multiWithLeader",
-    baseline: { durationMs: number; totalTokens: number }
+    baseline: { durationMs: number; totalTokens: number },
+    signal: AbortSignal
   ): Promise<VariantRunResult> {
     const startTime = Date.now();
     const run = exp.variants[variantKey];
@@ -258,18 +317,29 @@ export class ExperimentRunner {
 
     // 1. Temporary register agents
     const registeredIds: string[] = [];
+    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const configuredModels = modelRegistry.getAvailable();
+
     for (const ag of run.agents) {
       const regId = `lab_${exp.id}_${variantKey}_${ag.id}`;
       // Clean up previous registration if any
       if (agentRegistry.get(regId)) {
         try { await agentRegistry.stop(regId, false); } catch {}
       }
+
+      // Resolve model: if not configured, fallback to first configured model
+      let resolvedModel = ag.model;
+      const foundModel = configuredModels.find(m => m.id === ag.model || `${m.provider}/${m.id}` === ag.model);
+      if (!foundModel && configuredModels.length > 0) {
+        resolvedModel = `${configuredModels[0].provider}/${configuredModels[0].id}`;
+      }
+
       await agentRegistry.register(username, {
         id: regId,
         name: ag.name,
         role: ag.role,
         systemPrompt: ag.systemPrompt,
-        model: ag.model,
+        model: resolvedModel,
         skills: []
       }, false); // saveToDisk = false to isolate
       registeredIds.push(regId);

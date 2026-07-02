@@ -208,6 +208,15 @@ class PiSessionManager {
     this.users.delete(username);
   }
 
+  getUserDefaultModel(username: string): string | null {
+    const { modelRegistry } = this.getUserContext(username);
+    const available = modelRegistry.getAvailable();
+    if (available.length > 0) {
+      return `${available[0].provider}/${available[0].id}`;
+    }
+    return null;
+  }
+
 
   async getOrCreateSession(
     username: string,
