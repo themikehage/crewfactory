@@ -33,9 +33,11 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
   const [criteria, setCriteria] = useState<string[]>([]);
   const [newCriterion, setNewCriterion] = useState("");
   const analyzeChannel = useLLMChannel("lab_analyze");
+  const [analyzeParseError, setAnalyzeParseError] = useState<string | null>(null);
 
   const [stances, setStances] = useState<Stance[]>([]);
   const briefingsChannel = useLLMChannel("lab_briefings");
+  const [briefingsParseError, setBriefingsParseError] = useState<string | null>(null);
   const [customAgents, setCustomAgents] = useState<Agent[]>([]);
   const [defaultModel, setDefaultModel] = useState("anthropic/claude-3-5-sonnet");
   const [defaultModelLoaded, setDefaultModelLoaded] = useState(false);
@@ -141,6 +143,8 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
     setCustomAgents([]);
     analyzeChannel.reset();
     briefingsChannel.reset();
+    setAnalyzeParseError(null);
+    setBriefingsParseError(null);
   };
 
   const openWizard = (mode: "create" | "edit", exp?: Experiment) => {
@@ -176,7 +180,11 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
     if (analyzeChannel.result && !analyzeChannel.loading) {
       try {
         let rawJson = analyzeChannel.result.trim();
-        if (rawJson.startsWith("```")) {
+        const firstBrace = rawJson.indexOf("{");
+        const lastBrace = rawJson.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          rawJson = rawJson.substring(firstBrace, lastBrace + 1);
+        } else if (rawJson.startsWith("```")) {
           rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
         }
         const parsed = JSON.parse(rawJson);
@@ -184,8 +192,10 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
         setSelectedDichotomies(parsed.suggestedDichotomies?.map((d: { id: string }) => d.id) || []);
         setCriteria(parsed.criteria || []);
         setWizardStep(2);
+        setAnalyzeParseError(null);
       } catch (e) {
         console.error("Failed to parse analyze result:", e);
+        setAnalyzeParseError("Error al procesar la respuesta de la IA. Por favor, intentá de nuevo.");
       }
     }
   }, [analyzeChannel.result, analyzeChannel.loading]);
@@ -194,7 +204,11 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
     if (briefingsChannel.result && !briefingsChannel.loading) {
       try {
         let rawJson = briefingsChannel.result.trim();
-        if (rawJson.startsWith("```")) {
+        const firstBrace = rawJson.indexOf("{");
+        const lastBrace = rawJson.lastIndexOf("}");
+        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+          rawJson = rawJson.substring(firstBrace, lastBrace + 1);
+        } else if (rawJson.startsWith("```")) {
           rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
         }
         const parsed = JSON.parse(rawJson);
@@ -246,14 +260,17 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
 
         setCustomAgents(agentsList);
         setWizardStep(3);
+        setBriefingsParseError(null);
       } catch (e) {
         console.error("Failed to parse briefings result:", e);
+        setBriefingsParseError("Error al procesar los briefings generados. Por favor, intentá de nuevo.");
       }
     }
   }, [briefingsChannel.result, briefingsChannel.loading, defaultModel]);
 
   const handleAnalyzeTask = async () => {
     if (!wizardPrompt.trim() || !wizardName.trim()) return;
+    setAnalyzeParseError(null);
 
     const systemPrompt = `You are an AI Architect. Analyze the project task and suggest:
 1. The top 2 most relevant dichotomy templates from this catalog: ${JSON.stringify([
@@ -276,6 +293,7 @@ Output ONLY a JSON object (no markdown fences):
       await analyzeChannel.sendRequest({
         prompt: wizardPrompt,
         systemPrompt,
+        model: defaultModel,
       });
     } catch (e) {
       console.error("Analyze task failed:", e);
@@ -295,6 +313,7 @@ Output ONLY a JSON object (no markdown fences):
 
   const handleGenerateStances = async () => {
     if (selectedDichotomies.length === 0) return;
+    setBriefingsParseError(null);
 
     const systemPrompt = `You are an AI Prompt Engineer. For the given project task, generate custom agent briefings for the chosen roles/dichotomies.
 Each briefing must be a detailed, 1-paragraph system prompt instruction explaining the role's point of view, priorities, arguments, and guidelines adapted specifically to the project task.
@@ -316,6 +335,7 @@ ${JSON.stringify(selectedDichotomies.map(d => ({ id: d, name: d.replace(/_/g, " 
       await briefingsChannel.sendRequest({
         prompt,
         systemPrompt,
+        model: defaultModel,
       });
     } catch (e) {
       console.error("Generate briefings failed:", e);
@@ -497,7 +517,7 @@ ${JSON.stringify(selectedDichotomies.map(d => ({ id: d, name: d.replace(/_/g, " 
               selectedBlueprint={selectedBlueprint}
               analyzeChannelLoading={analyzeChannel.loading}
               analyzeChannelText={analyzeChannel.text}
-              analyzeChannelError={analyzeChannel.error}
+              analyzeChannelError={analyzeChannel.error || analyzeParseError}
               onAnalyzeTask={handleAnalyzeTask}
               onSaveBlueprint={handleSave}
               onSaveAndRunBlueprint={handleSaveAndRun}
@@ -511,7 +531,7 @@ ${JSON.stringify(selectedDichotomies.map(d => ({ id: d, name: d.replace(/_/g, " 
               onRemoveCriterion={handleRemoveCriterion}
               briefingsChannelLoading={briefingsChannel.loading}
               briefingsChannelText={briefingsChannel.text}
-              briefingsChannelError={briefingsChannel.error}
+              briefingsChannelError={briefingsChannel.error || briefingsParseError}
               onGenerateStances={handleGenerateStances}
               customAgents={customAgents}
               defaultModel={defaultModel}

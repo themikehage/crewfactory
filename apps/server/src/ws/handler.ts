@@ -166,7 +166,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
           existingUnsub();
         }
 
-        if (sessionId.startsWith("exec_")) {
+        if (sessionId.startsWith("exec_") || sessionId.startsWith("lab_")) {
           safeSend(ws, JSON.stringify({ type: "auth_success", wsId: ws.wsId }));
           return;
         }
@@ -406,6 +406,87 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const sessionId = data.sessionId as string | undefined;
     if (channelId) {
       channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
+    }
+  }
+
+  if (data.type === "llm_request") {
+    const requestId = data.requestId as string;
+    const prompt = data.prompt as string;
+    const systemPrompt = data.systemPrompt as string | undefined;
+    const model = data.model as string | undefined;
+
+    if (!requestId || !prompt) {
+      safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: "Missing requestId or prompt" }));
+      return;
+    }
+
+    const tempSessionId = `llm_${requestId}_${crypto.randomUUID()}`;
+
+    try {
+      const session = await piSessionManager.getOrCreateSession(user.username, tempSessionId);
+
+      if (model) {
+        try {
+          await session.setModel(model);
+        } catch (e) {
+          safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: `Failed to set model: ${e}` }));
+          await piSessionManager.destroySession(user.username, tempSessionId);
+          return;
+        }
+      }
+
+      const { modelRegistry } = piSessionManager.getUserContext(user.username);
+      if (!session.model || !modelRegistry.hasConfiguredAuth(session.model)) {
+        const available = modelRegistry.getAvailable();
+        if (available.length > 0) {
+          try {
+            await session.setModel(available[0]);
+          } catch (e) {
+            safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: `No model configured: ${e}` }));
+            await piSessionManager.destroySession(user.username, tempSessionId);
+            return;
+          }
+        } else {
+          safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: "No providers configured. Go to Settings to add an API key." }));
+          await piSessionManager.destroySession(user.username, tempSessionId);
+          return;
+        }
+      }
+
+      const unsub = session.subscribe((evt: any) => {
+        if (evt.type === "message_update") {
+          const delta = evt.assistantMessageEvent;
+          if (delta?.type === "text_delta" && delta.delta) {
+            safeSend(ws, JSON.stringify({ type: "llm_delta", requestId, text: delta.delta }));
+          }
+        }
+      });
+
+      try {
+        const finalPrompt = systemPrompt ? `${systemPrompt}\n\n---\n\n${prompt}` : prompt;
+        await session.prompt(finalPrompt);
+
+        let rawResult = "";
+        const msgs = [...session.messages].reverse() as any[];
+        const lastMsg = msgs.find((m: any) => m.role === "assistant");
+        if (lastMsg) {
+          if (typeof lastMsg.content === "string") rawResult = lastMsg.content;
+          else if (Array.isArray(lastMsg.content)) {
+            rawResult = lastMsg.content.map((c: any) => c.text || "").join("\n");
+          }
+        }
+
+        safeSend(ws, JSON.stringify({ type: "llm_complete", requestId, result: rawResult.trim() }));
+      } catch (e) {
+        console.error(`[llm_request] Error for requestId ${requestId}:`, e);
+        safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: String(e) }));
+      } finally {
+        unsub();
+        await piSessionManager.destroySession(user.username, tempSessionId);
+      }
+    } catch (e) {
+      console.error(`[llm_request] Fatal error for requestId ${requestId}:`, e);
+      safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: String(e) }));
     }
   }
 }
