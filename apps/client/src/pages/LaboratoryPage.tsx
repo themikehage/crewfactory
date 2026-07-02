@@ -177,6 +177,15 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
   };
 
   useEffect(() => {
+    fetch("/api/client-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        level: "INFO",
+        message: `[LaboratoryPage] useEffect analyzeChannel triggered. result=${!!analyzeChannel.result} loading=${analyzeChannel.loading}`
+      }),
+    }).catch(() => {});
+
     if (analyzeChannel.result && !analyzeChannel.loading) {
       try {
         let rawJson = analyzeChannel.result.trim();
@@ -187,6 +196,16 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
         } else if (rawJson.startsWith("```")) {
           rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
         }
+        
+        fetch("/api/client-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            level: "INFO",
+            message: `[LaboratoryPage] Parsing rawJson. length=${rawJson.length} Content: ${rawJson}`
+          }),
+        }).catch(() => {});
+
         const parsed = JSON.parse(rawJson);
         setSuggestedDichotomies(parsed.suggestedDichotomies || []);
         setSelectedDichotomies(parsed.suggestedDichotomies?.map((d: { id: string }) => d.id) || []);
@@ -195,6 +214,14 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
         setAnalyzeParseError(null);
       } catch (e) {
         console.error("Failed to parse analyze result:", e);
+        fetch("/api/client-log", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            level: "ERROR",
+            message: `[LaboratoryPage] Failed to parse analyze result: ${e}`
+          }),
+        }).catch(() => {});
         setAnalyzeParseError("Error al procesar la respuesta de la IA. Por favor, intentá de nuevo.");
       }
     }
