@@ -32,7 +32,7 @@ class ChannelStore {
   }
 
   createChannel(username: string, data: CreateChannel): Channel {
-    const id = crypto.randomUUID();
+    const id = (data as any).id || crypto.randomUUID();
     const dir = this.getChannelDir(username, id);
 
     const now = new Date().toISOString();
@@ -83,7 +83,7 @@ class ChannelStore {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const channel = this.getChannel(username, entry.name);
-        if (channel) {
+        if (channel && !channel.id.startsWith("lab_")) {
           const msgPath = this.getMessagesPath(username, entry.name);
           if (existsSync(msgPath)) {
             try {

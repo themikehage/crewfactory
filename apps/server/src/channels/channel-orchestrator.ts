@@ -847,13 +847,16 @@ class ChannelOrchestrator {
         rulesBlock =
           `COMMUNICATION PROTOCOL (USER MESSAGE):\n` +
           `1. DIRECT ASSISTANCE: You are responding to the user. Answer clearly, professionally, and helpfully to address their request or guide them.\n` +
-          `2. TASK DELEGATION: If your response requires delegation, review, or input from a specific teammate (e.g. @Tech Lead, @Senior Dev), formulate your task or scope and explicitly tag them in your message.\n\n`;
+          `2. CONCISENESS & STYLE: Be concise. Avoid large markdown tables, bulleted breakdowns, or lengthy lists unless explicitly requested. Write like a human in a team chat.\n` +
+          `3. TASK DELEGATION: If your response requires delegation, review, or input from a specific teammate (e.g. @Tech Lead, @Senior Dev), formulate your task or scope and explicitly tag them in your message.\n\n`;
       } else {
         rulesBlock =
           `COMMUNICATION PROTOCOL (PEER AGENT MESSAGE):\n` +
           `1. NO COURTESY CHATTER: You are receiving a message from peer agent "${incomingMsg.agentName || incomingMsg.agentId}". Do NOT reply merely to say hello, acknowledge receipt, or state that you are "present" or "on standby".\n` +
-          `2. SILENT MODE: If this peer message does not require your specific technical decision, deliverable, or direct action, reply EXACTLY with "(silent)".\n` +
-          `3. TASK DELEGATION: Mention other team members using @name or @id ONLY when transferring an explicit task or work deliverable.\n\n`;
+          `2. CHRONOLOGY CHECK: Check the conversation history. If an agreement has already been reached or a decision has already been finalized (e.g., in a message saying "ACUERDO ALCANZADO" or "ACEPTO"), do NOT propose alternative versions, contra-proposals, or re-open the negotiation. Maintain alignment with the latest messages.\n` +
+          `3. CONCISENESS & STYLE: Be extremely concise and direct. Do NOT repeat tables, desgloses, or previous messages. Explain your reasoning in 1-2 sentences.\n` +
+          `4. SILENT MODE: If this peer message does not require your specific technical decision, deliverable, or direct action, reply EXACTLY with "(silent)".\n` +
+          `5. TASK DELEGATION: Mention other team members using @name or @id ONLY when transferring an explicit task or work deliverable.\n\n`;
       }
 
       rosterBlock =

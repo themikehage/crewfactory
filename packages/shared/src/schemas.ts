@@ -360,3 +360,128 @@ export const AgentExecutionSchema = z.object({
 });
 export type AgentExecution = z.infer<typeof AgentExecutionSchema>;
 
+// --- Laboratory Experiments ---
+
+export const LabStanceSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  template: z.string(),
+  position: z.string(),
+  briefing: z.string(),
+  icon: z.string(),
+  color: z.string(),
+});
+export type LabStance = z.infer<typeof LabStanceSchema>;
+
+export const LabAgentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  role: z.string(),
+  stance: LabStanceSchema,
+  systemPrompt: z.string(),
+  model: z.string(),
+  leader: z.boolean().optional(),
+});
+export type LabAgent = z.infer<typeof LabAgentSchema>;
+
+export const VariantRunResultSchema = z.object({
+  status: z.enum(["completed", "failed"]),
+  durationMs: z.number(),
+  tokensIn: z.number(),
+  tokensOut: z.number(),
+  negotiationRounds: z.number().optional(),
+  escalationsToLeader: z.number().optional(),
+  agreementReached: z.boolean(),
+  finalOutput: z.string(),
+  scores: z.object({
+    taskQuality: z.number(),
+    efficiencyScore: z.number(),
+    negotiationScore: z.number().optional(),
+    globalScore: z.number(),
+  }),
+});
+export type VariantRunResult = z.infer<typeof VariantRunResultSchema>;
+
+export const VariantRunSchema = z.object({
+  type: z.enum(["single", "multi_no_leader", "multi_with_leader"]),
+  channelId: z.string().optional(),
+  agents: z.array(LabAgentSchema),
+  result: VariantRunResultSchema.optional(),
+});
+export type VariantRun = z.infer<typeof VariantRunSchema>;
+
+export const LabTestCaseSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  goldAnswer: z.object({
+    fichas: z.number().optional(),
+    dias: z.number().optional(),
+  }).optional(),
+  taskPrompt: z.string().optional(),
+});
+export type LabTestCase = z.infer<typeof LabTestCaseSchema>;
+
+export const LabBlueprintSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  agents: z.array(z.object({
+    id: z.string(),
+    name: z.string(),
+    role: z.string(),
+    systemPromptTemplate: z.string(),
+    leader: z.boolean().optional(),
+    replyMode: ReplyModeSchema.optional(),
+  })),
+  channelConfig: z.object({
+    name: z.string(),
+    negotiationProtocol: z.object({
+      agreementPattern: z.string(),
+      counterPattern: z.string().optional(),
+      rejectPattern: z.string().optional(),
+      maxRounds: z.number().int().min(1).max(20).default(3),
+      arbiterAgentId: z.string().optional(),
+    }).optional(),
+    delegationPattern: DelegationPatternSchema.optional(),
+    context: z.array(z.object({
+      key: z.string(),
+      value: z.string(),
+    })).optional(),
+  }).optional(),
+  testCases: z.array(LabTestCaseSchema),
+  scoringConfig: z.object({
+    metrics: z.array(z.object({
+      id: z.string(),
+      name: z.string(),
+      weight: z.number(),
+      type: z.enum(["numeric-deviation", "llm-judge", "custom-script"]),
+    })),
+  }).optional(),
+});
+export type LabBlueprint = z.infer<typeof LabBlueprintSchema>;
+
+export const LabExperimentSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  taskPrompt: z.string(),
+  status: z.enum(["designing", "generating", "running", "completed", "failed"]),
+  positions: z.array(LabStanceSchema),
+  judge: z.object({
+    criteria: z.array(z.string()),
+    autoEvaluate: z.boolean(),
+  }),
+  variants: z.object({
+    single: VariantRunSchema,
+    multiNoLeader: VariantRunSchema,
+    multiWithLeader: VariantRunSchema,
+  }),
+  createdAt: z.string(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  blueprintId: z.string().optional(),
+  activeRunIndex: z.number().optional(),
+});
+export type LabExperiment = z.infer<typeof LabExperimentSchema>;
+
+

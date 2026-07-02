@@ -99,7 +99,7 @@ class AgentRegistry {
   list(username: string): AgentInfo[] {
     const result: AgentInfo[] = [];
     for (const [id, entry] of this.agents) {
-      if (entry.username === username) {
+      if (entry.username === username && !id.startsWith("lab_")) {
         result.push({
           id,
           name: entry.server.definition.name,

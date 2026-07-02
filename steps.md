@@ -429,3 +429,12 @@ crear un plan de despliegue facil en vps
 - [x] 48.9 Build React `ChannelOptimizePanel.tsx` component to control and display prompt refinement progress
 - [x] 48.10 Add MIT License in workspace root for standard open-source submission
 - [x] 48.11 Verify successful builds of server and client applications
+
+## Phase 49: Decoupled Multi-Variant Agent Benchmarking Laboratory
+- [x] 49.1 Shared Zod schemas: `LabStanceSchema`, `LabAgentSchema`, `VariantRunSchema`, `VariantRunResultSchema`, `LabTestCaseSchema`, `LabBlueprintSchema`, `LabExperimentSchema`.
+- [x] 49.2 Predefined dichotomy templates catalog and JSON experiment store.
+- [x] 49.3 Programmatic isolated agent registration and virtual channel runner sequential orchestrator.
+- [x] 49.4 LLM-Judge evaluator and compound scoring engine.
+- [x] 49.5 REST API endpoints under `/api/experiments` and user WebSocket status broadcasting.
+- [x] 49.6 React `LaboratoryPage` UI featuring an interactive configuration wizard (Template/Scratch) and dynamic metrics charts/comparison dashboards.
+- [x] 49.7 Verification: clean monorepo builds and successful TypeScript typechecking.

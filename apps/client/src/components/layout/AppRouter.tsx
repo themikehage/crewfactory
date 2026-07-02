@@ -7,6 +7,7 @@ import { AgentsPage } from "@/pages/AgentsPage";
 import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
 import { LogsConsolePage } from "@/pages/LogsConsolePage";
+import { LaboratoryPage } from "@/pages/LaboratoryPage";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
@@ -214,6 +215,9 @@ export function AppRouter() {
           onSelectChannel={handleSelectChannel}
           onNavigate={navigate}
         />
+      )}
+      {route.page === "laboratory" && (
+        <LaboratoryPage onNavigate={navigate} />
       )}
       {route.page === "channel" && (
         <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />

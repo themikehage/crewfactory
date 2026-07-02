@@ -10,7 +10,8 @@ export type Route =
   | { page: "agents" }
   | { page: "channels" }
   | { page: "channel"; channelId: string }
-  | { page: "logs" };
+  | { page: "logs" }
+  | { page: "laboratory" };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
@@ -86,6 +87,7 @@ function parseRoute(): Route {
   if (path === "/agents") return { page: "agents" };
   if (path === "/channels") return { page: "channels" };
   if (path === "/logs") return { page: "logs" };
+  if (path === "/laboratory") return { page: "laboratory" };
 
   return { page: "chat", sessionId: null };
 }

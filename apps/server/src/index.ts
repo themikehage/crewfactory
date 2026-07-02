@@ -18,6 +18,7 @@ import { previewRouter } from "./routes/preview";
 import { backupRouter } from "./routes/backup";
 import { logsRouter } from "./routes/logs";
 import { mcpRouter } from "./routes/mcp";
+import { experimentsRouter } from "./routes/experiments";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
 
@@ -44,6 +45,7 @@ app.route("/api/channels", channelsRouter);
 app.route("/api/backup", backupRouter);
 app.route("/api/logs", logsRouter);
 app.route("/api/mcp", mcpRouter);
+app.route("/api/experiments", experimentsRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 

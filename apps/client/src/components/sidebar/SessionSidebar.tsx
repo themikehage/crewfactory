@@ -162,6 +162,17 @@ export function SessionSidebar({
   const adminItems = useMemo(
     () => [
       {
+        id: "laboratory",
+        label: "Laboratorio",
+        path: "/laboratory",
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M4.5 3h15" />
+            <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
+          </svg>
+        ),
+      },
+      {
         id: "skills",
         label: "Skills Library",
         path: "/skills",

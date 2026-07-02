@@ -143,6 +143,18 @@
 - **Hierarchical Roles & Visual Org Chart**: Channel members can be assigned hierarchical roles (`lead`, `senior`, `member`, `observer`). Displays Lead indicators in the sub-header and card previews. Features an interactive SVG-based Org Chart view rendering orthogonal branching tree connections on desktop, with a grouped card list fallback on mobile devices.
 
 
+### Multi-Variant Agent Benchmarking Laboratory (`experimentId`)
+- **Decoupled Architecture**: No hardcoding or concrete project coupling. Standardized blueprints loaded dynamically from JSON configurations (`apps/server/src/laboratory/blueprints/`).
+- **Sequential Multi-Variant Runs**: Executes three variants sequentially to prevent rate limits:
+  1. **Single Agent (Baseline)**: Virtual single-agent channel.
+  2. **Multi-Agent No Leader (Horizontal)**: Direct debate with open broadcast reply mode.
+  3. **Multi-Agent With Leader (Hierarchical)**: Targeted debate moderated by a lead agent with a structured negotiation protocol (agreement, counter-offers, round tracking, escalations).
+- **LLM-Judge Evaluation**: Automated judge scoring outputs from 0-100 on customizable criteria, providing reasons.
+- **Compound Scoring Engine**: Computes Global Score based on weights (50% Quality, 30% Efficiency, 20% Negotiation). Efficiency calculated using execution time and token overhead relative to Single Agent baseline.
+- **Dynamic Predefined Catalog**: Supports pre-configured dichotomy templates (e.g. Cost vs Quality, Speed vs Safety, Simplicity vs Features) to suggest stances and generate agent briefings.
+- **Interactive UI Dashboard**: Includes a step-by-step setup wizard (Template/Scratch), live WebSocket multi-column execution logs, custom SVG metrics comparison charts, and metrics matrices.
+
+
 ### Global Logs Console
 - **Real-Time System Monitoring**: Live dashboard showing all system operations (user/agent messages, raw reasoning deltas, tool start/end parameters/results) across any session or channel.
 - **Central Event Broker**: Singleton server module (`eventBroker`) buffering recent logs in-memory and broadcasting events via WebSockets.

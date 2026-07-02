@@ -1,0 +1,130 @@
+{
+  "id": "autoconsulting",
+  "name": "AutoConsulting Estimation Pipeline",
+  "description": "Multi-agent negotiation pipeline between CEO, Tech Lead, Senior Dev, and Commercial Director to estimate software projects.",
+  "agents": [
+    {
+      "id": "ceo",
+      "name": "CEO",
+      "role": "Chief Executive Officer — AutoConsulting",
+      "systemPromptTemplate": "Eres el CEO de la consultora AutoConsulting. Actuás como líder y nexo comercial.\nTu rol en este canal:\n1. Eres el único que escucha al cliente (@User). Cuando llega un brief, analizalo y reformulalo de manera muy concisa y conversacional (en 1 o 2 párrafos cortos, sin tablas de características ni desgloses de fichas), indicando qué se busca construir, y delega al @Tech Lead para la estimación técnica.\n2. Durante la negociación técnica interna entre el Tech Lead y el Senior Dev, mantenete en silencio. Solo interviene si detectas un bloqueo real (no logran acordar tras 2+ rondas), en cuyo caso emite un veredicto ejecutivo corto y definitivo en 2 oraciones.\n3. Cuando haya un acuerdo técnico formal (marcado con \"ACUERDO ALCANZADO\" o \"ACEPTO\"), instruye brevemente al @Marketing Director para que redacte la propuesta comercial final.",
+      "channelRole": "observer",
+      "replyMode": "targeted",
+      "targetAgentIds": ["__user__", "tech_lead", "senior_dev"]
+    },
+    {
+      "id": "tech_lead",
+      "name": "Tech Lead",
+      "role": "Technical Lead — Scope estimation and negotiation",
+      "systemPromptTemplate": "Eres el Tech Lead de AutoConsulting. Cuando el CEO presente el brief, propone un enfoque técnico y una estimación de fichas.\nReglas críticas de comunicación:\n1. Escribe como un humano en un chat de Slack. Sé muy conciso y directo (máximo 4-5 líneas de texto).\n2. NUNCA generes tablas de desglose detalladas, listas extensas de componentes, ni desgloses de horas/fichas ítem por ítem. Proporciona solo la arquitectura sugerida y la estimación total de fichas de forma puramente conversacional.\n3. Antes de responder, verifica el historial: si el Senior Dev o vos ya aceptaron o llegaron a un acuerdo cerrado, no agregues más comentarios ni reabras la negociación, responde \"(silent)\".\n4. Negocia de forma pragmática: si la propuesta del Senior Dev varía menos del 15%, aceptala directamente. Si varía más, propone un punto medio en una línea conversacional.\n5. Cuando cierres el acuerdo, indica de manera explícita y en una sola línea separada al final: ACUERDO ALCANZADO: [resumen breve, fichas y tiempo]",
+      "channelRole": "lead",
+      "replyMode": "targeted",
+      "targetAgentIds": ["ceo", "senior_dev"]
+    },
+    {
+      "id": "senior_dev",
+      "name": "Senior Dev",
+      "role": "Senior Developer — Technical feasibility evaluation",
+      "systemPromptTemplate": "Eres un Senior Developer en AutoConsulting. Evalúas la factibilidad y estimación del Tech Lead.\nReglas críticas de comunicación:\n1. Sé extremadamente conciso y directo. Opina en 2 o 3 oraciones cortas.\n2. NUNCA uses tablas Markdown ni hagas listas de desgloses de componentes en tus respuestas.\n3. Antes de responder, verifica la cronología: si ya hay un acuerdo cerrado (el Tech Lead dijo \"ACUERDO ALCANZADO\" o vos ya dijiste \"ACEPTO\"), no agregues nada más, responde \"(silent)\".\n4. Si la estimación del Tech Lead es razonable (dentro de +-20%), aceptala de inmediato. Si consideras que hay riesgos críticos, contrapropone una cifra total cerrada en una sola frase conversacional corta.\n5. Cuando aceptes la propuesta, indica de manera indiscutible en una sola línea separada al final de tu mensaje: ACEPTO la propuesta",
+      "channelRole": "senior",
+      "replyMode": "targeted",
+      "targetAgentIds": ["tech_lead"]
+    },
+    {
+      "id": "marketing",
+      "name": "Marketing Director",
+      "role": "Commercial Director — Client-facing proposals",
+      "systemPromptTemplate": "Eres el Director Comercial de AutoConsulting. Redactas la propuesta final para el cliente.\nReglas críticas de comunicación:\n1. Sé breve, formal y profesional. Escribe directamente el texto final sin preámbulos ni saludos a otros agentes.\n2. La propuesta debe ser un único párrafo conversacional muy conciso (máximo 3-4 oraciones) que resume: qué se construye (el valor), la inversión total en USD (1 ficha = USD 150, redondeada al múltiplo de 500 más cercano) junto al plazo en semanas (5 días = 1 semana, redondeado hacia arriba), y el próximo paso (firma de SOW o kick-off).\n3. No uses tablas, desgloses ni menciones detalles de estimación internos en tu mensaje.\n4. Si la propuesta comercial ya fue redactada y el CEO la aprobó, no respondas nada más y di \"(silent)\".",
+      "channelRole": "member",
+      "replyMode": "targeted",
+      "targetAgentIds": ["ceo"]
+    },
+    {
+      "id": "webbuilder",
+      "name": "WebBuilder",
+      "role": "Autonomous web builder — Pi coding agent",
+      "systemPromptTemplate": "Eres el WebBuilder Agent de AutoConsulting.\n\nPor el momento estas en modo observador. No intervienes en el canal hasta que el CEO te lo indique explicitamente.",
+      "channelRole": "observer",
+      "replyMode": "user-only"
+    }
+  ],
+  "channelConfig": {
+    "name": "AutoConsulting Pipeline",
+    "negotiationProtocol": {
+      "agreementPattern": "(ACUERDO ALCANZADO:|ACEPTO)",
+      "counterPattern": "CONTRAPROPONE",
+      "rejectPattern": "RECHAZO",
+      "maxRounds": 3,
+      "arbiterAgentId": "ceo"
+    },
+    "delegationPattern": {
+      "token": "DELEGATE: @(\\w+) — (.+)",
+      "applyToRole": "lead"
+    },
+    "context": [
+      { "key": "HOURS_PER_FICHA", "value": "4" },
+      { "key": "USD_PER_FICHA", "value": "150" },
+      { "key": "TEAM_SIZE", "value": "2" },
+      { "key": "WORKING_DAYS_PER_WEEK", "value": "5" },
+      { "key": "FICHA_RATE_USD", "value": "150" },
+      { "key": "CURRENCY", "value": "USD" },
+      { "key": "PROJECT_RANGE_SIMPLE", "value": "15-40 fichas" },
+      { "key": "PROJECT_RANGE_MEDIUM", "value": "40-120 fichas" },
+      { "key": "PROJECT_RANGE_COMPLEX", "value": "120-500 fichas" }
+    ]
+  },
+  "testCases": [
+    {
+      "id": "brief-1",
+      "name": "Landing Page Simple",
+      "description": "Una landing page simple para una heladería local con formulario de contacto y mapa.",
+      "goldAnswer": {
+        "fichas": 20,
+        "dias": 5
+      },
+      "taskPrompt": "Landing Page Simple: Una landing page simple para una heladería local con formulario de contacto y mapa."
+    },
+    {
+      "id": "brief-2",
+      "name": "E-Commerce MVP",
+      "description": "Un e-commerce MVP de indumentaria con pasarela de pagos Stripe y panel de control básico para subir productos.",
+      "goldAnswer": {
+        "fichas": 60,
+        "dias": 15
+      },
+      "taskPrompt": "E-Commerce MVP: Un e-commerce MVP de indumentaria con pasarela de pagos Stripe y panel de control básico para subir productos."
+    },
+    {
+      "id": "brief-3",
+      "name": "SaaS Dashboard Complejo",
+      "description": "Una plataforma SaaS de analíticas financieras en tiempo real con integraciones de API de terceros, autenticación avanzada y exportación de PDFs.",
+      "goldAnswer": {
+        "fichas": 180,
+        "dias": 45
+      },
+      "taskPrompt": "SaaS Dashboard Complejo: Una plataforma SaaS de analíticas financieras en tiempo real con integraciones de API de terceros, autenticación avanzada y exportación de PDFs."
+    }
+  ],
+  "scoringConfig": {
+    "metrics": [
+      {
+        "id": "taskQuality",
+        "name": "Task Quality",
+        "weight": 0.5,
+        "type": "llm-judge"
+      },
+      {
+        "id": "efficiencyScore",
+        "name": "Efficiency",
+        "weight": 0.3,
+        "type": "numeric-deviation"
+      },
+      {
+        "id": "negotiationScore",
+        "name": "Negotiation",
+        "weight": 0.2,
+        "type": "numeric-deviation"
+      }
+    ]
+  }
+}

@@ -1,0 +1,172 @@
+import { Hono } from "hono";
+import { authMiddleware } from "../middleware/auth";
+import { getUsername } from "../lib/auth-helpers";
+import { ExperimentStore } from "../laboratory/experiment-store";
+import { AgentGenerator } from "../laboratory/agent-generator";
+import { ExperimentRunner } from "../laboratory/experiment-runner";
+import { type LabStance, type LabAgent, type LabExperiment } from "shared";
+
+export const experimentsRouter = new Hono();
+
+experimentsRouter.use("/*", authMiddleware);
+
+// Get all experiments
+experimentsRouter.get("/", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const list = await ExperimentStore.listExperiments(username);
+  return c.json({ experiments: list });
+});
+
+// Get blueprints
+experimentsRouter.get("/blueprints", async (c) => {
+  const blueprints = await ExperimentStore.listBlueprints();
+  return c.json({ blueprints });
+});
+
+// Analyze task prompt
+experimentsRouter.post("/analyze", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const { taskPrompt } = await c.req.json();
+  const analysis = await AgentGenerator.analyzeTask(username, taskPrompt);
+  return c.json(analysis);
+});
+
+// Generate briefings for stances
+experimentsRouter.post("/generate-briefings", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const { taskPrompt, dichotomies } = await c.req.json();
+  const briefings = await AgentGenerator.generateStanceBriefings(username, taskPrompt, dichotomies);
+  return c.json({ briefings });
+});
+
+// Get experiment detail
+experimentsRouter.get("/:id", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const exp = await ExperimentStore.getExperiment(username, id);
+  if (!exp) return c.json({ error: "Experiment not found" }, 404);
+  return c.json({ experiment: exp });
+});
+
+// Create new experiment
+experimentsRouter.post("/", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const { name, taskPrompt, blueprintId, autoEvaluate, criteria, positions, variants } = await c.req.json();
+
+  const id = crypto.randomUUID();
+  let experiment: LabExperiment;
+
+  const defaultModels = ["anthropic/claude-3-5-sonnet", "openai/gpt-4o", "google/gemini-1.5-pro"];
+  const fallbackModel = defaultModels[0]; // fallback default
+
+  if (blueprintId) {
+    const blueprint = await ExperimentStore.getBlueprint(blueprintId);
+    if (!blueprint) return c.json({ error: "Blueprint not found" }, 404);
+
+    // Resolve test case
+    const testCase = blueprint.testCases.find(tc => tc.name === taskPrompt || tc.description === taskPrompt) || blueprint.testCases[0];
+    const actualPrompt = testCase ? testCase.taskPrompt || testCase.description : taskPrompt;
+
+    // Build the stances from blueprint agents
+    const labStances: LabStance[] = blueprint.agents.map((ag) => ({
+      id: ag.id,
+      name: ag.name,
+      template: blueprintId,
+      position: ag.leader ? "LEADER" : "AGENT",
+      briefing: ag.systemPromptTemplate,
+      icon: ag.leader ? "Award" : "User",
+      color: ag.leader ? "#a855f7" : "#3b82f6"
+    }));
+
+    // Build variants agents
+    const singleAgents: LabAgent[] = [
+      {
+        id: "baseline",
+        name: "General Agent",
+        role: "General Assistant",
+        stance: labStances[0] || { id: "general", name: "General", template: "", position: "A", briefing: "", icon: "", color: "" },
+        systemPrompt: "Eres un asistente general de IA.",
+        model: fallbackModel
+      }
+    ];
+
+    const multiAgents: LabAgent[] = blueprint.agents.map((ag) => ({
+      id: ag.id,
+      name: ag.name,
+      role: ag.role,
+      stance: labStances.find(s => s.id === ag.id)!,
+      systemPrompt: ag.systemPromptTemplate,
+      model: fallbackModel,
+      leader: ag.leader
+    }));
+
+    experiment = {
+      id,
+      name,
+      taskPrompt: actualPrompt,
+      status: "designing",
+      positions: labStances,
+      judge: {
+        criteria: blueprint.scoringConfig?.metrics.map(m => m.name) || ["Quality", "Completeness", "Accuracy"],
+        autoEvaluate: autoEvaluate !== false
+      },
+      variants: {
+        single: { type: "single", agents: singleAgents },
+        multiNoLeader: { type: "multi_no_leader", agents: multiAgents.filter(a => !a.leader) },
+        multiWithLeader: { type: "multi_with_leader", agents: multiAgents }
+      },
+      createdAt: new Date().toISOString(),
+      blueprintId
+    };
+  } else {
+    // Scratch mode
+    experiment = {
+      id,
+      name,
+      taskPrompt,
+      status: "designing",
+      positions: positions || [],
+      judge: {
+        criteria: criteria || ["Completitud", "Claridad", "Viabilidad Técnica"],
+        autoEvaluate: autoEvaluate !== false
+      },
+      variants: variants || {
+        single: { type: "single", agents: [] },
+        multiNoLeader: { type: "multi_no_leader", agents: [] },
+        multiWithLeader: { type: "multi_with_leader", agents: [] }
+      },
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  await ExperimentStore.saveExperiment(username, experiment);
+  return c.json({ experiment }, 201);
+});
+
+// Run experiment
+experimentsRouter.post("/:id/run", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  try {
+    await ExperimentRunner.runExperiment(username, id);
+    return c.json({ success: true });
+  } catch (e: any) {
+    return c.json({ error: e.message }, 400);
+  }
+});
+
+// Delete experiment
+experimentsRouter.delete("/:id", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  await ExperimentStore.deleteExperiment(username, id);
+  return c.json({ success: true });
+});
