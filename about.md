@@ -289,3 +289,5 @@ packages/shared/  Shared Zod schemas and types
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.
+- `pages/LaboratoryPage.tsx` — Multi-variant benchmarking laboratory orchestration view.
+- `components/laboratory/` — Dashboard panels including comparative metrics charts, live execution logs, historical sidebar, and step-by-step experiment wizard.
