@@ -66,7 +66,7 @@ export function useLLMChannel(sessionId: string | null = "llm_channel"): UseLLMC
 
     const unsubComplete = subscribe("llm_complete", (data: unknown) => {
       const evt = data as { requestId: string; result: string };
-      clientLog("INFO", `[LLMChannel] Received complete response for ${evt.requestId}, result length: ${evt.result?.length}`);
+      clientLog("INFO", `[LLMChannel] Received complete response for ${evt.requestId}, result length: ${evt.result?.length}, mountedRef: ${mountedRef.current}`);
       const pending = pendingRequests.current.get(evt.requestId);
       if (pending) {
         pendingRequests.current.delete(evt.requestId);

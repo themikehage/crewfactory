@@ -228,6 +228,17 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
   }, [analyzeChannel.result, analyzeChannel.loading]);
 
   useEffect(() => {
+    fetch("/api/client-log", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        level: "INFO",
+        message: `[LaboratoryPage] wizardStep value changed: ${wizardStep}`
+      }),
+    }).catch(() => {});
+  }, [wizardStep]);
+
+  useEffect(() => {
     if (briefingsChannel.result && !briefingsChannel.loading) {
       try {
         let rawJson = briefingsChannel.result.trim();
