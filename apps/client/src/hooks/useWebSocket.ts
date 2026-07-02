@@ -53,8 +53,8 @@ export function useWebSocket(sessionId: string | null): WebSocketState {
 
         const wildcard = handlersRef.current.get("*");
         wildcard?.forEach((cb) => cb(data));
-      } catch {
-        // ignore parse errors
+      } catch (e) {
+        console.error("[WebSocket Client] Error handling message:", e);
       }
     };
 
