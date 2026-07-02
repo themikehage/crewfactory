@@ -427,7 +427,20 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
       if (model) {
         try {
-          await session.setModel(model);
+          const { modelRegistry } = piSessionManager.getUserContext(user.username);
+          let resolvedModel: any = null;
+          if (model.includes("/")) {
+            const [providerId, modelId] = model.split("/");
+            resolvedModel = modelRegistry.find(providerId, modelId);
+          } else {
+            resolvedModel = modelRegistry.getAvailable().find(m => m.id === model);
+          }
+
+          if (resolvedModel) {
+            await session.setModel(resolvedModel);
+          } else {
+            throw new Error(`Model ${model} not found in registry`);
+          }
         } catch (e) {
           safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: `Failed to set model: ${e}` }));
           await piSessionManager.destroySession(user.username, tempSessionId);
