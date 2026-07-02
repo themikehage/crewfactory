@@ -1,3 +1,4 @@
+COMPLETED ✅
 # One-Click Deployment & Landing Page
 
 Hacer de CrewFactory un proyecto open-source desplegable en un clic por cualquier desarrollador, con calidad de producción y una landing page profesional para SEO.
