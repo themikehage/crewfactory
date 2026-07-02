@@ -143,6 +143,8 @@ export function LaboratoryWizard({
           onAnalyzeTask={onAnalyzeTask}
           onSaveBlueprint={onSaveBlueprint}
           onSaveAndRunBlueprint={onSaveAndRunBlueprint}
+          defaultModel={defaultModel}
+          onChangeModel={onSetAllModels}
         />
       )}
 

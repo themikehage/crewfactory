@@ -1,4 +1,5 @@
 import type { Blueprint } from "@/types/laboratory";
+import { ModelSelector } from "@/components/chat/ModelSelector";
 
 interface Props {
   wizardName: string;
@@ -15,6 +16,8 @@ interface Props {
   onAnalyzeTask: () => void;
   onSaveBlueprint: () => void;
   onSaveAndRunBlueprint: () => void;
+  defaultModel: string;
+  onChangeModel: (modelId: string) => void;
 }
 
 export function WizardStep1({
@@ -32,6 +35,8 @@ export function WizardStep1({
   onAnalyzeTask,
   onSaveBlueprint,
   onSaveAndRunBlueprint,
+  defaultModel,
+  onChangeModel,
 }: Props) {
   return (
     <div className="space-y-4">
@@ -46,21 +51,33 @@ export function WizardStep1({
         />
       </div>
 
-      <div>
-        <label className="block text-xs font-semibold text-text-secondary mb-1">Cargar desde Template / Blueprint (Opcional)</label>
-        <select
-          value={selectedBlueprintId}
-          onChange={(e) => onSelectBlueprint(e.target.value)}
-          className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-accent/40"
-        >
-          <option value="">-- Diseñar desde cero (Scratch) --</option>
-          {blueprints.map((bp) => (
-            <option key={bp.id} value={bp.id}>{bp.name}</option>
-          ))}
-        </select>
-        {selectedBlueprint && (
-          <p className="text-[10px] text-text-secondary mt-1">{selectedBlueprint.description}</p>
-        )}
+      <div className="flex gap-4 items-start">
+        <div className="flex-1">
+          <label className="block text-xs font-semibold text-text-secondary mb-1">Cargar desde Template / Blueprint (Opcional)</label>
+          <select
+            value={selectedBlueprintId}
+            onChange={(e) => onSelectBlueprint(e.target.value)}
+            className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2.5 text-xs text-text-primary focus:outline-none focus:border-accent/40"
+          >
+            <option value="">-- Diseñar desde cero (Scratch) --</option>
+            {blueprints.map((bp) => (
+              <option key={bp.id} value={bp.id}>{bp.name}</option>
+            ))}
+          </select>
+          {selectedBlueprint && (
+            <p className="text-[10px] text-text-secondary mt-1">{selectedBlueprint.description}</p>
+          )}
+        </div>
+        <div className="w-64">
+          <label className="block text-xs font-semibold text-text-secondary mb-1">Modelo de IA (Para Análisis)</label>
+          <div className="h-10 flex items-center bg-bg border border-surface-hover rounded-xl px-3 text-xs text-text-primary">
+            <ModelSelector
+              sessionId={null}
+              value={defaultModel}
+              onChange={onChangeModel}
+            />
+          </div>
+        </div>
       </div>
 
       <div>
