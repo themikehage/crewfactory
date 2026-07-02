@@ -79,7 +79,15 @@ Instructions for optimization:
 
   let refinedPrompt = "";
   try {
-    refinedPrompt = await session.prompt(optimizationPrompt);
+    await session.prompt(optimizationPrompt);
+    const msgs = session.messages;
+    const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
+    if (lastMsg) {
+      if (typeof lastMsg.content === "string") refinedPrompt = lastMsg.content;
+      else if (Array.isArray(lastMsg.content)) {
+        refinedPrompt = lastMsg.content.map((c: any) => c.text || "").join("\n");
+      }
+    }
     refinedPrompt = refinedPrompt.trim();
     // Strip any potential markdown wrappers if the model didn't follow instructions perfectly
     if (refinedPrompt.startsWith("```")) {

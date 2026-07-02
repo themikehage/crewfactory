@@ -54,7 +54,7 @@ export class McpClient {
   }
 
   private async readStdout() {
-    if (!this.proc || !this.proc.stdout) return;
+    if (!this.proc || !this.proc.stdout || typeof this.proc.stdout === "number") return;
     const reader = this.proc.stdout.getReader();
     const decoder = new TextDecoder();
 
@@ -79,7 +79,7 @@ export class McpClient {
   }
 
   private async readStderr() {
-    if (!this.proc || !this.proc.stderr) return;
+    if (!this.proc || !this.proc.stderr || typeof this.proc.stderr === "number") return;
     const reader = this.proc.stderr.getReader();
     const decoder = new TextDecoder();
     try {
@@ -112,15 +112,16 @@ export class McpClient {
   }
 
   async request(method: string, params: any = {}): Promise<any> {
-    if (!this.proc || !this.proc.stdin) throw new Error("Server not running");
+    const stdin = this.proc?.stdin;
+    if (!stdin || typeof stdin === "number") throw new Error("Server not running");
     const id = this.nextId++;
     const payload = JSON.stringify({ jsonrpc: "2.0", id, method, params }) + "\n";
     
     return new Promise((resolve, reject) => {
       this.pendingRequests.set(id, { resolve, reject });
       try {
-        this.proc!.stdin.write(payload);
-        this.proc!.stdin.flush();
+        stdin.write(payload);
+        stdin.flush();
       } catch (e) {
         this.pendingRequests.delete(id);
         reject(e);
@@ -129,11 +130,12 @@ export class McpClient {
   }
 
   notify(method: string, params: any = {}): void {
-    if (!this.proc || !this.proc.stdin) return;
+    const stdin = this.proc?.stdin;
+    if (!stdin || typeof stdin === "number") return;
     const payload = JSON.stringify({ jsonrpc: "2.0", method, params }) + "\n";
     try {
-      this.proc.stdin.write(payload);
-      this.proc.stdin.flush();
+      stdin.write(payload);
+      stdin.flush();
     } catch {}
   }
 

@@ -55,9 +55,16 @@ export async function runConditionA(
   const startTime = Date.now();
   const sessionId = `bench_a_${crypto.randomUUID()}`;
 
-  const { session } = await piSessionManager.getOrCreateSession(username, sessionId);
+  const session = await piSessionManager.getOrCreateSession(username, sessionId);
   if (modelId) {
-    await session.setModel(modelId);
+    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const available = modelRegistry.getAvailable();
+    const found = available.find(
+      (m) => m.id === modelId || `${m.provider}/${m.id}` === modelId
+    );
+    if (found) {
+      await session.setModel(found);
+    }
   }
 
   // Baseline single-agent system instruction
@@ -73,14 +80,22 @@ ACUERDO ALCANZADO: [scope del proyecto, estimación en fichas, duración en día
 
   let rawOutput = "";
   try {
-    rawOutput = await session.prompt(promptText);
+    await session.prompt(promptText);
+    const msgs = session.messages;
+    const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
+    if (lastMsg) {
+      if (typeof lastMsg.content === "string") rawOutput = lastMsg.content;
+      else if (Array.isArray(lastMsg.content)) {
+        rawOutput = lastMsg.content.map((c: any) => c.text || "").join("\n");
+      }
+    }
   } catch (err: any) {
     rawOutput = `Error executing baseline: ${err.message}`;
   }
 
   const durationMs = Date.now() - startTime;
   const stats = session.getSessionStats();
-  const tokensTotal = stats ? stats.promptTokens + stats.completionTokens : 0;
+  const tokensTotal = stats ? stats.tokens.input + stats.tokens.output : 0;
   const costEstimate = tokensTotal * 0.000002; // general proxy price
 
   // Clean up baseline session

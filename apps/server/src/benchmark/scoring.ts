@@ -52,14 +52,31 @@ SCORE: [número del 0 al 100]
 
     try {
       // Call default configured model via pi session manager
-      const { session } = await piSessionManager.getOrCreateSession(username, `judge_${crypto.randomUUID()}`);
+      const judgeSessionId = `judge_${crypto.randomUUID()}`;
+      const session = await piSessionManager.getOrCreateSession(username, judgeSessionId);
       if (modelId) {
-        await session.setModel(modelId);
+        const { modelRegistry } = piSessionManager.getUserContext(username);
+        const available = modelRegistry.getAvailable();
+        const found = available.find(
+          (m) => m.id === modelId || `${m.provider}/${m.id}` === modelId
+        );
+        if (found) {
+          await session.setModel(found);
+        }
       }
       
-      const response = await session.prompt(userPrompt);
+      await session.prompt(userPrompt);
+      const msgs = session.messages;
+      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
+      let response = "";
+      if (lastMsg) {
+        if (typeof lastMsg.content === "string") response = lastMsg.content;
+        else if (Array.isArray(lastMsg.content)) {
+          response = lastMsg.content.map((c: any) => c.text || "").join("\n");
+        }
+      }
       // Clean up session afterward
-      await piSessionManager.destroySession(username, session.id);
+      await piSessionManager.destroySession(username, judgeSessionId);
 
       const match = response.match(/SCORE:\s*(\d+)/i);
       if (match) {
