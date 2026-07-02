@@ -49,6 +49,14 @@ app.route("/api/experiments", experimentsRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
+app.post("/api/client-log", async (c) => {
+  try {
+    const body = await c.req.json();
+    console.log(`[Client Log] [${body.level ?? 'INFO'}]`, body.message, body.data ? JSON.stringify(body.data) : "");
+  } catch {}
+  return c.json({ ok: true });
+});
+
 app.get(
   "/ws",
   upgradeWebSocket(() => ({

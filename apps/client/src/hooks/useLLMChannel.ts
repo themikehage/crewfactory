@@ -1,6 +1,15 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useWebSocket } from "./useWebSocket";
 
+function clientLog(level: string, message: string, data?: any) {
+  fetch("/api/client-log", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ level, message, data }),
+  }).catch(() => {});
+  console.log(`[${level}] ${message}`, data ?? "");
+}
+
 interface LLMRequestOptions {
   prompt: string;
   systemPrompt?: string;
@@ -49,7 +58,7 @@ export function useLLMChannel(sessionId: string | null = "llm_channel"): UseLLMC
   useEffect(() => {
     const unsubDelta = subscribe("llm_delta", (data: unknown) => {
       const evt = data as { requestId: string; text: string };
-      console.log("[LLMChannel] Received delta chunk for", evt.requestId, "text length:", evt.text?.length);
+      clientLog("INFO", `[LLMChannel] Received delta chunk for ${evt.requestId}, text length: ${evt.text?.length}`);
       const pending = pendingRequests.current.get(evt.requestId);
       if (pending && mountedRef.current) {
         setText((prev) => prev + evt.text);
@@ -58,7 +67,7 @@ export function useLLMChannel(sessionId: string | null = "llm_channel"): UseLLMC
 
     const unsubComplete = subscribe("llm_complete", (data: unknown) => {
       const evt = data as { requestId: string; result: string };
-      console.log("[LLMChannel] Received complete response for", evt.requestId, "result length:", evt.result?.length);
+      clientLog("INFO", `[LLMChannel] Received complete response for ${evt.requestId}, result length: ${evt.result?.length}`);
       const pending = pendingRequests.current.get(evt.requestId);
       if (pending) {
         pendingRequests.current.delete(evt.requestId);
@@ -72,7 +81,7 @@ export function useLLMChannel(sessionId: string | null = "llm_channel"): UseLLMC
 
     const unsubError = subscribe("llm_error", (data: unknown) => {
       const evt = data as { requestId: string; error: string };
-      console.log("[LLMChannel] Received error response for", evt.requestId, "error:", evt.error);
+      clientLog("ERROR", `[LLMChannel] Received error response for ${evt.requestId}, error: ${evt.error}`);
       const pending = pendingRequests.current.get(evt.requestId);
       if (pending) {
         pendingRequests.current.delete(evt.requestId);
@@ -93,12 +102,12 @@ export function useLLMChannel(sessionId: string | null = "llm_channel"): UseLLMC
 
   const sendRequest = useCallback(async (options: LLMRequestOptions): Promise<string> => {
     if (!connected) {
-      console.log("[LLMChannel] Cannot sendRequest because connected is false");
+      clientLog("WARN", "[LLMChannel] Cannot sendRequest because connected is false");
       throw new Error("WebSocket not connected");
     }
 
     const requestId = `req_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-    console.log("[LLMChannel] sendRequest starting. requestId:", requestId, "model:", options.model);
+    clientLog("INFO", `[LLMChannel] sendRequest starting. requestId: ${requestId}, model: ${options.model}`);
 
     setLoading(true);
     setText("");
