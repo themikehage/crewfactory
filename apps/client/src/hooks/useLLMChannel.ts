@@ -58,7 +58,6 @@ export function useLLMChannel(sessionId: string | null = "llm_channel"): UseLLMC
   useEffect(() => {
     const unsubDelta = subscribe("llm_delta", (data: unknown) => {
       const evt = data as { requestId: string; text: string };
-      clientLog("INFO", `[LLMChannel] Received delta chunk for ${evt.requestId}, text length: ${evt.text?.length}`);
       const pending = pendingRequests.current.get(evt.requestId);
       if (pending && mountedRef.current) {
         setText((prev) => prev + evt.text);

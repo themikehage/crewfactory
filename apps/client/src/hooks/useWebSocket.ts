@@ -35,14 +35,16 @@ export function useWebSocket(sessionId: string | null): WebSocketState {
     ws.onmessage = (event) => {
       try {
         const data = JSON.parse(event.data);
-        fetch("/api/client-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            level: "INFO",
-            message: `[WebSocket Client] Received type=${data.type} sessionId=${sessionId} requestId=${data.requestId || ""}`
-          }),
-        }).catch(() => {});
+        if (data.type !== "llm_delta" && data.type !== "global_log") {
+          fetch("/api/client-log", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              level: "INFO",
+              message: `[WebSocket Client] Received type=${data.type} sessionId=${sessionId} requestId=${data.requestId || ""}`
+            }),
+          }).catch(() => {});
+        }
 
         if (data.type === "auth_success") {
           setConnected(true);
