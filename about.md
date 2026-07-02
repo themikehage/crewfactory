@@ -213,7 +213,8 @@
 | POST | /api/sessions/:id/prompt/stream | Stream prompts (SSE) for standard repository-scoped sessions |
 | GET | /api/sessions/repos/:repoName/executions | List saved execution logs for the repository |
 | GET | /api/sessions/repos/:repoName/executions/:execId | Retrieve detail logs of a specific repository execution |
-| GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), and message dispatch (`/send`) |
+| GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), message dispatch (`/send`), benchmark suite (`/benchmark`), and prompt optimization (`/optimize`) |
+| GET/POST | /api/mcp | Retrieve and update the Model Context Protocol (MCP) server configuration settings |
 | GET | /api/backup/export | Export zip backup (supports ?type=light|full) |
 | POST | /api/backup/import | Import zip backup (supports ?mode=merge|overwrite) |
 | POST | /api/skills/reset | Reset default manager skills (prefixed with factory-) |
@@ -245,8 +246,12 @@ packages/shared/  Shared Zod schemas and types
 - `agents/agent-registry.ts` — Singleton managing programmatic agent lifecycle and filesystem persistence.
 - `channels/channel-store.ts` — Filesystem store for channel definitions and message logs.
 - `channels/channel-orchestrator.ts` — Sequential multi-agent message dispatch and recipient resolution.
+- `benchmark/harness.ts` — Background benchmark harness runner comparing Conditions A vs B.
+- `benchmark/optimizer.ts` — Meta-Agent loop refining prompts based on benchmark metrics.
+- `pi/mcp-client.ts` — Generic stdio JSON-RPC Client for MCP Server integration.
+- `pi/mcp-registry.ts` — Manager for MCP server lifecycle, settings config, and dynamic tool injection.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
-- `routes/channels.ts` — REST endpoints for channel CRUD and member administration.
+- `routes/channels.ts` — REST endpoints for channel CRUD, member administration, benchmarks, and optimization.
 - `ws/handler.ts` — WebSocket auth via JWT, streaming via session.subscribe(), and channel event broadcasting.
 - `middleware/auth.ts` — JWT verification middleware for REST routes
 - `preview-server.ts` — Standalone static file server on port 3001 with path-based isolation for project preview (no auth tokens in URLs)
@@ -257,6 +262,8 @@ packages/shared/  Shared Zod schemas and types
 - `pages/ChannelsPage.tsx` — Management dashboard for multi-agent channels with card actions.
 - `components/channels/ChannelChatArea.tsx` — Dedicated container for channel WS streaming and multi-agent execution.
 - `components/channels/ChannelMessageList.tsx` — Multi-agent message list with agent badges, avatars, and RichMarkdown.
+- `components/channels/ChannelBenchmarkPanel.tsx` — Panel view rendering efficiency benchmark comparison reports (Condition A vs B).
+- `components/channels/ChannelOptimizePanel.tsx` — Panel view managing prompt optimization auto-loops and timelines.
 - `components/channels/ChannelMembersModal.tsx` — Floating modal for member management and targeted agent selection.
 - `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
 - `hooks/useWebSocket.ts` — WebSocket client with auto-reconnect, event subscription

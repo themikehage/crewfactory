@@ -5,7 +5,16 @@ import type { Channel } from "shared";
 interface Props {
   channel: Channel;
   onClose: () => void;
-  onSave: (updates: { name?: string; description?: string; maxChainDepth?: number; showThinking?: boolean; showTools?: boolean }) => Promise<void>;
+  onSave: (updates: {
+    name?: string;
+    description?: string;
+    maxChainDepth?: number;
+    showThinking?: boolean;
+    showTools?: boolean;
+    negotiationProtocol?: any;
+    scoringRubric?: any;
+    delegationPattern?: any;
+  }) => Promise<void>;
 }
 
 export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
@@ -14,6 +23,18 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const [maxChainDepth, setMaxChainDepth] = useState(channel.maxChainDepth ?? 5);
   const [showThinking, setShowThinking] = useState(channel.showThinking ?? false);
   const [showTools, setShowTools] = useState(channel.showTools ?? false);
+  
+  const [negotiationRaw, setNegotiationRaw] = useState(
+    channel.negotiationProtocol ? JSON.stringify(channel.negotiationProtocol, null, 2) : ""
+  );
+  const [scoringRaw, setScoringRaw] = useState(
+    channel.scoringRubric ? JSON.stringify(channel.scoringRubric, null, 2) : ""
+  );
+  const [delegationRaw, setDelegationRaw] = useState(
+    channel.delegationPattern ? JSON.stringify(channel.delegationPattern, null, 2) : ""
+  );
+  
+  const [showAdvanced, setShowAdvanced] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -21,6 +42,41 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
     e.preventDefault();
     setError(null);
     setSaving(true);
+
+    let negotiationProtocol: any = undefined;
+    let scoringRubric: any = undefined;
+    let delegationPattern: any = undefined;
+
+    try {
+      if (negotiationRaw.trim()) {
+        negotiationProtocol = JSON.parse(negotiationRaw);
+      }
+    } catch {
+      setError("Invalid JSON in Negotiation Protocol");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      if (scoringRaw.trim()) {
+        scoringRubric = JSON.parse(scoringRaw);
+      }
+    } catch {
+      setError("Invalid JSON in Scoring Rubric");
+      setSaving(false);
+      return;
+    }
+
+    try {
+      if (delegationRaw.trim()) {
+        delegationPattern = JSON.parse(delegationRaw);
+      }
+    } catch {
+      setError("Invalid JSON in Delegation Pattern");
+      setSaving(false);
+      return;
+    }
+
     try {
       await onSave({
         name: name.trim(),
@@ -28,6 +84,9 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
         maxChainDepth: Number(maxChainDepth),
         showThinking,
         showTools,
+        negotiationProtocol,
+        scoringRubric,
+        delegationPattern,
       });
       onClose();
     } catch (err: any) {
@@ -66,75 +125,139 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
           </button>
         </div>
 
-        <form onSubmit={handleSubmit} className="p-5 space-y-4 text-xs">
-          {error && (
-            <div className="p-3 bg-error/10 border border-error/20 text-error rounded-lg">
-              {error}
-            </div>
-          )}
+        <form onSubmit={handleSubmit} className="flex flex-col max-h-[85vh] overflow-hidden">
+          <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
+            {error && (
+              <div className="p-3 bg-error/10 border border-error/20 text-error rounded-lg">
+                {error}
+              </div>
+            )}
 
-          <div>
-            <label className="block text-text-secondary font-medium mb-1">Nombre del Canal</label>
-            <input
-              type="text"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
-              required
-              className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent"
-            />
-          </div>
-
-          <div>
-            <label className="block text-text-secondary font-medium mb-1">Descripción</label>
-            <textarea
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              rows={2}
-              className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent resize-none"
-            />
-          </div>
-
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="text-text-secondary font-medium">Límite de Profundidad (MAX_CHAIN_DEPTH)</label>
-              <span className="font-mono font-bold text-accent">{maxChainDepth} saltos</span>
-            </div>
-            <input
-              type="range"
-              min={1}
-              max={20}
-              value={maxChainDepth}
-              onChange={(e) => setMaxChainDepth(Number(e.target.value))}
-              className="w-full accent-accent cursor-pointer"
-            />
-            <p className="text-[10px] text-text-secondary/60 mt-1">
-              Número máximo de respuestas seguidas entre agentes por cada mensaje del usuario antes de frenar la cadena.
-            </p>
-          </div>
-
-          <div className="flex flex-col gap-2.5 pt-2 border-t border-surface-hover/40">
-            <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
+            <div>
+              <label className="block text-text-secondary font-medium mb-1">Nombre del Canal</label>
               <input
-                type="checkbox"
-                checked={showThinking}
-                onChange={(e) => setShowThinking(e.target.checked)}
-                className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                required
+                className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent"
               />
-              <span>Mostrar pensamientos de agentes</span>
-            </label>
+            </div>
 
-            <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={showTools}
-                onChange={(e) => setShowTools(e.target.checked)}
-                className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+            <div>
+              <label className="block text-text-secondary font-medium mb-1">Descripción</label>
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent resize-none"
               />
-              <span>Mostrar uso de herramientas (tools)</span>
-            </label>
+            </div>
+
+            <div>
+              <div className="flex items-center justify-between mb-1">
+                <label className="text-text-secondary font-medium">Límite de Profundidad (MAX_CHAIN_DEPTH)</label>
+                <span className="font-mono font-bold text-accent">{maxChainDepth} saltos</span>
+              </div>
+              <input
+                type="range"
+                min={1}
+                max={20}
+                value={maxChainDepth}
+                onChange={(e) => setMaxChainDepth(Number(e.target.value))}
+                className="w-full accent-accent cursor-pointer"
+              />
+              <p className="text-[10px] text-text-secondary/60 mt-1">
+                Número máximo de respuestas seguidas entre agentes por cada mensaje del usuario antes de frenar la cadena.
+              </p>
+            </div>
+
+            <div className="flex flex-col gap-2.5 pt-2 border-t border-surface-hover/40">
+              <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showThinking}
+                  onChange={(e) => setShowThinking(e.target.checked)}
+                  className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+                />
+                <span>Mostrar pensamientos de agentes</span>
+              </label>
+
+              <label className="flex items-center gap-2.5 text-text-secondary font-medium cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={showTools}
+                  onChange={(e) => setShowTools(e.target.checked)}
+                  className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+                />
+                <span>Mostrar uso de herramientas (tools)</span>
+              </label>
+            </div>
+
+            <div className="pt-2 border-t border-surface-hover/40">
+              <button
+                type="button"
+                onClick={() => setShowAdvanced(!showAdvanced)}
+                className="flex items-center justify-between w-full text-text-secondary hover:text-text-primary font-medium py-1"
+              >
+                <span>Configuración Avanzada (JSON)</span>
+                <svg
+                  width="12"
+                  height="12"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                  className={`transform transition-transform ${showAdvanced ? "rotate-180" : ""}`}
+                >
+                  <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+
+              {showAdvanced && (
+                <div className="mt-3 space-y-3 pt-3 border-t border-surface-hover/20">
+                  <div>
+                    <label className="block text-[10px] text-text-secondary font-semibold mb-1">
+                      Negotiation Protocol (Zod JSON)
+                    </label>
+                    <textarea
+                      value={negotiationRaw}
+                      onChange={(e) => setNegotiationRaw(e.target.value)}
+                      placeholder='{ "agreementPattern": "ACUERDO ALCANZADO:", "maxRounds": 3 }'
+                      rows={3}
+                      className="w-full px-2 py-1.5 bg-bg border border-surface-hover rounded-lg text-text-primary font-mono text-[10px] outline-none focus:border-accent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-text-secondary font-semibold mb-1">
+                      Scoring Rubric (Zod JSON)
+                    </label>
+                    <textarea
+                      value={scoringRaw}
+                      onChange={(e) => setScoringRaw(e.target.value)}
+                      placeholder='{ "metrics": [] }'
+                      rows={3}
+                      className="w-full px-2 py-1.5 bg-bg border border-surface-hover rounded-lg text-text-primary font-mono text-[10px] outline-none focus:border-accent"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-[10px] text-text-secondary font-semibold mb-1">
+                      Delegation Pattern (Zod JSON)
+                    </label>
+                    <textarea
+                      value={delegationRaw}
+                      onChange={(e) => setDelegationRaw(e.target.value)}
+                      placeholder='{ "token": "DELEGATE: @(\\w+) — (.+)", "applyToRole": "lead" }'
+                      rows={3}
+                      className="w-full px-2 py-1.5 bg-bg border border-surface-hover rounded-lg text-text-primary font-mono text-[10px] outline-none focus:border-accent"
+                    />
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
 
-          <div className="flex justify-end gap-2 pt-2">
+          <div className="flex justify-end gap-2 px-5 py-4 border-t border-surface-hover bg-surface flex-shrink-0">
             <button
               type="button"
               onClick={onClose}

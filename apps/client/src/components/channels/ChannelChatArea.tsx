@@ -7,6 +7,9 @@ import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
 import { ChannelOrgChart } from "./ChannelOrgChart";
+import { ChannelTaskLedger } from "./ChannelTaskLedger";
+import { ChannelBenchmarkPanel } from "./ChannelBenchmarkPanel";
+import { ChannelOptimizePanel } from "./ChannelOptimizePanel";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
@@ -22,7 +25,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
-  const [viewMode, setViewMode] = useState<"chat" | "org">("chat");
+  const [viewMode, setViewMode] = useState<"chat" | "org" | "ledger" | "benchmark" | "optimize">("chat");
 
   const mentionTargets: MentionTarget[] = [
     { id: "__user__", name: "user" },
@@ -150,6 +153,36 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
             >
               Org Chart
             </button>
+            <button
+              onClick={() => setViewMode("ledger")}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === "ledger"
+                  ? "bg-surface text-text-primary border border-surface-hover/80"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Tareas
+            </button>
+            <button
+              onClick={() => setViewMode("benchmark")}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === "benchmark"
+                  ? "bg-surface text-text-primary border border-surface-hover/80"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Benchmark
+            </button>
+            <button
+              onClick={() => setViewMode("optimize")}
+              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+                viewMode === "optimize"
+                  ? "bg-surface text-text-primary border border-surface-hover/80"
+                  : "text-text-secondary hover:text-text-primary"
+              }`}
+            >
+              Optimizar
+            </button>
           </div>
 
           <button
@@ -194,11 +227,23 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
         </div>
       </div>
 
-      {/* Messages area or Org Chart */}
+      {/* Messages area, Org Chart or Task Ledger */}
       {viewMode === "org" ? (
         <ChannelOrgChart
           members={channelMembers}
           registeredAgents={registeredAgents}
+        />
+      ) : viewMode === "ledger" ? (
+        <ChannelTaskLedger
+          channelId={activeChannel.id}
+        />
+      ) : viewMode === "benchmark" ? (
+        <ChannelBenchmarkPanel
+          channelId={activeChannel.id}
+        />
+      ) : viewMode === "optimize" ? (
+        <ChannelOptimizePanel
+          channelId={activeChannel.id}
         />
       ) : (
         <>

@@ -25,10 +25,15 @@ export function SettingsPage() {
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvVal, setNewEnvVal] = useState("");
   const [savingEnv, setSavingEnv] = useState(false);
-  const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations">("providers");
+  const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations" | "mcp">("providers");
   const [isDevView, setIsDevView] = useState(false);
   const [bulkEnvText, setBulkEnvText] = useState("");
   const [isRevealed, setIsRevealed] = useState(false);
+
+  const [mcpConfig, setMcpConfig] = useState<any>(null);
+  const [mcpLoading, setMcpLoading] = useState(true);
+  const [mcpError, setMcpError] = useState("");
+  const [mcpSaving, setMcpSaving] = useState(false);
 
   const [exportType, setExportType] = useState<"light" | "full">("light");
   const [importMode, setImportMode] = useState<"merge" | "overwrite">("merge");
@@ -120,11 +125,49 @@ export function SettingsPage() {
     }
   }, [token]);
 
+  const fetchMcpConfig = useCallback(async () => {
+    try {
+      const res = await fetch("/api/mcp", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to load MCP configuration");
+      const data = await res.json();
+      setMcpConfig(data);
+    } catch (err: any) {
+      setMcpError(err.message || "Failed to load MCP configuration");
+    } finally {
+      mcpLoading && setMcpLoading(false);
+    }
+  }, [token]);
+
+  const handleSaveMcpConfig = async (updatedConfig: any) => {
+    setMcpSaving(true);
+    setMcpError("");
+    try {
+      const res = await fetch("/api/mcp", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(updatedConfig),
+      });
+      if (!res.ok) throw new Error("Failed to save MCP configuration");
+      const data = await res.json();
+      setMcpConfig(data.config);
+    } catch (err: any) {
+      setMcpError(err.message || "Failed to save MCP configuration");
+    } finally {
+      setMcpSaving(false);
+    }
+  };
+
   useEffect(() => {
     fetchProviders();
     fetchEnvVars();
     fetchTemplates();
-  }, [fetchProviders, fetchEnvVars, fetchTemplates]);
+    fetchMcpConfig();
+  }, [fetchProviders, fetchEnvVars, fetchTemplates, fetchMcpConfig]);
 
   const handleSaveEnvVar = async () => {
     const formattedKey = newEnvKey.trim().toUpperCase();
@@ -489,6 +532,7 @@ export function SettingsPage() {
     { id: "providers", label: "LLM Providers" },
     { id: "env", label: "Env Variables" },
     { id: "integrations", label: "Integrations Hub" },
+    { id: "mcp", label: "MCP Servers" },
     { id: "general", label: "General & Account" },
   ] as const;
 
@@ -1109,6 +1153,150 @@ export function SettingsPage() {
                       </div>
                     );
                   })}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "mcp" && (
+            <div className="space-y-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-text-primary font-semibold text-base">Model Context Protocol (MCP)</h2>
+                  <p className="text-text-secondary text-[11px] mt-0.5">
+                    Configure and connect dynamic MCP servers. Enabled servers will supply their tools automatically to running agents.
+                  </p>
+                </div>
+                {mcpSaving && (
+                  <span className="text-[10px] text-accent font-semibold flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                    Guardando...
+                  </span>
+                )}
+              </div>
+
+              {mcpError && (
+                <p className="text-error text-sm p-3 bg-surface rounded-lg">{mcpError}</p>
+              )}
+
+              {mcpLoading ? (
+                <div className="flex justify-center py-8">
+                  <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : !mcpConfig || !mcpConfig.mcpServers || Object.keys(mcpConfig.mcpServers).length === 0 ? (
+                <div className="bg-surface rounded-lg p-6 text-center border border-surface-hover/10">
+                  <p className="text-text-secondary text-sm">No MCP servers configured.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(mcpConfig.mcpServers).map(([name, srv]: [string, any]) => (
+                    <div key={name} className="bg-surface rounded-lg border border-surface-hover/30 overflow-hidden">
+                      <div className="p-4 bg-surface-hover/10 border-b border-surface-hover/30 flex items-center justify-between">
+                        <div className="flex items-center gap-2">
+                          <h3 className="text-text-primary text-sm font-semibold capitalize">{name}</h3>
+                          <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                            srv.enabled ? "bg-success/10 text-success border border-success/20" : "bg-text-secondary/10 text-text-secondary border border-surface-hover"
+                          }`}>
+                            {srv.enabled ? "Enabled" : "Disabled"}
+                          </span>
+                        </div>
+                        
+                        <label className="flex items-center gap-2 cursor-pointer select-none">
+                          <input
+                            type="checkbox"
+                            checked={srv.enabled}
+                            onChange={(e) => {
+                              const updated = {
+                                ...mcpConfig,
+                                mcpServers: {
+                                  ...mcpConfig.mcpServers,
+                                  [name]: { ...srv, enabled: e.target.checked }
+                                }
+                              };
+                              handleSaveMcpConfig(updated);
+                            }}
+                            className="w-4 h-4 accent-accent rounded border-surface-hover bg-bg cursor-pointer"
+                          />
+                          <span className="text-xs text-text-secondary">Activo</span>
+                        </label>
+                      </div>
+
+                      <div className="p-4 space-y-3 text-xs">
+                        <div className="grid grid-cols-1 gap-3">
+                          <div>
+                            <label className="text-[10px] text-text-secondary block mb-1 font-semibold uppercase tracking-wider">Command</label>
+                            <input
+                              type="text"
+                              value={srv.command}
+                              onChange={(e) => {
+                                const updated = {
+                                  ...mcpConfig,
+                                  mcpServers: {
+                                    ...mcpConfig.mcpServers,
+                                    [name]: { ...srv, command: e.target.value }
+                                  }
+                                };
+                                setMcpConfig(updated);
+                              }}
+                              onBlur={() => handleSaveMcpConfig(mcpConfig)}
+                              className="w-full px-3 py-1.5 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent text-xs font-mono"
+                            />
+                          </div>
+
+                          <div>
+                            <label className="text-[10px] text-text-secondary block mb-1 font-semibold uppercase tracking-wider">Arguments (JSON Array)</label>
+                            <input
+                              type="text"
+                              value={JSON.stringify(srv.args)}
+                              onChange={(e) => {
+                                try {
+                                  const parsedArgs = JSON.parse(e.target.value);
+                                  if (Array.isArray(parsedArgs)) {
+                                    const updated = {
+                                      ...mcpConfig,
+                                      mcpServers: {
+                                        ...mcpConfig.mcpServers,
+                                        [name]: { ...srv, args: parsedArgs }
+                                      }
+                                    };
+                                    setMcpConfig(updated);
+                                  }
+                                } catch {}
+                              }}
+                              onBlur={() => handleSaveMcpConfig(mcpConfig)}
+                              className="w-full px-3 py-1.5 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent text-xs font-mono"
+                            />
+                          </div>
+
+                          {srv.env && Object.entries(srv.env).map(([envKey, envVal]: [string, any]) => (
+                            <div key={envKey}>
+                              <label className="text-[10px] text-text-secondary block mb-1 font-semibold uppercase tracking-wider">{envKey}</label>
+                              <input
+                                type="password"
+                                value={envVal}
+                                onChange={(e) => {
+                                  const updated = {
+                                    ...mcpConfig,
+                                    mcpServers: {
+                                      ...mcpConfig.mcpServers,
+                                      [name]: {
+                                        ...srv,
+                                        env: { ...srv.env, [envKey]: e.target.value }
+                                      }
+                                    }
+                                  };
+                                  setMcpConfig(updated);
+                                }}
+                                onBlur={() => handleSaveMcpConfig(mcpConfig)}
+                                placeholder="Enter value"
+                                className="w-full px-3 py-1.5 bg-bg border border-surface-hover rounded-lg text-text-primary outline-none focus:border-accent text-xs"
+                              />
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>

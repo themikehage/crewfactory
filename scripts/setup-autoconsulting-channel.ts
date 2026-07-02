@@ -1,4 +1,4 @@
-﻿#!/usr/bin/env bun
+#!/usr/bin/env bun
 /**
  * Setup script: AutoConsulting Pipeline Channel
  * Creates 5 agents + 1 channel with correct member routing config
@@ -58,6 +58,7 @@ async function addMember(token: string, channelId: string, member: {
   agentId: string;
   replyMode: string;
   targetAgentIds?: string[];
+  role?: string;
 }): Promise<void> {
   const res = await fetch(`${BASE}/api/channels/${channelId}/members`, {
     method: "POST",
@@ -65,7 +66,7 @@ async function addMember(token: string, channelId: string, member: {
     body: JSON.stringify(member),
   });
   if (!res.ok) throw new Error(`Failed to add member ${member.agentId}: ${await res.text()}`);
-  console.log(`[OK] Member added: ${member.agentId} (${member.replyMode})`);
+  console.log(`[OK] Member added: ${member.agentId} (${member.replyMode}, role: ${member.role || "member"})`);
 }
 
 async function setContext(token: string, channelId: string, context: { key: string; value: string }[]): Promise<void> {
@@ -102,7 +103,7 @@ Calibracion de fichas:
 - Proyectos complejos (plataformas, integraciones): 120-500 fichas
 
 Reglas: Incremento <= 15%: acepta directamente. 15-40%: contrapropone punto intermedio. >40%: rechaza con argumento de negocio.
-Cuando cierres el acuerdo, indica explicitamente: ACUERDO ALCANZADO: [resumen del scope, fichas y dias]`;
+Cuando cierres el acuerdo, indica de manera explicita e indiscutible y en una sola linea separada: ACUERDO ALCANZADO: [resumen del scope, fichas y dias]`;
 
 const SENIOR_DEV_PROMPT = `Eres un Senior Developer en AutoConsulting. Evaluas las ScopeProposals del Tech Lead con honestidad profesional.
 
@@ -116,7 +117,7 @@ Calibracion de fichas:
 - 1 ficha = 4 horas de desarrollo senior
 - Proyectos simples: 15-40 fichas | Medianos: 40-120 | Complejos: 120-500
 
-No infles arbitrariamente. Cuando aceptes, indica claramente: ACEPTO la propuesta.`;
+No infles arbitrariamente. Cuando aceptes, indica de manera clara, indiscutible y en una sola linea separada: ACEPTO la propuesta.`;
 
 const MARKETING_PROMPT = `Eres el Director Comercial de AutoConsulting. Redactas la propuesta final que ve el cliente.
 
@@ -155,15 +156,26 @@ async function main() {
   const channelId = await createChannel(token, {
     name: "AutoConsulting Pipeline",
     description: "Experimento de pipeline de negociacion tecnica multi-agente",
-  });
+    negotiationProtocol: {
+      agreementPattern: "(ACUERDO ALCANZADO:|ACEPTO)",
+      counterPattern: "CONTRAPROPONE",
+      rejectPattern: "RECHAZO",
+      maxRounds: 3,
+      arbiterAgentId: ceoId,
+    },
+    delegationPattern: {
+      token: "DELEGATE: @(\\w+) — (.+)",
+      applyToRole: "lead",
+    },
+  } as any);
 
   console.log();
 
-  await addMember(token, channelId, { agentId: ceoId, replyMode: "targeted", targetAgentIds: ["__user__", techLeadId, seniorDevId] });
-  await addMember(token, channelId, { agentId: techLeadId, replyMode: "targeted", targetAgentIds: [ceoId, seniorDevId] });
-  await addMember(token, channelId, { agentId: seniorDevId, replyMode: "targeted", targetAgentIds: [techLeadId] });
-  await addMember(token, channelId, { agentId: marketingId, replyMode: "targeted", targetAgentIds: [ceoId] });
-  await addMember(token, channelId, { agentId: webBuilderId, replyMode: "user-only" });
+  await addMember(token, channelId, { agentId: ceoId, replyMode: "targeted", targetAgentIds: ["__user__", techLeadId, seniorDevId], role: "observer" });
+  await addMember(token, channelId, { agentId: techLeadId, replyMode: "targeted", targetAgentIds: [ceoId, seniorDevId], role: "lead" });
+  await addMember(token, channelId, { agentId: seniorDevId, replyMode: "targeted", targetAgentIds: [techLeadId], role: "senior" });
+  await addMember(token, channelId, { agentId: marketingId, replyMode: "targeted", targetAgentIds: [ceoId], role: "member" });
+  await addMember(token, channelId, { agentId: webBuilderId, replyMode: "user-only", role: "observer" });
 
   console.log();
 

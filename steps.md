@@ -406,3 +406,26 @@ crear un plan de despliegue facil en vps
 - [x] 46.7 Resolve Lead indicators in ChannelCard and load agents on ChannelsPage mount
 - [x] 46.8 Verify successful builds of server and client applications
 
+## Phase 47: Hackathon Track 3 Roadmap — Foundations & Negotiation SM & Delegation (F0, F1, F3)
+- [x] 47.1 Extend shared Zod schemas (NegotiationProtocol, ScoringRubric, DelegationPattern) in packages/shared
+- [x] 47.2 Add database/store level read/write persistence for NegotiationState and TaskLedger in channel-store
+- [x] 47.3 Implement NegotiationStateMachine generic engine in apps/server/src/channels/negotiation-state.ts
+- [x] 47.4 Integrate NegotiationStateMachine and TaskLedger into ChannelOrchestrator dispatch workflow
+- [x] 47.5 Emit negotiation events (channel_negotiation_round/agreement/escalation) and parse system messages
+- [x] 47.6 Build task ledger tracking assignments for lead-role delegation patterns
+- [x] 47.7 Support rendering system messages and custom advanced fields in ChannelSettingsModal and ChannelMessageList
+- [x] 47.8 Update setup-autoconsulting-channel setup script to pre-configure roles, negotiation, and delegation
+
+
+## Phase 48: Hackathon Track 3 Roadmap — Benchmark, Optimization, MCP & Licensing (F2, F4, F5, F6)
+- [x] 48.1 Build background harness runner and scoring metrics evaluator for Condition A vs B benchmark
+- [x] 48.2 Mount Hono REST endpoints `GET/POST /api/channels/:id/benchmark` to run and serve benchmarks
+- [x] 48.3 Build React `ChannelBenchmarkPanel.tsx` component in client with evaluation reports rendering
+- [x] 48.4 Implement generic stdio JSON-RPC Client and Registry (`mcp-client.ts`, `mcp-registry.ts`) for MCP integration
+- [x] 48.5 Mount GET/POST Hono router `/api/mcp` and inject enabled MCP custom tools into Pi agent sessions
+- [x] 48.6 Add premium interactive MCP configuration tab in client Settings page
+- [x] 48.7 Implement Meta-Agent prompt optimizer logic (`optimizer.ts`) to refine system prompts based on evaluation metrics
+- [x] 48.8 Mount Hono REST endpoints `GET/POST /api/channels/:id/optimize` to run and retrieve optimization step history
+- [x] 48.9 Build React `ChannelOptimizePanel.tsx` component to control and display prompt refinement progress
+- [x] 48.10 Add MIT License in workspace root for standard open-source submission
+- [x] 48.11 Verify successful builds of server and client applications

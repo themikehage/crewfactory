@@ -6,6 +6,8 @@ import type { Channel, ChannelMember, ChannelMessage } from "shared";
 import { eventBroker } from "../lib/event-broker";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
+import { NegotiationStateMachine } from "./negotiation-state";
+import { TaskLedger } from "./task-ledger";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -144,6 +146,12 @@ class ChannelOrchestrator {
       detail: userContent,
     });
 
+    // Reset negotiation state and task ledger at start of chain
+    channelStore.resetNegotiationState(username, channelId);
+    const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
+    const ledger = new TaskLedger(ledgerPath);
+    ledger.reset();
+
     // Create a new AbortController for this dispatch chain
     const controller = new AbortController();
     this.channelAbortControllers.set(key, controller);
@@ -238,11 +246,100 @@ class ChannelOrchestrator {
 
     if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) return;
 
-    channelStore.appendMessage(username, channelId, result.agentMsg);
-    broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
-
     const channel = channelStore.getChannel(username, channelId);
-    if (channel) {
+    if (!channel) return;
+
+    // F1: Negotiation Protocol
+    let isAgreed = false;
+    let isRejected = false;
+    if (channel.negotiationProtocol) {
+      const negotiationState = channelStore.getNegotiationState(username, channelId);
+      const sm = new NegotiationStateMachine(channel.negotiationProtocol, negotiationState);
+      const receiverId = incomingMsg.role === "user" ? "user" : incomingMsg.agentId || "user";
+      const senderId = member.agentId;
+      const ingestResult = sm.ingest(senderId, receiverId, result.agentMsg.content);
+
+      channelStore.saveNegotiationState(username, channelId, sm.getState());
+
+      broadcast(channelId, {
+        type: "channel_negotiation_round",
+        channelId,
+        sessionId: incomingMsg.sessionId,
+        agentId: senderId,
+        receiverId,
+        rounds: ingestResult.rounds,
+        status: sm.getState()[ingestResult.pairKey]?.status || "open",
+      });
+
+      if (ingestResult.matched === "agreed") {
+        isAgreed = true;
+        broadcast(channelId, {
+          type: "channel_negotiation_agreement",
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          agentId: senderId,
+          receiverId,
+          content: result.agentMsg.content,
+        });
+      } else if (ingestResult.matched === "rejected") {
+        isRejected = true;
+        broadcast(channelId, {
+          type: "channel_negotiation_rejected",
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          agentId: senderId,
+          receiverId,
+        });
+      } else if (ingestResult.shouldEscalate && channel.negotiationProtocol.arbiterAgentId) {
+        const arbiterId = channel.negotiationProtocol.arbiterAgentId;
+        const arbiterEntry = agentRegistry.get(arbiterId);
+        const arbiterName = arbiterEntry?.server.definition.name || arbiterId;
+
+        broadcast(channelId, {
+          type: "channel_negotiation_escalation",
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          arbiterId,
+          arbiterName,
+          rounds: ingestResult.rounds,
+        });
+
+        // Trigger arbiter dispatch
+        const agentName = agentEntry?.server.definition.name || senderId;
+        const targetName = receiverId === "user" ? "user" : agentRegistry.get(receiverId)?.server.definition.name || receiverId;
+        const escalationMsg: ChannelMessage = {
+          id: crypto.randomUUID(),
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          role: "user", // treated as system escalation prompt
+          content: `Bloqueo detectado tras ${ingestResult.rounds} rondas entre @${agentName} y @${targetName}. Emite veredicto vinculante.`,
+          createdAt: new Date().toISOString(),
+        };
+
+        const arbiterMember = channel.members.find((m) => m.agentId === arbiterId);
+        if (arbiterMember) {
+          channelStore.appendMessage(username, channelId, result.agentMsg);
+          broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
+          eventBroker.publishEvent(username, {
+            sourceType: "channel",
+            sourceId: channelId,
+            sourceName: channel.name,
+            eventType: "agent_message",
+            agentName: result.agentMsg.agentName,
+            detail: result.agentMsg.content,
+          });
+          this.dispatchToAgentAsync(username, channelId, arbiterMember, escalationMsg, depth + 1, signal).catch((err) => {
+            console.error(`[ChannelOrchestrator] Escalation dispatch error:`, err);
+          });
+        }
+        return;
+      }
+    }
+
+    if (isRejected) {
+      // Append the rejection message and stop the chain
+      channelStore.appendMessage(username, channelId, result.agentMsg);
+      broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
       eventBroker.publishEvent(username, {
         sourceType: "channel",
         sourceId: channelId,
@@ -251,10 +348,109 @@ class ChannelOrchestrator {
         agentName: result.agentMsg.agentName,
         detail: result.agentMsg.content,
       });
+      return;
     }
 
-    // Chain to next round — also fire-and-forget
-    this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
+    // F3: Task Decomposition
+    const delegationPattern = channel.delegationPattern || { token: "DELEGATE: @(\\w+) — (.+)", applyToRole: "lead" };
+    const senderRole = member.role || "member";
+    const isLeadRole = delegationPattern.applyToRole ? senderRole === delegationPattern.applyToRole : senderRole === "lead";
+
+    const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
+    const ledger = new TaskLedger(ledgerPath);
+
+    // If this agent is resolving any tasks, mark them as done
+    const openTasks = ledger.getOpenTasksFor(member.agentId);
+    for (const ot of openTasks) {
+      ledger.updateStatus(ot.id, "done");
+      broadcast(channelId, {
+        type: "channel_task_updated",
+        channelId,
+        sessionId: incomingMsg.sessionId,
+        task: ot,
+        status: "done",
+      });
+    }
+
+    let subDispatches: { member: ChannelMember; taskMsg: ChannelMessage }[] = [];
+
+    if (isLeadRole) {
+      const tokenRegex = new RegExp(delegationPattern.token || "DELEGATE: @(\\w+) — (.+)", "gi");
+      let match;
+      const content = result.agentMsg.content;
+      const agentName = agentEntry?.server.definition.name || member.agentId;
+
+      while ((match = tokenRegex.exec(content)) !== null) {
+        const targetName = match[1];
+        const taskDetail = match[2];
+
+        // Resolve target agent by name
+        const targetMember = channel.members.find((m) => {
+          const entry = agentRegistry.get(m.agentId);
+          return entry && entry.server.definition.name.toLowerCase() === targetName.toLowerCase();
+        });
+
+        if (targetMember) {
+          const targetEntry = agentRegistry.get(targetMember.agentId);
+          const targetNameResolved = targetEntry?.server.definition.name || targetMember.agentId;
+
+          const ledgerTask = ledger.record({
+            assignedBy: member.agentId,
+            assignedByName: agentName,
+            assignedTo: targetMember.agentId,
+            assignedToName: targetNameResolved,
+            role: targetMember.role || "member",
+            task: taskDetail,
+          });
+
+          broadcast(channelId, {
+            type: "channel_task_created",
+            channelId,
+            sessionId: incomingMsg.sessionId,
+            task: ledgerTask,
+          });
+
+          const taskMsg: ChannelMessage = {
+            id: crypto.randomUUID(),
+            channelId,
+            sessionId: incomingMsg.sessionId,
+            role: "agent",
+            agentId: member.agentId,
+            agentName: agentName,
+            content: `Tarea asignada por @${agentName}: ${taskDetail}`,
+            createdAt: new Date().toISOString(),
+          };
+
+          subDispatches.push({ member: targetMember, taskMsg });
+        }
+      }
+    }
+
+    channelStore.appendMessage(username, channelId, result.agentMsg);
+    broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
+
+    eventBroker.publishEvent(username, {
+      sourceType: "channel",
+      sourceId: channelId,
+      sourceName: channel.name,
+      eventType: "agent_message",
+      agentName: result.agentMsg.agentName,
+      detail: result.agentMsg.content,
+    });
+
+    if (subDispatches.length > 0) {
+      for (const sd of subDispatches) {
+        this.dispatchToAgentAsync(username, channelId, sd.member, sd.taskMsg, depth + 1, signal).catch((err) => {
+          console.error(`[ChannelOrchestrator] Delegation dispatch error:`, err);
+        });
+      }
+      return;
+    }
+
+    // Chain to next round if not agreed
+    if (!isAgreed) {
+      this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
+    }
   }
 
   /**
@@ -644,7 +840,7 @@ class ChannelOrchestrator {
       const lines = ["- @user (the human user)"];
       for (const m of members) {
         const name = agentNameMap.get(m.agentId) || m.agentId;
-        lines.push(`- @${name}  (id: ${m.agentId})`);
+        lines.push(`- @${name}  (id: ${m.agentId}, role: ${m.role ?? "member"})`);
       }
       let rulesBlock = "";
       if (incomingMsg.role === "user") {

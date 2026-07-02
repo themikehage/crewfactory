@@ -1,0 +1,29 @@
+[
+  {
+    "id": "brief-1",
+    "name": "Landing Page Simple",
+    "description": "Una landing page simple para una heladería local con formulario de contacto y mapa.",
+    "goldAnswer": {
+      "fichas": 20,
+      "dias": 5
+    }
+  },
+  {
+    "id": "brief-2",
+    "name": "E-Commerce MVP",
+    "description": "Un e-commerce MVP de indumentaria con pasarela de pagos Stripe y panel de control básico para subir productos.",
+    "goldAnswer": {
+      "fichas": 60,
+      "dias": 15
+    }
+  },
+  {
+    "id": "brief-3",
+    "name": "SaaS Dashboard Complejo",
+    "description": "Una plataforma SaaS de analíticas financieras en tiempo real con integraciones de API de terceros, autenticación avanzada y exportación de PDFs.",
+    "goldAnswer": {
+      "fichas": 180,
+      "dias": 45
+    }
+  }
+]

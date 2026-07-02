@@ -78,11 +78,21 @@ export function ChannelMessageList({
         </div>
       )}
 
-      {messages.map((msg) => (
-        <div
-          key={msg.id}
-          className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
-        >
+      {messages.map((msg) => {
+        if (msg.role === "system") {
+          return (
+            <div key={msg.id} className="flex justify-center my-2 w-full">
+              <div className="bg-surface-hover/20 text-text-secondary text-xs px-4 py-2 rounded-full border border-surface-hover/40 max-w-[85%] text-center font-medium shadow-sm">
+                {msg.content}
+              </div>
+            </div>
+          );
+        }
+        return (
+          <div
+            key={msg.id}
+            className={`flex flex-col ${msg.role === "user" ? "items-end" : "items-start"}`}
+          >
           <div className="flex items-center gap-2 mb-1 px-1">
             {msg.role === "agent" && (
               <div className="w-4 h-4 rounded-full bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-[9px] font-bold text-purple-400">
@@ -123,7 +133,8 @@ export function ChannelMessageList({
             <RichMarkdown content={highlightMentions(msg.content, mentionNames)} />
           </div>
         </div>
-      ))}
+      );
+      })}
 
       {activeStreamList.map((stream) => (
         <div key={stream.agentId} className="flex flex-col items-start">

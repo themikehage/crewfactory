@@ -17,6 +17,7 @@ import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-ski
 import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
 import { registerQwenProvider } from "./qwen-provider";
+import { mcpRegistry } from "./mcp-registry";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
@@ -359,13 +360,15 @@ class PiSessionManager {
     });
 
 
+    const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
+
     const { session } = await createAgentSession({
       cwd: workspaceDir,
       sessionManager,
       authStorage,
       modelRegistry,
       resourceLoader,
-      customTools: [customBashTool as any],
+      customTools: [customBashTool as any, ...mcpTools],
     });
 
     if (persistedTools) {
@@ -523,6 +526,7 @@ class PiSessionManager {
       entry.session.dispose();
       this.sessions.delete(key);
     }
+    mcpRegistry.stopSessionMcpTools(username, sessionId);
     const userDir = this.ensureUserDir(username);
     const sessionDir = join(userDir, "sessions", sessionId);
     if (existsSync(sessionDir)) {

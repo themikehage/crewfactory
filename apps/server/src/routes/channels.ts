@@ -3,15 +3,13 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
-import { channelStore, channelOrchestrator } from "../channels";
+import { channelStore, channelOrchestrator, TaskLedger } from "../channels";
 import { agentRegistry } from "../agents";
 import { piSessionManager } from "../pi/session-manager";
-import {
-  CreateChannelSchema,
-  UpdateChannelSchema,
-  AddMemberSchema,
-  UpdateMemberSchema,
-} from "shared";
+import { runBenchmarkSuite } from "../benchmark/harness";
+import { runOptimizationStep } from "../benchmark/optimizer";
+import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema } from "shared";
+import { eventBroker } from "../lib/event-broker";
 
 export const channelsRouter = new Hono();
 
@@ -188,6 +186,19 @@ channelsRouter.get("/:id/active-streamings", (c) => {
   return c.json({ streamingAgents: streams });
 });
 
+channelsRouter.get("/:id/ledger", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const ledgerPath = channelStore.getTaskLedgerPath(username, id);
+  const ledger = new TaskLedger(ledgerPath);
+  return c.json({ tasks: ledger.list() });
+});
+
 
 channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().min(1), sessionId: z.string().optional() })), async (c) => {
   const username = getUsername(c);
@@ -215,4 +226,183 @@ channelsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.str
   channelOrchestrator.abortDispatch(username, id, body?.sessionId);
   return c.json({ success: true });
 });
+
+channelsRouter.get("/:id/benchmark", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const { existsSync, readFileSync } = require("node:fs");
+  const { join } = require("node:path");
+  const latestPath = join("/tmp/crewfactory", username, "benchmarks", id, "latest-report.md");
+
+  if (!existsSync(latestPath)) {
+    return c.json({ exists: false });
+  }
+
+  try {
+    const reportMd = readFileSync(latestPath, "utf-8");
+    return c.json({ exists: true, reportMd });
+  } catch {
+    return c.json({ exists: false });
+  }
+});
+
+channelsRouter.post("/:id/benchmark", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  // Trigger suite execution asynchronously
+  const run = async () => {
+    try {
+      eventBroker.publishEvent(username, {
+        sourceType: "channel",
+        sourceId: id,
+        sourceName: channel.name,
+        eventType: "text_delta",
+        detail: "Starting benchmark execution suite..."
+      });
+
+      await runBenchmarkSuite(username, id, (progressMsg) => {
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: id,
+          sourceName: channel.name,
+          eventType: "text_delta",
+          detail: `[Benchmark Progress] ${progressMsg}`
+        });
+      });
+
+      eventBroker.publishEvent(username, {
+        sourceType: "channel",
+        sourceId: id,
+        sourceName: channel.name,
+        eventType: "text_delta",
+        detail: `Benchmark completed! Latest report generated.`
+      });
+    } catch (e: any) {
+      console.error("[BenchmarkRoute] Background run failed:", e);
+    }
+  };
+
+  run().catch(console.error);
+
+  return c.json({ success: true, message: "Benchmark suite started in background" });
+});
+
+channelsRouter.get("/:id/optimize", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const { existsSync, readFileSync } = require("node:fs");
+  const { join } = require("node:path");
+  const historyPath = join("/tmp/crewfactory", username, "benchmarks", id, "optimization-history.json");
+
+  if (!existsSync(historyPath)) {
+    return c.json({ exists: false, history: [] });
+  }
+
+  try {
+    const history = JSON.parse(readFileSync(historyPath, "utf-8"));
+    return c.json({ exists: true, history });
+  } catch {
+    return c.json({ exists: false, history: [] });
+  }
+});
+
+channelsRouter.post("/:id/optimize", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const { writeFileSync, existsSync, readFileSync, mkdirSync } = require("node:fs");
+  const { join } = require("node:path");
+  const historyDir = join("/tmp/crewfactory", username, "benchmarks", id);
+
+  const run = async () => {
+    try {
+      eventBroker.publishEvent(username, {
+        sourceType: "channel",
+        sourceId: id,
+        sourceName: channel.name,
+        eventType: "text_delta",
+        detail: "Starting Prompt Optimization Loop (3 iterations)..."
+      });
+
+      const history: any[] = [];
+      const historyPath = join(historyDir, "optimization-history.json");
+
+      for (let i = 1; i <= 3; i++) {
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: id,
+          sourceName: channel.name,
+          eventType: "text_delta",
+          detail: `Starting Iteration ${i} of 3...`
+        });
+
+        const stepResult = await runOptimizationStep(username, id, i, (msg) => {
+          eventBroker.publishEvent(username, {
+            sourceType: "channel",
+            sourceId: id,
+            sourceName: channel.name,
+            eventType: "text_delta",
+            detail: `[Optimization Progress] ${msg}`
+          });
+        });
+
+        history.push({
+          iteration: stepResult.iteration,
+          avgScore: stepResult.avgScore,
+          prompts: stepResult.prompts,
+          timestamp: new Date().toISOString()
+        });
+
+        if (!existsSync(historyDir)) {
+          mkdirSync(historyDir, { recursive: true });
+        }
+        writeFileSync(historyPath, JSON.stringify(history, null, 2), "utf-8");
+
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: id,
+          sourceName: channel.name,
+          eventType: "text_delta",
+          detail: `Completed Iteration ${i} (Score: ${stepResult.avgScore}%)`
+        });
+      }
+
+      eventBroker.publishEvent(username, {
+        sourceType: "channel",
+        sourceId: id,
+        sourceName: channel.name,
+        eventType: "text_delta",
+        detail: "Prompt Optimization loop completed successfully!"
+      });
+    } catch (e: any) {
+      console.error("[OptimizeRoute] Optimization loop run failed:", e);
+      eventBroker.publishEvent(username, {
+        sourceType: "channel",
+        sourceId: id,
+        sourceName: channel.name,
+        eventType: "text_delta",
+        detail: `[Error] Optimization Loop failed: ${e.message}`
+      });
+    }
+  };
+
+  run().catch(console.error);
+
+  return c.json({ success: true, message: "Optimization Loop started in background" });
+});
+
+
 

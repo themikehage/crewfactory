@@ -2,6 +2,14 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { join } from "node:path";
 import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
 
+export interface NegotiationPairState {
+  rounds: number;
+  lastOffer: string | null;
+  status: "open" | "agreed" | "rejected" | "escalated";
+}
+
+export type NegotiationState = Record<string, NegotiationPairState>;
+
 class ChannelStore {
   private getBaseDir(username: string): string {
     return join("/tmp/crewfactory", username, "channels");
@@ -37,6 +45,9 @@ class ChannelStore {
       maxChainDepth: data.maxChainDepth ?? 5,
       showThinking: data.showThinking ?? false,
       showTools: data.showTools ?? false,
+      negotiationProtocol: data.negotiationProtocol,
+      scoringRubric: data.scoringRubric,
+      delegationPattern: data.delegationPattern,
       createdAt: now,
       updatedAt: now,
     };
@@ -98,6 +109,9 @@ class ChannelStore {
     if (updates.maxChainDepth !== undefined) channel.maxChainDepth = updates.maxChainDepth;
     if (updates.showThinking !== undefined) channel.showThinking = updates.showThinking;
     if (updates.showTools !== undefined) channel.showTools = updates.showTools;
+    if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
+    if (updates.scoringRubric !== undefined) channel.scoringRubric = updates.scoringRubric;
+    if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
@@ -215,6 +229,34 @@ class ChannelStore {
         try { closeSync(fd); } catch {}
       }
     }
+  }
+
+  getNegotiationStatePath(username: string, channelId: string): string {
+    return join(this.getChannelDir(username, channelId), "negotiation-state.json");
+  }
+
+  getNegotiationState(username: string, channelId: string): NegotiationState {
+    const path = this.getNegotiationStatePath(username, channelId);
+    if (!existsSync(path)) return {};
+    try {
+      return JSON.parse(readFileSync(path, "utf-8")) as NegotiationState;
+    } catch {
+      return {};
+    }
+  }
+
+  saveNegotiationState(username: string, channelId: string, state: NegotiationState): void {
+    const path = this.getNegotiationStatePath(username, channelId);
+    writeFileSync(path, JSON.stringify(state, null, 2), "utf-8");
+  }
+
+  resetNegotiationState(username: string, channelId: string): void {
+    const path = this.getNegotiationStatePath(username, channelId);
+    if (existsSync(path)) writeFileSync(path, "{}", "utf-8");
+  }
+
+  getTaskLedgerPath(username: string, channelId: string): string {
+    return join(this.getChannelDir(username, channelId), "task-ledger.json");
   }
 }
 
