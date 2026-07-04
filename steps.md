@@ -485,3 +485,13 @@ crear un plan de despliegue facil en vps
 - [x] 54.9 Fix MCP tool execution mapping (parameters schema translation and conforming AgentToolResult structure)
 - [x] 54.10 Fix active tools update side-effect deactivating MCP tools in WS handler and REST sessions router
 
+## Phase 55: AG-UI Protocol & Interactive Agent Components
+- [x] 55.1 Define shared schemas and Zod types for UiComponent and UiAction in packages/shared
+- [x] 55.2 Implement backend UiApprovalRegistry and request_approval/render_chart tool definitions
+- [x] 55.3 Inject custom UI tools into standard and programmatic agent sessions
+- [x] 55.4 Handle ui_action WebSocket messages and resolve pending approval promises in backend
+- [x] 55.5 Install recharts in apps/client dependencies and build ApprovalForm and ChartView components
+- [x] 55.6 Intercept custom tools in ToolCallRow to render interactive client components
+- [x] 55.7 Pass correct toolCallId props to ToolCallRow in MessageList and ChannelMessageList
+- [x] 55.8 Compile monorepo successfully with zero TypeScript check errors
+

@@ -13,6 +13,7 @@ import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
 import { ensureWorkspaceSubdirs } from "../pi/session-manager";
+import { uiTools } from "../pi/ui-tools";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -83,7 +84,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     authStorage,
     modelRegistry,
     resourceLoader,
-    customTools: [customBashTool as any],
+    customTools: [customBashTool as any, ...uiTools as any],
   });
 
   const available = modelRegistry.getAvailable();

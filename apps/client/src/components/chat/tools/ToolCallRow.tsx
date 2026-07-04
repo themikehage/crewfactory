@@ -6,6 +6,8 @@ import { ReadResult } from "./ReadResult";
 import { EditResult } from "./EditResult";
 import { GrepResult } from "./GrepResult";
 import { BashResult } from "./BashResult";
+import { ApprovalForm } from "./ApprovalForm";
+import { ChartView } from "./ChartView";
 
 export interface ToolContentBlock {
   type: string;
@@ -30,6 +32,7 @@ interface Props {
   args: Record<string, unknown>;
   result: ToolResultData | null;
   sessionId: string | null;
+  toolCallId?: string;
   activeRepoName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
@@ -105,6 +108,25 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  request_approval: {
+    label: "aprobación",
+    colorClass: "text-warning",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  render_chart: {
+    label: "gráfico",
+    colorClass: "text-accent",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
+        <path d="M12 2.252A8.014 8.014 0 0117.748 8H12V2.252z" />
+      </svg>
+    ),
+  },
 };
 
 function getArgSummary(toolName: string, args: Record<string, unknown>): string {
@@ -127,6 +149,8 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
       const cmd = (args.command as string) || "";
       return cmd.length > 55 ? cmd.slice(0, 55) + "…" : cmd;
     }
+    case "request_approval": return (args.title as string) || "Petición de aprobación";
+    case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
     default: return JSON.stringify(args).slice(0, 50);
   }
 }
@@ -161,21 +185,53 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
       return `${n} match${n !== 1 ? "es" : ""}`;
     }
     case "bash": return "done";
+    case "request_approval": return text || "esperando...";
+    case "render_chart": return "renderizado";
     default: return "done";
   }
 }
 
-function ToolBody({ toolName, args, result }: { toolName: string; args: Record<string, unknown>; result: ToolResultData }) {
-  const text = result.content.find(b => b.type === "text")?.text ?? "";
+function ToolBody({
+  toolName,
+  args,
+  result,
+  toolCallId,
+  sessionId,
+}: {
+  toolName: string;
+  args: Record<string, unknown>;
+  result: ToolResultData | null;
+  toolCallId?: string;
+  sessionId?: string | null;
+}) {
+  const text = result?.content.find(b => b.type === "text")?.text ?? "";
 
   switch (toolName) {
     case "ls": return <LsResult text={text} />;
     case "find": return <FindResult text={text} />;
-    case "write": return <WriteResult text={text} isError={result.isError} />;
-    case "read": return <ReadResult content={result.content} args={args} />;
-    case "edit": return <EditResult text={text} filePath={(args.path as string) || undefined} details={result.details} isError={result.isError} />;
+    case "write": return <WriteResult text={text} isError={result?.isError ?? false} />;
+    case "read": return <ReadResult content={result?.content ?? []} args={args} />;
+    case "edit": return <EditResult text={text} filePath={(args.path as string) || undefined} details={result?.details} isError={result?.isError ?? false} />;
     case "grep": return <GrepResult text={text} args={args} />;
-    case "bash": return <BashResult text={text} command={(args.command as string) || ""} isError={result.isError} />;
+    case "bash": return <BashResult text={text} command={(args.command as string) || ""} isError={result?.isError ?? false} />;
+    case "request_approval":
+      return (
+        <ApprovalForm
+          toolCallId={toolCallId || ""}
+          args={args as any}
+          result={result as any}
+          sessionId={sessionId || null}
+        />
+      );
+    case "render_chart":
+      return (
+        <ChartView
+          chartType={args.chartType as any}
+          title={args.title as any}
+          data={args.data as any}
+          config={args.config as any}
+        />
+      );
     default:
       return (
         <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
@@ -190,12 +246,13 @@ export function ToolCallRow({
   args,
   result,
   sessionId: _sessionId,
+  toolCallId,
   activeRepoName: _activeRepoName,
   activeAgentId: _activeAgentId = null,
   activeChannelId: _activeChannelId = null,
 }: Props) {
   const [expanded, setExpanded] = useState(
-    toolName === "edit" || toolName === "bash"
+    toolName === "edit" || toolName === "bash" || toolName === "request_approval" || toolName === "render_chart"
   );
 
   const meta = TOOL_META[toolName] ?? {
@@ -215,7 +272,7 @@ export function ToolCallRow({
     }`}>
       <button
         onClick={() => !running && setExpanded(!expanded)}
-        disabled={running}
+        disabled={running && toolName !== "request_approval"}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-card-hover/40 transition-colors text-left cursor-pointer disabled:cursor-default"
       >
         <span className={`flex-shrink-0 ${meta.colorClass}`}>{meta.icon}</span>
@@ -232,7 +289,7 @@ export function ToolCallRow({
           {running ? (
             <span className="flex items-center gap-1.5 text-[10px] text-warning/70">
               <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-              running
+              {toolName === "request_approval" ? "pendiente" : "running"}
             </span>
           ) : hasError ? (
             <span className="flex items-center gap-1.5 text-[10px] text-destructive">
@@ -261,9 +318,15 @@ export function ToolCallRow({
         </div>
       </button>
 
-      {expanded && result && (
+      {expanded && (result || toolName === "request_approval" || toolName === "render_chart") && (
         <div className="px-3 pb-3 pt-1 border-t border-input/40">
-          <ToolBody toolName={toolName} args={args} result={result} />
+          <ToolBody
+            toolName={toolName}
+            args={args}
+            result={result}
+            toolCallId={toolCallId}
+            sessionId={_sessionId}
+          />
         </div>
       )}
     </div>

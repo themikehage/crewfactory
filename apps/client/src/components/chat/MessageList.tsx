@@ -356,6 +356,7 @@ function AgentTurn({
                       args={block.arguments ?? {}}
                       result={resultData}
                       sessionId={sessionId}
+                      toolCallId={block.id}
                       activeRepoName={activeRepoName}
                       activeAgentId={activeAgentId}
                       activeChannelId={activeChannelId}

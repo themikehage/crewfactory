@@ -91,6 +91,12 @@
 - Manual "Compact" button triggering `session.compact()` via WebSocket
 - Context usage emitted automatically after each `message_end` event
 
+### AG-UI Protocol & Interactive Agent Components
+- **Generative UI Pipeline:** Bridges agent-to-frontend execution via custom tool call interceptions, enabling rich components to render directly in the message stream.
+- **Interactive Approvals:** The `request_approval` tool suspends agent backend execution on critical tasks, rendering a warning card with custom buttons ("Confirmar" / "Cancelar") and markdown tech details. Settled reactively via WebSocket `ui_action`.
+- **Inline Rich Charts:** The `render_chart` tool allows agents to display responsive line, bar, pie, and area charts using Recharts, integrated with Tailwind CSS v4 dark tokens.
+- **Natural Session Persistency:** Interactive components are mapped natively as standard agent tool calls/results, meaning they survive server reboots and restore their state upon session reopening.
+
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente
 - **Servidor dedicado de preview (Puerto 3001)**: corre un servidor de archivos estáticos independiente (`Bun.serve`) en el mismo contenedor/proceso para aislar por completo el render del frontend del framework Vite y Service Workers de CrewFactory.

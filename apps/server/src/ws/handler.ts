@@ -6,6 +6,7 @@ import type { WSContext, WSMessageReceive } from "hono/ws";
 import { setBuilding, setReady, setError, ensureWatcher } from "../pi/preview-watcher";
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
+import { uiApprovalRegistry } from "../pi/ui-approval-registry";
 
 function getRepoNameForSession(username: string, sessionId: string): string | undefined {
   const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
@@ -419,6 +420,20 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const sessionId = data.sessionId as string | undefined;
     if (channelId) {
       channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
+    }
+    return;
+  }
+
+  if (data.type === "ui_action") {
+    const componentId = data.componentId as string;
+    const action = data.action as string;
+    if (componentId && action) {
+      const resolved = uiApprovalRegistry.resolve(componentId, action);
+      if (resolved) {
+        safeSend(ws, JSON.stringify({ type: "ui_action_acknowledged", componentId }));
+      } else {
+        safeSend(ws, JSON.stringify({ type: "ui_action_error", componentId, error: "Approval request not found or already completed" }));
+      }
     }
     return;
   }

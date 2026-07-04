@@ -537,5 +537,25 @@ export const McpConfigSchema = z.object({
 });
 export type McpConfig = z.infer<typeof McpConfigSchema>;
 
+export const UiComponentSchema = z.object({
+  type: z.literal("ui_component"),
+  sessionId: z.string(),
+  componentId: z.string(),
+  componentType: z.enum(["approval", "chart", "form"]),
+  props: z.record(z.unknown()),
+  blocking: z.boolean().optional(),
+  persist: z.boolean().optional(),
+});
+export type UiComponent = z.infer<typeof UiComponentSchema>;
+
+export const UiActionSchema = z.object({
+  type: z.literal("ui_action"),
+  sessionId: z.string(),
+  componentId: z.string(),
+  action: z.string(),
+  payload: z.record(z.unknown()).optional(),
+});
+export type UiAction = z.infer<typeof UiActionSchema>;
+
 
 

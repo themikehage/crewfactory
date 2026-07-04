@@ -18,6 +18,7 @@ import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
 import { registerQwenProvider } from "./qwen-provider";
 import { mcpRegistry } from "./mcp-registry";
+import { uiTools } from "./ui-tools";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
@@ -393,7 +394,7 @@ class PiSessionManager {
       authStorage,
       modelRegistry,
       resourceLoader,
-      customTools: [customBashTool as any, ...mcpTools],
+      customTools: [customBashTool as any, ...mcpTools, ...uiTools as any],
     });
 
     const systemTools = this.getSessionTools(username, sessionId);
@@ -402,10 +403,12 @@ class PiSessionManager {
     const definedToolNames = new Set([
       ...systemTools,
       "bash",
+      "request_approval",
+      "render_chart",
       ...mcpToolNames
     ]);
 
-    const combinedTools = Array.from(new Set([...activeTools, ...mcpToolNames]))
+    const combinedTools = Array.from(new Set([...activeTools, ...mcpToolNames, "request_approval", "render_chart"]))
       .filter(tName => definedToolNames.has(tName));
 
     session.setActiveToolsByName(combinedTools);

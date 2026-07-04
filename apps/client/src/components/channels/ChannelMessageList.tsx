@@ -127,6 +127,7 @@ export function ChannelMessageList({
                 args={tc.arguments}
                 result={tc.result}
                 sessionId={msg.sessionId || null}
+                toolCallId={tc.toolCallId || tc.id}
                 activeChannelId={activeChannelId}
               />
             ))}
@@ -160,6 +161,7 @@ export function ChannelMessageList({
                 args={tc.args}
                 result={tc.result}
                 sessionId={sessionId}
+                toolCallId={id}
                 activeChannelId={activeChannelId}
               />
             ))}
