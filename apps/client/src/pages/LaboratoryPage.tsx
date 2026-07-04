@@ -663,6 +663,58 @@ export function LaboratoryPage({
     });
   };
 
+  const handleAddAgent = () => {
+    if (!editableTeam) return;
+    const newAgentId = `agent-${Date.now().toString(36)}`;
+    const newAgent: AgentDefinition = {
+      id: newAgentId,
+      name: "Nuevo Agente",
+      role: "assistant",
+      systemPrompt: "Eres un agente colaborador en este canal. Responde de forma concisa y ayuda a resolver la tarea.",
+      model: selectedModel || "anthropic/claude-3-5-sonnet",
+      skills: []
+    };
+    const newMember = {
+      agentId: newAgentId,
+      replyMode: "broadcast",
+      role: "member"
+    };
+    setEditableTeam({
+      ...editableTeam,
+      agents: [...editableTeam.agents, newAgent],
+      channel: {
+        ...editableTeam.channel,
+        members: [...editableTeam.channel.members, newMember]
+      }
+    });
+  };
+
+  const handleRemoveAgent = (agentId: string) => {
+    if (!editableTeam) return;
+    const updatedAgents = editableTeam.agents.filter((a) => a.id !== agentId);
+    let updatedMembers = editableTeam.channel.members.filter((m) => m.agentId !== agentId);
+    
+    // Si borramos al lead, promovamos al primer agente restante a lead
+    const wasLead = editableTeam.channel.members.find((m) => m.agentId === agentId)?.role === "lead";
+    if (wasLead && updatedMembers.length > 0) {
+      updatedMembers = updatedMembers.map((m, idx) => {
+        if (idx === 0) {
+          return { ...m, role: "lead", replyMode: "user-only" };
+        }
+        return m;
+      });
+    }
+
+    setEditableTeam({
+      ...editableTeam,
+      agents: updatedAgents,
+      channel: {
+        ...editableTeam.channel,
+        members: updatedMembers
+      }
+    });
+  };
+
   return (
     <div className="flex h-full min-h-0 bg-bg text-text-primary font-body">
       {/* Area Principal de Contenido (Abarca todo el ancho de la página al quitar el sidebar) */}
@@ -763,14 +815,15 @@ export function LaboratoryPage({
                     <div className="flex gap-2">
                       <button
                         onClick={handleSaveExperimentDirect}
-                        className="px-4 py-1.5 bg-surface hover:bg-surface-hover border border-surface-hover text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        disabled={editableTeam.agents.length < 3}
+                        className="px-4 py-1.5 bg-surface hover:bg-surface-hover border border-surface-hover text-text-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
                         Crear Experimento
                       </button>
                       <button
                         onClick={handleInstantiateTeam}
-                        disabled={instantiating}
-                        className="px-4 py-1.5 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-2 cursor-pointer"
+                        disabled={instantiating || editableTeam.agents.length < 3}
+                        className="px-4 py-1.5 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center gap-2 cursor-pointer"
                       >
                         {instantiating ? (
                           <>
@@ -783,6 +836,20 @@ export function LaboratoryPage({
                       </button>
                     </div>
                   </div>
+
+                  {editableTeam.agents.length < 3 && (
+                    <div className="p-4 bg-warning/10 border border-warning/20 rounded-2xl flex flex-col gap-1 text-warning text-xs text-left">
+                      <div className="flex items-center gap-2 font-bold text-yellow-400">
+                        <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+                        </svg>
+                        <span>Regla de Negocio: Mínimo de Agentes</span>
+                      </div>
+                      <p className="text-text-secondary leading-relaxed">
+                        Se requiere un mínimo de <strong>3 agentes</strong> para poder ejecutar los tracks colaborativos (Colaboración Horizontal y Colaboración Jerárquica). Agregá más agentes al equipo para cumplir con esta regla.
+                      </p>
+                    </div>
+                  )}
 
                   {/* Creador de Experimento Directo (Unificado) */}
                   <div className="bg-surface border border-surface-hover rounded-2xl p-5 space-y-4 text-left">
@@ -996,7 +1063,7 @@ export function LaboratoryPage({
 
                               {/* Roles y Modos del Miembro del Canal */}
                               {mInfo && (
-                                <div className="flex gap-2 w-full sm:w-auto">
+                                <div className="flex gap-2 w-full sm:w-auto items-end">
                                   <div className="flex-1 sm:flex-initial">
                                     <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
                                       Rol Canal
@@ -1029,6 +1096,16 @@ export function LaboratoryPage({
                                       <option value="user-only">User Only</option>
                                     </select>
                                   </div>
+
+                                  <button
+                                    onClick={() => handleRemoveAgent(ag.id)}
+                                    className="p-2 bg-error/10 hover:bg-error/20 border border-error/20 hover:border-error/45 text-error rounded-xl text-xs font-bold transition-all cursor-pointer h-[30px] flex items-center justify-center aspect-square"
+                                    title="Remover Agente"
+                                  >
+                                    <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                    </svg>
+                                  </button>
                                 </div>
                               )}
                             </div>
@@ -1074,6 +1151,17 @@ export function LaboratoryPage({
                           </div>
                         );
                       })}
+
+                      {/* Botón para Agregar Agente */}
+                      <button
+                        onClick={handleAddAgent}
+                        className="w-full py-4 border border-dashed border-surface-hover hover:border-accent/40 rounded-2xl flex items-center justify-center gap-2 text-xs text-text-secondary hover:text-accent transition-all cursor-pointer bg-surface/5 hover:bg-surface/10 font-bold"
+                      >
+                        <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
+                        </svg>
+                        <span>Agregar Agente al Equipo</span>
+                      </button>
                     </div>
                   </div>
                 </motion.div>
