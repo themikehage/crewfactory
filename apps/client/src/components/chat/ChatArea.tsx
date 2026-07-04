@@ -358,7 +358,6 @@ const l = useLiterals(u);
       } else {
         const userMsg: Message = { role: "user", content: message };
         setMessages((prev) => [...prev, userMsg]);
-        send({ type: "prompt", message, sessionId, tools, images });
         if (activeChannel) {
           const token = localStorage.getItem("token");
           fetch(`/api/channels/${activeChannel.id}/send`, {
@@ -366,6 +365,8 @@ const l = useLiterals(u);
             headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
             body: JSON.stringify({ message }),
           }).catch(() => {});
+        } else {
+          send({ type: "prompt", message, sessionId, tools, images });
         }
       }
     },

@@ -18,9 +18,10 @@ export const requestApprovalTool = {
   execute: async (toolCallId: string, args: any) => {
     // Suspend the execution promise until user confirmation is received
     const result = await uiApprovalRegistry.register(toolCallId);
+    const textResult = result === "confirm" ? "confirmed" : "cancelled";
     return {
-      content: [{ type: "text", text: result }],
-      details: { status: result }
+      content: [{ type: "text", text: textResult }],
+      details: { status: textResult }
     };
   }
 };
