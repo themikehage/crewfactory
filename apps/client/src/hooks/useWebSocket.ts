@@ -1,4 +1,5 @@
-import { useEffect, useRef, useCallback, useState } from "react";
+﻿import { useEffect, useCallback, useState } from "react";
+import { wsClient } from "@/lib/ws-client";
 
 type EventHandler = (data: unknown) => void;
 
@@ -9,110 +10,37 @@ interface WebSocketState {
 }
 
 export function useWebSocket(sessionId: string | null): WebSocketState {
-  const wsRef = useRef<WebSocket | null>(null);
-  const handlersRef = useRef<Map<string, Set<EventHandler>>>(new Map());
-  const [connected, setConnected] = useState<boolean>(false);
-  const reconnectTimeout = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const reconnectAttempts = useRef<number>(0);
-
-  const connect = useCallback(() => {
-    if (!sessionId) return;
-
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
-    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${protocol}//${location.host}/ws`;
-
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      reconnectAttempts.current = 0;
-      ws.send(JSON.stringify({ type: "auth", token, sessionId }));
-    };
-
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data.type !== "llm_delta" && data.type !== "global_log") {
-          fetch("/api/client-log", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              level: "INFO",
-              message: `[WebSocket Client] Received type=${data.type} sessionId=${sessionId} requestId=${data.requestId || ""}`
-            }),
-          }).catch(() => {});
-        }
-
-        if (data.type === "auth_success") {
-          setConnected(true);
-          return;
-        }
-        if (data.type === "auth_error") {
-          setConnected(false);
-          ws.close();
-          return;
-        }
-        if (data.type === "entity-updated") {
-          window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: data.entityType } }));
-          return;
-        }
-        const cbs = handlersRef.current.get(data.type);
-        cbs?.forEach((cb) => cb(data));
-
-        const wildcard = handlersRef.current.get("*");
-        wildcard?.forEach((cb) => cb(data));
-      } catch (e) {
-        fetch("/api/client-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ level: "ERROR", message: `[WebSocket Client] Error handling message: ${e}` }),
-        }).catch(() => {});
-        console.error("[WebSocket Client] Error handling message:", e);
-      }
-    };
-
-    ws.onclose = () => {
-      setConnected(false);
-      wsRef.current = null;
-
-      const delay = Math.min(1000 * 2 ** reconnectAttempts.current, 30000);
-      reconnectAttempts.current++;
-      reconnectTimeout.current = setTimeout(connect, delay);
-    };
-
-    ws.onerror = () => {
-      ws.close();
-    };
-  }, [sessionId]);
+  const [connected, setConnected] = useState<boolean>(wsClient.getState() === "connected");
 
   useEffect(() => {
-    connect();
-    return () => {
-      if (reconnectTimeout.current !== null) {
-        clearTimeout(reconnectTimeout.current);
-        reconnectTimeout.current = null;
-      }
-      wsRef.current?.close();
-    };
-  }, [connect]);
+    const unsub = wsClient.onStateChange((state) => {
+      setConnected(state === "connected");
+    });
+    return unsub;
+  }, []);
 
-  const send = useCallback((data: Record<string, unknown>) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ ...data, sessionId }));
+  useEffect(() => {
+    if (!sessionId) return;
+    if (wsClient.getState() === "connected") {
+      wsClient.send({ type: "session_subscribe", sessionId });
     }
+    const unsub = wsClient.onStateChange((state) => {
+      if (state === "connected") {
+        wsClient.send({ type: "session_subscribe", sessionId });
+      }
+    });
+    return unsub;
   }, [sessionId]);
 
+  const send = useCallback(
+    (data: Record<string, unknown>) => {
+      wsClient.send({ ...data, sessionId });
+    },
+    [sessionId]
+  );
+
   const subscribe = useCallback((type: string, handler: EventHandler) => {
-    if (!handlersRef.current.has(type)) {
-      handlersRef.current.set(type, new Set());
-    }
-    handlersRef.current.get(type)!.add(handler);
-    return () => {
-      handlersRef.current.get(type)?.delete(handler);
-    };
+    return wsClient.subscribe(type, handler);
   }, []);
 
   return { connected, send, subscribe };

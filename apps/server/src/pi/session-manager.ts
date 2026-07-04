@@ -511,20 +511,15 @@ class PiSessionManager {
     if (!entry) return;
 
     let called = false;
-    const unsubscribe = entry.session.subscribe((event) => {
+    let unsubscribe: (() => void) | null = null;
+
+    unsubscribe = entry.session.subscribe((event) => {
       if (!called) {
         called = true;
+        unsubscribe?.();
         listener(event);
       }
     });
-
-    entry.unsubscribe = () => {
-      unsubscribe();
-      if (!called) {
-        called = true;
-        listener({ type: "" } as unknown as AgentSessionEvent);
-      }
-    };
   }
 
   async destroySession(username: string, sessionId: string): Promise<void> {

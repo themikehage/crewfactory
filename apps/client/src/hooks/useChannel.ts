@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+﻿import { useState, useEffect, useCallback, useRef } from "react";
 import type { Channel, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
+import { wsClient } from "@/lib/ws-client";
 
 function getToken() {
   return localStorage.getItem("token") || "";
@@ -20,7 +21,10 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const wsRef = useRef<WebSocket | null>(null);
+  const channelIdRef = useRef(channelId);
+  const sessionIdRef = useRef(sessionId);
+  channelIdRef.current = channelId;
+  sessionIdRef.current = sessionId;
 
   const fetchChannel = useCallback(async () => {
     if (!channelId) return;
@@ -60,18 +64,17 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      
+
       setStreamingAgents((prev) => {
         const merged = { ...prev };
         for (const [agentId, serverStream] of Object.entries(data.streamingAgents || {})) {
           const s = serverStream as StreamingAgentState;
           if (merged[agentId]) {
-            // Keep the longer text/thinking to avoid losing any web socket deltas
             merged[agentId] = {
               ...s,
               text: merged[agentId].text.length > s.text.length ? merged[agentId].text : s.text,
               thinking: (merged[agentId].thinking?.length || 0) > (s.thinking?.length || 0) ? merged[agentId].thinking : s.thinking,
-              toolCalls: { ...s.toolCalls, ...merged[agentId].toolCalls }
+              toolCalls: { ...s.toolCalls, ...merged[agentId].toolCalls },
             };
           } else {
             merged[agentId] = s;
@@ -92,7 +95,6 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setLoading(false);
       return;
     }
-    // Clear stale state immediately on channel or session change to avoid showing old data
     setMessages([]);
     setStreamingAgents({});
     setLoading(true);
@@ -100,128 +102,98 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings()]).finally(() => setLoading(false));
   }, [channelId, sessionId, fetchChannel, fetchMessages, fetchActiveStreamings]);
 
-
-  // WebSocket Connection for channel events
   useEffect(() => {
     if (!channelId) return;
 
-    const token = getToken();
-    if (!token) return;
-
-    const protocol = location.protocol === "https:" ? "wss:" : "ws:";
-    const url = `${protocol}//${location.host}/ws`;
-
-    const ws = new WebSocket(url);
-    wsRef.current = ws;
-
-    ws.onopen = () => {
-      ws.send(JSON.stringify({ type: "auth", token }));
+    const joinChannel = () => {
+      wsClient.send({ type: "channel_join", channelId });
     };
 
-    ws.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
+    if (wsClient.getState() === "connected") {
+      joinChannel();
+    }
 
-        if (data.type === "auth_success") {
-          ws.send(JSON.stringify({ type: "channel_join", channelId }));
-          return;
-        }
+    const unsubState = wsClient.onStateChange((state) => {
+      if (state === "connected") joinChannel();
+    });
 
-        if (data.channelId && data.channelId !== channelId) return;
-        if (sessionId && data.sessionId && data.sessionId !== sessionId) return;
+    const unsubMessage = wsClient.subscribe("*", (rawData: unknown) => {
+      const data = rawData as Record<string, any>;
 
-        if (data.type === "channel_message") {
-          const newMsg: ChannelMessage = data.message;
-          setMessages((prev) => {
-            if (prev.some((m) => m.id === newMsg.id)) return prev;
-            if (sessionId && newMsg.sessionId !== sessionId) return prev;
-            return [...prev, newMsg];
-          });
-        } else if (data.type === "channel_agent_start") {
-          setStreamingAgents((prev) => ({
-            ...prev,
-            [data.agentId]: { agentId: data.agentId, agentName: data.agentName, text: "" },
-          }));
-        } else if (data.type === "channel_agent_token") {
-          setStreamingAgents((prev) => {
-            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
-            return {
-              ...prev,
-              [data.agentId]: { ...current, text: current.text + data.token },
-            };
-          });
-        } else if (data.type === "channel_agent_thinking") {
-          setStreamingAgents((prev) => {
-            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
-            return {
-              ...prev,
-              [data.agentId]: { ...current, thinking: (current.thinking || "") + data.token },
-            };
-          });
-        } else if (data.type === "channel_agent_tool_start") {
-          setStreamingAgents((prev) => {
-            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
-            const tools = { ...(current.toolCalls || {}) };
-            tools[data.toolCallId] = { toolName: data.toolName, args: data.args, result: null, isError: false };
-            return {
-              ...prev,
-              [data.agentId]: { ...current, toolCalls: tools },
-            };
-          });
-        } else if (data.type === "channel_agent_tool_end") {
-          setStreamingAgents((prev) => {
-            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
-            const tools = { ...(current.toolCalls || {}) };
-            if (tools[data.toolCallId]) {
-              tools[data.toolCallId] = {
-                ...tools[data.toolCallId],
-                result: {
-                  toolName: data.toolName,
-                  content: Array.isArray(data.result) ? data.result : [{ type: "text", text: String(data.result) }],
-                  isError: data.isError
-                },
-                isError: data.isError
-              };
-            }
-            return {
-              ...prev,
-              [data.agentId]: { ...current, toolCalls: tools },
-            };
-          });
-        } else if (data.type === "channel_agent_end" || data.type === "channel_agent_error") {
-          setStreamingAgents((prev) => {
-            const next = { ...prev };
-            delete next[data.agentId];
-            return next;
-          });
-        } else if (data.type === "channel_dispatch_aborted" || data.type === "channel_chain_limit") {
-          setStreamingAgents({});
-        }
-      } catch {}
-    };
+      if (data.channelId && data.channelId !== channelIdRef.current) return;
+      if (sessionIdRef.current && data.sessionId && data.sessionId !== sessionIdRef.current) return;
 
-    ws.onclose = () => {
-      wsRef.current = null;
-    };
+      if (data.type === "channel_message") {
+        const newMsg: ChannelMessage = data.message;
+        setMessages((prev) => {
+          if (prev.some((m) => m.id === newMsg.id)) return prev;
+          if (sessionIdRef.current && newMsg.sessionId !== sessionIdRef.current) return prev;
+          return [...prev, newMsg];
+        });
+      } else if (data.type === "channel_agent_start") {
+        setStreamingAgents((prev) => ({
+          ...prev,
+          [data.agentId]: { agentId: data.agentId, agentName: data.agentName, text: "" },
+        }));
+      } else if (data.type === "channel_agent_token") {
+        setStreamingAgents((prev) => {
+          const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
+          return { ...prev, [data.agentId]: { ...current, text: current.text + data.token } };
+        });
+      } else if (data.type === "channel_agent_thinking") {
+        setStreamingAgents((prev) => {
+          const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
+          return { ...prev, [data.agentId]: { ...current, thinking: (current.thinking || "") + data.token } };
+        });
+      } else if (data.type === "channel_agent_tool_start") {
+        setStreamingAgents((prev) => {
+          const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
+          const tools = { ...(current.toolCalls || {}) };
+          tools[data.toolCallId] = { toolName: data.toolName, args: data.args, result: null, isError: false };
+          return { ...prev, [data.agentId]: { ...current, toolCalls: tools } };
+        });
+      } else if (data.type === "channel_agent_tool_end") {
+        setStreamingAgents((prev) => {
+          const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
+          const tools = { ...(current.toolCalls || {}) };
+          if (tools[data.toolCallId]) {
+            tools[data.toolCallId] = {
+              ...tools[data.toolCallId],
+              result: {
+                toolName: data.toolName,
+                content: Array.isArray(data.result) ? data.result : [{ type: "text", text: String(data.result) }],
+                isError: data.isError,
+              },
+              isError: data.isError,
+            };
+          }
+          return { ...prev, [data.agentId]: { ...current, toolCalls: tools } };
+        });
+      } else if (data.type === "channel_agent_end" || data.type === "channel_agent_error") {
+        setStreamingAgents((prev) => {
+          const next = { ...prev };
+          delete next[data.agentId];
+          return next;
+        });
+      } else if (data.type === "channel_dispatch_aborted" || data.type === "channel_chain_limit") {
+        setStreamingAgents({});
+      }
+    });
 
     return () => {
-      ws.close();
+      unsubState();
+      unsubMessage();
     };
-  }, [channelId, sessionId]);
+  }, [channelId]);
 
   const sendMessage = useCallback(
     async (content: string) => {
       if (!channelId || !content.trim()) return;
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({ type: "channel_send", channelId, sessionId, message: content }));
-      } else {
-        // Fallback REST
+      const sent = wsClient.send({ type: "channel_send", channelId, sessionId, message: content });
+      if (!sent) {
         await fetch(`/api/channels/${channelId}/send`, {
           method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${getToken()}`,
-          },
+          headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
           body: JSON.stringify({ message: content, sessionId }),
         });
       }
@@ -232,15 +204,11 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const abortDispatch = useCallback(async () => {
     if (!channelId) return;
     setStreamingAgents({});
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify({ type: "channel_abort", channelId, sessionId }));
-    } else {
+    const sent = wsClient.send({ type: "channel_abort", channelId, sessionId });
+    if (!sent) {
       await fetch(`/api/channels/${channelId}/abort`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify({ sessionId }),
       });
     }
@@ -251,10 +219,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!channelId) return;
       const res = await fetch(`/api/channels/${channelId}/members`, {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(data),
       });
       if (!res.ok) {
@@ -272,10 +237,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!channelId) return;
       const res = await fetch(`/api/channels/${channelId}/members/${agentId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -304,10 +266,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!channelId) return;
       const res = await fetch(`/api/channels/${channelId}`, {
         method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${getToken()}`,
-        },
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
         body: JSON.stringify(data),
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
