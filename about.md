@@ -15,7 +15,7 @@
 
 ### Chat & Streaming
 - Multi-session chat (create, switch, delete sessions)
-- Real-time streaming via WebSocket (Hono/Bun upgrade)
+- Real-time streaming via a **single shared WebSocket connection** (`wsClient` singleton) with automatic exponential-backoff reconnect
 - Message rendering: user, assistant, tool calls, thinking blocks
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
@@ -262,7 +262,7 @@ packages/shared/  Shared Zod schemas and types
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
 - `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints
 - `agents/create-agent-server.ts` — Factory for isolated agent Hono servers. Inherits user authStorage and modelRegistry.
-- `agents/agent-registry.ts` — Singleton managing programmatic agent lifecycle and filesystem persistence.
+- `agents/agent-registry.ts` — Singleton managing programmatic agent lifecycle and filesystem persistence. `get(id, username?)` enforces ownership when username is provided.
 - `channels/channel-store.ts` — Filesystem store for channel definitions and message logs.
 - `channels/channel-orchestrator.ts` — Sequential multi-agent message dispatch and recipient resolution.
 - `benchmark/harness.ts` — Background benchmark harness runner comparing Conditions A vs B.
@@ -271,7 +271,8 @@ packages/shared/  Shared Zod schemas and types
 - `pi/mcp-registry.ts` — Manager for MCP server lifecycle, settings config, and dynamic tool injection.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
 - `routes/channels.ts` — REST endpoints for channel CRUD, member administration, benchmarks, and optimization.
-- `ws/handler.ts` — WebSocket auth via JWT, streaming via session.subscribe(), and channel event broadcasting.
+- `ws/handler.ts` — Single WebSocket endpoint handling auth (JWT), session subscription (`session_subscribe`), channel dispatch, and event broadcasting. Uses `wsSocketMeta` reverse index for O(1) cleanup on disconnect. Wires `channelOrchestrator` and `eventBroker` broadcasters via injected functions (`setChannelBroadcastHandler`, `setEventBroadcaster`) to avoid circular dependencies.
+- `lib/event-broker.ts` — Singleton buffering recent global log events per user (up to 150) and broadcasting to user WS sockets via injected `setEventBroadcaster()` (no dynamic require).
 - `middleware/auth.ts` — JWT verification middleware for REST routes
 - `preview-server.ts` — Standalone static file server on port 3001 with path-based isolation for project preview (no auth tokens in URLs)
 
@@ -285,7 +286,10 @@ packages/shared/  Shared Zod schemas and types
 - `components/channels/ChannelOptimizePanel.tsx` — Panel view managing prompt optimization auto-loops and timelines.
 - `components/channels/ChannelMembersModal.tsx` — Floating modal for member management and targeted agent selection.
 - `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
-- `hooks/useWebSocket.ts` — WebSocket client with auto-reconnect, event subscription
+- `lib/ws-client.ts` — **Singleton WebSocket client** shared across the entire app. Handles auth handshake, type-keyed event dispatch, exponential-backoff reconnect, and `session_subscribe` protocol. Replaces the per-hook WS connections that previously caused 3 simultaneous connections.
+- `hooks/useWebSocket.ts` — Thin React wrapper over `wsClient`. Sends `session_subscribe` on connect and exposes `send`/`subscribe`.
+- `hooks/useSessionStatusWs.ts` — Pure hook subscribing to `session_status` events via `wsClient`. No module-level mutable state.
+- `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
