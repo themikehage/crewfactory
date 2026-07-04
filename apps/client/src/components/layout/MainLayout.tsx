@@ -200,6 +200,8 @@ export function MainLayout({
       items = [{ label: l.breadSkills }];
     } else if (route.page === "logs") {
       items = [{ label: l.breadLogs }];
+    } else if (route.page === "mcps") {
+      items = [{ label: l.breadMcps || "MCP Marketplace" }];
     } else if (route.page === "projects") {
       items = [{ label: l.breadProyectos }];
     } else if (route.page === "agents") {

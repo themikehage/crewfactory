@@ -188,6 +188,15 @@
 - **Continuous Optimization Loop**: Factory skills `factory-delegate`, `factory-observe`, and `factory-quick-actions` teaching the global director how to delegate tasks, inspect execution reports, detect repetitive sequences, and compile/register optimized Quick Actions.
 - **Rich Monitoring UI**: "Historial" (Executions) logs tab in `AgentsPage.tsx` with collapsable tool detail pre-blocks and real-time Observed status indicators in `ChatArea.tsx`.
 
+### Model Context Protocol (MCP) Marketplace & Gallery
+- **Predefined Catalog Gallery**: Browse and install popular MCP servers (Filesystem, GitHub, PostgreSQL, Puppeteer, Memory Graph, Brave Search) with a single-click installation.
+- **Custom Stdio & HTTP support**: Register custom servers using local stdio commands (Node/Python subprocesses) or remote HTTP/SSE links.
+- **Preflight Connection Testing**: Connect to a server temporarily to discover and list tools before saving the configuration.
+- **Automatic dynamic agent tools injection**: Automatically connects enabled MCP servers at session startup, registers discovered tools with namespaced prefix `mcp_${serverId}_${toolName}`, and transparently routes tool executions.
+- **Process Lifecycle Guard**: Gracefully stops and cleans up active subprocess connections at session termination or process exit (SIGINT/SIGTERM) to avoid zombie processes.
+- **Workspace Sandboxing**: Replaces `$WORKSPACE_DIR` dynamically to restrict directory-level tools access strictly to the user workspace `/tmp/crewfactory/{username}/workspace` for multi-user security.
+- **Preserved Active State & SDK Compatibility**: Preserves active MCP tools during client prompt events and REST permissions updates to prevent deactivation side-effects. Automatically translates MCP content (text and base64 images) into conforming `AgentToolResult` outputs.
+
 ## API Endpoints
 
 | Method | Path | Description |
@@ -233,7 +242,17 @@
 | GET | /api/sessions/repos/:repoName/executions | List saved execution logs for the repository |
 | GET | /api/sessions/repos/:repoName/executions/:execId | Retrieve detail logs of a specific repository execution |
 | GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), message dispatch (`/send`), benchmark suite (`/benchmark`), and prompt optimization (`/optimize`) |
-| GET/POST | /api/mcp | Retrieve and update the Model Context Protocol (MCP) server configuration settings |
+| GET/POST | /api/mcp | Retrieve and update the full Model Context Protocol (MCP) server configuration settings |
+| GET | /api/mcp/catalog | Retrieve the official marketplace pre-curated collection of servers |
+| GET | /api/mcp/servers | Retrieve the list of all configured user servers |
+| POST | /api/mcp/servers | Create a new custom server configuration |
+| PUT | /api/mcp/servers/:id | Update an existing server configuration |
+| DELETE | /api/mcp/servers/:id | Uninstall or delete a server configuration |
+| POST | /api/mcp/servers/:id/connect | Manually trigger a global client connection test |
+| POST | /api/mcp/servers/:id/disconnect | Disconnect active global client connection |
+| POST | /api/mcp/servers/test-connection | Preflight connection tester endpoint (no persist) |
+| POST | /api/mcp/catalog/:id/install | Install built-in server from the gallery |
+| GET | /api/mcp/status | Query statuses of all configured servers |
 | GET | /api/backup/export | Export zip backup (supports ?type=light|full) |
 | POST | /api/backup/import | Import zip backup (supports ?mode=merge|overwrite) |
 | POST | /api/skills/reset | Reset default manager skills (prefixed with factory-) |
@@ -267,8 +286,9 @@ packages/shared/  Shared Zod schemas and types
 - `channels/channel-orchestrator.ts` — Sequential multi-agent message dispatch and recipient resolution.
 - `benchmark/harness.ts` — Background benchmark harness runner comparing Conditions A vs B.
 - `benchmark/optimizer.ts` — Meta-Agent loop refining prompts based on benchmark metrics.
-- `pi/mcp-client.ts` — Generic stdio JSON-RPC Client for MCP Server integration.
-- `pi/mcp-registry.ts` — Manager for MCP server lifecycle, settings config, and dynamic tool injection.
+- `pi/mcp-client.ts` — Stdio and HTTP/SSE JSON-RPC Client for MCP Server integrations with Bun.
+- `pi/mcp-registry.ts` — Manager for MCP server lifecycle, catalog gallery definitions, connection preflights, and dynamic tool injection.
+- `routes/mcp.ts` — REST endpoints for MCP catalog, server configs management, manual connections, testing, and status queries.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
 - `routes/channels.ts` — REST endpoints for channel CRUD, member administration, benchmarks, and optimization.
 - `ws/handler.ts` — Single WebSocket endpoint handling auth (JWT), session subscription (`session_subscribe`), channel dispatch, and event broadcasting. Uses `wsSocketMeta` reverse index for O(1) cleanup on disconnect. Wires `channelOrchestrator` and `eventBroker` broadcasters via injected functions (`setChannelBroadcastHandler`, `setEventBroadcaster`) to avoid circular dependencies.
@@ -280,6 +300,10 @@ packages/shared/  Shared Zod schemas and types
 - `pages/DashboardPage.tsx` — Initial view: lists repos, creates/clones Git projects, accesses global workspace.
 - `pages/AgentsPage.tsx` — Management dashboard for programmatic agents.
 - `pages/ChannelsPage.tsx` — Management dashboard for multi-agent channels with card actions.
+- `pages/MCPMarketplacePage.tsx` — Main MCP Marketplace page with tabbed views (Gallery catalog and Custom configurations).
+- `components/mcp/MCPCard.tsx` — Card component representing a server, rendering connection statuses, toggles, errors logs, and discovered tools.
+- `components/mcp/MCPCustomForm.tsx` — Form for custom stdio/HTTP server setup, environment variables editing, and connection testers.
+- `components/ui/Toast.tsx` — Reusable premium Toast and ToastContainer components with Framer Motion animations.
 - `components/channels/ChannelChatArea.tsx` — Dedicated container for channel WS streaming and multi-agent execution.
 - `components/channels/ChannelMessageList.tsx` — Multi-agent message list with agent badges, avatars, and RichMarkdown.
 - `components/channels/ChannelBenchmarkPanel.tsx` — Panel view rendering efficiency benchmark comparison reports (Condition A vs B).

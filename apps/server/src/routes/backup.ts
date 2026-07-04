@@ -48,7 +48,7 @@ async function addFilesRecursively(
     } else {
       if (type === "light") {
         const parts = relPath.split("/");
-        const isRootConfig = parts.length === 1 && ["credentials.json", "auth.json", "integrations.json", "env.json"].includes(parts[0]);
+        const isRootConfig = parts.length === 1 && ["credentials.json", "auth.json", "integrations.json", "env.json", "mcp-servers.json", "mcp-config.json"].includes(parts[0]);
         const isCustomSkill = relPath.startsWith("workspace/.agents/skills/");
         const isAgentDef = parts.length === 3 && parts[0] === "agents" && parts[2] === "definition.json";
         const isChannelDef = parts.length === 3 && parts[0] === "channels" && parts[2] === "channel.json";

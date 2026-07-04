@@ -47,7 +47,11 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     channelId,
   };
 
-  await piSessionManager.getOrCreateSession(username, sessionId, repoName, agentId, channelId);
+  // Start session load asynchronously in the background to avoid blocking API response
+  piSessionManager.getOrCreateSession(username, sessionId, repoName, agentId, channelId).catch(err => {
+    console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
+  });
+
   piSessionManager.saveSessionMetadata(username, sessionId, {
     name,
     createdAt: now,
@@ -591,7 +595,9 @@ sessionsRouter.post(
       return c.json({ error: "Session not found" }, 404);
     }
 
-    session.setActiveToolsByName(tools);
+    const currentActive = session.getActiveToolNames();
+    const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
+    session.setActiveToolsByName(Array.from(new Set([...tools, ...mcpActive])));
     piSessionManager.persistSessionTools(username, sessionId, tools);
 
     return c.json({ success: true, tools });

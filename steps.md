@@ -472,3 +472,16 @@ crear un plan de despliegue facil en vps
 - [x] 53.4 Sanear `OrgChartLines.tsx` eliminando strokes hardcodeados en favor de clases `stroke-border` y `stroke-muted`
 - [x] 53.5 Migrar de forma automatizada todas las clases obsoletas de Slack y CrewFactory a los nuevos tokens de tema en 64 archivos .tsx
 - [x] 53.6 Compilar y verificar el build exitoso de la aplicación cliente
+
+## Phase 54: MCP Marketplace & Gallery
+- [x] 54.1 Extend shared Zod schemas (McpTransportType, McpServerConfig, McpCatalogItem, McpConfig) in packages/shared
+- [x] 54.2 Extend McpClient to support both stdio and HTTP (SSE + POST) transports natively in Bun
+- [x] 54.3 Implement predefined MCP catalog gallery, status connection checks, and dynamic argument replacement
+- [x] 54.4 Build routes/mcp.ts advanced endpoints (catalog, test connection, manual connect/disconnect, CRUD)
+- [x] 54.5 Register `/mcps` route in useRouter.ts and AppRouter.tsx, and add link in SessionSidebar.tsx
+- [x] 54.6 Build MCPMarketplacePage, MCPCard, and MCPCustomForm React components
+- [x] 54.7 Update backup router to include mcp configurations in lightweight backups
+- [x] 54.8 Verify successful builds of server and client applications
+- [x] 54.9 Fix MCP tool execution mapping (parameters schema translation and conforming AgentToolResult structure)
+- [x] 54.10 Fix active tools update side-effect deactivating MCP tools in WS handler and REST sessions router
+

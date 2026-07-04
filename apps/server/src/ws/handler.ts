@@ -294,7 +294,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const session = await piSessionManager.getOrCreateSession(user.username, sessionId);
 
     if (tools && Array.isArray(tools)) {
-      session.setActiveToolsByName(tools);
+      const currentActive = session.getActiveToolNames();
+      const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
+      session.setActiveToolsByName(Array.from(new Set([...tools, ...mcpActive])));
     }
 
     if (session.isStreaming) {

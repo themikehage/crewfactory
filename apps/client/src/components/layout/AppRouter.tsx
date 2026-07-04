@@ -8,6 +8,7 @@ import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
 import { LogsConsolePage } from "@/pages/LogsConsolePage";
 import { LaboratoryPage } from "@/pages/LaboratoryPage";
+import { MCPMarketplacePage } from "@/pages/MCPMarketplacePage";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
@@ -285,6 +286,9 @@ export function AppRouter() {
           setEditingExpId={setEditingLabExpId}
           handleDeleteExp={handleDeleteExp}
         />
+      )}
+      {route.page === "mcps" && (
+        <MCPMarketplacePage />
       )}
       {route.page === "channel" && (
         <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />

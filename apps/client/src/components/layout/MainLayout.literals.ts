@@ -12,6 +12,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     breadSettings: "Settings",
     breadSkills: "Skills",
     breadLogs: "Logs",
+    breadMcps: "MCP Marketplace",
   },
   es: {
     tabChat: "Chat",
@@ -24,5 +25,6 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     breadSettings: "Settings",
     breadSkills: "Skills",
     breadLogs: "Logs",
+    breadMcps: "MCP Marketplace",
   },
 };

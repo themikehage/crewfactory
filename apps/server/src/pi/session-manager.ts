@@ -140,6 +140,7 @@ type SessionListItem = {
 
 class PiSessionManager {
   private sessions = new Map<string, UserSessionEntry>();
+  private pendingSessions = new Map<string, Promise<AgentSession>>();
   private users = new Map<string, UserContext>();
 
   private getSessionKey(username: string, sessionId: string): string {
@@ -229,12 +230,18 @@ class PiSessionManager {
     const existing = this.sessions.get(key);
     if (existing) return existing.session;
 
-    const userDir = this.ensureUserDir(username);
-    const sessionDir = `${userDir}/sessions/${sessionId}`;
+    // Return the existing pending promise if initialization is already in progress
+    const pending = this.pendingSessions.get(key);
+    if (pending) return pending;
 
-    if (!existsSync(sessionDir)) {
-      mkdirSync(sessionDir, { recursive: true });
-    }
+    const initPromise = (async () => {
+      try {
+        const userDir = this.ensureUserDir(username);
+        const sessionDir = `${userDir}/sessions/${sessionId}`;
+
+        if (!existsSync(sessionDir)) {
+          mkdirSync(sessionDir, { recursive: true });
+        }
 
     // Persistir metadatos de sesión (guardar y leer metadata.json con repoName, agentId y channelId)
     const metadataPath = join(sessionDir, "metadata.json");
@@ -308,6 +315,8 @@ class PiSessionManager {
         }
       }
     }
+    const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
+    const mcpToolNames = mcpTools.map((t) => t.name);
 
     const appendPrompts = [
       `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
@@ -319,6 +328,15 @@ class PiSessionManager {
       `assets/output.png\n` +
       `This enables the UI to automatically parse and render them in a gallery grid.\n`
     ];
+
+    if (mcpToolNames.length > 0) {
+      appendPrompts.push(
+        `\n\nModel Context Protocol (MCP) Tools Available:\n` +
+        `You have the following custom MCP tools registered and active:\n` +
+        `${mcpToolNames.map(name => `- ${name}`).join("\n")}\n` +
+        `Use these tools when the task requires interacting with external databases, APIs, searching the web, or product integrations (like Slack, Linear, Jira, Google Drive). Do not assume you need to use bash if a specific MCP tool is more suitable.\n`
+      );
+    }
 
     if (agentDef?.systemPrompt) {
       appendPrompts.push(`\n\nAgent Instructions (${agentDef.name} - ${agentDef.role}):\n${agentDef.systemPrompt}`);
@@ -369,8 +387,6 @@ class PiSessionManager {
     });
 
 
-    const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
-
     const { session } = await createAgentSession({
       cwd: workspaceDir,
       sessionManager,
@@ -380,9 +396,19 @@ class PiSessionManager {
       customTools: [customBashTool as any, ...mcpTools],
     });
 
-    if (persistedTools) {
-      session.setActiveToolsByName(persistedTools);
-    }
+    const systemTools = this.getSessionTools(username, sessionId);
+    const activeTools = persistedTools || systemTools;
+    
+    const definedToolNames = new Set([
+      ...systemTools,
+      "bash",
+      ...mcpToolNames
+    ]);
+
+    const combinedTools = Array.from(new Set([...activeTools, ...mcpToolNames]))
+      .filter(tName => definedToolNames.has(tName));
+
+    session.setActiveToolsByName(combinedTools);
 
     // Subscribe to global logs forwarding
     const globalLogUnsub = session.subscribe((evt: any) => {
@@ -470,17 +496,24 @@ class PiSessionManager {
       }
     });
 
-    const unsubscribe = session.subscribe(() => {});
+        const unsubscribe = session.subscribe(() => {});
 
-    this.sessions.set(key, {
-      session,
-      unsubscribe: () => {
-        unsubscribe();
-        globalLogUnsub();
-      },
-    });
+        const entry: UserSessionEntry = {
+          session,
+          unsubscribe: () => {
+            unsubscribe();
+            globalLogUnsub();
+          },
+        };
+        this.sessions.set(key, entry);
+        return session;
+      } finally {
+        this.pendingSessions.delete(key);
+      }
+    })();
 
-    return session;
+    this.pendingSessions.set(key, initPromise);
+    return initPromise;
   }
 
   getSession(username: string, sessionId: string): AgentSession | null {
