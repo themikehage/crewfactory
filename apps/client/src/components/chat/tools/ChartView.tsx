@@ -17,9 +17,12 @@ import {
 } from "recharts";
 
 interface Props {
-  chartType: "bar" | "line" | "pie" | "area";
+  chartType?: "bar" | "line" | "pie" | "area";
+  type?: "bar" | "line" | "pie" | "area";
   title?: string;
-  data: Array<{ label: string; value: number; [key: string]: any }>;
+  data?: Array<{ label: string; value: number; [key: string]: any }>;
+  labels?: string[];
+  datasets?: Array<{ label: string; data: number[] }>;
   config?: {
     stacked?: boolean;
     colors?: string[];
@@ -38,8 +41,36 @@ const DEFAULT_COLORS = [
   "#22d3ee", // cyan
 ];
 
-export function ChartView({ chartType, title, data, config = {} }: Props) {
+export function ChartView({
+  chartType: propChartType,
+  type,
+  title,
+  data: propData,
+  labels,
+  datasets,
+  config = {},
+}: Props) {
+  // Normalize chartType
+  const chartType = (propChartType || type || "bar") as "bar" | "line" | "pie" | "area";
   const { stacked = false, colors = DEFAULT_COLORS, xLabel, yLabel } = config;
+
+  // Normalize data (support standard data array or labels/datasets format)
+  let data: Array<{ label: string; [key: string]: any }> = [];
+  if (propData && Array.isArray(propData)) {
+    data = propData;
+  } else if (labels && Array.isArray(labels) && datasets && Array.isArray(datasets)) {
+    data = labels.map((lbl, index) => {
+      const row: { label: string; [key: string]: any } = { label: lbl };
+      datasets.forEach((ds) => {
+        const val = ds.data[index] ?? 0;
+        row[ds.label || "value"] = val;
+        if (datasets.length === 1) {
+          row["value"] = val;
+        }
+      });
+      return row;
+    });
+  }
 
   // Renderizar el gráfico adecuado según el tipo
   const renderChart = () => {

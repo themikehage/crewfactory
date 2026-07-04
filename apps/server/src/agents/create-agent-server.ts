@@ -90,8 +90,12 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     authStorage,
     modelRegistry,
     resourceLoader,
-    customTools: [customBashTool as any, ...uiTools as any],
   });
+  
+  session.setActiveToolsByName([
+    "read", "write", "edit", "bash", "grep", "find", "ls",
+    "request_approval", "render_chart"
+  ]);
 
   const available = modelRegistry.getAvailable();
   if (definition.model) {
