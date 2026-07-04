@@ -74,16 +74,14 @@ channelsRouter.delete("/:id", async (c) => {
   const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
-  // Cascading delete: destroy all active chat sessions associated with this channel
-  try {
-    const sessions = await piSessionManager.listSessions(username);
-    for (const s of sessions) {
-      if (s.channelId === id) {
-        await piSessionManager.destroySession(username, s.id);
-      }
+  // Cascading delete: destroy all chat sessions associated with this channel
+  const sessions = await piSessionManager.listSessions(username).catch(() => []);
+  for (const s of sessions) {
+    if (s.channelId === id) {
+      await piSessionManager.destroySession(username, s.id).catch((err) =>
+        console.error(`[ChannelsRoute] Failed to destroy session ${s.id}:`, err)
+      );
     }
-  } catch (err) {
-    console.error(`[ChannelsRoute] Failed to delete sessions for channel ${id}:`, err);
   }
 
   const deleted = channelStore.deleteChannel(username, id);

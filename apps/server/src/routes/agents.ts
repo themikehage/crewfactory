@@ -51,8 +51,8 @@ agentsRouter.get("/:id", (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   return c.json({
     id,
@@ -71,19 +71,17 @@ agentsRouter.delete("/:id", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
-  // Cascading delete: destroy all active chat sessions associated with this agent
-  try {
-    const sessions = await piSessionManager.listSessions(username);
-    for (const s of sessions) {
-      if (s.agentId === id) {
-        await piSessionManager.destroySession(username, s.id);
-      }
+  // Cascading delete: destroy all chat sessions associated with this agent
+  const sessions = await piSessionManager.listSessions(username).catch(() => []);
+  for (const s of sessions) {
+    if (s.agentId === id) {
+      await piSessionManager.destroySession(username, s.id).catch((err) =>
+        console.error(`[AgentsRoute] Failed to destroy session ${s.id}:`, err)
+      );
     }
-  } catch (err) {
-    console.error(`[AgentsRoute] Failed to delete sessions for agent ${id}:`, err);
   }
 
   await agentRegistry.stop(id);
@@ -99,8 +97,8 @@ agentsRouter.patch(
     const id = c.req.param("id");
     const updates = c.req.valid("json");
 
-    const entry = agentRegistry.get(id);
-    if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+    const entry = agentRegistry.get(id, username);
+    if (!entry) return c.json({ error: "Agent not found" }, 404);
 
     try {
       const updatedEntry = await agentRegistry.update(username, id, updates);
@@ -126,8 +124,8 @@ agentsRouter.post(
     const id = c.req.param("id");
     const { message, stream = true } = c.req.valid("json");
 
-    const entry = agentRegistry.get(id);
-    if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+    const entry = agentRegistry.get(id, username);
+    if (!entry) return c.json({ error: "Agent not found" }, 404);
     if (entry.status === "stopped") return c.json({ error: "Agent is stopped" }, 409);
 
     return entry.server.app.fetch(
@@ -145,8 +143,8 @@ agentsRouter.get("/:id/messages", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   return c.json({ messages: entry.server.session.messages });
 });
@@ -155,8 +153,8 @@ agentsRouter.post("/:id/abort", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   if (entry.server.session.isStreaming) {
     await entry.server.session.abort();
@@ -168,8 +166,8 @@ agentsRouter.get("/:id/observe", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   return entry.server.app.fetch(
     new Request(`http://internal/observe`, {
@@ -183,8 +181,8 @@ agentsRouter.get("/:id/executions", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   return entry.server.app.fetch(
     new Request(`http://internal/executions`, {
@@ -199,8 +197,8 @@ agentsRouter.get("/:id/executions/:execId", async (c) => {
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
   const execId = c.req.param("execId");
-  const entry = agentRegistry.get(id);
-  if (!entry || entry.username !== username) return c.json({ error: "Agent not found" }, 404);
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   return entry.server.app.fetch(
     new Request(`http://internal/executions/${execId}`, {

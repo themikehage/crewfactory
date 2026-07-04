@@ -92,8 +92,11 @@ class AgentRegistry {
     }
   }
 
-  get(id: string): AgentEntry | undefined {
-    return this.agents.get(id);
+  get(id: string, username?: string): AgentEntry | undefined {
+    const entry = this.agents.get(id);
+    if (!entry) return undefined;
+    if (username !== undefined && entry.username !== username) return undefined;
+    return entry;
   }
 
   list(username: string): AgentInfo[] {

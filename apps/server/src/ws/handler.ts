@@ -1,10 +1,11 @@
-﻿import jwt from "jsonwebtoken";
+import jwt from "jsonwebtoken";
 import { existsSync, readFileSync } from "node:fs";
 import { piSessionManager } from "../pi/session-manager";
 import type { AuthPayload } from "../middleware/auth";
 import type { WSContext, WSMessageReceive } from "hono/ws";
 import { setBuilding, setReady, setError, ensureWatcher } from "../pi/preview-watcher";
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
+import { setEventBroadcaster } from "../lib/event-broker";
 
 function getRepoNameForSession(username: string, sessionId: string): string | undefined {
   const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
@@ -45,7 +46,7 @@ export function broadcastToChannel(channelId: string, data: any) {
   }
 }
 
-setChannelBroadcastHandler(broadcastToChannel);
+
 
 export function broadcastToUser(username: string, data: any) {
   const sockets = userSockets.get(username);
@@ -70,6 +71,9 @@ export function broadcastToSession(sessionId: string, data: any) {
     }
   }
 }
+
+setChannelBroadcastHandler(broadcastToChannel);
+setEventBroadcaster(broadcastToUser);
 
 function safeSend(ws: { send: (data: string) => void }, data: string) {
   try {
