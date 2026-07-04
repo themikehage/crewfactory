@@ -5,6 +5,7 @@ import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
+import { ExperimentPopover } from "@/components/sidebar/ExperimentPopover";
 
 interface Props {
   route: Route;
@@ -17,6 +18,13 @@ interface Props {
   onSelectAgent?: (agent: { id: string; name: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   children: ReactNode;
+  // Propiedades para Laboratorio
+  selectedExpId?: string | null;
+  onSelectExp?: (id: string | null) => void;
+  experiments?: any[];
+  onDeleteExperiment?: (id: string) => void;
+  onCreateExperiment?: () => void;
+  loadingExps?: boolean;
 }
 
 export function MainLayout({
@@ -29,10 +37,17 @@ export function MainLayout({
   onSelectRepo,
   onSelectAgent,
   onSelectChannel,
-  children
+  children,
+  selectedExpId = null,
+  onSelectExp,
+  experiments = [],
+  onDeleteExperiment,
+  onCreateExperiment,
+  loadingExps = false,
 }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
+  const [experimentPopoverOpen, setExperimentPopoverOpen] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
 
   useEffect(() => {
@@ -96,7 +111,7 @@ export function MainLayout({
     onNavigate,
   });
 
-  const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview";
+  const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview" || route.page === "laboratory";
 
   const contextTabs = useMemo(() => {
     let basePath = "";
@@ -277,50 +292,88 @@ export function MainLayout({
           {isContextView && (
             <div className="flex items-center justify-between px-4 border-b border-surface bg-surface/5 flex-shrink-0">
               <div className="flex gap-1">
-                {contextTabs.map((tab) => {
-                  const isActive = route.page === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => onNavigate(tab.path)}
-                      className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                        isActive
-                          ? "text-accent border-accent font-semibold"
-                          : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
-                      }`}
-                    >
-                      <span className={isActive ? "text-accent" : "text-text-secondary"}>
-                        {tab.icon}
-                      </span>
-                      {tab.label}
-                    </button>
-                  );
-                })}
+                {route.page === "laboratory" ? (
+                  <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-accent border-b-2 border-accent -mb-[1px]">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                      <path d="M4.5 3h15" />
+                      <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
+                    </svg>
+                    Laboratorio
+                  </span>
+                ) : (
+                  contextTabs.map((tab) => {
+                    const isActive = route.page === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        onClick={() => onNavigate(tab.path)}
+                        className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                          isActive
+                            ? "text-accent border-accent font-semibold"
+                            : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
+                        }`}
+                      >
+                        <span className={isActive ? "text-accent" : "text-text-secondary"}>
+                          {tab.icon}
+                        </span>
+                        {tab.label}
+                      </button>
+                    );
+                  })
+                )}
               </div>
 
-              {/* Botón de sesiones pegado a la derecha en la barra de pestañas */}
+              {/* Botón de sesiones o experimentos pegado a la derecha en la barra de pestañas */}
               <div className="relative py-1 flex items-center gap-2">
-                <button
-                  onClick={() => setSessionPopoverOpen((p) => !p)}
-                  className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
-                  title="Ver sesiones"
-                >
-                  <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                    <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
-                  </svg>
-                  <span>Sesiones</span>
-                </button>
-                <SessionPopover
-                  isOpen={sessionPopoverOpen}
-                  onClose={() => setSessionPopoverOpen(false)}
-                  activeSessionId={sessionId}
-                  activeRepoName={activeRepoId}
-                  activeRepoFriendlyName={activeRepoName}
-                  activeAgent={activeAgent}
-                  activeChannel={activeChannel}
-                  onSelectSession={handleSelectSession}
-                  onNewSession={handleNewSession}
-                />
+                {route.page === "laboratory" ? (
+                  <>
+                    <button
+                      onClick={() => setExperimentPopoverOpen((p) => !p)}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
+                      title="Ver experimentos"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M4.5 3h15" />
+                        <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
+                      </svg>
+                      <span>Experimentos</span>
+                    </button>
+                    <ExperimentPopover
+                      isOpen={experimentPopoverOpen}
+                      onClose={() => setExperimentPopoverOpen(false)}
+                      experiments={experiments}
+                      selectedExpId={selectedExpId}
+                      onSelectExp={onSelectExp || (() => {})}
+                      onCreateExperiment={onCreateExperiment || (() => {})}
+                      onDeleteExperiment={onDeleteExperiment || (() => {})}
+                      loading={loadingExps}
+                    />
+                  </>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => setSessionPopoverOpen((p) => !p)}
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
+                      title="Ver sesiones"
+                    >
+                      <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
+                      </svg>
+                      <span>Sesiones</span>
+                    </button>
+                    <SessionPopover
+                      isOpen={sessionPopoverOpen}
+                      onClose={() => setSessionPopoverOpen(false)}
+                      activeSessionId={sessionId}
+                      activeRepoName={activeRepoId}
+                      activeRepoFriendlyName={activeRepoName}
+                      activeAgent={activeAgent}
+                      activeChannel={activeChannel}
+                      onSelectSession={handleSelectSession}
+                      onNewSession={handleNewSession}
+                    />
+                  </>
+                )}
               </div>
             </div>
           )}

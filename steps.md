@@ -438,3 +438,31 @@ crear un plan de despliegue facil en vps
 - [x] 49.5 REST API endpoints under `/api/experiments` and user WebSocket status broadcasting.
 - [x] 49.6 React `LaboratoryPage` UI featuring an interactive configuration wizard (Template/Scratch) and dynamic metrics charts/comparison dashboards.
 - [x] 49.7 Verification: clean monorepo builds and successful TypeScript typechecking.
+
+## Phase 50: Rediseño de Navegación del Laboratorio y Generador IA Editable
+- [x] 50.1 Mover pestañas de Experimentos / Generador IA a primer nivel en MainLayout
+- [x] 50.2 Crear popover flotante ExperimentPopover para listar el histórico de experimentos liberando espacio del sidebar
+- [x] 50.3 Soportar el contexto KV del canal e imponer la regla de replyMode user-only para el miembro lead en el backend (/instantiate)
+- [x] 50.4 Hacer editables todos los campos de la propuesta de equipo generado por IA (canal, contexto KV, agentes) antes de instanciar
+- [x] 50.5 Mover el selector de modelo generador al lado del botón de generar con IA
+- [x] 50.6 Sincronizar dinámicamente la edición del ID del agente con su correspondiente vinculación en los miembros del canal
+- [x] 50.7 Validar consistencia y forzar replyMode del lead a user-only en el frontend
+- [x] 50.8 Verificar que el backend y frontend compilen correctamente
+
+## Phase 51: Visualización del Debate del Laboratorio en Tiempo Real mediante Chat
+- [x] 51.1 Extender `VariantRunSchema` para incluir `activeSessionId` e inyectar el identificador al iniciar cada variante en `ExperimentRunner`
+- [x] 51.2 Diseñar el subcomponente `VariantViewer` en el cliente para montar el hook `useChannel` y visualizar el chat dinámico con `ChannelMessageList`
+- [x] 51.3 Incorporar selector de pestañas de variante alternables en `LaboratoryPage.tsx`
+- [x] 51.4 Ocultar el input de chat en el laboratorio ya que los debates de experimentos son de lectura/telemetría estática
+- [x] 51.5 Verificar la consistencia de tipos y compilación exitosa del cliente y servidor
+
+## Phase 52: Laboratorio Unificado, Enrutamiento por URL y Corrección de Tokens
+- [x] 52.1 Extender `ChannelMessageSchema` con campos `tokensIn` y `tokensOut` para persistencia
+- [x] 52.2 Modificar `channel-orchestrator.ts` para extraer tokens consumidos por respuesta de agente y guardarlos en el mensaje
+- [x] 52.3 Actualizar `ExperimentRunner.ts` para consolidar tokens consumidos desde el historial de mensajes de canal, con fallback robusto
+- [x] 52.4 Ajustar `harness.ts` y `baseline-runner.ts` para calcular y reportar tokens en benchmarks a través de mensajes
+- [x] 52.5 Implementar soporte de subrutas y experimentId en `useRouter.ts` y `AppRouter.tsx`
+- [x] 52.6 Unificar barra de pestañas en `MainLayout.tsx` eliminando pestañas del laboratorio y simplificando navegación
+- [x] 52.7 Modificar `LaboratoryPage.tsx` para usar el Generador de IA como la vista por defecto y permitir guardar experimentos directamente
+- [x] 52.8 Verificar la compilación exitosa y el typechecking completo de cliente y servidor
+

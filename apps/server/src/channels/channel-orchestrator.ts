@@ -700,15 +700,22 @@ class ChannelOrchestrator {
     }
 
 
-    // Extract full response from session messages if streaming didn't capture it
-    if (!fullResponse.trim()) {
-      const msgs = agentEntry.server.session.messages;
-      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-      if (lastMsg) {
+    let messageTokensIn = 0;
+    let messageTokensOut = 0;
+
+    // Extract full response and token usage from session messages if streaming didn't capture it
+    const msgs = agentEntry.server.session.messages;
+    const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant") as any;
+    if (lastMsg) {
+      if (!fullResponse.trim()) {
         if (typeof lastMsg.content === "string") fullResponse = lastMsg.content;
         else if (Array.isArray(lastMsg.content)) {
           fullResponse = lastMsg.content.map((c: any) => c.text || "").join("\n");
         }
+      }
+      if (lastMsg.usage) {
+        messageTokensIn = lastMsg.usage.input || 0;
+        messageTokensOut = lastMsg.usage.output || 0;
       }
     }
 
@@ -739,15 +746,15 @@ class ChannelOrchestrator {
     let finalToolCalls: any[] = [];
 
     if (channel.showThinking || channel.showTools) {
-      const msgs = agentEntry.server.session.messages;
-      const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-      if (lastMsg && Array.isArray(lastMsg.content)) {
-        for (const block of lastMsg.content) {
+      const msgsForParsing = agentEntry.server.session.messages;
+      const lastMsgForParsing = [...msgsForParsing].reverse().find((m) => m.role === "assistant");
+      if (lastMsgForParsing && Array.isArray(lastMsgForParsing.content)) {
+        for (const block of lastMsgForParsing.content) {
           if (block.type === "thinking" && block.thinking && channel.showThinking) {
             finalThinking += block.thinking;
           }
           if (block.type === "toolCall" && channel.showTools) {
-            const matchedResult = msgs.find((m) => m.role === "toolResult" && (m as any).toolCallId === block.id) as any;
+            const matchedResult = msgsForParsing.find((m) => m.role === "toolResult" && (m as any).toolCallId === block.id) as any;
             finalToolCalls.push({
               id: block.id,
               name: block.name,
@@ -782,6 +789,8 @@ class ChannelOrchestrator {
       thinking: finalThinking || undefined,
       toolCalls: finalToolCalls.length > 0 ? finalToolCalls : undefined,
       mentions: agentMentions.length > 0 ? agentMentions : undefined,
+      tokensIn: messageTokensIn || undefined,
+      tokensOut: messageTokensOut || undefined,
       createdAt: new Date().toISOString(),
     };
 

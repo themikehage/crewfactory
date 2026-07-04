@@ -11,7 +11,7 @@ export type Route =
   | { page: "channels" }
   | { page: "channel"; channelId: string }
   | { page: "logs" }
-  | { page: "laboratory" };
+  | { page: "laboratory"; experimentId?: string | null };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
@@ -87,7 +87,13 @@ function parseRoute(): Route {
   if (path === "/agents") return { page: "agents" };
   if (path === "/channels") return { page: "channels" };
   if (path === "/logs") return { page: "logs" };
-  if (path === "/laboratory") return { page: "laboratory" };
+  if (path.startsWith("/laboratory")) {
+    if (path === "/laboratory" || path === "/laboratory/") {
+      return { page: "laboratory", experimentId: null };
+    }
+    const experimentId = path.slice("/laboratory/".length);
+    return { page: "laboratory", experimentId: experimentId || null };
+  }
 
   return { page: "chat", sessionId: null };
 }

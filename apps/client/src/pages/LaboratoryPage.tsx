@@ -1,96 +1,269 @@
-import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
 import { apiFetch } from "@/lib/api";
-import { useLLMChannel } from "@/hooks/useLLMChannel";
-import { AnimatePresence } from "framer-motion";
-import { ExperimentSidebar } from "@/components/laboratory/ExperimentSidebar";
-import { ExperimentHeader } from "@/components/laboratory/ExperimentHeader";
-import { ComparativeMetrics } from "@/components/laboratory/ComparativeMetrics";
-import { ExperimentLiveView } from "@/components/laboratory/ExperimentLiveView";
-import { LaboratoryWizard } from "@/components/laboratory/wizard/LaboratoryWizard";
-import type { Experiment, Blueprint, Stance, Agent } from "@/types/laboratory";
+import { ModelSelector } from "@/components/chat/ModelSelector";
+import { useChannel } from "@/hooks/useChannel";
+import { ChannelMessageList } from "@/components/channels/ChannelMessageList";
+import { motion, AnimatePresence } from "framer-motion";
+import type { Experiment } from "@/types/laboratory";
+import type { AgentDefinition, CreateChannel } from "shared";
 
 interface Props {
-  onNavigate: (path: string) => void;
+  onNavigate?: (path: string) => void;
+  selectedExpId: string | null;
+  setSelectedExpId: (id: string | null) => void;
+  experiments: Experiment[];
+  setExperiments: React.Dispatch<React.SetStateAction<Experiment[]>>;
+  fetchExperiments: () => Promise<void>;
+  isEditorOpen: boolean;
+  setIsEditorOpen: (open: boolean) => void;
+  editingExpId: string | null;
+  setEditingExpId: (id: string | null) => void;
+  handleDeleteExp: (id: string) => Promise<void>;
 }
 
-export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
-  const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [blueprints, setBlueprints] = useState<Blueprint[]>([]);
-  const [selectedExpId, setSelectedExpId] = useState<string | null>(null);
-  const [loadingExps, setLoadingExps] = useState(true);
+interface GeneratedTeam {
+  agents: AgentDefinition[];
+  channel: CreateChannel & { members: { agentId: string; replyMode: string; role: string }[] };
+}
 
-  const [isWizard, setIsWizard] = useState(false);
-  const [wizardMode, setWizardMode] = useState<"create" | "edit">("create");
-  const [editingExpId, setEditingExpId] = useState<string | null>(null);
-  const [wizardStep, setWizardStep] = useState(1);
-  const [wizardName, setWizardName] = useState("");
-  const [wizardPrompt, setWizardPrompt] = useState("");
-  const [selectedBlueprintId, setSelectedBlueprintId] = useState<string>("");
-  const [selectedBlueprint, setSelectedBlueprint] = useState<Blueprint | null>(null);
+interface VariantViewerProps {
+  experimentId: string;
+  variantKey: "single" | "multiNoLeader" | "multiWithLeader";
+  activeSessionId: string | null;
+  status: string; // "pending" | "running" | "completed" | "failed"
+  result: any;
+}
 
-  const [suggestedDichotomies, setSuggestedDichotomies] = useState<{ id: string; reason: string }[]>([]);
-  const [selectedDichotomies, setSelectedDichotomies] = useState<string[]>([]);
-  const [criteria, setCriteria] = useState<string[]>([]);
+function VariantViewer({ experimentId, variantKey, activeSessionId, status, result }: VariantViewerProps) {
+  const channelId = `lab_${experimentId}_${variantKey}`;
+  const targetChannelId = activeSessionId ? channelId : null;
+  const { messages, streamingAgents } = useChannel(targetChannelId, activeSessionId);
+
+  const [registeredAgents, setRegisteredAgents] = useState<any[]>([]);
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("/api/agents", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => setRegisteredAgents(data.agents || []))
+      .catch(() => {});
+  }, []);
+
+  const mentionNames = ["user", ...registeredAgents.map((a) => a.name)];
+
+  return (
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[560px] min-h-0 bg-surface/10 rounded-2xl border border-surface-hover/60 overflow-hidden">
+      {/* Panel del Chat (70%) */}
+      <div className="lg:col-span-2 flex flex-col h-full bg-surface/5 min-h-0 border-r border-surface-hover/40 relative">
+        <div className="absolute inset-0 flex flex-col min-h-0">
+          <div className="px-4 py-2.5 border-b border-surface-hover/30 bg-surface/10 flex items-center justify-between text-xs text-text-secondary">
+            <span className="font-semibold tracking-wide">Conversación del Experimento (Lectura)</span>
+            {status === "running" && (
+              <span className="flex items-center gap-1.5 text-accent font-bold animate-pulse">
+                <span className="w-2 h-2 bg-accent rounded-full animate-ping" />
+                Debatiendo en vivo...
+              </span>
+            )}
+          </div>
+          <div className="flex-1 min-h-0 overflow-y-auto bg-bg/25">
+            <ChannelMessageList
+              messages={messages}
+              streamingAgents={streamingAgents}
+              mentionNames={mentionNames}
+              sessionId={activeSessionId}
+              activeChannelId={channelId}
+            />
+          </div>
+        </div>
+      </div>
+
+      {/* Panel de Telemetría (30%) */}
+      <div className="p-5 flex flex-col bg-surface/10 min-h-0 overflow-y-auto text-left justify-between">
+        <div className="space-y-6">
+          <div>
+            <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-2">
+              Telemetría y Estado
+            </h4>
+            <div className="flex items-center justify-between bg-bg/50 border border-surface-hover/60 rounded-xl p-3.5">
+              <span className="text-xs font-semibold text-text-primary">Estado de Corrida</span>
+              <span
+                className={`text-[9px] px-2 py-0.5 rounded-lg font-mono font-bold uppercase tracking-wider ${
+                  status === "completed"
+                    ? "bg-accent/10 text-accent border border-accent/20"
+                    : status === "running"
+                    ? "bg-blue-500/10 text-blue-400 border border-blue-400/20 animate-pulse"
+                    : status === "failed"
+                    ? "bg-error/10 text-error border border-error/20"
+                    : "bg-bg text-text-secondary border border-surface-hover"
+                }`}
+              >
+                {status}
+              </span>
+            </div>
+          </div>
+
+          {result ? (
+            <div className="space-y-5">
+              {/* Score Matrix */}
+              {result.scores && (
+                <div className="space-y-3">
+                  <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                    Evaluación LLM-Judge
+                  </h4>
+                  <div className="bg-bg/40 border border-surface-hover/40 rounded-xl p-4 space-y-4">
+                    <div className="flex flex-col items-center py-2">
+                      <div className="relative w-20 h-20 flex items-center justify-center rounded-full bg-accent/5 border border-accent/25 shadow-[0_0_15px_rgba(74,222,128,0.05)]">
+                        <span className="text-2xl font-black text-accent">{result.scores.globalScore}</span>
+                      </div>
+                      <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mt-2.5">
+                        Global Score
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-surface-hover/30">
+                      <div className="text-center p-2 bg-bg/25 rounded-lg border border-surface-hover/30">
+                        <p className="text-[9px] text-text-secondary font-bold uppercase">Calidad</p>
+                        <p className="text-base font-black text-text-primary mt-0.5">{result.scores.taskQuality}</p>
+                      </div>
+                      <div className="text-center p-2 bg-bg/25 rounded-lg border border-surface-hover/30">
+                        <p className="text-[9px] text-text-secondary font-bold uppercase">Eficiencia</p>
+                        <p className="text-base font-black text-text-primary mt-0.5">{result.scores.efficiencyScore}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Estadísticas */}
+              <div className="space-y-3">
+                <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                  Métricas de Ejecución
+                </h4>
+                <div className="bg-bg/40 border border-surface-hover/40 rounded-xl p-3.5 space-y-2.5 text-xs font-mono text-text-secondary leading-relaxed">
+                  <div className="flex justify-between">
+                    <span>Duración:</span>
+                    <span className="text-text-primary font-bold">{(result.durationMs / 1000).toFixed(1)}s</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tokens entrada:</span>
+                    <span className="text-text-primary">{result.tokensIn}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Tokens salida:</span>
+                    <span className="text-text-primary">{result.tokensOut}</span>
+                  </div>
+                  {result.negotiationRounds !== undefined && (
+                    <div className="flex justify-between">
+                      <span>Rondas debate:</span>
+                      <span className="text-text-primary">{result.negotiationRounds}</span>
+                    </div>
+                  )}
+                  {result.escalationsToLeader !== undefined && (
+                    <div className="flex justify-between">
+                      <span>Escalaciones:</span>
+                      <span className="text-text-primary">{result.escalationsToLeader}</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Mostrar resultado final textual (o error) */}
+              {result.finalOutput && (
+                <div className="space-y-2">
+                  <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                    {result.status === "failed" ? "Detalle del Error" : "Resultado Final"}
+                  </h4>
+                  <pre className={`text-[10px] border rounded-xl p-3 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-left leading-relaxed ${
+                    result.status === "failed" 
+                      ? "bg-error/5 text-error border-error/20" 
+                      : "bg-bg/30 text-text-secondary border-surface-hover"
+                  }`}>
+                    {result.finalOutput}
+                  </pre>
+                </div>
+              )}
+            </div>
+          ) : (
+            status === "running" ? (
+              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-text-secondary space-y-3">
+                <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin" />
+                <span className="font-semibold tracking-wide text-accent">Debate en progreso...</span>
+                <span className="text-[10px] text-text-secondary/70 max-w-[200px]">
+                  Los agentes están analizando y colaborando en tiempo real. Seguí la conversación a la izquierda.
+                </span>
+              </div>
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-text-secondary/50 italic bg-bg/20 rounded-xl border border-dashed border-surface-hover/60">
+                Esperando el inicio de la corrida...
+              </div>
+            )
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function LaboratoryPage({
+  onNavigate: _onNavigate,
+  selectedExpId,
+  setSelectedExpId,
+  experiments,
+  setExperiments,
+  fetchExperiments,
+  isEditorOpen,
+  setIsEditorOpen,
+  editingExpId,
+  setEditingExpId,
+  handleDeleteExp,
+}: Props) {
+  // Model Selector State (for AI Generator)
+  const [selectedModel, setSelectedModel] = useState("anthropic/claude-3-5-sonnet");
+
+  // AI Generator State
+  const [generatorPrompt, setGeneratorPrompt] = useState("");
+  const [generating, setGenerating] = useState(false);
+  const [editableTeam, setEditableTeam] = useState<GeneratedTeam | null>(null);
+  const [instantiating, setInstantiating] = useState(false);
+  const [genError, setGenError] = useState<string | null>(null);
+  const [instantiationSuccess, setInstantiationSuccess] = useState(false);
+
+  // Experiment Editor State (for Scratch Mode/Edit)
+  const [editorName, setEditorName] = useState("");
+  const [editorPrompt, setEditorPrompt] = useState("");
+  const [editorCriteria, setEditorCriteria] = useState<string[]>(["Calidad del Trabajo", "Eficiencia", "Negociación"]);
   const [newCriterion, setNewCriterion] = useState("");
-  const analyzeChannel = useLLMChannel("lab_analyze");
-  const [analyzeParseError, setAnalyzeParseError] = useState<string | null>(null);
+  const [editorVariants, setEditorVariants] = useState<any | null>(null);
 
-  const [stances, setStances] = useState<Stance[]>([]);
-  const briefingsChannel = useLLMChannel("lab_briefings");
-  const [briefingsParseError, setBriefingsParseError] = useState<string | null>(null);
-  const [customAgents, setCustomAgents] = useState<Agent[]>([]);
-  const [defaultModel, setDefaultModel] = useState("anthropic/claude-3-5-sonnet");
-  const [defaultModelLoaded, setDefaultModelLoaded] = useState(false);
+  // Dynamic Run Prompt Modal State
+  const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
+  const [runPromptValue, setRunPromptValue] = useState("");
+  const [runningExpId, setRunningExpId] = useState<string | null>(null);
+
+  // Active Variant Tab
+  const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader">("single");
+
+  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const activeExp = experiments.find((e) => e.id === selectedExpId) || null;
-  const pollTimerRef = useRef<any>(null);
 
-  const fetchExperiments = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/experiments");
-      if (res.ok) {
-        const data = await res.json();
-        setExperiments(data.experiments || []);
-      }
-    } catch (e) {
-      console.error("Failed to load experiments:", e);
-    } finally {
-      setLoadingExps(false);
-    }
-  }, []);
-
-  const fetchBlueprints = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/experiments/blueprints");
-      if (res.ok) {
-        const data = await res.json();
-        setBlueprints(data.blueprints || []);
-      }
-    } catch (e) {
-      console.error("Failed to load blueprints:", e);
-    }
-  }, []);
-
+  // Load user default model
   useEffect(() => {
-    fetchExperiments();
-    fetchBlueprints();
     const stored = localStorage.getItem("pi-selected-model");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);
-        setDefaultModel(`${parsed.provider}/${parsed.modelId}`);
-        setDefaultModelLoaded(true);
+        setSelectedModel(`${parsed.provider}/${parsed.modelId}`);
       } catch {}
     }
     apiFetch("/api/experiments/default-model")
       .then((r) => r.json())
       .then((d) => {
-        if (d.model) setDefaultModel(d.model);
+        if (d.model) setSelectedModel(d.model);
       })
-      .catch(() => {})
-      .finally(() => setDefaultModelLoaded(true));
-  }, [fetchExperiments, fetchBlueprints]);
+      .catch(() => {});
+  }, []);
 
+  // Poll running experiment status
   useEffect(() => {
     if (activeExp && activeExp.status === "running") {
       pollTimerRef.current = setInterval(async () => {
@@ -100,8 +273,8 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
             const data = await res.json();
             const updated = data.experiment as Experiment;
             setExperiments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-            if (updated.status !== "running") {
-              if (pollTimerRef.current) clearInterval(pollTimerRef.current);
+            if (updated.status !== "running" && pollTimerRef.current) {
+              clearInterval(pollTimerRef.current);
             }
           }
         } catch {}
@@ -114,515 +287,1106 @@ export function LaboratoryPage({ onNavigate: _onNavigate }: Props) {
     return () => {
       if (pollTimerRef.current) clearInterval(pollTimerRef.current);
     };
-  }, [activeExp]);
+  }, [activeExp, setExperiments]);
 
-  const handleSelectBlueprint = (blueprintId: string) => {
-    setSelectedBlueprintId(blueprintId);
-    const bp = blueprints.find((b) => b.id === blueprintId) || null;
-    setSelectedBlueprint(bp);
-    if (bp) {
-      setWizardName(bp.name);
-      if (bp.testCases && bp.testCases[0]) {
-        setWizardPrompt(bp.testCases[0].taskPrompt || bp.testCases[0].description);
-      }
-    }
-  };
-
-  const resetWizard = () => {
-    setWizardMode("create");
-    setEditingExpId(null);
-    setSelectedBlueprintId("");
-    setSelectedBlueprint(null);
-    setWizardName("");
-    setWizardPrompt("");
-    setWizardStep(1);
-    setSuggestedDichotomies([]);
-    setSelectedDichotomies([]);
-    setCriteria([]);
-    setStances([]);
-    setCustomAgents([]);
-    analyzeChannel.reset();
-    briefingsChannel.reset();
-    setAnalyzeParseError(null);
-    setBriefingsParseError(null);
-  };
-
-  const openWizard = (mode: "create" | "edit", exp?: Experiment) => {
-    if (mode === "create") {
-      resetWizard();
-    } else if (mode === "edit" && exp) {
-      resetWizard();
-      setWizardMode("edit");
-      setEditingExpId(exp.id);
-      setWizardName(exp.name);
-      setWizardPrompt(exp.taskPrompt);
-      setCriteria(exp.judge.criteria);
-
-      if (exp.positions.length > 0) {
-        setStances(exp.positions);
-        setSuggestedDichotomies(exp.positions.map((p) => ({ id: p.id, reason: p.briefing })));
-        setSelectedDichotomies(exp.positions.map((p) => p.template).filter(Boolean));
-      }
-
-      const allAgents = [
-        ...(exp.variants.single.agents || []).filter((a) => a.id !== "baseline"),
-        ...(exp.variants.multiWithLeader.agents || []),
-      ];
-      const uniqueAgents = allAgents.filter(
-        (a, i, arr) => arr.findIndex((x) => x.id === a.id) === i
-      );
-      setCustomAgents(uniqueAgents);
-    }
-    setIsWizard(true);
-  };
-
+  // Reset variant tab on selected experiment change
   useEffect(() => {
-    fetch("/api/client-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        level: "INFO",
-        message: `[LaboratoryPage] useEffect analyzeChannel triggered. result=${!!analyzeChannel.result} loading=${analyzeChannel.loading}`
-      }),
-    }).catch(() => {});
+    setActiveVariantTab("single");
+  }, [selectedExpId]);
 
-    if (analyzeChannel.result && !analyzeChannel.loading) {
-      try {
-        let rawJson = analyzeChannel.result.trim();
-        const firstBrace = rawJson.indexOf("{");
-        const lastBrace = rawJson.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          rawJson = rawJson.substring(firstBrace, lastBrace + 1);
-        } else if (rawJson.startsWith("```")) {
-          rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
-        }
-        
-        fetch("/api/client-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            level: "INFO",
-            message: `[LaboratoryPage] Parsing rawJson. length=${rawJson.length} Content: ${rawJson}`
-          }),
-        }).catch(() => {});
-
-        const parsed = JSON.parse(rawJson);
-        setSuggestedDichotomies(parsed.suggestedDichotomies || []);
-        setSelectedDichotomies(parsed.suggestedDichotomies?.map((d: { id: string }) => d.id) || []);
-        setCriteria(parsed.criteria || []);
-        setWizardStep(2);
-        setAnalyzeParseError(null);
-      } catch (e) {
-        console.error("Failed to parse analyze result:", e);
-        fetch("/api/client-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            level: "ERROR",
-            message: `[LaboratoryPage] Failed to parse analyze result: ${e}`
-          }),
-        }).catch(() => {});
-        setAnalyzeParseError("Error al procesar la respuesta de la IA. Por favor, intentá de nuevo.");
-      }
-    }
-  }, [analyzeChannel.result, analyzeChannel.loading]);
-
-  useEffect(() => {
-    fetch("/api/client-log", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        level: "INFO",
-        message: `[LaboratoryPage] wizardStep value changed: ${wizardStep}`
-      }),
-    }).catch(() => {});
-  }, [wizardStep]);
-
-  useEffect(() => {
-    if (briefingsChannel.result && !briefingsChannel.loading) {
-      try {
-        let rawJson = briefingsChannel.result.trim();
-        const firstBrace = rawJson.indexOf("{");
-        const lastBrace = rawJson.lastIndexOf("}");
-        if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-          rawJson = rawJson.substring(firstBrace, lastBrace + 1);
-        } else if (rawJson.startsWith("```")) {
-          rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
-        }
-        const parsed = JSON.parse(rawJson);
-        const briefings = parsed.briefings || {};
-
-        const generatedStances: Stance[] = [];
-        for (const [id, briefing] of Object.entries(briefings)) {
-          generatedStances.push({
-            id,
-            name: id.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-            template: id.split("_")[0] || "",
-            position: id.endsWith("_a") ? "A" : "B",
-            briefing: briefing as string,
-            icon: "User",
-            color: "#3b82f6"
-          });
-        }
-
-        setStances(generatedStances);
-
-        const agentsList: Agent[] = generatedStances.map((s: Stance, i: number) => ({
-          id: `agent_${i}`,
-          name: s.name,
-          role: `Especialista en ${s.name}`,
-          stance: s,
-          systemPrompt: s.briefing,
-          model: defaultModel
-        }));
-
-        if (agentsList.length > 0) {
-          agentsList.push({
-            id: "leader",
-            name: "Moderador Principal",
-            role: "Coordinador de Debate & Veredictos",
-            stance: {
-              id: "moderator",
-              name: "Moderador",
-              template: "moderator",
-              position: "A",
-              briefing: "Eres el Coordinador del canal. Moderá el debate técnico, asegurá el progreso, solicita contrapropuestas claras y emite un veredicto definitivo en caso de desacuerdo.",
-              icon: "Award",
-              color: "#a855f7"
-            },
-            systemPrompt: "Eres el Coordinador del canal. Moderá el debate técnico, asegurá el progreso, solicita contrapropuestas claras y emite un veredicto definitivo en caso de desacuerdo.",
-            model: defaultModel,
-            leader: true
-          });
-        }
-
-        setCustomAgents(agentsList);
-        setWizardStep(3);
-        setBriefingsParseError(null);
-      } catch (e) {
-        console.error("Failed to parse briefings result:", e);
-        setBriefingsParseError("Error al procesar los briefings generados. Por favor, intentá de nuevo.");
-      }
-    }
-  }, [briefingsChannel.result, briefingsChannel.loading, defaultModel]);
-
-  const handleAnalyzeTask = async () => {
-    if (!wizardPrompt.trim() || !wizardName.trim()) return;
-    setAnalyzeParseError(null);
-
-    const systemPrompt = `You are an AI Architect. Analyze the project task and suggest:
-1. The top 2 most relevant dichotomy templates from this catalog: ${JSON.stringify([
-      { id: "cost_vs_quality", name: "Cost vs Quality", description: "Balance between minimizing costs and maximizing quality" },
-      { id: "speed_vs_safety", name: "Speed vs Safety", description: "Fast delivery versus robust safety measures" },
-      { id: "innovation_vs_reliability", name: "Innovation vs Reliability", description: "New tech versus proven solutions" },
-      { id: "simplicity_vs_features", name: "Simplicity vs Features", description: "MVP minimalism versus full-featured product" }
-    ])}
-2. A list of 3-5 specific evaluation criteria for a scoring rubric.
-
-Output ONLY a JSON object (no markdown fences):
-{
-  "suggestedDichotomies": [
-    { "id": "template_id", "reason": "why relevant" }
-  ],
-  "criteria": ["Criterion 1", "Criterion 2", "Criterion 3"]
-}`;
+  const handleGenerateTeam = async () => {
+    if (!generatorPrompt.trim()) return;
+    setGenerating(true);
+    setGenError(null);
+    setEditableTeam(null);
+    setInstantiationSuccess(false);
 
     try {
-      await analyzeChannel.sendRequest({
-        prompt: wizardPrompt,
-        systemPrompt,
-        model: defaultModel,
+      const res = await apiFetch("/api/experiments/generate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ prompt: generatorPrompt, model: selectedModel }),
       });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Fallo en la generación");
+      }
+
+      const data = (await res.json()) as GeneratedTeam;
+      
+      // Aplicar regla del lead por defecto antes de guardar
+      if (data.channel && data.channel.members) {
+        data.channel.members = data.channel.members.map((m) => {
+          if (m.role === "lead") {
+            return { ...m, replyMode: "user-only" };
+          }
+          return m;
+        });
+      }
+      if (data.channel && !data.channel.context) {
+        data.channel.context = [];
+      }
+
+      setEditableTeam(data);
+      setEditorName(`Experimento: ${data.channel.name}`);
+      setEditorCriteria(["Calidad del Trabajo", "Eficiencia", "Negociación"]);
+    } catch (e: any) {
+      setGenError(e.message || "Error al conectar con la IA de generación.");
+    } finally {
+      setGenerating(false);
+    }
+  };
+
+  const handleInstantiateTeam = async () => {
+    if (!editableTeam) return;
+    setInstantiating(true);
+    setGenError(null);
+
+    // Validar y forzar que el lead tenga replyMode "user-only" antes de enviar
+    const sanitizedMembers = editableTeam.channel.members.map((m) => {
+      if (m.role === "lead") {
+        return { ...m, replyMode: "user-only" };
+      }
+      return m;
+    });
+
+    const sanitizedTeam = {
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        members: sanitizedMembers,
+      },
+    };
+
+    try {
+      const res = await apiFetch("/api/experiments/instantiate", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          agents: sanitizedTeam.agents,
+          channel: sanitizedTeam.channel,
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || "Fallo al instanciar el equipo");
+      }
+
+      setInstantiationSuccess(true);
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "all" } }));
+    } catch (e: any) {
+      setGenError(e.message || "Error al registrar agentes/canal en el workspace.");
+    } finally {
+      setInstantiating(false);
+    }
+  };
+
+  const handleConfirmRun = async () => {
+    if (!runningExpId) return;
+    setIsRunPromptModalOpen(false);
+
+    try {
+      // 1. Actualizar el prompt de la tarea específica en el experimento
+      const resPatch = await apiFetch(`/api/experiments/${runningExpId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskPrompt: runPromptValue })
+      });
+
+      if (!resPatch.ok) {
+        throw new Error("Failed to update task prompt before execution");
+      }
+
+      const dataPatch = await resPatch.json();
+      const updatedExp = dataPatch.experiment as Experiment;
+      setExperiments((prev) => prev.map((e) => (e.id === updatedExp.id ? updatedExp : e)));
+
+      // 2. Disparar ejecución
+      await apiFetch(`/api/experiments/${runningExpId}/run`, { method: "POST" });
+      fetchExperiments();
     } catch (e) {
-      console.error("Analyze task failed:", e);
+      console.error("Failed to run experiment with custom prompt:", e);
+    } finally {
+      setRunningExpId(null);
+    }
+  };
+
+  const handleStopRun = async (expId: string) => {
+    try {
+      await apiFetch(`/api/experiments/${expId}/stop`, { method: "POST" });
+      fetchExperiments();
+    } catch (e) {
+      console.error("Failed to stop experiment:", e);
+    }
+  };
+
+  const handleSaveExperiment = async () => {
+    if (!editorName.trim() || !editorPrompt.trim()) return;
+
+    const isEdit = !!editingExpId;
+    const body = {
+      name: editorName,
+      taskPrompt: editorPrompt,
+      criteria: editorCriteria,
+      autoEvaluate: true,
+      variants: editorVariants || undefined
+    };
+
+    try {
+      const res = await apiFetch(
+        isEdit ? `/api/experiments/${editingExpId}` : "/api/experiments",
+        {
+          method: isEdit ? "PATCH" : "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(body),
+        }
+      );
+
+      if (res.ok) {
+        const data = await res.json();
+        const saved = data.experiment as Experiment;
+        if (isEdit) {
+          setExperiments((prev) => prev.map((e) => (e.id === saved.id ? saved : e)));
+        } else {
+          setExperiments((prev) => [saved, ...prev]);
+        }
+        setSelectedExpId(saved.id);
+        setIsEditorOpen(false);
+      }
+    } catch (e) {
+      console.error("Failed to save experiment:", e);
+    }
+  };
+
+  const openEditModal = (exp: Experiment) => {
+    setEditingExpId(exp.id);
+    setEditorName(exp.name);
+    setEditorPrompt(exp.taskPrompt);
+    setEditorCriteria(exp.judge?.criteria || ["Calidad", "Eficiencia"]);
+    setEditorVariants(null); // mantendrá las variantes existentes en base de datos
+    setIsEditorOpen(true);
+  };
+
+  const handleSaveExperimentDirect = async () => {
+    if (!editorName.trim() || !generatorPrompt.trim() || !editableTeam) return;
+
+    const singleAgents = [
+      {
+        id: "baseline",
+        name: editableTeam.agents[0]?.name || "General Agent",
+        role: editableTeam.agents[0]?.role || "General Assistant",
+        systemPrompt: editableTeam.agents[0]?.systemPrompt || "Eres un asistente general de IA. Responde de forma concisa.",
+        model: editableTeam.agents[0]?.model || "anthropic/claude-3-5-sonnet",
+      }
+    ];
+
+    const multiAgents = editableTeam.agents.map((ag) => {
+      const mInfo = editableTeam.channel.members.find(m => m.agentId === ag.id);
+      return {
+        id: ag.id,
+        name: ag.name,
+        role: ag.role,
+        systemPrompt: ag.systemPrompt,
+        model: ag.model || "anthropic/claude-3-5-sonnet",
+        leader: mInfo?.role === "lead"
+      };
+    });
+
+    const vars = {
+      single: { type: "single", agents: singleAgents },
+      multiNoLeader: { type: "multi_no_leader", agents: multiAgents.filter(a => !a.leader) },
+      multiWithLeader: { type: "multi_with_leader", agents: multiAgents }
+    };
+
+    const body = {
+      name: editorName,
+      taskPrompt: generatorPrompt,
+      criteria: editorCriteria,
+      autoEvaluate: true,
+      variants: vars
+    };
+
+    try {
+      const res = await apiFetch("/api/experiments", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        const saved = data.experiment as Experiment;
+        setExperiments((prev) => [saved, ...prev]);
+        setSelectedExpId(saved.id);
+      }
+    } catch (e) {
+      console.error("Failed to save experiment:", e);
     }
   };
 
   const handleAddCriterion = () => {
-    if (newCriterion.trim() && !criteria.includes(newCriterion.trim())) {
-      setCriteria([...criteria, newCriterion.trim()]);
+    if (newCriterion.trim() && !editorCriteria.includes(newCriterion.trim())) {
+      setEditorCriteria([...editorCriteria, newCriterion.trim()]);
       setNewCriterion("");
     }
   };
 
   const handleRemoveCriterion = (idx: number) => {
-    setCriteria(criteria.filter((_, i) => i !== idx));
+    setEditorCriteria(editorCriteria.filter((_, i) => i !== idx));
   };
 
-  const handleGenerateStances = async () => {
-    if (selectedDichotomies.length === 0) return;
-    setBriefingsParseError(null);
-
-    const systemPrompt = `You are an AI Prompt Engineer. For the given project task, generate custom agent briefings for the chosen roles/dichotomies.
-Each briefing must be a detailed, 1-paragraph system prompt instruction explaining the role's point of view, priorities, arguments, and guidelines adapted specifically to the project task.
-
-Output ONLY a JSON object matching this structure (no additional text, explanations, or code fences):
-{
-  "briefings": {
-    "role_id": "Detailed 1-paragraph briefing adapted to the task..."
-  }
-}`;
-
-    const prompt = `Project Task:
-"${wizardPrompt}"
-
-Roles to generate briefings for:
-${JSON.stringify(selectedDichotomies.map(d => ({ id: d, name: d.replace(/_/g, " ") })))}`;
-
-    try {
-      await briefingsChannel.sendRequest({
-        prompt,
-        systemPrompt,
-        model: defaultModel,
-      });
-    } catch (e) {
-      console.error("Generate briefings failed:", e);
-    }
-  };
-
-  const handleUpdateAgentPrompt = (id: string, text: string) => {
-    setCustomAgents(prev => prev.map(a => a.id === id ? { ...a, systemPrompt: text } : a));
-  };
-
-  const handleUpdateAgentModel = (id: string, model: string) => {
-    setCustomAgents(prev => prev.map(a => a.id === id ? { ...a, model } : a));
-  };
-
-  const handleSetAllModels = (model: string) => {
-    setDefaultModel(model);
-    setCustomAgents(prev => prev.map(a => ({ ...a, model })));
-  };
-
-  const buildExperimentBody = () => {
-    const singleAgents: Agent[] = [
-      {
-        id: "baseline",
-        name: "General Agent",
-        role: "General Assistant",
-        stance: stances[0] || { id: "general", name: "General", template: "", position: "A", briefing: "", icon: "", color: "" },
-        systemPrompt: "Eres un asistente general de IA resolviendo la tarea de forma directa.",
-        model: defaultModel
+  // --- Handlers de Edición de Equipo ---
+  const handleUpdateChannelField = (field: keyof CreateChannel, value: any) => {
+    if (!editableTeam) return;
+    setEditableTeam({
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        [field]: value
       }
-    ];
+    });
+  };
 
-    if (selectedBlueprintId) {
-      return {
-        name: wizardName,
-        taskPrompt: wizardPrompt,
-        blueprintId: selectedBlueprintId,
-        autoEvaluate: true
-      };
-    }
-
-    return {
-      name: wizardName,
-      taskPrompt: wizardPrompt,
-      autoEvaluate: true,
-      criteria,
-      positions: stances,
-      variants: {
-        single: { type: "single", agents: singleAgents },
-        multiNoLeader: { type: "multi_no_leader", agents: customAgents.filter(a => !a.leader) },
-        multiWithLeader: { type: "multi_with_leader", agents: customAgents }
+  const handleAddContextItem = () => {
+    if (!editableTeam) return;
+    const updatedContext = [...(editableTeam.channel.context || []), { key: "", value: "" }];
+    setEditableTeam({
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        context: updatedContext
       }
-    };
+    });
   };
 
-  const handleSave = async () => {
-    try {
-      const body = buildExperimentBody();
-      const isEdit = wizardMode === "edit" && editingExpId;
-
-      const res = await apiFetch(
-        isEdit ? `/api/experiments/${editingExpId}` : "/api/experiments",
-        {
-          method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        }
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        const savedExp = data.experiment as Experiment;
-        if (isEdit) {
-          setExperiments((prev) => prev.map((e) => (e.id === savedExp.id ? savedExp : e)));
-        } else {
-          setExperiments((prev) => [savedExp, ...prev]);
-        }
-        setSelectedExpId(savedExp.id);
-        setIsWizard(false);
-        setWizardStep(1);
+  const handleUpdateContextItem = (index: number, key: string, value: string) => {
+    if (!editableTeam) return;
+    const updatedContext = [...(editableTeam.channel.context || [])];
+    updatedContext[index] = { key, value };
+    setEditableTeam({
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        context: updatedContext
       }
-    } catch (e) {
-      console.error(e);
-    }
+    });
   };
 
-  const handleSaveAndRun = async () => {
-    try {
-      const body = buildExperimentBody();
-      const isEdit = wizardMode === "edit" && editingExpId;
-
-      const res = await apiFetch(
-        isEdit ? `/api/experiments/${editingExpId}` : "/api/experiments",
-        {
-          method: isEdit ? "PATCH" : "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(body)
-        }
-      );
-
-      if (res.ok) {
-        const data = await res.json();
-        const savedExp = data.experiment as Experiment;
-        if (isEdit) {
-          setExperiments((prev) => prev.map((e) => (e.id === savedExp.id ? savedExp : e)));
-        } else {
-          setExperiments((prev) => [savedExp, ...prev]);
-        }
-        setSelectedExpId(savedExp.id);
-        setIsWizard(false);
-        setWizardStep(1);
-
-        await apiFetch(`/api/experiments/${savedExp.id}/run`, { method: "POST" });
-        fetchExperiments();
+  const handleRemoveContextItem = (index: number) => {
+    if (!editableTeam) return;
+    const updatedContext = (editableTeam.channel.context || []).filter((_, i) => i !== index);
+    setEditableTeam({
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        context: updatedContext
       }
-    } catch (e) {
-      console.error(e);
-    }
+    });
   };
 
-  const handleTriggerRun = async (expId: string) => {
-    try {
-      await apiFetch(`/api/experiments/${expId}/run`, { method: "POST" });
-      fetchExperiments();
-    } catch (e) {
-      console.error(e);
-    }
-  };
+  const handleUpdateAgentId = (oldId: string, newId: string) => {
+    if (!editableTeam) return;
+    const sanitizedId = newId.toLowerCase().replace(/[^a-z0-9-]/g, "-");
 
-  const handleStop = async (expId: string) => {
-    try {
-      await apiFetch(`/api/experiments/${expId}/stop`, { method: "POST" });
-      fetchExperiments();
-    } catch (e) {
-      console.error(e);
-    }
-  };
+    const updatedAgents = editableTeam.agents.map((ag) =>
+      ag.id === oldId ? { ...ag, id: sanitizedId } : ag
+    );
 
-  const handleDeleteExp = async (expId: string) => {
-    if (!confirm("¿Seguro que deseas eliminar este experimento?")) return;
-    try {
-      const res = await apiFetch(`/api/experiments/${expId}`, { method: "DELETE" });
-      if (res.ok) {
-        setExperiments(prev => prev.filter(e => e.id !== expId));
-        if (selectedExpId === expId) setSelectedExpId(null);
+    const updatedMembers = editableTeam.channel.members.map((m) =>
+      m.agentId === oldId ? { ...m, agentId: sanitizedId } : m
+    );
+
+    setEditableTeam({
+      ...editableTeam,
+      agents: updatedAgents,
+      channel: {
+        ...editableTeam.channel,
+        members: updatedMembers
       }
-    } catch (e) {
-      console.error(e);
-    }
+    });
+  };
+
+  const handleUpdateAgentField = (agentId: string, field: keyof AgentDefinition, value: any) => {
+    if (!editableTeam) return;
+    const updatedAgents = editableTeam.agents.map((ag) =>
+      ag.id === agentId ? { ...ag, [field]: value } : ag
+    );
+    setEditableTeam({
+      ...editableTeam,
+      agents: updatedAgents
+    });
+  };
+
+  const handleUpdateMemberRole = (agentId: string, newRole: string) => {
+    if (!editableTeam) return;
+    const updatedMembers = editableTeam.channel.members.map((m) => {
+      if (m.agentId === agentId) {
+        return {
+          ...m,
+          role: newRole,
+          // Si es lead, forzamos user-only
+          replyMode: newRole === "lead" ? "user-only" : m.replyMode
+        };
+      }
+      // Si asignamos lead a uno, los demás que eran lead pasan a member
+      if (newRole === "lead" && m.role === "lead") {
+        return { ...m, role: "member" };
+      }
+      return m;
+    });
+
+    setEditableTeam({
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        members: updatedMembers
+      }
+    });
+  };
+
+  const handleUpdateMemberReplyMode = (agentId: string, newReplyMode: string) => {
+    if (!editableTeam) return;
+    const updatedMembers = editableTeam.channel.members.map((m) => {
+      if (m.agentId === agentId) {
+        return { ...m, replyMode: newReplyMode };
+      }
+      return m;
+    });
+    setEditableTeam({
+      ...editableTeam,
+      channel: {
+        ...editableTeam.channel,
+        members: updatedMembers
+      }
+    });
   };
 
   return (
     <div className="flex h-full min-h-0 bg-bg text-text-primary font-body">
-      <ExperimentSidebar
-        experiments={experiments}
-        selectedExpId={selectedExpId}
-        isWizard={isWizard}
-        loadingExps={loadingExps}
-        onSelectExperiment={(id) => {
-          setSelectedExpId(id);
-          setIsWizard(false);
-        }}
-        onOpenWizard={() => openWizard("create")}
-        onDeleteExperiment={handleDeleteExp}
-      />
-
+      {/* Area Principal de Contenido (Abarca todo el ancho de la página al quitar el sidebar) */}
       <div className="flex-1 min-w-0 bg-bg flex flex-col p-6 overflow-y-auto">
         <AnimatePresence mode="wait">
-          {isWizard ? (
-            <LaboratoryWizard
-              wizardStep={wizardStep}
-              setWizardStep={setWizardStep}
-              wizardName={wizardName}
-              setWizardName={setWizardName}
-              wizardPrompt={wizardPrompt}
-              setWizardPrompt={setWizardPrompt}
-              blueprints={blueprints}
-              selectedBlueprintId={selectedBlueprintId}
-              onSelectBlueprint={handleSelectBlueprint}
-              selectedBlueprint={selectedBlueprint}
-              analyzeChannelLoading={analyzeChannel.loading}
-              analyzeChannelText={analyzeChannel.text}
-              analyzeChannelError={analyzeChannel.error || analyzeParseError}
-              onAnalyzeTask={handleAnalyzeTask}
-              onSaveBlueprint={handleSave}
-              onSaveAndRunBlueprint={handleSaveAndRun}
-              suggestedDichotomies={suggestedDichotomies}
-              selectedDichotomies={selectedDichotomies}
-              setSelectedDichotomies={setSelectedDichotomies}
-              criteria={criteria}
-              newCriterion={newCriterion}
-              setNewCriterion={setNewCriterion}
-              onAddCriterion={handleAddCriterion}
-              onRemoveCriterion={handleRemoveCriterion}
-              briefingsChannelLoading={briefingsChannel.loading}
-              briefingsChannelText={briefingsChannel.text}
-              briefingsChannelError={briefingsChannel.error || briefingsParseError}
-              onGenerateStances={handleGenerateStances}
-              customAgents={customAgents}
-              defaultModel={defaultModel}
-              defaultModelLoaded={defaultModelLoaded}
-              onSetAllModels={handleSetAllModels}
-              onUpdateAgentModel={handleUpdateAgentModel}
-              onUpdateAgentPrompt={handleUpdateAgentPrompt}
-              onCancel={() => {
-                resetWizard();
-                setIsWizard(false);
-              }}
-              onSave={handleSave}
-              onSaveAndRun={handleSaveAndRun}
-            />
-          ) : activeExp ? (
-            <div className="space-y-6 text-left">
-              <ExperimentHeader
-                activeExp={activeExp}
-                onEditExperiment={(exp) => openWizard("edit", exp)}
-                onDeleteExperiment={async (id) => {
-                  const res = await apiFetch(`/api/experiments/${id}`, { method: "DELETE" });
-                  if (res.ok) {
-                    setExperiments(prev => prev.filter(e => e.id !== id));
-                    setSelectedExpId(null);
-                  }
-                }}
-                onTriggerRun={handleTriggerRun}
-                onStop={handleStop}
-              />
+          {!selectedExpId ? (
+            <motion.div
+              key="generator"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6 max-w-5xl mx-auto w-full"
+            >
+              {/* Card Header del Generador */}
+              <div className="bg-surface border border-surface-hover rounded-2xl p-6">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="p-2 bg-accent/10 rounded-xl">
+                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z"
+                      />
+                    </svg>
+                  </span>
+                  <div>
+                    <h1 className="text-lg font-bold">Generá tu Equipo con IA</h1>
+                    <p className="text-xs text-text-secondary">
+                      Ingresá una descripción y la IA configurará los Agentes Programáticos y el Canal correspondiente.
+                    </p>
+                  </div>
+                </div>
 
-              <ComparativeMetrics activeExp={activeExp} />
+                <div className="mt-4 space-y-4">
+                  <textarea
+                    value={generatorPrompt}
+                    onChange={(e) => setGeneratorPrompt(e.target.value)}
+                    placeholder="Ejemplo: Necesito un equipo de redactores publicitarios. Quiero un agente especialista en copy persuasivo, un corrector ortográfico y un coordinador que apruebe y decida."
+                    rows={4}
+                    className="w-full bg-bg border border-surface-hover rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent transition-colors font-body text-text-primary"
+                  />
 
-              <ExperimentLiveView activeExp={activeExp} />
-            </div>
-          ) : (
-            <div className="text-center py-20 bg-surface border border-surface-hover rounded-2xl">
-              <svg className="mx-auto h-12 w-12 text-text-secondary/40" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4Z" />
-              </svg>
-              <h3 className="mt-2 text-sm font-semibold text-text-primary">Ningún experimento seleccionado</h3>
-              <p className="mt-1 text-xs text-text-secondary">Selecciona un experimento del histórico o crea uno nuevo usando el configurador.</p>
-              <div className="mt-6">
-                <button
-                  onClick={() => openWizard("create")}
-                  className="px-4 py-2 bg-accent text-bg hover:bg-accent/90 rounded-xl text-xs font-bold transition-all shadow"
-                >
-                  Nuevo Experimento
-                </button>
+                  {genError && (
+                    <div className="p-3 bg-error/10 border border-error/20 text-error rounded-xl text-xs flex items-center gap-2">
+                      <span className="font-bold">Error:</span> {genError}
+                    </div>
+                  )}
+
+                  {instantiationSuccess && (
+                    <div className="p-3 bg-accent/10 border border-accent/20 text-accent rounded-xl text-xs flex items-center gap-2">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                      </svg>
+                      <span>¡Equipo instanciado y cargado con éxito en el workspace!</span>
+                    </div>
+                  )}
+
+                  {/* Selector de Modelo al lado del botón de generar */}
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 bg-bg/40 p-3 rounded-xl border border-surface-hover/50">
+                    <div className="flex items-center gap-2.5">
+                      <span className="text-[10px] uppercase font-bold text-text-secondary tracking-wider font-mono">
+                        Modelo Generador:
+                      </span>
+                      <ModelSelector
+                        sessionId="laboratory"
+                        value={selectedModel}
+                        onChange={setSelectedModel}
+                      />
+                    </div>
+                    <button
+                      onClick={handleGenerateTeam}
+                      disabled={generating || !generatorPrompt.trim()}
+                      className="w-full sm:w-auto px-4 py-2 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center justify-center gap-2 cursor-pointer"
+                    >
+                      {generating ? (
+                        <>
+                          <div className="w-3.5 h-3.5 border-2 border-bg border-t-transparent rounded-full animate-spin" />
+                          <span>Generando...</span>
+                        </>
+                      ) : (
+                        <span>Generar con IA</span>
+                      )}
+                    </button>
+                  </div>
+                </div>
               </div>
-            </div>
+
+              {/* Resultado del Generador (Editable) */}
+              {editableTeam && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.98 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="space-y-6"
+                >
+                  <div className="flex justify-between items-center">
+                    <h2 className="text-sm font-bold text-text-primary tracking-wide uppercase">Propuesta Generada (Editable)</h2>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={handleSaveExperimentDirect}
+                        className="px-4 py-1.5 bg-surface hover:bg-surface-hover border border-surface-hover text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Crear Experimento
+                      </button>
+                      <button
+                        onClick={handleInstantiateTeam}
+                        disabled={instantiating}
+                        className="px-4 py-1.5 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-2 cursor-pointer"
+                      >
+                        {instantiating ? (
+                          <>
+                            <div className="w-3.5 h-3.5 border-2 border-bg border-t-transparent rounded-full animate-spin" />
+                            <span>Instanciando...</span>
+                          </>
+                        ) : (
+                          <span>Instanciar Equipo Completo</span>
+                        )}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Creador de Experimento Directo (Unificado) */}
+                  <div className="bg-surface border border-surface-hover rounded-2xl p-5 space-y-4 text-left">
+                    <div className="flex items-center gap-2 pb-2 border-b border-surface-hover/50">
+                      <span className="p-1.5 bg-accent/10 rounded-lg text-accent">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+                        </svg>
+                      </span>
+                      <h3 className="font-bold text-xs uppercase tracking-wider text-text-primary">Configuración del Experimento</h3>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                          Nombre del Experimento
+                        </label>
+                        <input
+                          type="text"
+                          value={editorName}
+                          onChange={(e) => setEditorName(e.target.value)}
+                          className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                          placeholder="Nombre del experimento..."
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                          Criterios de Evaluación del LLM-Judge
+                        </label>
+                        <div className="flex gap-1.5 mb-2">
+                          <input
+                            type="text"
+                            value={newCriterion}
+                            onChange={(e) => setNewCriterion(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter") {
+                                e.preventDefault();
+                                handleAddCriterion();
+                              }
+                            }}
+                            placeholder="Agregar criterio..."
+                            className="flex-1 bg-bg border border-surface-hover rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-accent text-text-primary"
+                          />
+                          <button
+                            onClick={handleAddCriterion}
+                            className="px-2.5 py-1 bg-bg border border-surface-hover hover:bg-surface-hover rounded-lg text-xs font-bold cursor-pointer"
+                          >
+                            +
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {editorCriteria.map((c, i) => (
+                            <span
+                              key={i}
+                              className="text-[9px] px-2 py-0.5 bg-bg border border-surface-hover rounded text-text-secondary flex items-center gap-1.5"
+                            >
+                              <span>{c}</span>
+                              <button
+                                onClick={() => handleRemoveCriterion(i)}
+                                className="text-error hover:text-error/85 font-bold cursor-pointer"
+                              >
+                                ×
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Formulario de Canal Editable */}
+                    <div className="bg-surface border border-surface-hover rounded-2xl p-5 lg:col-span-1 flex flex-col justify-between">
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2 mb-1 border-b border-surface-hover/50 pb-2">
+                          <span className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M17 8h2a2 2 0 012 2v6a2 2 0 01-2 2h-2v4l-4-4H9a1.994 1.994 0 01-1.414-.586m0 0L11 14h4a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2v4l.586-.586z"
+                              />
+                            </svg>
+                          </span>
+                          <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Ajustes del Canal</h3>
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                            Nombre del Canal
+                          </label>
+                          <input
+                            type="text"
+                            value={editableTeam.channel.name}
+                            onChange={(e) => handleUpdateChannelField("name", e.target.value)}
+                            className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                          />
+                        </div>
+
+                        <div>
+                          <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                            Descripción
+                          </label>
+                          <textarea
+                            value={editableTeam.channel.description || ""}
+                            onChange={(e) => handleUpdateChannelField("description", e.target.value)}
+                            rows={3}
+                            className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent leading-relaxed"
+                          />
+                        </div>
+
+                        <div className="flex justify-between items-center text-xs">
+                          <span className="text-text-secondary font-medium">Límite de debate:</span>
+                          <div className="flex items-center gap-1.5">
+                            <input
+                              type="number"
+                              min={1}
+                              max={20}
+                              value={editableTeam.channel.maxChainDepth || 5}
+                              onChange={(e) => handleUpdateChannelField("maxChainDepth", parseInt(e.target.value) || 5)}
+                              className="w-14 bg-bg border border-surface-hover rounded-lg px-2 py-0.5 text-xs font-mono text-text-primary focus:outline-none focus:border-accent text-center"
+                            />
+                            <span className="text-text-secondary">rondas</span>
+                          </div>
+                        </div>
+
+                        {/* Variables de Contexto KV del Canal */}
+                        <div className="border-t border-surface-hover pt-4 mt-2 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <span className="text-[10px] uppercase font-bold text-text-secondary tracking-wider font-mono">
+                              Contexto KV
+                            </span>
+                            <button
+                              onClick={handleAddContextItem}
+                              className="text-[10px] text-accent hover:underline font-bold cursor-pointer"
+                            >
+                              + Agregar
+                            </button>
+                          </div>
+                          <div className="space-y-1.5 max-h-48 overflow-y-auto pr-1">
+                            {(editableTeam.channel.context || []).map((ctx, idx) => (
+                              <div key={idx} className="flex items-center gap-1">
+                                <input
+                                  type="text"
+                                  placeholder="Clave"
+                                  value={ctx.key}
+                                  onChange={(e) => handleUpdateContextItem(idx, e.target.value, ctx.value)}
+                                  className="flex-1 min-w-0 bg-bg border border-surface-hover rounded px-2 py-0.5 text-[10px] text-text-primary font-mono focus:outline-none focus:border-accent"
+                                />
+                                <input
+                                  type="text"
+                                  placeholder="Valor"
+                                  value={ctx.value}
+                                  onChange={(e) => handleUpdateContextItem(idx, ctx.key, e.target.value)}
+                                  className="flex-1 min-w-0 bg-bg border border-surface-hover rounded px-2 py-0.5 text-[10px] text-text-primary focus:outline-none focus:border-accent"
+                                />
+                                <button
+                                  onClick={() => handleRemoveContextItem(idx)}
+                                  className="text-error hover:text-error/80 font-bold px-1.5 cursor-pointer text-xs"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
+                            {(editableTeam.channel.context || []).length === 0 && (
+                              <span className="text-[10px] text-text-secondary/50 block italic py-2">
+                                Sin variables de contexto
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Formulario de Agentes Editables */}
+                    <div className="lg:col-span-2 space-y-4">
+                      {editableTeam.agents.map((ag) => {
+                        const mInfo = editableTeam.channel.members.find((m) => m.agentId === ag.id);
+                        return (
+                          <div
+                            key={ag.id}
+                            className="bg-surface border border-surface-hover rounded-2xl p-5 flex flex-col gap-4 hover:border-accent/10 transition-colors"
+                          >
+                            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start border-b border-surface-hover/40 pb-3">
+                              {/* Identificación del Agente */}
+                              <div className="grid grid-cols-2 gap-3 flex-1 w-full">
+                                <div>
+                                  <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                    Nombre del Agente
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={ag.name}
+                                    onChange={(e) => handleUpdateAgentField(ag.id, "name", e.target.value)}
+                                    className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                                  />
+                                </div>
+                                <div>
+                                  <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                    ID (Kebab-case)
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={ag.id}
+                                    onChange={(e) => handleUpdateAgentId(ag.id, e.target.value)}
+                                    className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1 text-xs text-text-primary focus:outline-none focus:border-accent font-mono"
+                                  />
+                                </div>
+                              </div>
+
+                              {/* Roles y Modos del Miembro del Canal */}
+                              {mInfo && (
+                                <div className="flex gap-2 w-full sm:w-auto">
+                                  <div className="flex-1 sm:flex-initial">
+                                    <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                      Rol Canal
+                                    </label>
+                                    <select
+                                      value={mInfo.role || "member"}
+                                      onChange={(e) => handleUpdateMemberRole(ag.id, e.target.value)}
+                                      className="w-full bg-bg border border-surface-hover rounded-xl px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-accent cursor-pointer"
+                                    >
+                                      <option value="member">Member</option>
+                                      <option value="lead">Lead</option>
+                                      <option value="senior">Senior</option>
+                                      <option value="observer">Observer</option>
+                                    </select>
+                                  </div>
+
+                                  <div className="flex-1 sm:flex-initial">
+                                    <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                      Reply Mode
+                                    </label>
+                                    <select
+                                      value={mInfo.replyMode}
+                                      disabled={mInfo.role === "lead"}
+                                      onChange={(e) => handleUpdateMemberReplyMode(ag.id, e.target.value)}
+                                      className="w-full bg-bg border border-surface-hover rounded-xl px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                    >
+                                      <option value="mention-only">Mention Only</option>
+                                      <option value="broadcast">Broadcast</option>
+                                      <option value="targeted">Targeted</option>
+                                      <option value="user-only">User Only</option>
+                                    </select>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Rol del Agente e Instrucciones */}
+                            <div className="space-y-3">
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                  Propósito (Role)
+                                </label>
+                                <input
+                                  type="text"
+                                  value={ag.role}
+                                  onChange={(e) => handleUpdateAgentField(ag.id, "role", e.target.value)}
+                                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent font-medium font-mono"
+                                />
+                              </div>
+
+                              <div>
+                                <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                  System Prompt (Instrucciones)
+                                </label>
+                                <textarea
+                                  value={ag.systemPrompt}
+                                  onChange={(e) => handleUpdateAgentField(ag.id, "systemPrompt", e.target.value)}
+                                  rows={4}
+                                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent leading-relaxed font-mono"
+                                />
+                              </div>
+
+                              {/* Modelo del Agente */}
+                              <div className="flex items-center gap-2 bg-bg/30 px-3 py-2 rounded-xl border border-surface-hover/30">
+                                <span className="text-[9px] uppercase font-bold text-text-secondary tracking-wider font-mono">
+                                  Modelo del Agente:
+                                </span>
+                                <ModelSelector
+                                  sessionId={null}
+                                  value={ag.model || "anthropic/claude-3-5-sonnet"}
+                                  onChange={(modelId) => handleUpdateAgentField(ag.id, "model", modelId)}
+                                />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          ) : activeExp ? (
+            <motion.div
+              key="experiment-details"
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              className="space-y-6 text-left max-w-5xl mx-auto w-full flex flex-col h-full min-h-0"
+            >
+              {/* Cabecera del Experimento */}
+              <div className="bg-surface border border-surface-hover rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="p-1 bg-accent/10 rounded text-accent">
+                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
+                        />
+                      </svg>
+                    </span>
+                    <h1 className="text-base font-bold text-text-primary">{activeExp.name}</h1>
+                  </div>
+                  <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">{activeExp.taskPrompt}</p>
+                </div>
+
+                <div className="flex gap-2 flex-shrink-0">
+                  {activeExp.status !== "running" ? (
+                    <>
+                      <button
+                        onClick={() => openEditModal(activeExp)}
+                        className="px-3 py-1.5 bg-bg hover:bg-bg/85 border border-surface-hover text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Editar
+                      </button>
+                      <button
+                        onClick={() => handleDeleteExp(activeExp.id)}
+                        className="px-3 py-1.5 bg-bg hover:bg-error/10 border border-surface-hover hover:border-error/30 text-error rounded-xl text-xs font-bold transition-all cursor-pointer"
+                      >
+                        Eliminar
+                      </button>
+                      <button
+                        onClick={() => {
+                          setRunningExpId(activeExp.id);
+                          setRunPromptValue(activeExp.taskPrompt);
+                          setIsRunPromptModalOpen(true);
+                        }}
+                        className="px-4 py-1.5 bg-accent text-bg hover:bg-accent/90 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                      >
+                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                        Ejecutar
+                      </button>
+                    </>
+                  ) : (
+                    <button
+                      onClick={() => handleStopRun(activeExp.id)}
+                      className="px-4 py-1.5 bg-error hover:bg-error/90 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                    >
+                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                      </svg>
+                      Detener Corrida
+                    </button>
+                  )}
+                </div>
+              </div>
+
+              {/* Rúbrica y Criterios */}
+              {activeExp.judge?.criteria && (
+                <div className="bg-surface border border-surface-hover rounded-2xl p-5 flex-shrink-0">
+                  <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-2.5">
+                    Rúbrica de Evaluación
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {activeExp.judge.criteria.map((c, i) => (
+                      <span
+                        key={i}
+                        className="text-xs px-3 py-1 bg-bg border border-surface-hover rounded-xl text-text-secondary"
+                      >
+                        {c}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Selector de Pestañas de Variante */}
+              <div className="flex border-b border-surface-hover/40 gap-1 flex-shrink-0 mt-2">
+                {(["single", "multiNoLeader", "multiWithLeader"] as const).map((vKey) => {
+                  const label =
+                    vKey === "single"
+                      ? "Baseline (Un Agente)"
+                      : vKey === "multiNoLeader"
+                      ? "Colaboración Horizontal"
+                      : "Colaboración Jerárquica";
+                  const isActive = activeVariantTab === vKey;
+                  const runData = activeExp.variants?.[vKey];
+                  const hasResult = !!runData?.result;
+                  const isRunning = activeExp.status === "running" && runData?.activeSessionId && !hasResult;
+
+                  return (
+                    <button
+                      key={vKey}
+                      onClick={() => setActiveVariantTab(vKey)}
+                      className={`px-4 py-2.5 text-xs font-semibold border-b-2 -mb-[1px] transition-all flex items-center gap-1.5 cursor-pointer ${
+                        isActive
+                          ? "text-accent border-accent font-bold"
+                          : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
+                      }`}
+                    >
+                      {label}
+                      {isRunning && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+                      )}
+                      {hasResult && (
+                        <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-accent" : "bg-error"}`} />
+                      )}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {/* Visor de la Variante Activa */}
+              <div className="flex-1 min-h-0">
+                <VariantViewer
+                  experimentId={activeExp.id}
+                  variantKey={activeVariantTab}
+                  activeSessionId={activeExp.variants[activeVariantTab]?.activeSessionId || null}
+                  status={
+                    activeExp.status === "running"
+                      ? (activeExp.variants[activeVariantTab]?.result
+                        ? activeExp.variants[activeVariantTab].result.status
+                        : (activeExp.variants[activeVariantTab]?.activeSessionId ? "running" : "pending"))
+                      : (activeExp.variants[activeVariantTab]?.result?.status || "pending")
+                  }
+                  result={activeExp.variants[activeVariantTab]?.result || null}
+                />
+              </div>
+            </motion.div>
+          ) : (
+            <motion.div
+              key="loading"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              className="flex-1 flex flex-col items-center justify-center text-center p-12"
+            >
+              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs text-text-secondary">Cargando detalles del experimento...</p>
+            </motion.div>
           )}
         </AnimatePresence>
       </div>
+
+      {/* Modal Editor / Creador de Experimentos */}
+      {isEditorOpen && (
+        <div className="fixed inset-0 z-55 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-surface border border-surface-hover rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl text-left"
+          >
+            <div>
+              <h3 className="text-sm font-bold text-text-primary tracking-wide uppercase">
+                {editingExpId ? "Editar Experimento" : "Nuevo Experimento"}
+              </h3>
+              <p className="text-[11px] text-text-secondary">
+                Diseñá tu caso de prueba y configurá los criterios del LLM-Judge para evaluar las variantes.
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <div>
+                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                  Nombre del Experimento
+                </label>
+                <input
+                  type="text"
+                  value={editorName}
+                  onChange={(e) => setEditorName(e.target.value)}
+                  placeholder="Ej: Benchmark Traducción de Código"
+                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                  Prompt de Tarea (Task Prompt)
+                </label>
+                <textarea
+                  value={editorPrompt}
+                  onChange={(e) => setEditorPrompt(e.target.value)}
+                  placeholder="Ej: Escribe un script en Python que calcule el factorial de un número usando recursividad."
+                  rows={4}
+                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                  Criterios de Evaluación
+                </label>
+                <div className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={newCriterion}
+                    onChange={(e) => setNewCriterion(e.target.value)}
+                    placeholder="Ej: Completitud"
+                    className="flex-1 bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary"
+                  />
+                  <button
+                    onClick={handleAddCriterion}
+                    className="px-3 py-2 bg-bg border border-surface-hover hover:bg-surface-hover rounded-xl text-xs font-bold text-text-primary cursor-pointer"
+                  >
+                    Agregar
+                  </button>
+                </div>
+                <div className="flex flex-wrap gap-1.5">
+                  {editorCriteria.map((c, i) => (
+                    <span
+                      key={i}
+                      className="text-[10px] px-2.5 py-1 bg-bg border border-surface-hover rounded-lg text-text-secondary flex items-center gap-1.5"
+                    >
+                      <span>{c}</span>
+                      <button
+                        onClick={() => handleRemoveCriterion(i)}
+                        className="text-error hover:text-error/80 font-bold cursor-pointer"
+                      >
+                        ×
+                      </button>
+                    </span>
+                  ))}
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-surface-hover/50 pt-4">
+              <button
+                onClick={() => setIsEditorOpen(false)}
+                className="px-4 py-2 bg-bg border border-surface-hover hover:bg-surface-hover rounded-xl text-xs font-bold text-text-primary cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleSaveExperiment}
+                disabled={!editorName.trim() || !editorPrompt.trim()}
+                className="px-4 py-2 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
+              >
+                Guardar Experimento
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
+
+      {/* Modal Prompt de Ejecución Dinámico */}
+      {isRunPromptModalOpen && (
+        <div className="fixed inset-0 z-55 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="bg-surface border border-surface-hover rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl text-left"
+          >
+            <div>
+              <h3 className="text-sm font-bold text-text-primary tracking-wide uppercase">
+                Iniciar Corrida de Experimento
+              </h3>
+              <p className="text-[11px] text-text-secondary">
+                Ingresá la tarea específica (prompt) sobre la cual querés que debata y resuelva la tripulación en esta ejecución.
+              </p>
+            </div>
+
+            <div>
+              <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                Tarea / Prompt de Ejecución
+              </label>
+              <textarea
+                value={runPromptValue}
+                onChange={(e) => setRunPromptValue(e.target.value)}
+                placeholder="Ej: Escribe un script en Python que busque imágenes en un directorio usando glob y PIL."
+                rows={5}
+                className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary font-mono leading-relaxed"
+              />
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-surface-hover/50 pt-4">
+              <button
+                onClick={() => {
+                  setIsRunPromptModalOpen(false);
+                  setRunningExpId(null);
+                }}
+                className="px-4 py-2 bg-bg border border-surface-hover hover:bg-surface-hover rounded-xl text-xs font-bold text-text-primary cursor-pointer"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleConfirmRun}
+                disabled={!runPromptValue.trim()}
+                className="px-4 py-2 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
+              >
+                Confirmar y Ejecutar
+              </button>
+            </div>
+          </motion.div>
+        </div>
+      )}
     </div>
   );
 }

@@ -339,6 +339,8 @@ export const ChannelMessageSchema = z.object({
   thinking: z.string().optional(),
   toolCalls: z.array(z.any()).optional(),
   mentions: z.array(z.string()).optional(),
+  tokensIn: z.number().optional(),
+  tokensOut: z.number().optional(),
   createdAt: z.string(),
 });
 export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;
@@ -382,13 +384,9 @@ export const LabStanceSchema = z.object({
 });
 export type LabStance = z.infer<typeof LabStanceSchema>;
 
-export const LabAgentSchema = z.object({
+export const LabAgentSchema = AgentDefinitionSchema.omit({ id: true }).extend({
   id: z.string(),
-  name: z.string(),
-  role: z.string(),
-  stance: LabStanceSchema,
-  systemPrompt: z.string(),
-  model: z.string(),
+  stance: LabStanceSchema.optional(),
   leader: z.boolean().optional(),
 });
 export type LabAgent = z.infer<typeof LabAgentSchema>;
@@ -414,6 +412,7 @@ export type VariantRunResult = z.infer<typeof VariantRunResultSchema>;
 export const VariantRunSchema = z.object({
   type: z.enum(["single", "multi_no_leader", "multi_with_leader"]),
   channelId: z.string().optional(),
+  activeSessionId: z.string().optional(),
   agents: z.array(LabAgentSchema),
   result: VariantRunResultSchema.optional(),
 });

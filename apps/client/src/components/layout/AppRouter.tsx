@@ -15,6 +15,8 @@ import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { DashboardPage } from "@/pages/DashboardPage";
 import { useRouter } from "@/hooks/useRouter";
 import { MainLayout } from "./MainLayout";
+import { apiFetch } from "@/lib/api";
+import type { Experiment } from "@/types/laboratory";
 
 export function AppRouter() {
   const { token, user, loading } = useAuth();
@@ -50,6 +52,45 @@ export function AppRouter() {
   const [hasContext, setHasContext] = useState<boolean>(() => {
     return localStorage.getItem("has-context") === "true";
   });
+
+  // --- Estados de Laboratorio Elevados ---
+  const [experiments, setExperiments] = useState<Experiment[]>([]);
+  const [loadingExps, setLoadingExps] = useState(true);
+  const [isLabEditorOpen, setIsLabEditorOpen] = useState(false);
+  const [editingLabExpId, setEditingLabExpId] = useState<string | null>(null);
+
+  const fetchExperiments = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/experiments");
+      if (res.ok) {
+        const data = await res.json();
+        setExperiments(data.experiments || []);
+      }
+    } catch (e) {
+      console.error("Failed to load experiments:", e);
+    } finally {
+      setLoadingExps(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchExperiments();
+  }, [fetchExperiments]);
+
+  const handleDeleteExp = useCallback(async (expId: string) => {
+    if (!window.confirm("¿Seguro que deseas eliminar este experimento de forma permanente?")) return;
+    try {
+      const res = await apiFetch(`/api/experiments/${expId}`, { method: "DELETE" });
+      if (res.ok) {
+        setExperiments((prev) => prev.filter((e) => e.id !== expId));
+        if (route.page === "laboratory" && route.experimentId === expId) {
+          navigate("/laboratory");
+        }
+      }
+    } catch (e) {
+      console.error("Failed to delete experiment:", e);
+    }
+  }, [route, navigate]);
 
   // Sincronizar estado y localStorage con los parámetros de la URL
   useEffect(() => {
@@ -192,6 +233,17 @@ export function AppRouter() {
       onSelectRepo={handleSelectRepo}
       onSelectAgent={handleSelectAgent}
       onSelectChannel={handleSelectChannel}
+      selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
+      onSelectExp={(id) => {
+        if (id) navigate(`/laboratory/${id}`);
+        else navigate("/laboratory");
+      }}
+      experiments={experiments}
+      onDeleteExperiment={handleDeleteExp}
+      onCreateExperiment={() => {
+        navigate("/laboratory");
+      }}
+      loadingExps={loadingExps}
     >
       {route.page === "projects" && (
         <DashboardPage onNavigate={navigate} onSelectRepo={handleSelectRepo} />
@@ -217,7 +269,22 @@ export function AppRouter() {
         />
       )}
       {route.page === "laboratory" && (
-        <LaboratoryPage onNavigate={navigate} />
+        <LaboratoryPage
+          onNavigate={navigate}
+          selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
+          setSelectedExpId={(id) => {
+            if (id) navigate(`/laboratory/${id}`);
+            else navigate("/laboratory");
+          }}
+          experiments={experiments}
+          setExperiments={setExperiments}
+          fetchExperiments={fetchExperiments}
+          isEditorOpen={isLabEditorOpen}
+          setIsEditorOpen={setIsLabEditorOpen}
+          editingExpId={editingLabExpId}
+          setEditingExpId={setEditingLabExpId}
+          handleDeleteExp={handleDeleteExp}
+        />
       )}
       {route.page === "channel" && (
         <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />

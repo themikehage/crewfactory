@@ -147,18 +147,46 @@ export async function runConditionB(
 
   // Sum up tokens across all session contexts used by channel agents
   let tokensTotal = 0;
-  const sessions = await piSessionManager.listSessions(username);
-  for (const s of sessions) {
-    if (s.channelId === channelId) {
-      // Clean up benchmark sessions to prevent workspace clutter
-      try {
-        const stats = s.status === "active" ? (s as any).getSessionStats?.() : null;
-        if (stats) {
-          tokensTotal += stats.promptTokens + stats.completionTokens;
-        }
-      } catch {}
+  try {
+    for (const msg of messages) {
+      if (msg.role === "agent") {
+        tokensTotal += ((msg as any).tokensIn || 0) + ((msg as any).tokensOut || 0);
+      }
     }
+  } catch (err) {
+    console.error(`[harness] Failed to sum tokens from messages:`, err);
   }
+
+  // Fallback: Query channel members from registry directly
+  if (tokensTotal === 0) {
+    try {
+      const { agentRegistry } = await import("../agents/index.js");
+      const channel = channelStore.getChannel(username, channelId);
+      if (channel) {
+        for (const member of channel.members) {
+          try {
+            const entry = agentRegistry.get(member.agentId);
+            if (entry && entry.server && entry.server.session) {
+              const stats = entry.server.session.getSessionStats();
+              if (stats && stats.tokens) {
+                tokensTotal += (stats.tokens.input || 0) + (stats.tokens.output || 0);
+              }
+            }
+          } catch {}
+        }
+      }
+    } catch {}
+  }
+
+  // Clean up benchmark sessions to prevent workspace clutter just in case
+  try {
+    const sessions = await piSessionManager.listSessions(username);
+    for (const s of sessions) {
+      if (s.channelId === channelId) {
+        await piSessionManager.destroySession(username, s.id);
+      }
+    }
+  } catch {}
 
   const costEstimate = tokensTotal * 0.000002;
 
