@@ -57,7 +57,13 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     cwd: workspaceDir,
     agentDir,
     additionalSkillPaths,
-    appendSystemPrompt: [`\n\n${definition.systemPrompt}`],
+    appendSystemPrompt: [
+      `\n\n${definition.systemPrompt}`,
+      `\n\nInteractive UI Components (AG-UI Protocol):\n` +
+      `You have native interactive UI tools. Prefer using them over custom scripts or general output formats when suitable:\n` +
+      `- render_chart: Use this tool to display bar, line, area, or pie charts to visualize quantitative data, metrics, or analytical trends. Avoid writing Python/matplotlib scripts or generating image files for charts if they can be represented using this tool.\n` +
+      `- request_approval: Before executing any critical, destructive, or potentially dangerous actions (such as running build/deploy scripts, deleting files, or executing system commands via bash), you MUST call this tool to request explicit user confirmation.\n`
+    ],
   });
   await resourceLoader.reload();
 
