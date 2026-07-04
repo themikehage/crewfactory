@@ -74,10 +74,13 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setLoading(false);
       return;
     }
+    // Clear stale state immediately on channel or session change to avoid showing old data
+    setMessages([]);
+    setStreamingAgents({});
     setLoading(true);
     setError(null);
     Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings()]).finally(() => setLoading(false));
-  }, [channelId, fetchChannel, fetchMessages, fetchActiveStreamings]);
+  }, [channelId, sessionId, fetchChannel, fetchMessages, fetchActiveStreamings]);
 
 
   // WebSocket Connection for channel events
@@ -190,7 +193,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     return () => {
       ws.close();
     };
-  }, [channelId]);
+  }, [channelId, sessionId]);
 
   const sendMessage = useCallback(
     async (content: string) => {

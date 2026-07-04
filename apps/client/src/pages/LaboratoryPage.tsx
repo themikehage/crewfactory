@@ -3,9 +3,11 @@ import { apiFetch } from "@/lib/api";
 import { ModelSelector } from "@/components/chat/ModelSelector";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelMessageList } from "@/components/channels/ChannelMessageList";
+import { ChannelInput } from "@/components/channels/ChannelInput";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Experiment } from "@/types/laboratory";
 import type { AgentDefinition, CreateChannel } from "shared";
+
 
 interface Props {
   onNavigate?: (path: string) => void;
@@ -37,7 +39,7 @@ interface VariantViewerProps {
 function VariantViewer({ experimentId, variantKey, activeSessionId, status, result }: VariantViewerProps) {
   const channelId = `lab_${experimentId}_${variantKey}`;
   const targetChannelId = activeSessionId ? channelId : null;
-  const { messages, streamingAgents } = useChannel(targetChannelId, activeSessionId);
+  const { messages, streamingAgents, sendMessage } = useChannel(targetChannelId, activeSessionId);
 
   const [registeredAgents, setRegisteredAgents] = useState<any[]>([]);
   useEffect(() => {
@@ -73,6 +75,9 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               activeChannelId={channelId}
             />
           </div>
+          {activeSessionId && (
+            <ChannelInput onSend={sendMessage} />
+          )}
         </div>
       </div>
 
