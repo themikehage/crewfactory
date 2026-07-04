@@ -1,5 +1,7 @@
 import { motion } from "framer-motion";
 import type { Channel, AgentInfo } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelCard.literals";
 
 interface Props {
   channel: Channel;
@@ -11,6 +13,7 @@ interface Props {
 }
 
 export function ChannelCard({ channel, registeredAgents, onOpen, onDelete, onManageMembers, onManageContext }: Props) {
+const l = useLiterals(u);
   const leadMember = channel.members?.find((m) => m.role === "lead");
   const leadAgent = leadMember && registeredAgents
     ? registeredAgents.find((a) => a.id === leadMember.agentId)
@@ -48,7 +51,7 @@ export function ChannelCard({ channel, registeredAgents, onOpen, onDelete, onMan
             onDelete(channel.id);
           }}
           className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors flex-shrink-0"
-          title="Delete Channel"
+          title={l.deleteChannel}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -80,7 +83,7 @@ export function ChannelCard({ channel, registeredAgents, onOpen, onDelete, onMan
               onManageContext(channel);
             }}
             className="py-1.5 px-2.5 text-xs font-medium bg-blue-400/10 text-blue-400 border border-blue-400/20 rounded-lg hover:bg-blue-400/20 transition-colors flex items-center gap-1"
-            title="Gestionar variables de contexto"
+            title={l.manageContext}
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
@@ -95,7 +98,7 @@ export function ChannelCard({ channel, registeredAgents, onOpen, onDelete, onMan
               onManageMembers(channel);
             }}
             className="py-1.5 px-2.5 text-xs font-medium bg-purple-400/10 text-purple-400 border border-purple-400/20 rounded-lg hover:bg-purple-400/20 transition-colors flex items-center gap-1"
-            title="Gestionar miembros del canal"
+            title={l.manageMembers}
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />

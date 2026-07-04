@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { LocaleSelector } from "./LocaleSelector";
 
 interface GeneralTabProps {
   token: string | null;
@@ -115,6 +116,10 @@ export function GeneralTab({ token }: GeneralTabProps) {
         >
           Sign Out
         </button>
+      </div>
+
+      <div className="bg-card rounded-lg p-4 border border-input/30">
+        <LocaleSelector />
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30">

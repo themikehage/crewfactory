@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
 import type { SessionStatus } from "@/hooks/useSessionStatusWs";
 import { apiFetch } from "@/lib/api";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./SessionPopover.literals";
 
 interface SessionItem {
   id: string;
@@ -44,6 +46,7 @@ export function SessionPopover({
   onSelectSession,
   onNewSession,
 }: Props) {
+  const l = useLiterals(u);
   const [sessions, setSessions] = useState<SessionItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
@@ -185,7 +188,7 @@ export function SessionPopover({
     if (activeChannel) return `#${activeChannel.name}`;
     if (activeAgent) return activeAgent.name;
     if (activeRepoFriendlyName) return activeRepoFriendlyName;
-    return "Global";
+    return l.contextGlobal;
   }, [activeChannel, activeAgent, activeRepoFriendlyName]);
 
   if (!isOpen) return null;
@@ -211,7 +214,7 @@ export function SessionPopover({
           <button
             onClick={onClose}
             className="p-1 hover:bg-card-hover rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-            title="Cerrar"
+            title={l.close}
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -227,7 +230,7 @@ export function SessionPopover({
             className="w-full py-1.5 text-xs bg-primary text-background rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity font-semibold cursor-pointer flex items-center justify-center gap-1"
           >
             {creating ? (
-              "Creando..."
+              l.creating
             ) : (
               <>
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -292,7 +295,7 @@ export function SessionPopover({
                       <span className="truncate flex-1 font-medium font-sans">{s.name}</span>
                     </div>
                     <div className="flex items-center justify-between mt-0.5 text-[9px] text-muted-foreground/60">
-                      <span>{isExec ? "Ejecución histórica" : `${s.messageCount} mensajes`}</span>
+                      <span>{isExec ? l.histExec : `${s.messageCount} ${s.messageCount === 1 ? l.message : l.messages}`}</span>
                       {s.status && s.status !== "sleeping" && !isExec && (
                         <span className={`font-semibold ${cfg?.color.replace("bg-", "text-") || "text-muted-foreground/50"}`}>
                           {cfg?.label}
@@ -305,7 +308,7 @@ export function SessionPopover({
                       onClick={(e) => handleDeleteClick(e, s.id)}
                       className="absolute right-2 top-1/2 -translate-y-1/2
                                  text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-card-hover opacity-0 group-hover:opacity-100 cursor-pointer"
-                      title="Eliminar Sesión"
+                      title={l.deleteSession}
                     >
                       <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
                         <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" />

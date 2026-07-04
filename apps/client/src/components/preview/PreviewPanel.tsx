@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { PreviewState } from "shared";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./PreviewPanel.literals";
 
 interface Props {
   activeRepoName: string | null;
@@ -112,6 +114,7 @@ function usePreviewStatus(repoName: string) {
 }
 
 export function PreviewPanel({ activeRepoName }: Props) {
+const l = useLiterals(u);
   const repoName = activeRepoName || "";
   const { user } = useAuth();
   const { state: previewState, buildLogs, setBuildLogs, fetchConfig } = usePreviewStatus(repoName);
@@ -258,7 +261,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
               <button
                 onClick={handleOpenConfig}
                 className="p-1 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
-                title="Configure Preview"
+                title={l.configure}
               >
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                   <path
@@ -276,7 +279,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
           <button
             onClick={handleReload}
             className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
-            title="Reload preview"
+            title={l.reload}
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
               <path
@@ -290,7 +293,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
           <button
             onClick={handleOpenNewTab}
             className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
-            title="Open in new tab"
+            title={l.openTab}
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
               <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />

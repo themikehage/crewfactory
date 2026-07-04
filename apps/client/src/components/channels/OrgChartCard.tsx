@@ -66,7 +66,7 @@ interface Props {
 }
 
 export function OrgChartCard({ member, name, role, skillCount, skills, animationDelay }: Props) {
-  const [showTooltip, setShowTooltip] = useState(false);
+const [showTooltip, setShowTooltip] = useState(false);
   const cfg = ROLE_CONFIG[member.role as ChannelRole] ?? ROLE_CONFIG.member;
   const replyModeIcon = REPLY_MODE_ICONS[member.replyMode];
 

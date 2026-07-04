@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function OrgChartLevel({ role, members, registeredAgents, nodeWidth, nodeHeight, startIndex }: Props) {
-  const label = LEVEL_LABELS[role] ?? role;
+const label = LEVEL_LABELS[role] ?? role;
 
   return (
     <div className="w-full">

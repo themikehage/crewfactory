@@ -1,3 +1,4 @@
+COMPLETED 
 # Laboratory UI Improvements — Streaming, Model Defaults & Responsive Chat
 
 **Fecha:** 2026-07-02

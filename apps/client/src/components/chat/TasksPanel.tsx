@@ -1,6 +1,8 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { Task, TaskRunnerState } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./TasksPanel.literals";
 
 interface Props {
   tasksState: TaskRunnerState;
@@ -23,6 +25,7 @@ export function TasksPanel({
   onUpdateTasks,
   isEmbedded = false,
 }: Props) {
+const l = useLiterals(u);
   const { tasks, currentTaskId, status, error } = tasksState;
 
   const [objective, setObjective] = useState("");
@@ -132,16 +135,16 @@ export function TasksPanel({
   const getOverallStatusText = () => {
     switch (status) {
       case "decomposing":
-        return "Decomposing objective...";
+        return l.decomposing;
       case "running":
         const activeIdx = tasks.findIndex((t) => t.id === currentTaskId) + 1;
         return `Running step ${activeIdx} of ${tasks.length}`;
       case "paused":
-        return "Task queue paused";
+        return l.paused;
       case "completed":
-        return "All tasks completed successfully";
+        return l.completed;
       case "failed":
-        return "Runner stopped due to failure";
+        return l.failed;
       default:
         return `${tasks.length} steps configured`;
     }
@@ -159,7 +162,7 @@ export function TasksPanel({
               <button
                 onClick={onPause}
                 className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-warning text-background hover:opacity-95 transition-opacity font-semibold cursor-pointer"
-                title="Pause execution"
+                title={l.pause}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
@@ -171,7 +174,7 @@ export function TasksPanel({
                 onClick={onRun}
                 disabled={status === "completed"}
                 className="flex items-center gap-1 text-xs px-2.5 py-1 rounded bg-primary text-background hover:opacity-95 disabled:opacity-50 transition-opacity font-semibold cursor-pointer"
-                title="Start or resume queue execution"
+                title={l.startResume}
               >
                 <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
                   <path d="M8 5v14l11-7z"/>
@@ -182,7 +185,7 @@ export function TasksPanel({
             <button
               onClick={onReset}
               className="flex items-center gap-1 text-xs px-2.5 py-1 rounded border border-input text-muted-foreground hover:text-foreground hover:bg-background/40 transition-colors font-medium cursor-pointer"
-              title="Reset steps to pending"
+              title={l.reset}
             >
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"/>
@@ -256,7 +259,7 @@ export function TasksPanel({
             </div>
 
             <button
-              onClick={() => setNewStep({ title: "Initialize Step", prompt: "Explain changes here..." })}
+              onClick={() => setNewStep({ title: l.newStepTitle, prompt: l.newStepPrompt })}
               className="w-full py-2 border border-input hover:border-primary hover:text-primary bg-background/25 text-muted-foreground font-semibold rounded text-xs cursor-pointer transition-colors flex items-center justify-center gap-1"
             >
               + Create Step Manually
@@ -316,13 +319,13 @@ export function TasksPanel({
                             value={editingTask.title}
                             onChange={(e) => setEditingTask({ ...editingTask, title: e.target.value })}
                             className="w-full px-2 py-1.5 bg-background border border-input rounded text-xs text-foreground font-sans focus:border-primary outline-none"
-                            placeholder="Step Title"
+                            placeholder={l.stepTitlePlaceholder}
                           />
                           <textarea
                             value={editingTask.prompt}
                             onChange={(e) => setEditingTask({ ...editingTask, prompt: e.target.value })}
                             className="w-full h-24 px-2 py-1.5 bg-background border border-input rounded text-xs text-foreground font-mono focus:border-primary outline-none resize-none"
-                            placeholder="Detailed Instructions/Prompt"
+                            placeholder={l.stepPromptPlaceholder}
                           />
                           <div className="flex justify-end gap-2 text-[10px]">
                             <button

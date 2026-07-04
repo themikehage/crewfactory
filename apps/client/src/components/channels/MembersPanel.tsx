@@ -1,5 +1,7 @@
 import { useState } from "react";
 import type { ChannelMember, AgentInfo, ReplyMode } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./MembersPanel.literals";
 
 interface Props {
   members: ChannelMember[];
@@ -16,6 +18,7 @@ export function MembersPanel({
   onUpdateMember,
   onRemoveMember,
 }: Props) {
+const l = useLiterals(u);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   const getAgentInfo = (agentId: string) => {
@@ -67,7 +70,7 @@ export function MembersPanel({
           <button
             onClick={() => onRemoveMember(m.agentId)}
             className="text-muted-foreground hover:text-destructive p-1 rounded transition-colors flex-shrink-0"
-            title="Remove agent from channel"
+            title={l.removeAgent}
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -106,7 +109,7 @@ export function MembersPanel({
         <button
           onClick={onAddClick}
           className="p-1 text-primary hover:bg-primary/10 rounded-lg transition-colors text-xs font-medium flex items-center gap-1"
-          title="Add Agent"
+          title={l.addAgent}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />

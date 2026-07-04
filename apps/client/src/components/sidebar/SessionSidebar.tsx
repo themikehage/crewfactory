@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./SessionSidebar.literals";
 
 // --- Component ---
 
@@ -46,6 +48,7 @@ export function SessionSidebar({
   onSelectAgent,
   onSelectChannel,
 }: Props) {
+  const l = useLiterals(u);
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [channels, setChannels] = useState<ChannelItem[]>([]);
@@ -163,7 +166,7 @@ export function SessionSidebar({
     () => [
       {
         id: "laboratory",
-        label: "Laboratorio",
+        label: l.navLaboratory,
         path: "/laboratory",
         icon: (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -174,7 +177,7 @@ export function SessionSidebar({
       },
       {
         id: "skills",
-        label: "Skills Library",
+        label: l.navSkills,
         path: "/skills",
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -184,7 +187,7 @@ export function SessionSidebar({
       },
       {
         id: "settings",
-        label: "Settings",
+        label: l.navSettings,
         path: "/settings",
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -198,7 +201,7 @@ export function SessionSidebar({
       },
       {
         id: "logs",
-        label: "Consola de Logs",
+        label: l.navLogs,
         path: "/logs",
         icon: (
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -222,7 +225,7 @@ export function SessionSidebar({
               ? "bg-card text-primary border border-primary/30"
               : "bg-card/40 text-muted-foreground hover:bg-card hover:text-primary border border-transparent hover:border-primary/20"
           }`}
-          title="Global workspace"
+          title={l.globalWorkspace}
         >
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
             <path
@@ -257,12 +260,12 @@ export function SessionSidebar({
                   clipRule="evenodd"
                 />
               </svg>
-              <span>Projects ({repos.length})</span>
+              <span>{l.sectionProjects} ({repos.length})</span>
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/projects")}
               className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
-              title="Manage Projects"
+              title={l.manageProjects}
             >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -273,9 +276,9 @@ export function SessionSidebar({
           {isOpenRepos && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingRepos ? (
-                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">{l.loading}</div>
               ) : repos.length === 0 ? (
-                <div className="text-xs text-muted-foreground/40 px-3 py-1">No projects</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1">{l.noProjects}</div>
               ) : (
                 repos.map((repo) => {
                   const isActive = activeRepoName === repo.id && !activeAgent && !activeChannel;
@@ -327,12 +330,12 @@ export function SessionSidebar({
                   clipRule="evenodd"
                 />
               </svg>
-              <span>Agents ({agents.length})</span>
+              <span>{l.sectionAgents} ({agents.length})</span>
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/agents")}
               className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
-              title="Manage Agents"
+              title={l.manageAgents}
             >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -343,9 +346,9 @@ export function SessionSidebar({
           {isOpenAgents && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingAgents ? (
-                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">{l.loading}</div>
               ) : agents.length === 0 ? (
-                <div className="text-xs text-muted-foreground/40 px-3 py-1">No agents</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1">{l.noAgents}</div>
               ) : (
                 agents.map((agent) => {
                   const isActive = activeAgent?.id === agent.id && !activeChannel;
@@ -401,12 +404,12 @@ export function SessionSidebar({
                   clipRule="evenodd"
                 />
               </svg>
-              <span>Channels ({channels.length})</span>
+              <span>{l.sectionChannels} ({channels.length})</span>
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/channels")}
               className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
-              title="Manage Channels"
+              title={l.manageChannels}
             >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -417,9 +420,9 @@ export function SessionSidebar({
           {isOpenChannels && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingChannels ? (
-                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">{l.loading}</div>
               ) : channels.length === 0 ? (
-                <div className="text-xs text-muted-foreground/40 px-3 py-1">No channels</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1">{l.noChannels}</div>
               ) : (
                 channels.map((channel) => {
                   const isActive = activeChannel?.id === channel.id;

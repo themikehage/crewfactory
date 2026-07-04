@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./McpTab.literals";
 
 interface McpServerConfig {
   enabled: boolean;
@@ -16,6 +18,7 @@ interface McpTabProps {
 }
 
 export function McpTab({ token }: McpTabProps) {
+const l = useLiterals(u);
   const [mcpConfig, setMcpConfig] = useState<McpConfig | null>(null);
   const [mcpLoading, setMcpLoading] = useState(true);
   const [mcpError, setMcpError] = useState("");
@@ -68,7 +71,7 @@ export function McpTab({ token }: McpTabProps) {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-foreground font-semibold text-base">Model Context Protocol (MCP)</h2>
+          <h2 className="text-foreground font-semibold text-base">{l.title}</h2>
           <p className="text-muted-foreground text-[11px] mt-0.5">
             Configure and connect dynamic MCP servers. Enabled servers will supply their tools automatically to running agents.
           </p>
@@ -91,7 +94,7 @@ export function McpTab({ token }: McpTabProps) {
         </div>
       ) : !mcpConfig || !mcpConfig.mcpServers || Object.keys(mcpConfig.mcpServers).length === 0 ? (
         <div className="bg-card rounded-lg p-6 text-center border border-input/10">
-          <p className="text-muted-foreground text-sm">No MCP servers configured.</p>
+          <p className="text-muted-foreground text-sm">{l.noServers}</p>
         </div>
       ) : (
         <div className="space-y-4">
@@ -123,14 +126,14 @@ export function McpTab({ token }: McpTabProps) {
                     }}
                     className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
                   />
-                  <span className="text-xs text-muted-foreground">Activo</span>
+                  <span className="text-xs text-muted-foreground">{l.active}</span>
                 </label>
               </div>
 
               <div className="p-4 space-y-3 text-xs">
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">Command</label>
+                    <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{l.command}</label>
                     <input
                       type="text"
                       value={srv.command}
@@ -150,7 +153,7 @@ export function McpTab({ token }: McpTabProps) {
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">Arguments (JSON Array)</label>
+                    <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{l.arguments}</label>
                     <input
                       type="text"
                       value={JSON.stringify(srv.args)}
@@ -196,7 +199,7 @@ export function McpTab({ token }: McpTabProps) {
                           setMcpConfig(updated);
                         }}
                         onBlur={() => handleSaveMcpConfig(mcpConfig)}
-                        placeholder="Enter value"
+                        placeholder={l.enterValue}
                         className="w-full px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary text-xs"
                       />
                     </div>

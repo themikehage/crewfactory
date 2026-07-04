@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./EnvVarsTab.literals";
 
 interface EnvVar {
   key: string;
@@ -22,6 +24,7 @@ export function EnvVarsTab({
   setEnvError,
   fetchEnvVars,
 }: EnvVarsTabProps) {
+const l = useLiterals(u);
   const [isAddingEnv, setIsAddingEnv] = useState(false);
   const [newEnvKey, setNewEnvKey] = useState("");
   const [newEnvVal, setNewEnvVal] = useState("");
@@ -183,7 +186,7 @@ export function EnvVarsTab({
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-foreground font-semibold text-base">Environment Variables</h2>
+          <h2 className="text-foreground font-semibold text-base">{l.title}</h2>
           <p className="text-muted-foreground text-[11px] mt-0.5">
             Configure custom environment variables (e.g., GITHUB_TOKEN, NOTION_TOKEN) for your agent's shell activities.
           </p>
@@ -197,7 +200,7 @@ export function EnvVarsTab({
                 : "bg-card hover:bg-card-hover/50 border-input/30 text-muted-foreground hover:text-foreground"
             }`}
           >
-            {isDevView ? "Standard View" : "Developer View"}
+            {isDevView ? "{l.standardView}" : "{l.developerView}"}
           </button>
           {!isDevView && (
             <button
@@ -235,7 +238,7 @@ export function EnvVarsTab({
                   onClick={handleToggleReveal}
                   className="text-[10px] bg-card-hover hover:bg-card-hover/80 text-muted-foreground hover:text-foreground font-semibold px-2 py-0.5 rounded-full select-none cursor-pointer font-mono"
                 >
-                  {isRevealed ? "Hide Secrets" : "Reveal Secrets"}
+                  {isRevealed ? "{l.hideSecrets}" : "{l.revealSecrets}"}
                 </button>
                 <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full select-none uppercase tracking-wider font-mono">
                   Editor Mode
@@ -274,13 +277,13 @@ export function EnvVarsTab({
               className="px-4 py-2 text-xs bg-primary text-background font-semibold rounded-lg
                          hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
             >
-              {savingEnv ? "Saving..." : "Save Changes"}
+              {savingEnv ? "Saving..." : "{l.saveChanges}"}
             </button>
           </div>
         </div>
       ) : envVars.length === 0 ? (
         <div className="bg-card rounded-lg p-6 text-center border border-input/10">
-          <p className="text-muted-foreground text-sm">No environment variables configured.</p>
+          <p className="text-muted-foreground text-sm">{l.noVars}</p>
         </div>
       ) : (
         <div className="space-y-3">
@@ -331,7 +334,7 @@ export function EnvVarsTab({
                   type="password"
                   value={newEnvVal}
                   onChange={(e) => setNewEnvVal(e.target.value)}
-                  placeholder="Enter value"
+                  placeholder={l.enterValue}
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg
                              text-foreground placeholder-text-secondary outline-none
                              focus:border-primary transition-colors text-sm"

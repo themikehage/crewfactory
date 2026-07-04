@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelOptimizePanel.literals";
 
 interface OptimizationHistoryEntry {
   iteration: number;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export function ChannelOptimizePanel({ channelId }: Props) {
+const l = useLiterals(u);
   const [history, setHistory] = useState<OptimizationHistoryEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -51,7 +54,7 @@ export function ChannelOptimizePanel({ channelId }: Props) {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to start optimization loop");
+      if (!res.ok) throw new Error(l.startError);
 
       // Poll history every 3s
       let attempts = 0;
@@ -79,13 +82,13 @@ export function ChannelOptimizePanel({ channelId }: Props) {
 
         if (attempts > 120) { // 6 minutes timeout
           setRunning(false);
-          setError("El loop de optimización tardó demasiado. Por favor verifica los logs.");
+          setError(l.timeoutError);
           clearInterval(interval);
         }
       }, 3000);
 
     } catch (err: any) {
-      setError(err.message || "Failed to trigger optimization loop");
+      setError(err.message || l.triggerError);
       setRunning(false);
     }
   };

@@ -1,11 +1,14 @@
 import { useState, useEffect } from "react";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelBenchmarkPanel.literals";
 
 interface Props {
   channelId: string;
 }
 
 export function ChannelBenchmarkPanel({ channelId }: Props) {
+const l = useLiterals(u);
   const [report, setReport] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [running, setRunning] = useState(false);
@@ -41,7 +44,7 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to start benchmark runner");
+      if (!res.ok) throw new Error(l.startError);
       
       // Start polling for results
       let attempts = 0;
@@ -63,13 +66,13 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
         
         if (attempts > 60) { // 2 minutes timeout
           setRunning(false);
-          setError("El benchmark tardó demasiado. Por favor verifica los logs del servidor.");
+          setError(l.timeoutError);
           clearInterval(interval);
         }
       }, 2000);
 
     } catch (err: any) {
-      setError(err.message || "Failed to trigger benchmark suite");
+      setError(err.message || l.triggerError);
       setRunning(false);
     }
   };

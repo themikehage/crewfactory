@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import type { IntegrationTemplate, QuickAction } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./IntegrationsTab.literals";
 
 interface EnvVar {
   key: string;
@@ -17,6 +19,7 @@ export function IntegrationsTab({
   envVars,
   fetchEnvVars,
 }: IntegrationsTabProps) {
+const l = useLiterals(u);
   const [templates, setTemplates] = useState<IntegrationTemplate[]>([]);
   const [templatesLoading, setTemplatesLoading] = useState(true);
   const [templatesError, setTemplatesError] = useState("");
@@ -190,7 +193,7 @@ export function IntegrationsTab({
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-foreground font-semibold text-base">Integrations Hub</h2>
+          <h2 className="text-foreground font-semibold text-base">{l.title}</h2>
           <p className="text-muted-foreground text-[11px] mt-0.5">
             Connect infrastructure providers dynamically and customize workflow-specific quick actions.
           </p>
@@ -213,7 +216,7 @@ export function IntegrationsTab({
         </div>
       ) : templates.length === 0 ? (
         <div className="bg-card rounded-lg p-6 text-center border border-input/10">
-          <p className="text-muted-foreground text-sm">No integrations defined.</p>
+          <p className="text-muted-foreground text-sm">{l.noIntegrations}</p>
         </div>
       ) : (
         <div className="space-y-4">

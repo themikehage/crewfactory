@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import type { ChannelContextItem } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelContextModal.literals";
 
 interface Props {
   channelName: string;
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export function ChannelContextModal({ channelName, context, onClose, onSave }: Props) {
+const l = useLiterals(u);
   const [items, setItems] = useState<ChannelContextItem[]>(() => context ? [...context] : []);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -41,7 +44,7 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
       await onSave(filtered.map((it) => ({ key: it.key.trim(), value: it.value.trim() })));
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to save channel context");
+      setError(err.message || l.saveError);
     } finally {
       setSaving(false);
     }
@@ -89,14 +92,14 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
               <div key={index} className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="CLAVE (ej. API_URL)"
+                  placeholder={l.keyPlaceholder}
                   value={item.key}
                   onChange={(e) => handleChange(index, "key", e.target.value)}
                   className="w-1/3 bg-background border border-input rounded-lg px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-primary/50"
                 />
                 <input
                   type="text"
-                  placeholder="Valor (ej. https://api.staging.com)"
+                  placeholder={l.valuePlaceholder}
                   value={item.value}
                   onChange={(e) => handleChange(index, "value", e.target.value)}
                   className="flex-1 bg-background border border-input rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary/50"
@@ -105,7 +108,7 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
                   type="button"
                   onClick={() => handleRemove(index)}
                   className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
-                  title="Eliminar variable"
+                  title={l.deleteVar}
                 >
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -145,7 +148,7 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
               disabled={saving}
               className="flex-1 py-2 text-xs font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {saving ? "Guardando..." : "Guardar Contexto"}
+              {saving ? l.saving : l.saveContext}
             </button>
           </div>
         </form>

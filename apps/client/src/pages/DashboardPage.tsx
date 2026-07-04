@@ -1,4 +1,6 @@
 import { useState, useEffect } from "react";
+import { useLiterals } from "@/lib";
+import { literals as dashboardLiterals } from "./DashboardPage.literals";
 
 interface RepoItem {
   id?: string;
@@ -13,6 +15,7 @@ interface Props {
 }
 
 export function DashboardPage({ onSelectRepo }: Props) {
+  const l = useLiterals(dashboardLiterals);
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -41,12 +44,12 @@ export function DashboardPage({ onSelectRepo }: Props) {
         },
       });
       if (!res.ok) {
-        throw new Error("Failed to fetch repositories");
+        throw new Error(l.fetchError);
       }
       const data = await res.json();
       setRepos(data.repos || []);
     } catch (err: any) {
-      setError(err.message || "Failed to load projects");
+      setError(err.message || l.loadError);
     } finally {
       setLoading(false);
     }
@@ -77,7 +80,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
         body: JSON.stringify({ name: newName.trim() }),
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to rename project" }));
+        const err = await res.json().catch(() => ({ error: l.renameError }));
         throw new Error(err.error || "Failed to rename project");
       }
       await fetchRepos();
@@ -104,7 +107,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
         },
       });
       if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to delete project" }));
+        const err = await res.json().catch(() => ({ error: l.deleteError }));
         throw new Error(err.error || "Failed to delete project");
       }
       await fetchRepos();
@@ -141,7 +144,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
       if (!res.ok) {
         const errData = await res.json();
-        throw new Error(errData.error || "Failed to create project");
+        throw new Error(errData.error || l.createError);
       }
 
       await fetchRepos();
@@ -162,9 +165,9 @@ export function DashboardPage({ onSelectRepo }: Props) {
         <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h1 className="text-foreground font-semibold text-base">Proyectos</h1>
+              <h1 className="text-foreground font-semibold text-base">{l.title}</h1>
               <p className="text-muted-foreground text-[11px] mt-0.5">
-                Inicializa un proyecto vacío o clona uno existente de Git para trabajar con el agente.
+                {l.subtitle}
               </p>
             </div>
             <div className="flex gap-2">
@@ -172,13 +175,13 @@ export function DashboardPage({ onSelectRepo }: Props) {
                 onClick={() => onSelectRepo(null, null)}
                 className="text-xs bg-card-hover/20 text-muted-foreground hover:text-foreground border border-input/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
-                Workspace Global
+                {l.workspaceGlobal}
               </button>
               <button
                 onClick={() => setShowModal(true)}
                 className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
-                + Nuevo Proyecto
+                {l.newProject}
               </button>
             </div>
           </div>
@@ -192,7 +195,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-muted-foreground mt-4">Cargando repositorios...</p>
+              <p className="text-sm text-muted-foreground mt-4">{l.loading}</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
@@ -211,10 +214,10 @@ export function DashboardPage({ onSelectRepo }: Props) {
                       <span className="font-semibold text-sm text-foreground truncate">{repo.name}</span>
                     </div>
                     <p className="text-[11px] text-muted-foreground font-mono truncate">
-                      ID: {repo.id || repo.name}
+                      {l.id} {repo.id || repo.name}
                     </p>
                     <p className="text-[11px] text-muted-foreground mt-1">
-                      Última modificación: {new Date(repo.lastModified).toLocaleDateString()}
+                      {l.lastModified}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 mt-4">
@@ -222,7 +225,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                       onClick={() => onSelectRepo(repo.id || repo.name, repo.name)}
                       className="flex-1 py-1.5 bg-card-hover/20 hover:bg-primary hover:text-background text-foreground border border-input/30 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
                     >
-                      Abrir
+                      {l.open}
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
@@ -231,7 +234,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     <button
                       onClick={() => handleStartRename(repo)}
                       className="p-1.5 bg-card-hover/20 hover:bg-blue-400 hover:text-background text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer border border-transparent hover:border-blue-400/30"
-                      title="Renombrar Proyecto"
+                      title={l.renameTooltip}
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                         <path d="M12 20h9" />
@@ -241,7 +244,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     <button
                       onClick={() => setDeleteRepo(repo)}
                       className="p-1.5 bg-card-hover/20 hover:bg-destructive hover:text-background text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer border border-transparent hover:border-error/30"
-                      title="Eliminar Proyecto"
+                      title={l.deleteTooltip}
                     >
                       <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                         <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -258,15 +261,15 @@ export function DashboardPage({ onSelectRepo }: Props) {
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-foreground text-sm">No hay proyectos</h3>
+                  <h3 className="font-semibold text-foreground text-sm">{l.emptyTitle}</h3>
                   <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
-                    Crea o clona un repositorio para empezar a trabajar con el agente.
+                    {l.emptyDescription}
                   </p>
                   <button
                     onClick={() => setShowModal(true)}
                     className="mt-4 px-4 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 rounded-lg text-xs font-semibold transition-all cursor-pointer"
                   >
-                    Crear proyecto
+                    {l.emptyButton}
                   </button>
                 </div>
               )}
@@ -278,16 +281,16 @@ export function DashboardPage({ onSelectRepo }: Props) {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-foreground mb-4">Nuevo Proyecto / Repositorio</h2>
+            <h2 className="text-base font-bold text-foreground mb-4">{l.createModalTitle}</h2>
             <form onSubmit={handleCreateRepo} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Nombre del Proyecto
+                  {l.projectNameLabel}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="ej. mi-app-web"
+                  placeholder={l.projectNamePlaceholder}
                   value={repoName}
                   onChange={(e) => setRepoName(e.target.value)}
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
@@ -296,11 +299,11 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
               <div>
                 <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  URL de Clonación Git (Opcional)
+                  {l.cloneUrlLabel}
                 </label>
                 <input
                   type="text"
-                  placeholder="ej. https://github.com/usuario/repo.git"
+                  placeholder={l.cloneUrlPlaceholder}
                   value={cloneUrl}
                   onChange={(e) => setCloneUrl(e.target.value)}
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
@@ -324,14 +327,14 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   }}
                   className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
-                  Cancelar
+                  {l.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
                   className="px-4 py-2 bg-primary hover:opacity-90 disabled:opacity-50 text-background rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
-                  {submitting ? "Creando..." : "Crear Proyecto"}
+                  {submitting ? "{l.creating}" : "{l.createProject}"}
                 </button>
               </div>
             </form>
@@ -342,11 +345,11 @@ export function DashboardPage({ onSelectRepo }: Props) {
       {renameRepo && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-foreground mb-4">Renombrar Proyecto</h2>
+            <h2 className="text-base font-bold text-foreground mb-4">{l.renameModalTitle}</h2>
             <form onSubmit={handleRename} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Nuevo Nombre del Proyecto
+                  {l.newNameLabel}
                 </label>
                 <input
                   type="text"
@@ -366,13 +369,13 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   }}
                   className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
-                  Cancelar
+{l.cancel}
                 </button>
                 <button
                   type="submit"
                   className="px-4 py-2 bg-primary hover:opacity-90 text-background rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
-                  Guardar
+                  {l.save}
                 </button>
               </div>
             </form>
@@ -383,19 +386,19 @@ export function DashboardPage({ onSelectRepo }: Props) {
       {deleteRepo && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-destructive mb-2">Eliminar Proyecto</h2>
+            <h2 className="text-base font-bold text-destructive mb-2">{l.deleteModalTitle}</h2>
             <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
-              Esta acción es destructiva. Se borrará la carpeta de código, los archivos subidos y todas las sesiones de chat asociadas.
+              {l.deleteDescription}
             </p>
             <form onSubmit={handleDeleteRepo} className="space-y-4">
               <div>
                 <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                  Escribí <span className="font-mono text-foreground font-bold">{deleteRepo.name}</span> para confirmar:
+                  {l.confirmLabel.replace("{name}", deleteRepo.name)}
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Nombre del proyecto"
+                  placeholder={l.projectNamePlaceholderDelete}
                   value={confirmDeleteName}
                   onChange={(e) => setConfirmDeleteName(e.target.value)}
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
@@ -411,14 +414,14 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   }}
                   className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
-                  Cancelar
+{l.cancel}
                 </button>
                 <button
                   type="submit"
                   disabled={confirmDeleteName !== deleteRepo.name || deleting}
                   className="px-4 py-2 bg-destructive hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-foreground rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
-                  {deleting ? "Eliminando..." : "Eliminar de todos modos"}
+                  {deleting ? "{l.deleting}" : "{l.deleteAnyway}"}
                 </button>
               </div>
             </form>

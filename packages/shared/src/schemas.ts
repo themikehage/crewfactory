@@ -492,4 +492,50 @@ export const LabExperimentSchema = z.object({
 });
 export type LabExperiment = z.infer<typeof LabExperimentSchema>;
 
+export const McpTransportTypeSchema = z.enum(["stdio", "http"]);
+export type McpTransportType = z.infer<typeof McpTransportTypeSchema>;
+
+export const McpServerConfigSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  transport: McpTransportTypeSchema,
+  command: z.string().optional(),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string()).optional(),
+  url: z.string().optional(),
+  installed: z.boolean().default(false),
+  enabled: z.boolean().default(false),
+  isBuiltin: z.boolean().default(false),
+  category: z.string().optional(),
+  icon: z.string().optional(),
+  tools: z.array(z.string()).optional(),
+  status: z.enum(["disconnected", "connecting", "connected", "error"]).default("disconnected"),
+  error: z.string().optional(),
+  lastConnected: z.string().optional(),
+});
+export type McpServerConfig = z.infer<typeof McpServerConfigSchema>;
+
+export const McpCatalogItemSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  category: z.string(),
+  icon: z.string(),
+  command: z.string().optional(),
+  args: z.array(z.string()).optional(),
+  env: z.record(z.string()).optional(),
+  url: z.string().optional(),
+  homepage: z.string().optional(),
+  source: z.string().optional(),
+  isHttp: z.boolean().default(false),
+});
+export type McpCatalogItem = z.infer<typeof McpCatalogItemSchema>;
+
+export const McpConfigSchema = z.object({
+  mcpServers: z.record(McpServerConfigSchema),
+});
+export type McpConfig = z.infer<typeof McpConfigSchema>;
+
+
 

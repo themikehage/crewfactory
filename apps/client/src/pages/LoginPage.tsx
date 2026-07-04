@@ -1,7 +1,10 @@
 import { useState, type FormEvent } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useLiterals } from "@/lib";
+import { literals as loginLiterals } from "./LoginPage.literals";
 
 export function LoginPage() {
+  const l = useLiterals(loginLiterals);
   const { login, loading } = useAuth();
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
@@ -13,7 +16,7 @@ export function LoginPage() {
     try {
       await login(username, password);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : l.loginFailed);
     }
   };
 
@@ -21,16 +24,16 @@ export function LoginPage() {
     <div className="h-dvh flex items-center justify-center bg-background">
       <div className="w-full max-w-md px-6 sm:px-8">
         <h1 className="text-3xl font-display font-bold text-foreground text-center mb-2">
-          Crew Factory
+          {l.title}
         </h1>
         <p className="text-muted-foreground text-center mb-8">
-          Coding agent interface
+          {l.subtitle}
         </p>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <input
               type="text"
-              placeholder="Username"
+              placeholder={l.usernamePlaceholder}
               value={username}
               onChange={(e) => setUsername(e.target.value)}
               required
@@ -43,7 +46,7 @@ export function LoginPage() {
           <div>
             <input
               type="password"
-              placeholder="Password"
+              placeholder={l.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -61,7 +64,7 @@ export function LoginPage() {
             className="w-full py-3 bg-primary text-background font-semibold rounded-lg
                        hover:opacity-90 disabled:opacity-50 transition-opacity"
           >
-            {loading ? "Signing in..." : "Sign In"}
+            {loading ? l.signingIn : l.signIn}
           </button>
         </form>
       </div>

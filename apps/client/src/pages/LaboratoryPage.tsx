@@ -3,6 +3,8 @@ import { apiFetch } from "@/lib/api";
 import { ModelSelector } from "@/components/chat/ModelSelector";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelMessageList } from "@/components/channels/ChannelMessageList";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./LaboratoryPage.literals";
 import { ChannelInput } from "@/components/channels/ChannelInput";
 import { motion, AnimatePresence } from "framer-motion";
 import type { Experiment } from "@/types/laboratory";
@@ -37,6 +39,7 @@ interface VariantViewerProps {
 }
 
 function VariantViewer({ experimentId, variantKey, activeSessionId, status, result }: VariantViewerProps) {
+  const l = useLiterals(u);
   const channelId = `lab_${experimentId}_${variantKey}`;
   const targetChannelId = activeSessionId ? channelId : null;
   const { messages, streamingAgents, sendMessage } = useChannel(targetChannelId, activeSessionId);
@@ -58,7 +61,7 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
       <div className="lg:col-span-2 flex flex-col h-full bg-card/5 min-h-0 border-r border-input/40 relative">
         <div className="absolute inset-0 flex flex-col min-h-0">
           <div className="px-4 py-2.5 border-b border-input/30 bg-card/10 flex items-center justify-between text-xs text-muted-foreground">
-            <span className="font-semibold tracking-wide">Conversación del Experimento (Lectura)</span>
+            <span className="font-semibold tracking-wide">{l.experimentChat}</span>
             {status === "running" && (
               <span className="flex items-center gap-1.5 text-primary font-bold animate-pulse">
                 <span className="w-2 h-2 bg-primary rounded-full animate-ping" />
@@ -89,7 +92,7 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               Telemetría y Estado
             </h4>
             <div className="flex items-center justify-between bg-background/50 border border-input/60 rounded-xl p-3.5">
-              <span className="text-xs font-semibold text-foreground">Estado de Corrida</span>
+              <span className="text-xs font-semibold text-foreground">{l.runStatus}</span>
               <span
                 className={`text-[9px] px-2 py-0.5 rounded-lg font-mono font-bold uppercase tracking-wider ${
                   status === "completed"
@@ -126,11 +129,11 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
 
                     <div className="grid grid-cols-2 gap-3 pt-2 border-t border-input/30">
                       <div className="text-center p-2 bg-background/25 rounded-lg border border-input/30">
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Calidad</p>
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase">{l.quality}</p>
                         <p className="text-base font-black text-foreground mt-0.5">{result.scores.taskQuality}</p>
                       </div>
                       <div className="text-center p-2 bg-background/25 rounded-lg border border-input/30">
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Eficiencia</p>
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase">{l.efficiency}</p>
                         <p className="text-base font-black text-foreground mt-0.5">{result.scores.efficiencyScore}</p>
                       </div>
                     </div>
@@ -175,7 +178,7 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               {result.finalOutput && (
                 <div className="space-y-2">
                   <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
-                    {result.status === "failed" ? "Detalle del Error" : "Resultado Final"}
+                    {result.status === "failed" ? "{l.errorDetail}" : "{l.finalResult}"}
                   </h4>
                   <pre className={`text-[10px] border rounded-xl p-3 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-left leading-relaxed ${
                     result.status === "failed" 
@@ -221,6 +224,7 @@ export function LaboratoryPage({
   setEditingExpId,
   handleDeleteExp,
 }: Props) {
+  const l = useLiterals(u);
   // Model Selector State (for AI Generator)
   const [selectedModel, setSelectedModel] = useState("anthropic/claude-3-5-sonnet");
 
@@ -235,7 +239,7 @@ export function LaboratoryPage({
   // Experiment Editor State (for Scratch Mode/Edit)
   const [editorName, setEditorName] = useState("");
   const [editorPrompt, setEditorPrompt] = useState("");
-  const [editorCriteria, setEditorCriteria] = useState<string[]>(["Calidad del Trabajo", "Eficiencia", "Negociación"]);
+  const [editorCriteria, setEditorCriteria] = useState<string[]>(["{l.workQuality}", "{l.efficiency}", "{l.negotiation}"]);
   const [newCriterion, setNewCriterion] = useState("");
   const [editorVariants, setEditorVariants] = useState<any | null>(null);
 
@@ -353,7 +357,7 @@ export function LaboratoryPage({
 
       setEditableTeam(data);
       setEditorName(`Experimento: ${data.channel.name}`);
-      setEditorCriteria(["Calidad del Trabajo", "Eficiencia", "Negociación"]);
+      setEditorCriteria(["{l.workQuality}", "{l.efficiency}", "{l.negotiation}"]);
     } catch (e: any) {
       setGenError(e.message || "Error al conectar con la IA de generación.");
     } finally {
@@ -419,7 +423,7 @@ export function LaboratoryPage({
       });
 
       if (!resPatch.ok) {
-        throw new Error("Failed to update task prompt before execution");
+        throw new Error("{l.updatePromptError}");
       }
 
       const dataPatch = await resPatch.json();
@@ -430,7 +434,7 @@ export function LaboratoryPage({
       await apiFetch(`/api/experiments/${runningExpId}/run`, { method: "POST" });
       fetchExperiments();
     } catch (e) {
-      console.error("Failed to run experiment with custom prompt:", e);
+      console.error("{l.runExperimentError}", e);
     } finally {
       setRunningExpId(null);
     }
@@ -441,7 +445,7 @@ export function LaboratoryPage({
       await apiFetch(`/api/experiments/${expId}/stop`, { method: "POST" });
       fetchExperiments();
     } catch (e) {
-      console.error("Failed to stop experiment:", e);
+      console.error("{l.stopExperimentError}", e);
     }
   };
 
@@ -479,7 +483,7 @@ export function LaboratoryPage({
         setIsEditorOpen(false);
       }
     } catch (e) {
-      console.error("Failed to save experiment:", e);
+      console.error("{l.saveExperimentError}", e);
     }
   };
 
@@ -487,7 +491,7 @@ export function LaboratoryPage({
     setEditingExpId(exp.id);
     setEditorName(exp.name);
     setEditorPrompt(exp.taskPrompt);
-    setEditorCriteria(exp.judge?.criteria || ["Calidad", "Eficiencia"]);
+    setEditorCriteria(exp.judge?.criteria || ["Calidad", "{l.efficiency}"]);
     setEditorVariants(null); // mantendrá las variantes existentes en base de datos
     setIsEditorOpen(true);
   };
@@ -498,8 +502,8 @@ export function LaboratoryPage({
     const singleAgents = [
       {
         id: "baseline",
-        name: editableTeam.agents[0]?.name || "General Agent",
-        role: editableTeam.agents[0]?.role || "General Assistant",
+        name: editableTeam.agents[0]?.name || "{l.generalAgent}",
+        role: editableTeam.agents[0]?.role || "{l.generalAssistant}",
         systemPrompt: editableTeam.agents[0]?.systemPrompt || "Eres un asistente general de IA. Responde de forma concisa.",
         model: editableTeam.agents[0]?.model || "anthropic/claude-3-5-sonnet",
       }
@@ -545,7 +549,7 @@ export function LaboratoryPage({
         setSelectedExpId(saved.id);
       }
     } catch (e) {
-      console.error("Failed to save experiment:", e);
+      console.error("{l.saveExperimentError}", e);
     }
   };
 
@@ -691,7 +695,7 @@ export function LaboratoryPage({
     const newAgentId = `agent-${Date.now().toString(36)}`;
     const newAgent: AgentDefinition = {
       id: newAgentId,
-      name: "Nuevo Agente",
+      name: "{l.newAgent}",
       role: "assistant",
       systemPrompt: "Eres un agente colaborador en este canal. Responde de forma concisa y ayuda a resolver la tarea.",
       model: selectedModel || "anthropic/claude-3-5-sonnet",
@@ -1433,7 +1437,7 @@ export function LaboratoryPage({
                 onClick={() => setIsEditorOpen(false)}
                 className="px-4 py-2 bg-background border border-input hover:bg-card-hover rounded-xl text-xs font-bold text-foreground cursor-pointer"
               >
-                Cancelar
+                {l.cancel}
               </button>
               <button
                 onClick={handleSaveExperiment}
@@ -1485,14 +1489,14 @@ export function LaboratoryPage({
                 }}
                 className="px-4 py-2 bg-background border border-input hover:bg-card-hover rounded-xl text-xs font-bold text-foreground cursor-pointer"
               >
-                Cancelar
+                {l.cancel}
               </button>
               <button
                 onClick={handleConfirmRun}
                 disabled={!runPromptValue.trim()}
                 className="px-4 py-2 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
               >
-                Confirmar y Ejecutar
+                {l.confirmRun}
               </button>
             </div>
           </motion.div>

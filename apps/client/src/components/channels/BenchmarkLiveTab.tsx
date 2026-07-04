@@ -3,6 +3,8 @@ import { motion } from "framer-motion";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
 import type { Channel } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./BenchmarkLiveTab.literals";
 
 interface Metrics {
   runId: string;
@@ -44,6 +46,7 @@ interface Props {
 }
 
 export function BenchmarkLiveTab({ channelId, channel, sessionId, channelMessages }: Props) {
+const l = useLiterals(u);
   const [benchmarkState, setBenchmarkState] = useState<"idle" | "running" | "complete">("idle");
   const [baselineOutput, setBaselineOutput] = useState("");
   const [runId, setRunId] = useState<string | null>(null);
@@ -84,7 +87,7 @@ export function BenchmarkLiveTab({ channelId, channel, sessionId, channelMessage
       }
 
       if (event.eventType === "benchmark_error") {
-        setError(event.detail?.error || "Unknown error");
+        setError(event.detail?.error || l.unknownError);
         setBenchmarkState("complete");
       }
 
@@ -103,7 +106,7 @@ export function BenchmarkLiveTab({ channelId, channel, sessionId, channelMessage
 
       if (event.eventType === "judge_error") {
         setJudgeState("error");
-        setJudgeError(event.detail?.error || "Judge evaluation failed");
+        setJudgeError(event.detail?.error || l.judgeError);
       }
     });
 
@@ -135,11 +138,11 @@ export function BenchmarkLiveTab({ channelId, channel, sessionId, channelMessage
       });
       if (!res.ok) {
         const data = await res.json();
-        throw new Error(data.error || "Judge failed");
+        throw new Error(data.error || l.judgeFailed);
       }
     } catch (err: any) {
       setJudgeState("error");
-      setJudgeError(err.message || "Failed to run judge");
+      setJudgeError(err.message || l.runJudgeError);
     }
   }, [channelId, runId]);
 

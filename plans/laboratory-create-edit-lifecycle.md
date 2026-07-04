@@ -1,3 +1,4 @@
+COMPLETED 
 # Laboratory — Separacion Creacion / Ejecucion + Edicion + Stop
 
 **Fecha:** 2026-07-02

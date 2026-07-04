@@ -1,4 +1,4 @@
-COMPLETADO ✅ 
+COMPLETED ✅ 
 
 # Plan de Diseño: Experiencia de Navegación Estilo Slack y Sesiones Desplegables
 

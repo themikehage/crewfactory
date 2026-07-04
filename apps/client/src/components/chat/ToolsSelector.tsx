@@ -1,5 +1,7 @@
 import { useState } from "react";
 import { Modal } from "@/components/ui/Modal";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ToolsSelector.literals";
 
 export const ALL_TOOLS = [
   { id: "read", name: "Read File", desc: "Read content of files on disk" },
@@ -18,6 +20,7 @@ interface Props {
 }
 
 export function ToolsSelector({ activeTools, onChange, disabled = false }: Props) {
+  const l = useLiterals(u);
   const [open, setOpen] = useState(false);
 
   const handleToggleTool = (toolId: string) => {
@@ -50,9 +53,9 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
   const isFullAccess = ALL_TOOLS.every((t) => activeTools.includes(t.id));
 
   let statusLabel = `${activeTools.length}/${ALL_TOOLS.length} tools`;
-  if (isFullAccess) statusLabel = "Full Access";
-  else if (isReadOnly) statusLabel = "Read-Only";
-  else if (activeTools.length === 0) statusLabel = "Restricted (0 tools)";
+  if (isFullAccess) statusLabel = l.fullAccess;
+  else if (isReadOnly) statusLabel = l.readOnly;
+  else if (activeTools.length === 0) statusLabel = l.restricted;
 
   return (
     <div className="relative inline-block text-left">

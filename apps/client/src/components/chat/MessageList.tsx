@@ -2,6 +2,8 @@ import { type FC, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
 import { RichMarkdown } from "./RichMarkdown";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./MessageList.literals";
 import { ToolCallRow, type ToolResultData } from "./tools/ToolCallRow";
 import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher, getFileType, type MediaType } from "./ToolResultInspector";
 import { HtmlPreview } from "./HtmlPreview";
@@ -121,6 +123,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
 }
 
 function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string) => void }) {
+  const l = useLiterals(u);
   if (!msg.siblings || msg.siblings.length <= 1 || !msg.id || !onNavigate) return null;
   const idx = msg.siblings.indexOf(msg.id);
   return (
@@ -132,14 +135,14 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
         onClick={() => { const i = msg.siblings!.indexOf(msg.id!); if (i > 0) onNavigate(msg.siblings![i - 1]); }}
         disabled={idx === 0}
         className={clsx("p-0.5 rounded transition-colors cursor-pointer", idx > 0 ? (msg.role === "user" ? "hover:bg-background/10 hover:text-background text-background/80" : "hover:bg-card-hover hover:text-foreground text-muted-foreground/80") : "opacity-30 cursor-not-allowed")}
-        title="Previous version"
+        title={l.prevVersion}
       >←</button>
       <span>{idx + 1} / {msg.siblings.length}</span>
       <button
         onClick={() => { const i = msg.siblings!.indexOf(msg.id!); if (i < msg.siblings!.length - 1) onNavigate(msg.siblings![i + 1]); }}
         disabled={idx === msg.siblings.length - 1}
         className={clsx("p-0.5 rounded transition-colors cursor-pointer", idx < msg.siblings.length - 1 ? (msg.role === "user" ? "hover:bg-background/10 hover:text-background text-background/80" : "hover:bg-card-hover hover:text-foreground text-muted-foreground/80") : "opacity-30 cursor-not-allowed")}
-        title="Next version"
+        title={l.nextVersion}
       >→</button>
     </div>
   );

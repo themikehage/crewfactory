@@ -1,8 +1,12 @@
+import { useLiterals } from "@/lib";
+import { literals as u } from "./OrgChartEmpty.literals";
+
 interface Props {
   isMobile: boolean;
 }
 
 export function OrgChartEmpty({ isMobile }: Props) {
+const l = useLiterals(u);
   return (
     <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
       <div className="w-16 h-16 rounded-2xl bg-card border border-input flex items-center justify-center mb-4">
@@ -15,8 +19,8 @@ export function OrgChartEmpty({ isMobile }: Props) {
       </p>
       <p className="text-xs text-muted-foreground mt-1.5 max-w-xs leading-relaxed">
         {isMobile
-          ? "Add agents to build your team hierarchy. Leads, seniors, and members will appear here."
-          : "Add agents to see the organizational chart with leads, seniors, members, and observers."}
+          ? l.desktopHint
+          : l.mobileHint}
       </p>
     </div>
   );

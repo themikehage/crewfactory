@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ProvidersTab.literals";
 
 interface ModelInfo {
   id: string;
@@ -18,6 +20,7 @@ interface ProvidersTabProps {
 }
 
 export function ProvidersTab({ token }: ProvidersTabProps) {
+const l = useLiterals(u);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -95,9 +98,9 @@ export function ProvidersTab({ token }: ProvidersTabProps) {
     <div className="space-y-4">
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-foreground font-semibold text-base">Providers</h2>
+          <h2 className="text-foreground font-semibold text-base">{l.title}</h2>
           <p className="text-muted-foreground text-[11px] mt-0.5">
-            Configure API keys for LLM providers to use with the coding agent.
+            {l.subtitle}
           </p>
         </div>
       </div>
@@ -122,7 +125,7 @@ export function ProvidersTab({ token }: ProvidersTabProps) {
           type="text"
           value={search}
           onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search providers..."
+          placeholder={l.searchPlaceholder}
           className="w-full pl-10 pr-3 py-2 bg-card border border-input rounded-lg
                      text-foreground placeholder-text-secondary outline-none
                      focus:border-primary transition-colors text-sm"

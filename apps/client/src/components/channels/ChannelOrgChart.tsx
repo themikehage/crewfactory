@@ -26,7 +26,7 @@ const MOBILE_LEVEL_LABELS: Record<string, string> = {
 };
 
 export function ChannelOrgChart({ members, registeredAgents }: Props) {
-  const [isMobile, setIsMobile] = useState(false);
+const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
 

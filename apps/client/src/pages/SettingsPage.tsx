@@ -1,4 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./SettingsPage.literals";
 import { GeneralTab } from "@/components/settings/GeneralTab";
 import { ProvidersTab } from "@/components/settings/ProvidersTab";
 import { EnvVarsTab } from "@/components/settings/EnvVarsTab";
@@ -11,6 +13,7 @@ interface EnvVar {
 }
 
 export function SettingsPage() {
+  const l = useLiterals(u);
   const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations" | "mcp">("providers");
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
   const [envLoading, setEnvLoading] = useState(true);
@@ -39,11 +42,11 @@ export function SettingsPage() {
   }, [fetchEnvVars]);
 
   const tabs = [
-    { id: "providers", label: "LLM Providers" },
-    { id: "env", label: "Env Variables" },
-    { id: "integrations", label: "Integrations Hub" },
-    { id: "mcp", label: "MCP Servers" },
-    { id: "general", label: "General & Account" },
+    { id: "providers", label: l.tabProviders },
+    { id: "env", label: l.tabEnv },
+    { id: "integrations", label: l.tabIntegrations },
+    { id: "mcp", label: l.tabMcp },
+    { id: "general", label: l.tabGeneral },
   ] as const;
 
   return (

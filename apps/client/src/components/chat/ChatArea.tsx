@@ -6,6 +6,8 @@ import { RightDrawer } from "./RightDrawer";
 import { ContextMeter } from "./ContextMeter";
 import { AnimatePresence } from "framer-motion";
 import type { Task, TaskRunnerState } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChatArea.literals";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
@@ -59,6 +61,7 @@ interface Props {
 }
 
 export function ChatArea({ sessionId, activeRepoName, activeAgent = null, activeChannel = null }: Props) {
+const l = useLiterals(u);
   const [messages, setMessages] = useState<Message[]>([]);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -293,7 +296,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
 
     const unsubError = subscribe("agent_error", (data: unknown) => {
       const evt = data as Record<string, unknown>;
-      setError(String(evt.error ?? "Unknown error"));
+      setError(String(evt.error ?? l.unknownError));
     });
 
     const unsubTasks = subscribe("tasks_update", (data: any) => {
@@ -409,7 +412,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
         await loadMessages();
       } else {
         const data = await res.json();
-        setError(data.error || "Failed to switch conversation branch");
+        setError(data.error || l.branchError);
       }
     } catch (err) {
       setError(String(err));
@@ -467,7 +470,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
           <span
             className={`w-2 h-2 rounded-full ${connected ? "bg-primary" : "bg-warning"}`}
           />
-          {connected ? "Connected" : "Reconnecting..."}
+          {connected ? l.connected : l.reconnecting}
           {streaming && <span className="ml-2 text-primary">Streaming...</span>}
           {activeObservers > 0 && (
             <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-[10px] animate-pulse flex items-center gap-1">

@@ -1,10 +1,13 @@
 import { useState } from "react";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelInput.literals";
 
 interface Props {
   onSend: (message: string) => Promise<void>;
 }
 
 export function ChannelInput({ onSend }: Props) {
+const l = useLiterals(u);
   const [input, setInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -26,7 +29,7 @@ export function ChannelInput({ onSend }: Props) {
         value={input}
         onChange={(e) => setInput(e.target.value)}
         onKeyDown={(e) => e.key === "Enter" && !e.shiftKey && handleSend()}
-        placeholder="Send message to channel..."
+        placeholder={l.placeholder}
         disabled={submitting}
         className="flex-1 bg-background border border-input rounded-lg px-3.5 py-2.5 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 disabled:opacity-50"
       />

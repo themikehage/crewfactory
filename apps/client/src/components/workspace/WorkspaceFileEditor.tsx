@@ -1,6 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import type { FileInfo } from "shared";
 import { apiFetch } from "@/lib/api";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./WorkspaceFileEditor.literals";
 
 interface Props {
   file: FileInfo | null;
@@ -31,6 +33,7 @@ export function WorkspaceFileEditor({
   activeChannelId = null,
   onSave,
 }: Props) {
+const l = useLiterals(u);
   const [content, setContent] = useState("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -91,7 +94,7 @@ export function WorkspaceFileEditor({
       setTimeout(() => setSaveStatus("idle"), 2500);
     } catch (err: any) {
       setSaveStatus("error");
-      setErrorMsg(err.message || "Failed to save file");
+      setErrorMsg(err.message || l.saveError);
     } finally {
       setSaving(false);
     }
@@ -242,7 +245,7 @@ export function WorkspaceFileEditor({
             <iframe
               src={previewBlobUrl || ""}
               className="w-full h-full border-0"
-              title="Fullscreen HTML Preview"
+              title={l.fullscreen}
             />
           </div>
         </div>
@@ -321,7 +324,7 @@ export function WorkspaceFileEditor({
               {saving ? (
                 <div className="w-2.5 h-2.5 border border-text-primary border-t-transparent rounded-full animate-spin" />
               ) : null}
-              {saving ? "Saving" : "Save"}
+              {saving ? l.saving : l.save}
             </button>
           )}
 

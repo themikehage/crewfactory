@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import type { ChannelMember, AgentInfo, ReplyMode, AddMember, UpdateMember, ChannelRole } from "shared";
 import { AddMemberModal } from "./AddMemberModal";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelMembersModal.literals";
 
 interface Props {
   channelName: string;
@@ -22,6 +24,7 @@ export function ChannelMembersModal({
   onUpdateMember,
   onRemoveMember,
 }: Props) {
+const l = useLiterals(u);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTargetsAgentId, setEditingTargetsAgentId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
@@ -101,7 +104,7 @@ export function ChannelMembersModal({
         <div className="flex-1 overflow-y-auto p-5 space-y-3 min-h-0">
           {members.length === 0 && (
             <div className="text-center py-10 text-muted-foreground text-sm">
-              No hay agentes en este canal. Haz click en "Añadir Agente" para comenzar.
+              {l.emptyHint}
             </div>
           )}
 
@@ -130,7 +133,7 @@ export function ChannelMembersModal({
                   <button
                     onClick={() => onRemoveMember(m.agentId)}
                     className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs flex items-center gap-1"
-                    title="Remover agente del canal"
+                    title={l.removeAgent}
                   >
                     <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                       <path fillRule="evenodd" d="M9 2a1 1 0 00-.894.553L7.382 4H4a1 1 0 000 2v10a2 2 0 002 2h8a2 2 0 002-2V6a1 1 0 100-2h-3.382l-.724-1.447A1 1 0 0011 2H9zM7 8a1 1 0 012 0v6a1 1 0 11-2 0V8zm5-1a1 1 0 00-1 1v6a1 1 0 102 0V8a1 1 0 00-1-1z" clipRule="evenodd" />
@@ -180,7 +183,7 @@ export function ChannelMembersModal({
                         <span className="truncate">
                           {m.targetAgentIds && m.targetAgentIds.length > 0
                             ? `${m.targetAgentIds.length} agent(s) selected`
-                            : "Select targets..."}
+                            : l.selectTargets}
                         </span>
                         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${isEditingTargets ? "rotate-180" : ""}`}>
                           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />

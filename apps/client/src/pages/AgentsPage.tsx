@@ -2,6 +2,8 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgents } from "@/hooks/useAgents";
 import type { AgentDefinition, AgentInfo } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./AgentsPage.literals";
 
 const STATUS_COLORS: Record<string, string> = {
   starting: "text-warning bg-warning/10 border-warning/30",
@@ -53,12 +55,13 @@ function AgentCard({
   onChat: (agent: { id: string; name: string }) => void;
   onExecutions: (agent: { id: string; name: string }) => void;
 }) {
+  const l = useLiterals(u);
   const [deleting, setDeleting] = useState(false);
 
   const handleDelete = async () => {
     if (
       !window.confirm(
-        `¿Estás seguro de que querés eliminar al agente "${agent.name}"? Esto detendrá su servidor y eliminará todas sus sesiones de chat asociadas de manera permanente.`
+        `${l.deleteConfirm_1}${agent.name}${l.deleteConfirm_2}`
       )
     ) {
       return;
@@ -143,7 +146,7 @@ function AgentCard({
           disabled={deleting}
           className="py-1.5 px-2 text-[11px] font-medium text-destructive border border-error/20 rounded-lg hover:bg-destructive/10 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {deleting ? "Eliminando..." : "Eliminar"}
+          {deleting ? l.deleting : l.delete}
         </button>
       </div>
     </motion.div>
@@ -159,6 +162,7 @@ function RegisterModal({
   onClose: () => void;
   onSubmit: (def: AgentDefinition) => Promise<unknown>;
 }) {
+  const l = useLiterals(u);
   const [form, setForm] = useState<AgentDefinition>(DEFAULT_FORM);
   const [skillsInput, setSkillsInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -207,7 +211,7 @@ function RegisterModal({
       await onSubmit(def);
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to save agent");
+      setError(err.message || l.saveError);
     } finally {
       setSubmitting(false);
     }
@@ -248,25 +252,25 @@ function RegisterModal({
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">ID *</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">{l.idField}</label>
               <input
                 required
                 disabled={!!agent}
                 value={form.id}
                 onChange={set("id")}
-                placeholder="web-builder"
+                placeholder={l.idPlaceholder}
                 pattern="[a-z0-9-]+"
-                title="lowercase letters, numbers, and dashes only"
+                title={l.idPatternTitle}
                 className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono disabled:opacity-50"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Name *</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">{l.nameField}</label>
               <input
                 required
                 value={form.name}
                 onChange={set("name")}
-                placeholder="Web Builder"
+                placeholder={l.namePlaceholder}
                 className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
               />
             </div>
@@ -274,17 +278,17 @@ function RegisterModal({
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Role *</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">{l.roleField}</label>
               <input
                 required
                 value={form.role}
                 onChange={set("role")}
-                placeholder="web-builder"
+                placeholder={l.idPlaceholder}
                 className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Port (optional)</label>
+              <label className="text-xs font-medium text-muted-foreground block mb-1">{l.portField}</label>
               <input
                 type="number"
                 min={1024}
@@ -296,40 +300,40 @@ function RegisterModal({
                     port: e.target.value ? parseInt(e.target.value) : undefined,
                   }))
                 }
-                placeholder="4200"
+                placeholder={l.portPlaceholder}
                 className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Model (optional)</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.modelField}</label>
             <input
               value={form.model || ""}
               onChange={set("model")}
-              placeholder="anthropic/claude-3-5-sonnet-20241022"
+              placeholder={l.modelPlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Skills (comma-separated)</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.skillsField}</label>
             <input
               value={skillsInput}
               onChange={(e) => setSkillsInput(e.target.value)}
-              placeholder="github-deploy, cloudflare-deploy"
+              placeholder={l.skillsPlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">System Prompt *</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.systemPromptField}</label>
             <textarea
               required
               value={form.systemPrompt}
               onChange={set("systemPrompt")}
               rows={5}
-              placeholder="You are an expert web developer specializing in React and TypeScript..."
+              placeholder={l.systemPromptPlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 resize-none font-mono leading-relaxed"
             />
           </div>
@@ -353,7 +357,7 @@ function RegisterModal({
               disabled={submitting}
               className="flex-1 py-2 text-sm font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {submitting ? "Guardando..." : agent ? "Guardar Cambios" : "Register Agent"}
+              {submitting ? l.saving : agent ? l.saveChanges : l.registerAgent}
             </button>
           </div>
         </form>
@@ -367,6 +371,7 @@ interface AgentsPageProps {
 }
 
 export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
+  const l = useLiterals(u);
   const { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent } = useAgents();
   const [showRegister, setShowRegister] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
@@ -391,16 +396,16 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
     <div className="h-full flex flex-col bg-background overflow-hidden">
       <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
         <div>
-          <h1 className="text-base font-semibold text-foreground">Agents</h1>
+          <h1 className="text-base font-semibold text-foreground">{l.pageTitle}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Programmatic agents — independent AI workers with isolated workspaces
+            {l.pageSubtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchAgents}
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-card-hover rounded-lg transition-colors"
-            title="Refresh"
+            title={l.refresh}
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
@@ -445,8 +450,8 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
               </svg>
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground">No agents running</p>
-              <p className="text-xs mt-1">Register your first agent to get started</p>
+              <p className="text-sm font-medium text-foreground">{l.emptyTitle}</p>
+              <p className="text-xs mt-1">{l.emptyDescription}</p>
             </div>
             <button
               onClick={() => {
@@ -510,6 +515,7 @@ function ExecutionsModal({
   agent: { id: string; name: string };
   onClose: () => void;
 }) {
+  const l = useLiterals(u);
   const [executions, setExecutions] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -530,7 +536,7 @@ function ExecutionsModal({
         const data = await res.json();
         setExecutions(data.executions || []);
       } catch (err: any) {
-        setError(err.message || "Failed to load executions");
+        setError(err.message || l.loadExecError);
       } finally {
         setLoading(false);
       }
@@ -573,8 +579,8 @@ function ExecutionsModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-input flex-shrink-0">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Historial de Ejecuciones: {agent.name}</h2>
-            <p className="text-xs text-muted-foreground mt-0.5">Analizá el rendimiento y logs de tareas delegadas</p>
+            <h2 className="text-sm font-semibold text-foreground">{l.execTitle}: {agent.name}</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">{l.execSubtitle}</p>
           </div>
           <button
             onClick={onClose}
@@ -598,7 +604,7 @@ function ExecutionsModal({
               <p className="text-xs text-destructive p-3">{error}</p>
             )}
             {!loading && !error && executions.length === 0 && (
-              <p className="text-xs text-muted-foreground p-3 text-center">Sin ejecuciones registradas.</p>
+              <p className="text-xs text-muted-foreground p-3 text-center">{l.noExecutions}</p>
             )}
             {!loading && !error && executions.map((exec) => (
               <button
@@ -622,7 +628,7 @@ function ExecutionsModal({
                 <div className="flex gap-2 text-[10px] text-muted-foreground mt-1">
                   <span>{(exec.durationMs / 1000).toFixed(1)}s</span>
                   {exec.errors && exec.errors.length > 0 && (
-                    <span className="text-destructive font-medium">⚠️ {exec.errors.length} Error/es</span>
+                    <span className="text-destructive font-medium">⚠️ {exec.errors.length} {l.errors}</span>
                   )}
                 </div>
               </button>
@@ -638,14 +644,14 @@ function ExecutionsModal({
                   <path d="M12 16v-4" />
                   <path d="M12 8h.01" />
                 </svg>
-                <p className="text-xs">Seleccioná una ejecución para ver el detalle</p>
+                <p className="text-xs">{l.selectExecHint}</p>
               </div>
             )}
 
             {selectedExec && (
               <>
                 <div>
-                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Prompt</h3>
+                  <h3 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">{l.prompt}</h3>
                   <p className="text-sm font-medium text-foreground bg-background p-3 rounded-lg border border-input mt-1.5 leading-relaxed">
                     {selectedExec.prompt}
                   </p>
@@ -662,15 +668,15 @@ function ExecutionsModal({
                     {/* Metrics */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-background/50 border border-input rounded-xl p-3 flex flex-col">
-                        <span className="text-[10px] text-muted-foreground">Duración de Ejecución</span>
+                        <span className="text-[10px] text-muted-foreground">{l.execDuration}</span>
                         <span className="text-sm font-semibold text-foreground mt-0.5">
-                          {(execDetail.durationMs / 1000).toFixed(2)} segundos
+                          {(execDetail.durationMs / 1000).toFixed(2)}{l.seconds}
                         </span>
                       </div>
                       <div className="bg-background/50 border border-input rounded-xl p-3 flex flex-col">
-                        <span className="text-[10px] text-muted-foreground">Estatus</span>
+                        <span className="text-[10px] text-muted-foreground">{l.execStatus}</span>
                         <span className={`text-sm font-semibold mt-0.5 ${execDetail.errors?.length > 0 ? "text-destructive" : "text-primary"}`}>
-                          {execDetail.errors?.length > 0 ? `${execDetail.errors.length} Error/es` : "Exitoso"}
+                          {execDetail.errors?.length > 0 ? `${execDetail.errors.length} {l.errors}` : "{l.success}"}
                         </span>
                       </div>
                     </div>
@@ -679,7 +685,7 @@ function ExecutionsModal({
                     {execDetail.errors && execDetail.errors.length > 0 && (
                       <div className="border border-error/20 bg-destructive/5 rounded-xl p-4 flex flex-col gap-2">
                         <h4 className="text-xs font-bold text-destructive flex items-center gap-1.5">
-                          ⚠️ Errores Encontrados
+                          ⚠️ {l.errorsFound}
                         </h4>
                         <ul className="list-disc pl-4 text-xs text-destructive/90 space-y-1.5 font-mono">
                           {execDetail.errors.map((err: string, i: number) => (
@@ -691,9 +697,9 @@ function ExecutionsModal({
 
                     {/* Tool Calls */}
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Herramientas Ejecutadas</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{l.executedTools}</h4>
                       {(!execDetail.toolCalls || execDetail.toolCalls.length === 0) ? (
-                        <p className="text-xs text-muted-foreground italic">No se ejecutaron herramientas en esta tarea.</p>
+                        <p className="text-xs text-muted-foreground italic">{l.noTools}</p>
                       ) : (
                         <div className="flex flex-col gap-2">
                           {execDetail.toolCalls.map((tc: any, i: number) => (
@@ -704,19 +710,19 @@ function ExecutionsModal({
                                   <span>{tc.name}</span>
                                 </div>
                                 <span className="text-[10px] text-muted-foreground font-sans">
-                                  {tc.endedAt ? `${((new Date(tc.endedAt).getTime() - new Date(tc.startedAt).getTime()) / 1000).toFixed(2)}s` : "corriendo"}
+                                  {tc.endedAt ? `${((new Date(tc.endedAt).getTime() - new Date(tc.startedAt).getTime()) / 1000).toFixed(2)}s` : "{l.running}"}
                                 </span>
                               </summary>
                               <div className="p-4 border-t border-input bg-background/50 flex flex-col gap-3 font-mono">
                                 <div>
-                                  <span className="text-[10px] text-muted-foreground uppercase block mb-1">Argumentos</span>
+                                  <span className="text-[10px] text-muted-foreground uppercase block mb-1">{l.arguments}</span>
                                   <pre className="text-xs bg-background p-2.5 rounded-lg overflow-x-auto text-foreground max-h-40">
                                     {JSON.stringify(tc.args, null, 2)}
                                   </pre>
                                 </div>
                                 {tc.result && (
                                   <div>
-                                    <span className="text-[10px] text-muted-foreground uppercase block mb-1">Resultado</span>
+                                    <span className="text-[10px] text-muted-foreground uppercase block mb-1">{l.result}</span>
                                     <pre className="text-xs bg-background p-2.5 rounded-lg overflow-x-auto text-foreground max-h-60 whitespace-pre-wrap">
                                       {typeof tc.result === "string" ? tc.result : JSON.stringify(tc.result, null, 2)}
                                     </pre>
@@ -731,7 +737,7 @@ function ExecutionsModal({
 
                     {/* Message Logs */}
                     <div>
-                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Mensajes de Sesión</h4>
+                      <h4 className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">{l.sessionMessages}</h4>
                       <div className="flex flex-col gap-2 border border-input rounded-xl p-3 bg-background/20">
                         {execDetail.messages?.filter((m: any) => m.role !== "system").map((m: any, i: number) => (
                           <div key={i} className={`p-2.5 rounded-lg text-xs leading-relaxed ${m.role === "user" ? "bg-primary/5 ml-8 border border-primary/10" : "bg-card-hover mr-8 border border-input"}`}>

@@ -5,6 +5,8 @@ import { ChannelMessages } from "@/components/channels/ChannelMessages";
 import { ChannelInput } from "@/components/channels/ChannelInput";
 import { MembersPanel } from "@/components/channels/MembersPanel";
 import { AddMemberModal } from "@/components/channels/AddMemberModal";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelDetailPage.literals";
 
 interface Props {
   channelId: string;
@@ -12,6 +14,7 @@ interface Props {
 }
 
 export function ChannelDetailPage({ channelId, onNavigate }: Props) {
+  const l = useLiterals(u);
   const {
     channel,
     messages,
@@ -45,7 +48,7 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
           onClick={() => onNavigate("/channels")}
           className="px-4 py-2 text-xs bg-card border border-input text-foreground rounded-lg hover:bg-card-hover transition-colors"
         >
-          Back to Channels
+          {l.backToChannels}
         </button>
       </div>
     );
@@ -59,7 +62,7 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
           <button
             onClick={() => onNavigate("/channels")}
             className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
-            title="Back to Channels"
+            title={l.backToChannels}
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />

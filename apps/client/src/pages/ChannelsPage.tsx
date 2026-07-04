@@ -5,6 +5,8 @@ import { ChannelCard } from "@/components/channels/ChannelCard";
 import { ChannelMembersModal } from "@/components/channels/ChannelMembersModal";
 import { ChannelContextModal } from "@/components/channels/ChannelContextModal";
 import type { Channel, ChannelMember, AgentInfo, AddMember, UpdateMember, CreateChannel, ChannelContextItem } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelsPage.literals";
 
 function CreateChannelModal({
   onClose,
@@ -13,6 +15,7 @@ function CreateChannelModal({
   onClose: () => void;
   onCreate: (data: CreateChannel) => Promise<void>;
 }) {
+  const l = useLiterals(u);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -27,7 +30,7 @@ function CreateChannelModal({
       await onCreate({ name: name.trim(), description: description.trim() || undefined });
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to create channel");
+      setError(err.message || l.createError);
     } finally {
       setSubmitting(false);
     }
@@ -45,7 +48,7 @@ function CreateChannelModal({
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-input">
           <div>
-            <h2 className="text-sm font-semibold text-foreground">Create Channel</h2>
+            <h2 className="text-sm font-semibold text-foreground">{l.emptyButton}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Start a new multi-agent conversation space</p>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors">
@@ -57,22 +60,22 @@ function CreateChannelModal({
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Channel Name *</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.channelNameLabel}</label>
             <input
               required
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="e.g. project-planning"
+              placeholder={l.channelNamePlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-1">Description (optional)</label>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.descriptionLabel}</label>
             <input
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Discuss and coordinate feature implementations"
+              placeholder={l.descriptionPlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
             />
           </div>
@@ -96,7 +99,7 @@ function CreateChannelModal({
               disabled={submitting || !name.trim()}
               className="flex-1 py-2 text-sm font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
-              {submitting ? "Creating..." : "Create Channel"}
+              {submitting ? l.creating : l.createChannel}
             </button>
           </div>
         </form>
@@ -111,6 +114,7 @@ interface Props {
 }
 
 export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
+  const l = useLiterals(u);
   const { channels, loading, error, fetchChannels, createChannel, deleteChannel } = useChannels();
   const [showCreate, setShowCreate] = useState(false);
   const [managingChannel, setManagingChannel] = useState<Channel | null>(null);
@@ -206,16 +210,16 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
     <div className="h-full flex flex-col bg-background overflow-hidden">
       <div className="flex items-center justify-between px-6 py-5 border-b border-border flex-shrink-0">
         <div>
-          <h1 className="text-base font-semibold text-foreground">Channels</h1>
+          <h1 className="text-base font-semibold text-foreground">{l.pageTitle}</h1>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Multi-agent group channels for collaborative agent execution
+            {l.pageSubtitle}
           </p>
         </div>
         <div className="flex items-center gap-2">
           <button
             onClick={fetchChannels}
             className="p-2 text-muted-foreground hover:text-foreground hover:bg-card-hover rounded-lg transition-colors"
-            title="Refresh"
+            title={l.refresh}
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
@@ -255,8 +259,8 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
               <span className="text-muted-foreground/50 font-bold text-lg">#</span>
             </div>
             <div className="text-center">
-              <p className="text-sm font-medium text-foreground">No channels created</p>
-              <p className="text-xs mt-1">Create a channel to bring multiple agents together</p>
+              <p className="text-sm font-medium text-foreground">{l.emptyTitle}</p>
+              <p className="text-xs mt-1">{l.emptyDescription}</p>
             </div>
             <button
               onClick={() => setShowCreate(true)}

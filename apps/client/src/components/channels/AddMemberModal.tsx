@@ -1,6 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import type { AgentInfo, AddMember, ReplyMode, ChannelRole } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./AddMemberModal.literals";
 
 interface Props {
   availableAgents: AgentInfo[];
@@ -10,6 +12,7 @@ interface Props {
 }
 
 export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose, onAdd }: Props) {
+const l = useLiterals(u);
   const candidates = availableAgents.filter((a) => !currentMemberAgentIds.includes(a.id));
 
   const [selectedAgentId, setSelectedAgentId] = useState(candidates[0]?.id || "");
@@ -33,7 +36,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to add agent to channel");
+      setError(err.message || l.addError);
     } finally {
       setSubmitting(false);
     }
@@ -122,10 +125,10 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
                   ))}
                 </div>
                 <p className="text-[11px] text-muted-foreground/70 mt-1.5 leading-normal">
-                  {replyMode === "user-only" && "Agent responds only to human messages. Does not trigger other agents."}
-                  {replyMode === "broadcast" && "Agent responds to human and other agent messages. Triggers all channel members."}
-                  {replyMode === "targeted" && "Agent responds to human and selected target agents. Triggers specified targets."}
-                  {replyMode === "mention-only" && "Agent is silent unless explicitly @mentioned by name or id in a message."}
+                  {replyMode === "user-only" && l.replyModeUserOnly}
+                  {replyMode === "broadcast" && l.replyModeBroadcast}
+                  {replyMode === "targeted" && l.replyModeTargeted}
+                  {replyMode === "mention-only" && l.replyModeMentionOnly}
                 </p>
               </div>
 
@@ -167,7 +170,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
                   disabled={submitting || !selectedAgentId}
                   className="flex-1 py-2 text-sm font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
-                  {submitting ? "Adding..." : "Add to Channel"}
+                  {submitting ? l.adding : l.addToChannel}
                 </button>
               </div>
             </>

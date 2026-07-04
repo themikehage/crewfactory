@@ -2,6 +2,8 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { ModelSelector } from "@/components/chat/ModelSelector";
 import type { Channel, ChannelBenchmarkConfig } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChannelSettingsModal.literals";
 
 interface Props {
   channel: Channel;
@@ -20,6 +22,7 @@ interface Props {
 }
 
 export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
+const l = useLiterals(u);
   const [name, setName] = useState(channel.name);
   const [description, setDescription] = useState(channel.description || "");
   const [maxChainDepth, setMaxChainDepth] = useState(channel.maxChainDepth ?? 5);
@@ -56,7 +59,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
         negotiationProtocol = JSON.parse(negotiationRaw);
       }
     } catch {
-      setError("Invalid JSON in Negotiation Protocol");
+      setError(l.invalidJsonNegotiation);
       setSaving(false);
       return;
     }
@@ -66,7 +69,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
         scoringRubric = JSON.parse(scoringRaw);
       }
     } catch {
-      setError("Invalid JSON in Scoring Rubric");
+      setError(l.invalidJsonRubric);
       setSaving(false);
       return;
     }
@@ -76,7 +79,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
         delegationPattern = JSON.parse(delegationRaw);
       }
     } catch {
-      setError("Invalid JSON in Delegation Pattern");
+      setError(l.invalidJsonDelegation);
       setSaving(false);
       return;
     }
@@ -95,7 +98,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
       });
       onClose();
     } catch (err: any) {
-      setError(err.message || "Failed to update channel settings");
+      setError(err.message || l.updateError);
     } finally {
       setSaving(false);
     }
@@ -303,7 +306,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
               disabled={saving}
               className="px-4 py-2 bg-primary text-background font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
             >
-              {saving ? "Guardando..." : "Guardar Ajustes"}
+              {saving ? l.saving : l.saveSettings}
             </button>
           </div>
         </form>

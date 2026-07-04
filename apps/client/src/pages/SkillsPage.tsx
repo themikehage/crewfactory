@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./SkillsPage.literals";
 
 interface SkillInfo {
   name: string;
@@ -11,6 +13,7 @@ interface SkillInfo {
 }
 
 export function SkillsPage() {
+  const l = useLiterals(u);
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -22,7 +25,7 @@ export function SkillsPage() {
   const [resetting, setResetting] = useState(false);
 
   const handleResetSkills = useCallback(async () => {
-    if (!window.confirm("¿Estás seguro de que querés restablecer las Skills por defecto de Manager? Se sobrescribirán todos los cambios manuales en las skills que empiezan con 'factory-'.")) {
+    if (!window.confirm(l.resetConfirm)) {
       return;
     }
     setResetting(true);
@@ -31,13 +34,13 @@ export function SkillsPage() {
         method: "POST",
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to reset skills");
+      if (!res.ok) throw new Error(l.loadError);
       
       // Emitir evento para notificar al resto del sistema de la actualización
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "skill" } }));
-      alert("Skills de Manager restablecidas con éxito.");
+      alert(l.resetSuccess);
     } catch (err: any) {
-      alert("Error al restablecer las skills: " + err.message);
+      alert(l.resetErrorPrefix + err.message);
     } finally {
       setResetting(false);
     }
@@ -48,7 +51,7 @@ export function SkillsPage() {
       const res = await fetch("/api/skills", {
         headers: { Authorization: `Bearer ${token}` },
       });
-      if (!res.ok) throw new Error("Failed to load skills");
+      if (!res.ok) throw new Error(l.loadError);
       const data = await res.json();
       const sorted = (data.skills ?? []).sort((a: SkillInfo, b: SkillInfo) =>
         a.name.localeCompare(b.name)
@@ -58,7 +61,7 @@ export function SkillsPage() {
         setSelectedSkill(sorted[0]);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error loading skills");
+      setError(err instanceof Error ? err.message : l.loadError);
     } finally {
       setLoading(false);
     }
@@ -90,7 +93,7 @@ export function SkillsPage() {
       {error ? (
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="max-w-md w-full p-4 bg-card border border-input rounded-lg text-center">
-            <p className="text-destructive text-sm font-semibold mb-2">Error Loading Skills</p>
+            <p className="text-destructive text-sm font-semibold mb-2">{l.errorTitle}</p>
             <p className="text-muted-foreground text-xs mb-4">{error}</p>
             <button
               onClick={fetchSkills}
@@ -123,7 +126,7 @@ export function SkillsPage() {
                     type="text"
                     value={search}
                     onChange={(e) => setSearch(e.target.value)}
-                    placeholder="Search skills..."
+                    placeholder={l.searchPlaceholder}
                     className="w-full pl-9 pr-3 py-2 bg-card border border-input rounded-lg
                                text-foreground placeholder-text-secondary outline-none
                                focus:border-primary transition-colors text-xs font-sans"
@@ -132,7 +135,7 @@ export function SkillsPage() {
                 <button
                   onClick={handleResetSkills}
                   disabled={resetting || loading}
-                  title="Restablecer Skills de Manager (Factory)"
+                  title={l.resetTooltip}
                   className="p-2 bg-card hover:bg-card-hover border border-input text-muted-foreground hover:text-primary rounded-lg transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer disabled:opacity-50"
                 >
                   {resetting ? (
@@ -145,7 +148,7 @@ export function SkillsPage() {
                 </button>
               </div>
               <div className="text-[10px] text-muted-foreground select-none font-medium px-0.5">
-                {skills.length} skill{skills.length !== 1 ? "s" : ""} loaded
+                {skills.length} {l.skillCount}{skills.length !== 1 ? "s" : ""} loaded
               </div>
             </div>
             <div className="flex-1 overflow-y-auto p-2 space-y-1">
@@ -173,7 +176,7 @@ export function SkillsPage() {
                           : "bg-highlight/10 text-highlight"
                       }`}
                     >
-                      {s.scope === "project" ? "Project" : "User"}
+                      {s.scope === "project" ? l.scopeProject : l.scopeUser}
                     </span>
                   </div>
                   <p className="text-[11px] text-muted-foreground/80 line-clamp-2 leading-relaxed">
@@ -183,7 +186,7 @@ export function SkillsPage() {
               ))}
               {filteredSkills.length === 0 && (
                 <p className="text-muted-foreground text-xs text-center py-8">
-                  No skills found
+                  {l.noSkillsFound}
                 </p>
               )}
             </div>
@@ -199,7 +202,7 @@ export function SkillsPage() {
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                     <path d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" />
                   </svg>
-                  Back to list
+                  {l.backToList}
                 </button>
                 <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 border-b border-border pb-4">
                   <div>
@@ -207,7 +210,7 @@ export function SkillsPage() {
                       {selectedSkill.name}
                     </h2>
                     <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
-                      Location: {selectedSkill.filePath}
+                      {l.location} {selectedSkill.filePath}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
@@ -218,11 +221,11 @@ export function SkillsPage() {
                           : "bg-highlight/20 text-highlight"
                       }`}
                     >
-                      {selectedSkill.scope === "project" ? "Project-local" : "User-global"}
+                      {selectedSkill.scope === "project" ? l.scopeProjectDetail : l.scopeUserDetail}
                     </span>
                     {selectedSkill.disableModelInvocation && (
                       <span className="text-xs px-2 py-0.5 rounded font-semibold uppercase bg-warning/20 text-warning">
-                        Explicit Only
+                        {l.explicitOnly}
                       </span>
                     )}
                   </div>
@@ -243,7 +246,7 @@ export function SkillsPage() {
                       Instructions
                     </h3>
                     <div className="bg-card/50 p-4 sm:p-5 rounded-lg border border-input/50 shadow-sm">
-                      <RichMarkdown content={selectedSkill.content || "*No instruction text*"} />
+                      <RichMarkdown content={selectedSkill.content || l.noInstructionText} />
                     </div>
                   </div>
                 </div>
@@ -263,7 +266,7 @@ export function SkillsPage() {
                     d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25"
                   />
                 </svg>
-                <p className="text-muted-foreground text-sm">Select a skill from the list to view its instructions</p>
+                <p className="text-muted-foreground text-sm">{l.selectSkillHint}</p>
               </div>
             )}
           </div>

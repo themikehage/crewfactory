@@ -1,4 +1,6 @@
 import { openInWorkspace } from "./workspace";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./GrepResult.literals";
 
 interface GrepLine {
   type: "match" | "context";
@@ -42,19 +44,20 @@ interface Props {
 }
 
 export function GrepResult({ text, args }: Props) {
+  const l = useLiterals(u);
   const pattern = (args.pattern as string) || "";
   const lines = parseGrepOutput(text);
   const byFile = groupByFile(lines);
   const matchCount = lines.filter(l => l.type === "match").length;
 
   if (lines.length === 0) {
-    return <p className="text-muted-foreground/50 text-xs italic">No matches found</p>;
+    return <p className="text-muted-foreground/50 text-xs italic">{l.noMatches}</p>;
   }
 
   return (
     <div className="space-y-2 font-mono text-[11px] w-full">
       <div className="text-[10px] text-muted-foreground/50">
-        {matchCount} match{matchCount !== 1 ? "es" : ""}
+        {`${matchCount} ${matchCount !== 1 ? l.matches : l.match}`}
         {pattern ? ` for /${pattern}/` : ""}
       </div>
       {Array.from(byFile.entries()).map(([file, fileLines]) => {
@@ -70,7 +73,7 @@ export function GrepResult({ text, args }: Props) {
                 <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4z" clipRule="evenodd" />
               </svg>
               <span className="text-primary/80 text-[10px]">{file}</span>
-              <span className="ml-auto text-muted-foreground/40 text-[9px]">{fileMatches} match{fileMatches !== 1 ? "es" : ""}</span>
+              <span className="ml-auto text-muted-foreground/40 text-[9px]">{`${fileMatches} ${fileMatches !== 1 ? l.matches : l.match}`}</span>
             </button>
             <div className="divide-y divide-surface-hover/20">
               {fileLines.map((line, i) => {

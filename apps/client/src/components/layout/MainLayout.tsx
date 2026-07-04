@@ -6,6 +6,8 @@ import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { ExperimentPopover } from "@/components/sidebar/ExperimentPopover";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./MainLayout.literals";
 
 interface Props {
   route: Route;
@@ -45,6 +47,7 @@ export function MainLayout({
   onCreateExperiment,
   loadingExps = false,
 }: Props) {
+  const l = useLiterals(u);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
   const [experimentPopoverOpen, setExperimentPopoverOpen] = useState(false);
@@ -122,7 +125,7 @@ export function MainLayout({
     const list = [
       {
         id: "chat",
-        label: "Chat",
+        label: l.tabChat,
         path: sessionId ? `${basePath}/session/${sessionId}` : (basePath ? `${basePath}/chat` : "/"),
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -132,7 +135,7 @@ export function MainLayout({
       },
       {
         id: "workspace",
-        label: "Files",
+        label: l.tabFiles,
         path: basePath ? `${basePath}/workspace` : "/workspace",
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -145,7 +148,7 @@ export function MainLayout({
     if (activeRepoName || activeRepoId) {
       list.push({
         id: "preview",
-        label: "Preview",
+        label: l.tabPreview,
         path: basePath ? `${basePath}/preview` : "/preview",
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -168,43 +171,43 @@ export function MainLayout({
 
     if (currentRepo) {
       items = [
-        { label: "Proyectos", path: "/projects" },
+        { label: l.breadProyectos, path: "/projects" },
         { label: currentRepoFriendly || currentRepo, path: `/repos/${currentRepo}/chat` }
       ];
     } else if (currentAgent) {
       items = [
-        { label: "Agentes", path: "/agents" },
+        { label: l.breadAgentes, path: "/agents" },
         { label: currentAgent.name, path: `/agents/${currentAgent.id}/chat` }
       ];
     } else if (currentChannel) {
       items = [
-        { label: "Canales", path: "/channels" },
+        { label: l.breadCanales, path: "/channels" },
         { label: `#${currentChannel.name}`, path: `/channels/${currentChannel.id}/chat` }
       ];
     } else {
-      items = [{ label: "Factory", path: "/" }];
+      items = [{ label: l.breadFactory, path: "/" }];
     }
 
     if (route.page === "workspace") {
-      items.push({ label: "Files" });
+      items.push({ label: l.tabFiles });
     } else if (route.page === "preview") {
-      items.push({ label: "Preview" });
+      items.push({ label: l.tabPreview });
     } else if (route.page === "chat") {
-      items.push({ label: "Chat" });
+      items.push({ label: l.tabChat });
     } else if (route.page === "settings") {
-      items = [{ label: "Settings" }];
+      items = [{ label: l.breadSettings }];
     } else if (route.page === "skills") {
-      items = [{ label: "Skills" }];
+      items = [{ label: l.breadSkills }];
     } else if (route.page === "logs") {
-      items = [{ label: "Logs" }];
+      items = [{ label: l.breadLogs }];
     } else if (route.page === "projects") {
-      items = [{ label: "Proyectos" }];
+      items = [{ label: l.breadProyectos }];
     } else if (route.page === "agents") {
-      items = [{ label: "Agentes" }];
+      items = [{ label: l.breadAgentes }];
     } else if (route.page === "channels") {
-      items = [{ label: "Canales" }];
+      items = [{ label: l.breadCanales }];
     } else if (route.page === "channel") {
-      items = [{ label: "Canales", path: "/channels" }];
+      items = [{ label: l.breadCanales, path: "/channels" }];
       if (activeChannel) {
         items.push({ label: `#${activeChannel.name}` });
       }

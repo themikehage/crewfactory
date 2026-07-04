@@ -1,5 +1,7 @@
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./LogsConsolePage.literals";
 import type { GlobalLogEvent } from "shared";
 
 interface SessionItem {
@@ -49,6 +51,7 @@ export function LogsConsolePage({
   onSelectChannel,
   onNavigate,
 }: LogsConsolePageProps) {
+  const l = useLiterals(u);
   const [activeTab, setActiveTab] = useState<"sessions" | "logs">("sessions");
   
   // Estados para pestaña de Sesiones
@@ -259,7 +262,7 @@ export function LogsConsolePage({
   };
 
   const formatRelativeTime = (updatedAt: string, status?: string) => {
-    if (status === "streaming" || status === "task-running") return "Activa ahora";
+    if (status === "streaming" || status === "task-running") return l.statusActive;
     try {
       const past = new Date(updatedAt).getTime();
       const now = Date.now();
@@ -268,19 +271,19 @@ export function LogsConsolePage({
       const diffMin = Math.floor(diffSec / 60);
       const diffHour = Math.floor(diffMin / 60);
 
-      if (diffSec < 30) return "Hace unos instantes";
+      if (diffSec < 30) return l.statusMomentsAgo;
       if (diffSec < 60) return `Hace ${diffSec} segundos`;
-      if (diffMin < 60) return `Hace ${diffMin} ${diffMin === 1 ? "minuto" : "minutos"}`;
-      if (diffHour < 24) return `Hace ${diffHour} ${diffHour === 1 ? "hora" : "horas"}`;
+      if (diffMin < 60) return `Hace ${diffMin} ${diffMin === 1 ? l.statusMinutesAgo : l.statusMinutesAgo + "s"}`;
+      if (diffHour < 24) return `Hace ${diffHour} ${diffHour === 1 ? l.statusHoursAgo : l.statusHoursAgo + "s"}`;
       return new Date(updatedAt).toLocaleDateString();
     } catch {
-      return "Sin actividad registrada";
+      return l.statusNoActivity;
     }
   };
 
   const renderLogLine = (log: GlobalLogEvent, idx: number) => {
     const sourceColor = log.sourceType === "channel" ? "text-purple-400" : "text-blue-400";
-    const sourceLabel = log.sourceType === "channel" ? "Canal" : "Sesión";
+    const sourceLabel = log.sourceType === "channel" ? l.labelSourceChannel : l.labelSourceSession;
 
     return (
       <div key={idx} className="hover:bg-card-hover/20 px-2 py-1 border-b border-input/10 leading-relaxed">
@@ -302,13 +305,13 @@ export function LogsConsolePage({
           <div className="flex-1 min-w-0">
             {log.eventType === "user_message" && (
               <span className="text-foreground">
-                👤 <span className="font-semibold text-muted-foreground">Usuario:</span> "{log.detail}"
+                👤 <span className="font-semibold text-muted-foreground">{l.labelUser}</span> "{log.detail}"
               </span>
             )}
 
             {log.eventType === "agent_message" && (
               <span className="text-foreground">
-                🤖 <span className="font-semibold text-purple-400">Respuesta:</span> "{log.detail}"
+                🤖 <span className="font-semibold text-purple-400">{l.labelResponse}</span> "{log.detail}"
               </span>
             )}
 
@@ -326,25 +329,25 @@ export function LogsConsolePage({
 
             {log.eventType === "text_delta" && (
               <span className="text-foreground block font-mono whitespace-pre-wrap mt-0.5 bg-card/30 p-1.5 rounded border border-input/10 leading-relaxed">
-                ✍️ <span className="font-semibold text-muted-foreground">Escribiendo:</span> {log.detail}
+                ✍️ <span className="font-semibold text-muted-foreground">{l.labelWriting}</span> {log.detail}
               </span>
             )}
 
             {log.eventType === "thinking_delta" && (
               <span className="text-primary/60 block font-mono whitespace-pre-wrap mt-0.5 bg-primary/5 p-1.5 rounded border border-primary/10 leading-relaxed">
-                🧠 <span className="font-semibold text-primary/80">Pensando:</span> {log.detail}
+                🧠 <span className="font-semibold text-primary/80">{l.labelThinking}</span> {log.detail}
               </span>
             )}
 
             {log.eventType === "tool_start" && (
               <span className="text-warning/80">
-                🛠️ <span className="font-bold font-mono">Tool Start:</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-muted-foreground/70 font-mono">{JSON.stringify(log.detail.args)}</span>)
+                🛠️ <span className="font-bold font-mono">{l.labelToolStart}</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-muted-foreground/70 font-mono">{JSON.stringify(log.detail.args)}</span>)
               </span>
             )}
 
             {log.eventType === "tool_end" && (
               <span className={log.detail.isError ? "text-destructive/80" : "text-primary/80"}>
-                {log.detail.isError ? "❌" : "✓"} <span className="font-bold font-mono">Tool End:</span> <span className={log.detail.isError ? "text-destructive" : "text-primary"}>{log.detail.toolName}</span> ({log.detail.isError ? "error" : "success"})
+                {log.detail.isError ? "❌" : "✓"} <span className="font-bold font-mono">{l.labelToolEnd}</span> <span className={log.detail.isError ? "text-destructive" : "text-primary"}>{log.detail.toolName}</span> ({log.detail.isError ? l.toolError : l.toolSuccess})
                 {!log.detail.isError && log.detail.result && (
                   <span className="text-muted-foreground/60 text-[10px] ml-2 block font-sans">
                     Resultado: {typeof log.detail.result === "string" ? log.detail.result.slice(0, 150) : JSON.stringify(log.detail.result).slice(0, 150)}...

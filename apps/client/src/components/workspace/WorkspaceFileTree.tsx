@@ -1,5 +1,7 @@
 import { useState, useCallback } from "react";
 import type { FileInfo } from "shared";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./WorkspaceFileTree.literals";
 
 interface FileTreeProps {
   files: FileInfo[];
@@ -40,6 +42,7 @@ function TreeNode({
   onCreate,
   pathContents,
 }: TreeNodeProps) {
+  const l = useLiterals(u);
   const isExpanded = expandedPaths.has(file.path);
   const [isEditing, setIsEditing] = useState(false);
   const [editName, setEditName] = useState(file.name);
@@ -194,7 +197,7 @@ function TreeNode({
                   setAddingType("file");
                 }}
                 className="p-1 text-muted-foreground hover:text-primary rounded transition-colors cursor-pointer"
-                title="New File"
+                title={l.newFile}
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M8 9a3 3 0 100-6 3 3 0 000 6zM8 11a6 6 0 016 6H2a6 6 0 016-6z" />
@@ -212,7 +215,7 @@ function TreeNode({
                   setAddingType("folder");
                 }}
                 className="p-1 text-muted-foreground hover:text-warning rounded transition-colors cursor-pointer"
-                title="New Folder"
+                title={l.newFolder}
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -226,7 +229,7 @@ function TreeNode({
               setIsEditing(true);
             }}
             className="p-1 text-muted-foreground hover:text-primary rounded transition-colors cursor-pointer"
-            title="Rename"
+            title={l.rename}
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.829z" />
@@ -238,7 +241,7 @@ function TreeNode({
               onDelete(file.path);
             }}
             className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors cursor-pointer"
-            title="Delete"
+            title={l.delete}
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
               <path
