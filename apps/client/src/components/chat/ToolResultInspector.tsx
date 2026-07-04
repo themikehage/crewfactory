@@ -191,8 +191,8 @@ export function HtmlFileFetcher({
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-text-secondary font-sans bg-surface rounded-lg border border-surface-hover">
-        <div className="w-3 h-3 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="flex items-center gap-2 px-3 py-2 text-[11px] text-muted-foreground font-sans bg-card rounded-lg border border-input">
+        <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
         Loading {title || "HTML file"}...
       </div>
     );
@@ -200,7 +200,7 @@ export function HtmlFileFetcher({
 
   if (error) {
     return (
-      <div className="px-3 py-2 text-[11px] text-error font-sans bg-surface rounded-lg border border-error/30">
+      <div className="px-3 py-2 text-[11px] text-destructive font-sans bg-card rounded-lg border border-error/30">
         Error loading {title || "HTML file"}: {error}
       </div>
     );
@@ -265,14 +265,14 @@ function MediaRenderer({
         const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
-          <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-surface-hover overflow-hidden bg-surface flex flex-col font-sans">
-            <div className="bg-surface-hover/50 px-3 py-1.5 border-b border-surface-hover flex items-center justify-between text-[11px] text-text-secondary">
+          <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-input overflow-hidden bg-card flex flex-col font-sans">
+            <div className="bg-card-hover/50 px-3 py-1.5 border-b border-input flex items-center justify-between text-[11px] text-muted-foreground">
               <span className="font-medium truncate">PDF Preview: {m.title || "Document"}</span>
               <a
                 href={fileUrl}
                 target="_blank"
                 rel="noreferrer"
-                className="px-2 py-0.5 rounded bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent font-semibold transition-colors cursor-pointer"
+                className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20 hover:bg-primary/25 text-primary font-semibold transition-colors cursor-pointer"
               >
                 Open in New Tab
               </a>
@@ -290,8 +290,8 @@ function MediaRenderer({
         const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
-          <div key={`audio-${i}`} className="w-full p-3 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
-            <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Audio output"}</span>
+          <div key={`audio-${i}`} className="w-full p-3 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
+            <span className="text-[11px] font-semibold text-muted-foreground truncate">{m.title || "Audio output"}</span>
             <audio controls src={fileUrl} className="w-full h-8 outline-none" />
           </div>
         );
@@ -301,9 +301,9 @@ function MediaRenderer({
         const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
-          <div key={`video-${i}`} className="w-full p-2 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
-            <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Video output"}</span>
-            <video controls src={fileUrl} className="w-full rounded border border-surface-hover max-h-96" />
+          <div key={`video-${i}`} className="w-full p-2 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
+            <span className="text-[11px] font-semibold text-muted-foreground truncate">{m.title || "Video output"}</span>
+            <video controls src={fileUrl} className="w-full rounded border border-input max-h-96" />
           </div>
         );
       })}
@@ -314,20 +314,20 @@ function MediaRenderer({
         const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
         const extension = m.url.split(".").pop() || "file";
         return (
-          <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-surface border border-surface-hover rounded-lg font-sans">
+          <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-card border border-input rounded-lg font-sans">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded bg-accent/15 flex items-center justify-center text-accent text-[10px] font-extrabold select-none shrink-0 border border-accent/20 uppercase">
+              <div className="w-9 h-9 rounded bg-primary/15 flex items-center justify-center text-primary text-[10px] font-extrabold select-none shrink-0 border border-primary/20 uppercase">
                 {extension.substring(0, 3)}
               </div>
               <div className="flex flex-col min-w-0">
-                <span className="text-xs font-semibold text-text-primary truncate">{filename}</span>
-                <span className="text-[9px] text-text-secondary/50 uppercase font-mono">{extension}</span>
+                <span className="text-xs font-semibold text-foreground truncate">{filename}</span>
+                <span className="text-[9px] text-muted-foreground/50 uppercase font-mono">{extension}</span>
               </div>
             </div>
             <a
               href={fileUrl}
               download={filename}
-              className="px-3 py-1.5 text-[11px] font-semibold rounded bg-accent text-bg hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
+              className="px-3 py-1.5 text-[11px] font-semibold rounded bg-primary text-background hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
             >
               Download
             </a>
@@ -369,22 +369,22 @@ export function ToolResultInspector({
   const hasMediaMarkers = markers.length > 0;
 
   return (
-    <div className="w-full my-1 rounded-lg border border-surface-hover bg-surface overflow-hidden text-xs font-sans">
+    <div className="w-full my-1 rounded-lg border border-input bg-card overflow-hidden text-xs font-sans">
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-surface-hover/50 transition-colors text-left cursor-pointer"
+        className="w-full flex items-center justify-between px-3 py-1.5 hover:bg-card-hover/50 transition-colors text-left cursor-pointer"
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
-          <span className="font-mono font-semibold text-text-primary truncate">{toolName}</span>
-          <span className="text-[10px] text-text-secondary/50">executed</span>
+          <span className="font-mono font-semibold text-foreground truncate">{toolName}</span>
+          <span className="text-[10px] text-muted-foreground/50">executed</span>
         </div>
         <svg
           width="12"
           height="12"
           viewBox="0 0 20 20"
           fill="currentColor"
-          className={`text-text-secondary transition-transform ${isOpen ? "rotate-90" : ""}`}
+          className={`text-muted-foreground transition-transform ${isOpen ? "rotate-90" : ""}`}
         >
           <path
             fillRule="evenodd"
@@ -395,10 +395,10 @@ export function ToolResultInspector({
       </button>
 
       {isOpen && (
-        <div className="border-t border-surface-hover">
+        <div className="border-t border-input">
           {args && Object.keys(args).length > 0 && (
-            <div className="px-3 py-1.5 bg-code-bg border-b border-surface-hover/40 text-[10px] text-text-secondary font-mono break-all">
-              <span className="text-text-secondary/50">params:</span>{" "}
+            <div className="px-3 py-1.5 bg-muted border-b border-input/40 text-[10px] text-muted-foreground font-mono break-all">
+              <span className="text-muted-foreground/50">params:</span>{" "}
               {JSON.stringify(args)}
             </div>
           )}
@@ -415,7 +415,7 @@ export function ToolResultInspector({
                 activeChannelId={activeChannelId}
               />
             ) : (
-              <pre className="whitespace-pre-wrap break-words text-text-secondary text-[11px] font-mono leading-relaxed bg-code-bg p-2.5 rounded-md max-h-96 overflow-y-auto">
+              <pre className="whitespace-pre-wrap break-words text-muted-foreground text-[11px] font-mono leading-relaxed bg-muted p-2.5 rounded-md max-h-96 overflow-y-auto">
                 {resultStr}
               </pre>
             )}

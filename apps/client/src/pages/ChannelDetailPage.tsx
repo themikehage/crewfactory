@@ -31,19 +31,19 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
 
   if (loading) {
     return (
-      <div className="h-full flex items-center justify-center bg-bg">
-        <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+      <div className="h-full flex items-center justify-center bg-background">
+        <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
       </div>
     );
   }
 
   if (error || !channel) {
     return (
-      <div className="h-full flex flex-col items-center justify-center bg-bg text-error gap-3">
+      <div className="h-full flex flex-col items-center justify-center bg-background text-destructive gap-3">
         <p className="text-sm font-medium">{error || "Channel not found"}</p>
         <button
           onClick={() => onNavigate("/channels")}
-          className="px-4 py-2 text-xs bg-surface border border-surface-hover text-text-primary rounded-lg hover:bg-surface-hover transition-colors"
+          className="px-4 py-2 text-xs bg-card border border-input text-foreground rounded-lg hover:bg-card-hover transition-colors"
         >
           Back to Channels
         </button>
@@ -52,13 +52,13 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
   }
 
   return (
-    <div className="h-full flex flex-col bg-bg overflow-hidden relative">
+    <div className="h-full flex flex-col bg-background overflow-hidden relative">
       {/* Header */}
-      <div className="h-12 px-4 border-b border-surface flex items-center justify-between flex-shrink-0 bg-surface/50 backdrop-blur-sm z-10">
+      <div className="h-12 px-4 border-b border-border flex items-center justify-between flex-shrink-0 bg-card/50 backdrop-blur-sm z-10">
         <div className="flex items-center gap-2 min-w-0">
           <button
             onClick={() => onNavigate("/channels")}
-            className="p-1 text-text-secondary hover:text-text-primary rounded transition-colors"
+            className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors"
             title="Back to Channels"
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -66,13 +66,13 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
             </svg>
           </button>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-accent font-bold text-base select-none">#</span>
-            <h2 className="text-sm font-semibold text-text-primary truncate">{channel.name}</h2>
+            <span className="text-primary font-bold text-base select-none">#</span>
+            <h2 className="text-sm font-semibold text-foreground truncate">{channel.name}</h2>
           </div>
           {channel.description && (
             <>
-              <span className="text-text-secondary/40 select-none hidden sm:inline">|</span>
-              <span className="text-xs text-text-secondary truncate hidden sm:inline max-w-xs">{channel.description}</span>
+              <span className="text-muted-foreground/40 select-none hidden sm:inline">|</span>
+              <span className="text-xs text-muted-foreground truncate hidden sm:inline max-w-xs">{channel.description}</span>
             </>
           )}
         </div>
@@ -82,8 +82,8 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
             onClick={() => setShowMembersSidebar((prev) => !prev)}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors ${
               showMembersSidebar
-                ? "bg-accent/10 border-accent/30 text-accent"
-                : "bg-surface border-surface-hover text-text-secondary hover:text-text-primary"
+                ? "bg-primary/10 border-primary/30 text-primary"
+                : "bg-card border-input text-muted-foreground hover:text-foreground"
             }`}
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">

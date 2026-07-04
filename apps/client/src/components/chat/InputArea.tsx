@@ -448,38 +448,38 @@ export function InputArea({
   };
 
   return (
-    <div className="border-t border-surface p-3 sm:p-4 bg-bg">
+    <div className="border-t border-border p-3 sm:p-4 bg-background">
       <div className="max-w-3xl mx-auto flex flex-col gap-2">
         {attachments.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-1.5 p-1.5 bg-surface/30 border border-surface-hover rounded-lg max-h-32 overflow-y-auto">
+          <div className="flex flex-wrap gap-2 mb-1.5 p-1.5 bg-card/30 border border-input rounded-lg max-h-32 overflow-y-auto">
             {attachments.map((att) => (
               <div
                 key={att.id}
-                className="relative group flex items-center gap-2 bg-surface border border-surface-hover rounded-md p-1.5 pr-2.5 max-w-[200px] text-[11px] shrink-0"
+                className="relative group flex items-center gap-2 bg-card border border-input rounded-md p-1.5 pr-2.5 max-w-[200px] text-[11px] shrink-0"
               >
                 {att.type === "image" && att.previewUrl ? (
                   <img
                     src={att.previewUrl}
                     alt="preview"
-                    className="w-8 h-8 object-cover rounded border border-surface-hover"
+                    className="w-8 h-8 object-cover rounded border border-input"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded bg-accent/10 border border-accent/20 flex items-center justify-center text-accent text-[9px] font-bold">
+                  <div className="w-8 h-8 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[9px] font-bold">
                     DOC
                   </div>
                 )}
                 <div className="flex-1 min-w-0 flex flex-col justify-center">
-                  <span className="text-text-primary truncate font-sans font-medium">
+                  <span className="text-foreground truncate font-sans font-medium">
                     {att.file.name}
                   </span>
-                  <span className="text-text-secondary/60 text-[9px]">
+                  <span className="text-muted-foreground/60 text-[9px]">
                     {(att.file.size / 1024).toFixed(1)} KB
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeAttachment(att.id)}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-error text-white hover:bg-error/95 flex items-center justify-center cursor-pointer shadow-sm text-[9px] font-bold"
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-white hover:bg-destructive/95 flex items-center justify-center cursor-pointer shadow-sm text-[9px] font-bold"
                 >
                   ×
                 </button>
@@ -492,7 +492,7 @@ export function InputArea({
             type="button"
             onClick={() => fileInputRef.current?.click()}
             disabled={runnerActive}
-            className="p-2 sm:p-3 bg-surface border border-surface-hover rounded-lg hover:border-accent hover:text-accent transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer text-text-secondary h-[42px] sm:h-[46px] w-[42px] sm:w-[46px]"
+            className="p-2 sm:p-3 bg-card border border-input rounded-lg hover:border-primary hover:text-primary transition-colors flex items-center justify-center flex-shrink-0 cursor-pointer text-muted-foreground h-[42px] sm:h-[46px] w-[42px] sm:w-[46px]"
             title="Attach files"
           >
             <svg
@@ -519,9 +519,9 @@ export function InputArea({
           {showMentionAC && filteredMentions.length > 0 && (
             <div
               ref={mentionACRef}
-              className="absolute bottom-full left-0 mb-1.5 w-56 bg-surface border border-accent/30 rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
+              className="absolute bottom-full left-0 mb-1.5 w-56 bg-card border border-primary/30 rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
             >
-              <div className="px-2.5 py-1.5 text-[10px] font-semibold text-text-secondary border-b border-surface-hover tracking-wide uppercase">
+              <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground border-b border-input tracking-wide uppercase">
                 Mention
               </div>
               {filteredMentions.map((t, idx) => (
@@ -530,11 +530,11 @@ export function InputArea({
                   onMouseDown={(e) => { e.preventDefault(); insertMention(t); }}
                   className={`w-full text-left px-3 py-2 flex items-center gap-2 transition-colors ${
                     idx === selectedMentionIndex
-                      ? "bg-accent/15 text-accent"
-                      : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
+                      ? "bg-primary/15 text-primary"
+                      : "text-muted-foreground hover:bg-card-hover/50 hover:text-foreground"
                   }`}
                 >
-                  <span className="w-5 h-5 rounded-full bg-accent/20 flex items-center justify-center text-accent font-bold text-[9px] shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[9px] shrink-0">
                     {t.name[0]?.toUpperCase()}
                   </span>
                   <span className="font-medium">@{t.name}</span>
@@ -545,18 +545,18 @@ export function InputArea({
           {showAutocomplete && filteredSkillsForAutocomplete.length > 0 && (
             <div
               ref={autocompleteRef}
-              className="absolute bottom-full left-0 mb-1.5 w-64 bg-surface border border-surface-hover rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
+              className="absolute bottom-full left-0 mb-1.5 w-64 bg-card border border-input rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
             >
               {filteredSkillsForAutocomplete.map((s, idx) => (
                 <button
                   key={s.name}
                   onClick={() => insertSkillReference(s.name)}
                   className={`w-full text-left px-3 py-2 flex flex-col gap-0.5 cursor-pointer transition-colors ${
-                    idx === selectedAutocompleteIndex ? "bg-surface-hover text-text-primary" : "text-text-secondary hover:bg-surface-hover/50 hover:text-text-primary"
+                    idx === selectedAutocompleteIndex ? "bg-card-hover text-foreground" : "text-muted-foreground hover:bg-card-hover/50 hover:text-foreground"
                   }`}
                 >
-                  <span className="font-mono font-bold text-text-primary">{`/${s.name}`}</span>
-                  <span className="text-[10px] text-text-secondary truncate max-w-full">{s.description}</span>
+                  <span className="font-mono font-bold text-foreground">{`/${s.name}`}</span>
+                  <span className="text-[10px] text-muted-foreground truncate max-w-full">{s.description}</span>
                 </button>
               ))}
             </div>
@@ -587,16 +587,16 @@ export function InputArea({
               : "Send a message... (Enter to send, Shift+Enter for new line)"
           }
           rows={1}
-          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-surface border border-surface-hover rounded-lg
-                     text-text-primary placeholder-text-secondary outline-none
-                     resize-none focus:border-accent transition-colors
+          className="flex-1 px-3 sm:px-4 py-2 sm:py-3 bg-card border border-input rounded-lg
+                     text-foreground placeholder-text-secondary outline-none
+                     resize-none focus:border-primary transition-colors
                      font-mono text-xs sm:text-sm"
         />
         {streaming ? (
           <div className="flex gap-1.5 sm:gap-2 flex-shrink-0 relative" ref={optionsRef}>
             <button
               onClick={onAbort}
-              className="px-3 sm:px-4 py-2 sm:py-3 bg-error text-white rounded-lg hover:opacity-90
+              className="px-3 sm:px-4 py-2 sm:py-3 bg-destructive text-white rounded-lg hover:opacity-90
                          transition-opacity flex-shrink-0 font-semibold text-xs sm:text-sm cursor-pointer"
             >
               Stop
@@ -605,7 +605,7 @@ export function InputArea({
               <button
                 onClick={() => handleSend("steer")}
                 disabled={!input.trim() || runnerActive}
-                className="px-3 sm:px-4 py-2 sm:py-3 bg-accent text-bg hover:opacity-90
+                className="px-3 sm:px-4 py-2 sm:py-3 bg-primary text-background hover:opacity-90
                            disabled:opacity-50 transition-opacity flex-shrink-0 font-semibold text-xs sm:text-sm cursor-pointer border-r border-bg/10"
               >
                 Steer
@@ -613,7 +613,7 @@ export function InputArea({
               <button
                 onClick={() => setShowOptions(!showOptions)}
                 disabled={!input.trim() || runnerActive}
-                className="px-2 py-2 sm:py-3 bg-accent text-bg hover:opacity-90
+                className="px-2 py-2 sm:py-3 bg-primary text-background hover:opacity-90
                            disabled:opacity-50 transition-opacity flex items-center justify-center cursor-pointer"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -622,13 +622,13 @@ export function InputArea({
               </button>
             </div>
             {showOptions && (
-              <div className="absolute bottom-full right-0 mb-1 w-32 bg-surface border border-surface-hover rounded-lg shadow-lg z-50 overflow-hidden text-xs">
+              <div className="absolute bottom-full right-0 mb-1 w-32 bg-card border border-input rounded-lg shadow-lg z-50 overflow-hidden text-xs">
                 <button
                   onClick={() => {
                     handleSend("follow_up");
                     setShowOptions(false);
                   }}
-                  className="w-full text-left px-3 py-2 hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+                  className="w-full text-left px-3 py-2 hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
                   Follow-up
                 </button>
@@ -639,7 +639,7 @@ export function InputArea({
           <button
             onClick={() => handleSend()}
             disabled={!input.trim() || runnerActive}
-            className="px-3 sm:px-4 py-2 sm:py-3 bg-accent text-bg rounded-lg hover:opacity-90
+            className="px-3 sm:px-4 py-2 sm:py-3 bg-primary text-background rounded-lg hover:opacity-90
                        disabled:opacity-50 transition-opacity flex-shrink-0 font-semibold text-xs sm:text-sm cursor-pointer"
           >
             Send

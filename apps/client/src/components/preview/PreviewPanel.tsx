@@ -215,21 +215,21 @@ export function PreviewPanel({ activeRepoName }: Props) {
         );
       case "ready":
         return (
-          <div className={`${base} bg-success/10 border-success/30 text-success`}>
-            <div className="w-3 h-3 rounded-full bg-success" />
+          <div className={`${base} bg-primary/10 border-success/30 text-primary`}>
+            <div className="w-3 h-3 rounded-full bg-primary" />
             Ready
           </div>
         );
       case "error":
         return (
-          <div className={`${base} bg-error/10 border-error/30 text-error`}>
-            <div className="w-3 h-3 rounded-full bg-error" />
+          <div className={`${base} bg-destructive/10 border-error/30 text-destructive`}>
+            <div className="w-3 h-3 rounded-full bg-destructive" />
             Build failed
           </div>
         );
       default:
         return (
-          <div className={`${base} bg-text-secondary/5 border-text-secondary/15 text-text-secondary/50`}>
+          <div className={`${base} bg-text-secondary/5 border-text-secondary/15 text-muted-foreground/50`}>
             <div className="w-3 h-3 rounded-full bg-text-secondary/20" />
             No build yet
           </div>
@@ -238,9 +238,9 @@ export function PreviewPanel({ activeRepoName }: Props) {
   };
 
   return (
-    <div className="w-full h-full flex flex-col bg-bg">
+    <div className="w-full h-full flex flex-col bg-background">
       {/* Toolbar */}
-      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-surface bg-surface/60 flex-shrink-0">
+      <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/60 flex-shrink-0">
         <div className="flex items-center gap-2">
           {statusBadge()}
           {repoName && (
@@ -248,7 +248,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
               <button
                 onClick={handleBuildNow}
                 disabled={isBuilding}
-                className="px-2 py-1 text-[10px] font-medium bg-accent text-black rounded-md hover:bg-accent/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+                className="px-2 py-1 text-[10px] font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
               >
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
                   <polygon points="2,0 10,5 2,10" />
@@ -257,7 +257,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
               </button>
               <button
                 onClick={handleOpenConfig}
-                className="p-1 text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 rounded transition-colors cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
                 title="Configure Preview"
               >
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -275,7 +275,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
         <div className="flex items-center gap-2">
           <button
             onClick={handleReload}
-            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 rounded transition-colors cursor-pointer"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
             title="Reload preview"
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -289,7 +289,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
 
           <button
             onClick={handleOpenNewTab}
-            className="p-1.5 text-text-secondary hover:text-text-primary hover:bg-surface-hover/50 rounded transition-colors cursor-pointer"
+            className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
             title="Open in new tab"
           >
             <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
@@ -302,14 +302,14 @@ export function PreviewPanel({ activeRepoName }: Props) {
 
       {/* Build log panel */}
       {logOpen && buildLogs.length > 0 && (
-        <div className="flex-shrink-0 border-b border-surface">
-          <div className="flex items-center justify-between px-3 py-1 bg-code-bg/80">
-            <span className="text-[10px] font-mono text-text-secondary font-semibold uppercase tracking-wider">
+        <div className="flex-shrink-0 border-b border-border">
+          <div className="flex items-center justify-between px-3 py-1 bg-muted/80">
+            <span className="text-[10px] font-mono text-muted-foreground font-semibold uppercase tracking-wider">
               Build Log
             </span>
             <button
               onClick={() => setLogOpen(false)}
-              className="text-text-secondary hover:text-text-primary cursor-pointer"
+              className="text-muted-foreground hover:text-foreground cursor-pointer"
             >
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                 <path
@@ -320,15 +320,15 @@ export function PreviewPanel({ activeRepoName }: Props) {
               </svg>
             </button>
           </div>
-          <pre className="max-h-40 overflow-y-auto bg-code-bg/40 p-3 text-[11px] font-mono text-text-secondary leading-relaxed">
+          <pre className="max-h-40 overflow-y-auto bg-muted/40 p-3 text-[11px] font-mono text-muted-foreground leading-relaxed">
             {buildLogs.map((line, i) => (
               <div
                 key={i}
                 className={
                   line.startsWith("$ ")
-                    ? "text-accent/80"
+                    ? "text-primary/80"
                     : line.startsWith("Build")
-                      ? "text-text-primary"
+                      ? "text-foreground"
                       : ""
                 }
               >
@@ -342,16 +342,16 @@ export function PreviewPanel({ activeRepoName }: Props) {
 
       {/* Error banner */}
       {previewState?.status === "error" && previewState?.error && !logOpen && (
-        <div className="px-3 py-1.5 bg-error/10 border-b border-error/20 text-error text-[10px] font-mono leading-relaxed flex-shrink-0 max-h-16 overflow-y-auto">
+        <div className="px-3 py-1.5 bg-destructive/10 border-b border-error/20 text-destructive text-[10px] font-mono leading-relaxed flex-shrink-0 max-h-16 overflow-y-auto">
           {previewState.error}
         </div>
       )}
 
       {/* Iframe container */}
-      <div className="flex-1 flex items-start justify-center overflow-auto bg-code-bg p-2 sm:p-4 min-h-0">
+      <div className="flex-1 flex items-start justify-center overflow-auto bg-muted p-2 sm:p-4 min-h-0">
         {!repoName ||
         (previewState?.status === "idle" && !previewState?.distExists && buildLogs.length === 0) ? (
-          <div className="flex flex-col items-center justify-center h-full text-text-secondary/60 gap-3">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 gap-3">
             <svg
               width="48"
               height="48"
@@ -375,13 +375,13 @@ export function PreviewPanel({ activeRepoName }: Props) {
               <div className="flex gap-2 mt-1">
                 <button
                   onClick={handleOpenConfig}
-                  className="px-3 py-1.5 text-xs font-medium bg-surface-hover text-text-primary rounded-md hover:bg-surface-hover/70 transition-colors cursor-pointer"
+                  className="px-3 py-1.5 text-xs font-medium bg-card-hover text-foreground rounded-md hover:bg-card-hover/70 transition-colors cursor-pointer"
                 >
                   Configure
                 </button>
                 <button
                   onClick={handleBuildNow}
-                  className="px-3 py-1.5 text-xs font-medium bg-accent text-black rounded-md hover:bg-accent/90 transition-colors cursor-pointer flex items-center gap-1"
+                  className="px-3 py-1.5 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors cursor-pointer flex items-center gap-1"
                 >
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
                     <polygon points="2,0 10,5 2,10" />
@@ -411,14 +411,14 @@ export function PreviewPanel({ activeRepoName }: Props) {
             className="fixed inset-0 bg-black/40 z-40"
             onClick={() => setConfigOpen(false)}
           />
-          <div className="fixed right-0 top-0 h-full w-80 sm:w-96 bg-surface border-l border-surface-hover z-50 flex flex-col shadow-2xl">
-            <div className="flex items-center justify-between px-4 py-3 border-b border-surface-hover">
-              <span className="text-sm font-semibold text-text-primary">
+          <div className="fixed right-0 top-0 h-full w-80 sm:w-96 bg-card border-l border-input z-50 flex flex-col shadow-2xl">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-input">
+              <span className="text-sm font-semibold text-foreground">
                 Preview Settings
               </span>
               <button
                 onClick={() => setConfigOpen(false)}
-                className="text-text-secondary hover:text-text-primary cursor-pointer"
+                className="text-muted-foreground hover:text-foreground cursor-pointer"
               >
                 <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
                   <path
@@ -432,7 +432,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Framework
                 </label>
                 <select
@@ -461,7 +461,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
                       setConfigForm((prev) => ({ ...prev, framework: fw }));
                     }
                   }}
-                  className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1.5 rounded text-xs transition-all"
+                  className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1.5 rounded text-xs transition-all"
                 >
                   {Object.entries(FRAMEWORK_LABELS).map(([value, label]) => (
                     <option key={value} value={value}>
@@ -472,7 +472,7 @@ export function PreviewPanel({ activeRepoName }: Props) {
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Build Command
                 </label>
                 <input
@@ -490,15 +490,15 @@ export function PreviewPanel({ activeRepoName }: Props) {
                       : "e.g. npm run build"
                   }
                   disabled={configForm.framework === "html"}
-                  className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1.5 rounded text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed font-mono"
+                  className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1.5 rounded text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed font-mono"
                 />
-                <p className="text-[10px] text-text-secondary/50 mt-1">
+                <p className="text-[10px] text-muted-foreground/50 mt-1">
                   Shell command to build the project (runs in the repo root)
                 </p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-text-secondary mb-1.5">
+                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Output Directory
                 </label>
                 <input
@@ -511,25 +511,25 @@ export function PreviewPanel({ activeRepoName }: Props) {
                     }))
                   }
                   placeholder="dist"
-                  className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1.5 rounded text-xs transition-all font-mono"
+                  className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1.5 rounded text-xs transition-all font-mono"
                 />
-                <p className="text-[10px] text-text-secondary/50 mt-1">
+                <p className="text-[10px] text-muted-foreground/50 mt-1">
                   Relative path to the build output directory
                 </p>
               </div>
             </div>
 
-            <div className="border-t border-surface-hover p-4 flex gap-2">
+            <div className="border-t border-input p-4 flex gap-2">
               <button
                 onClick={() => setConfigOpen(false)}
-                className="flex-1 px-3 py-2 text-xs font-medium bg-surface-hover text-text-primary rounded-md hover:bg-surface-hover/70 transition-colors cursor-pointer"
+                className="flex-1 px-3 py-2 text-xs font-medium bg-card-hover text-foreground rounded-md hover:bg-card-hover/70 transition-colors cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 onClick={handleSaveConfig}
                 disabled={saving}
-                className="flex-1 px-3 py-2 text-xs font-medium bg-accent text-black rounded-md hover:bg-accent/90 transition-colors disabled:opacity-50 cursor-pointer"
+                className="flex-1 px-3 py-2 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
               >
                 {saving ? "Saving..." : "Save"}
               </button>

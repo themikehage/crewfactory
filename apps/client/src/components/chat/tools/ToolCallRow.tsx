@@ -38,7 +38,7 @@ interface Props {
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
   ls: {
     label: "ls",
-    colorClass: "text-accent",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
@@ -47,7 +47,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   find: {
     label: "find",
-    colorClass: "text-accent",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="11" cy="11" r="8" />
@@ -57,7 +57,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   write: {
     label: "write",
-    colorClass: "text-success",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path d="M13.586 3.586a2 2 0 112.828 2.828l-.793.793-2.828-2.828.793-.793zM11.379 5.793L3 14.172V17h2.828l8.38-8.379-2.83-2.828z" />
@@ -66,7 +66,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   read: {
     label: "read",
-    colorClass: "text-text-secondary",
+    colorClass: "text-muted-foreground",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path d="M10 12a2 2 0 100-4 2 2 0 000 4z" />
@@ -97,7 +97,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   bash: {
     label: "bash",
-    colorClass: "text-success",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
         <polyline points="4 17 10 11 4 5" />
@@ -178,7 +178,7 @@ function ToolBody({ toolName, args, result }: { toolName: string; args: Record<s
     case "bash": return <BashResult text={text} command={(args.command as string) || ""} isError={result.isError} />;
     default:
       return (
-        <pre className="text-[11px] font-mono text-text-secondary whitespace-pre-wrap break-all bg-code-bg p-3 rounded-md max-h-48 overflow-y-auto">
+        <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
           {text}
         </pre>
       );
@@ -200,7 +200,7 @@ export function ToolCallRow({
 
   const meta = TOOL_META[toolName] ?? {
     label: toolName,
-    colorClass: "text-text-secondary",
+    colorClass: "text-muted-foreground",
     icon: <span className="w-3 h-3 rounded-full bg-text-secondary/30" />,
   };
 
@@ -211,12 +211,12 @@ export function ToolCallRow({
 
   return (
     <div className={`my-1.5 rounded-lg border overflow-hidden transition-colors ${
-      hasError ? "border-error/40 bg-error/5" : "border-surface-hover bg-surface/50"
+      hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
     }`}>
       <button
         onClick={() => !running && setExpanded(!expanded)}
         disabled={running}
-        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-surface-hover/40 transition-colors text-left cursor-pointer disabled:cursor-default"
+        className="w-full flex items-center gap-2 px-3 py-2 hover:bg-card-hover/40 transition-colors text-left cursor-pointer disabled:cursor-default"
       >
         <span className={`flex-shrink-0 ${meta.colorClass}`}>{meta.icon}</span>
 
@@ -224,7 +224,7 @@ export function ToolCallRow({
           {meta.label}
         </span>
 
-        <span className="font-mono text-[11px] text-text-secondary/60 truncate min-w-0 flex-1">
+        <span className="font-mono text-[11px] text-muted-foreground/60 truncate min-w-0 flex-1">
           {argSummary}
         </span>
 
@@ -235,15 +235,15 @@ export function ToolCallRow({
               running
             </span>
           ) : hasError ? (
-            <span className="flex items-center gap-1.5 text-[10px] text-error">
+            <span className="flex items-center gap-1.5 text-[10px] text-destructive">
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               error
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-[10px] text-text-secondary/50">
-              <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="text-success/70">
+            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+              <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="text-primary/70">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
               {resultSummary}
@@ -253,7 +253,7 @@ export function ToolCallRow({
           {!running && (
             <svg
               width="11" height="11" viewBox="0 0 20 20" fill="currentColor"
-              className={`text-text-secondary/40 transition-transform ${expanded ? "rotate-90" : ""}`}
+              className={`text-muted-foreground/40 transition-transform ${expanded ? "rotate-90" : ""}`}
             >
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>
@@ -262,7 +262,7 @@ export function ToolCallRow({
       </button>
 
       {expanded && result && (
-        <div className="px-3 pb-3 pt-1 border-t border-surface-hover/40">
+        <div className="px-3 pb-3 pt-1 border-t border-input/40">
           <ToolBody toolName={toolName} args={args} result={result} />
         </div>
       )}

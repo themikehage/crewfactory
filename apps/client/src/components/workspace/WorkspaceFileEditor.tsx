@@ -153,7 +153,7 @@ export function WorkspaceFileEditor({
 
   if (!file) {
     return (
-      <div className="h-full flex flex-col items-center justify-center text-text-secondary/50 font-sans border-t border-surface sm:border-t-0 sm:border-l border-surface">
+      <div className="h-full flex flex-col items-center justify-center text-muted-foreground/50 font-sans border-t border-border sm:border-t-0 sm:border-l border-border">
         <svg
           width="32"
           height="32"
@@ -215,24 +215,24 @@ export function WorkspaceFileEditor({
   };
 
   return (
-    <div className="h-full flex flex-col bg-bg border-t border-surface sm:border-t-0 sm:border-l border-surface">
+    <div className="h-full flex flex-col bg-background border-t border-border sm:border-t-0 sm:border-l border-border">
       {/* Fullscreen HTML Preview Overlay */}
       {isFullscreen && (
-        <div className="fixed inset-0 z-50 bg-bg flex flex-col font-sans select-none animate-fade-in">
-          <div className="h-10 px-4 border-b border-surface flex items-center justify-between bg-bg flex-shrink-0">
-            <span className="text-xs font-mono font-semibold text-text-primary truncate">
+        <div className="fixed inset-0 z-50 bg-background flex flex-col font-sans select-none animate-fade-in">
+          <div className="h-10 px-4 border-b border-border flex items-center justify-between bg-background flex-shrink-0">
+            <span className="text-xs font-mono font-semibold text-foreground truncate">
               Fullscreen Preview - {file.name}
             </span>
             <div className="flex items-center gap-3">
               <button
                 onClick={handleOpenRaw}
-                className="px-2.5 py-1 bg-surfaceHover hover:bg-surfaceHover/80 text-text-primary text-[10px] rounded font-semibold transition-colors flex items-center gap-1 cursor-pointer"
+                className="px-2.5 py-1 bg-surfaceHover hover:bg-surfaceHover/80 text-foreground text-[10px] rounded font-semibold transition-colors flex items-center gap-1 cursor-pointer"
               >
                 New Tab
               </button>
               <button
                 onClick={() => setIsFullscreen(false)}
-                className="px-2.5 py-1 bg-accent hover:bg-accent/80 text-text-primary text-[10px] rounded font-semibold transition-colors cursor-pointer"
+                className="px-2.5 py-1 bg-primary hover:bg-primary/80 text-foreground text-[10px] rounded font-semibold transition-colors cursor-pointer"
               >
                 Exit Fullscreen
               </button>
@@ -249,24 +249,24 @@ export function WorkspaceFileEditor({
       )}
 
       {/* Editor Header Bar */}
-      <div className="h-9 px-3 border-b border-surface flex items-center justify-between flex-shrink-0 bg-bg/80">
+      <div className="h-9 px-3 border-b border-border flex items-center justify-between flex-shrink-0 bg-background/80">
         <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-mono font-semibold text-text-primary truncate max-w-[100px] sm:max-w-none">
+          <span className="text-xs font-mono font-semibold text-foreground truncate max-w-[100px] sm:max-w-none">
             {file.name}
           </span>
           {dirty && (
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse flex-shrink-0" />
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse flex-shrink-0" />
           )}
 
           {/* HTML Tab Switcher */}
           {isHtml && (
-            <div className="flex bg-bg rounded p-0.5 border border-surface ml-2">
+            <div className="flex bg-background rounded p-0.5 border border-border ml-2">
               <button
                 onClick={() => setActiveTab("code")}
                 className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${
                   activeTab === "code"
-                    ? "bg-surfaceHover text-text-primary"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "bg-surfaceHover text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Code
@@ -275,8 +275,8 @@ export function WorkspaceFileEditor({
                 onClick={() => setActiveTab("preview")}
                 className={`px-2 py-0.5 rounded text-[9px] font-semibold transition-all cursor-pointer ${
                   activeTab === "preview"
-                    ? "bg-surfaceHover text-text-primary"
-                    : "text-text-secondary hover:text-text-primary"
+                    ? "bg-surfaceHover text-foreground"
+                    : "text-muted-foreground hover:text-foreground"
                 }`}
               >
                 Preview
@@ -287,7 +287,7 @@ export function WorkspaceFileEditor({
 
         <div className="flex items-center gap-2">
           {saveStatus === "success" && (
-            <span className="text-[10px] text-success font-sans flex items-center gap-1 animate-fade-in">
+            <span className="text-[10px] text-primary font-sans flex items-center gap-1 animate-fade-in">
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                 <path
                   fillRule="evenodd"
@@ -301,7 +301,7 @@ export function WorkspaceFileEditor({
 
           {saveStatus === "error" && (
             <span
-              className="text-[10px] text-error font-sans truncate max-w-[100px]"
+              className="text-[10px] text-destructive font-sans truncate max-w-[100px]"
               title={errorMsg}
             >
               Error
@@ -314,8 +314,8 @@ export function WorkspaceFileEditor({
               disabled={saving || !dirty}
               className={`flex items-center gap-1 px-2.5 py-0.5 rounded text-[10px] font-sans font-semibold transition-all cursor-pointer ${
                 dirty
-                  ? "bg-accent text-text-primary hover:bg-accent/80 active:scale-95 shadow-sm"
-                  : "bg-surfaceHover/30 text-text-secondary/40 cursor-not-allowed"
+                  ? "bg-primary text-foreground hover:bg-primary/80 active:scale-95 shadow-sm"
+                  : "bg-surfaceHover/30 text-muted-foreground/40 cursor-not-allowed"
               }`}
             >
               {saving ? (
@@ -330,7 +330,7 @@ export function WorkspaceFileEditor({
             <>
               <button
                 onClick={() => setIsFullscreen(true)}
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-muted-foreground hover:text-foreground hover:bg-surfaceHover/50 transition-colors cursor-pointer"
                 title="Fullscreen Preview"
               >
                 <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
@@ -340,7 +340,7 @@ export function WorkspaceFileEditor({
               </button>
               <button
                 onClick={handleOpenRaw}
-                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors cursor-pointer"
+                className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-muted-foreground hover:text-foreground hover:bg-surfaceHover/50 transition-colors cursor-pointer"
                 title="Open in new tab"
               >
                 <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
@@ -354,7 +354,7 @@ export function WorkspaceFileEditor({
 
           <button
             onClick={handleDownload}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 transition-colors cursor-pointer"
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-sans font-semibold text-muted-foreground hover:text-foreground hover:bg-surfaceHover/50 transition-colors cursor-pointer"
             title="Download file"
           >
             <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor">
@@ -380,7 +380,7 @@ export function WorkspaceFileEditor({
             }}
             onKeyDown={handleKeyDown}
             spellCheck={false}
-            className="w-full h-full bg-transparent text-text-primary font-mono text-[11px] leading-relaxed p-3.5 outline-none resize-none border-0 focus:ring-0"
+            className="w-full h-full bg-transparent text-foreground font-mono text-[11px] leading-relaxed p-3.5 outline-none resize-none border-0 focus:ring-0"
             placeholder="File is empty"
           />
         ) : isHtml && activeTab === "preview" ? (
@@ -396,17 +396,17 @@ export function WorkspaceFileEditor({
             <img
               src={previewBlobUrl || ""}
               alt={file.name}
-              className="max-w-full max-h-full object-contain rounded border border-surface shadow-md"
+              className="max-w-full max-h-full object-contain rounded border border-border shadow-md"
             />
           </div>
         ) : (
-          <div className="w-full h-full flex flex-col items-center justify-center text-text-secondary font-sans p-6 text-center">
+          <div className="w-full h-full flex flex-col items-center justify-center text-muted-foreground font-sans p-6 text-center">
             <svg
               width="24"
               height="24"
               viewBox="0 0 20 20"
               fill="currentColor"
-              className="text-text-secondary/50 mb-2"
+              className="text-muted-foreground/50 mb-2"
             >
               <path
                 fillRule="evenodd"
@@ -415,12 +415,12 @@ export function WorkspaceFileEditor({
               />
             </svg>
             <p className="text-xs mb-3 font-semibold">Binary or unsupported preview file type</p>
-            <p className="text-[10px] text-text-secondary/50 mb-4 max-w-xs">
+            <p className="text-[10px] text-muted-foreground/50 mb-4 max-w-xs">
               File: {file.name} ({Math.round(file.size / 1024)} KB)
             </p>
             <button
               onClick={handleDownload}
-              className="px-4 py-1.5 bg-surfaceHover hover:bg-surfaceHover/80 text-text-primary text-xs rounded font-semibold transition-colors cursor-pointer"
+              className="px-4 py-1.5 bg-surfaceHover hover:bg-surfaceHover/80 text-foreground text-xs rounded font-semibold transition-colors cursor-pointer"
             >
               Download File
             </button>

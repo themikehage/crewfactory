@@ -35,14 +35,14 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
 
   const pct = contextUsage?.percent ?? 0;
   const barColor =
-    pct >= 90 ? "bg-error" :
+    pct >= 90 ? "bg-destructive" :
     pct >= 70 ? "bg-warning" :
-    "bg-accent";
+    "bg-primary";
 
   const textColor =
-    pct >= 90 ? "text-error" :
+    pct >= 90 ? "text-destructive" :
     pct >= 70 ? "text-warning" :
-    "text-accent";
+    "text-primary";
 
   const formatNum = (n: number) => n.toLocaleString();
 
@@ -52,20 +52,20 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
   };
 
   return (
-    <div className="border-t border-surface bg-bg">
+    <div className="border-t border-border bg-background">
       <button
         onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2 px-3 sm:px-4 py-1.5 cursor-pointer hover:bg-surface/50 transition-colors"
+        className="w-full flex items-center gap-2 px-3 sm:px-4 py-1.5 cursor-pointer hover:bg-card/50 transition-colors"
       >
         <svg
           width="10" height="10" viewBox="0 0 20 20" fill="currentColor"
-          className={`text-text-secondary transition-transform flex-shrink-0 ${open ? "rotate-90" : ""}`}
+          className={`text-muted-foreground transition-transform flex-shrink-0 ${open ? "rotate-90" : ""}`}
         >
           <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
         </svg>
         <div className="flex-1 flex items-center gap-2 min-w-0">
           {showContextBar && (
-            <div className="flex-1 h-1 bg-surface rounded-full overflow-hidden max-w-[120px]">
+            <div className="flex-1 h-1 bg-card rounded-full overflow-hidden max-w-[120px]">
               <div
                 className={`h-full rounded-full transition-all duration-300 ${barColor}`}
                 style={{ width: `${Math.min(pct, 100)}%` }}
@@ -78,14 +78,14 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
             </span>
           )}
           {showContextBar && (
-            <span className="text-[10px] font-mono text-text-secondary whitespace-nowrap">
+            <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
               / {formatNum(contextUsage.contextWindow!)}
             </span>
           )}
         </div>
         <svg
           width="10" height="10" viewBox="0 0 20 20" fill="currentColor"
-          className={`text-text-secondary transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`}
+          className={`text-muted-foreground transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`}
         >
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
@@ -100,7 +100,7 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
               </span>
             )}
             {hasStats && (
-              <span className="text-text-secondary">
+              <span className="text-muted-foreground">
                 {" · "}Total: {formatNum(sessionStats.tokens.total)} ({formatNum(sessionStats.tokens.input)} in / {formatNum(sessionStats.tokens.output)} out)
               </span>
             )}
@@ -109,8 +109,8 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
             {onRefresh && (
               <button
                 onClick={onRefresh}
-                className="flex-shrink-0 p-1.5 rounded border border-surface-hover text-text-secondary
-                           hover:text-accent hover:border-accent transition-colors cursor-pointer"
+                className="flex-shrink-0 p-1.5 rounded border border-input text-muted-foreground
+                           hover:text-primary hover:border-primary transition-colors cursor-pointer"
                 title="Refresh context usage"
               >
                 <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
@@ -121,8 +121,8 @@ export function ContextMeter({ contextUsage, sessionStats, onCompact, onRefresh 
             <button
               onClick={handleCompact}
               disabled={compacting}
-              className="flex-shrink-0 px-2.5 py-1 rounded border border-surface-hover text-[10px] font-semibold
-                         text-text-secondary hover:text-accent hover:border-accent disabled:opacity-50
+              className="flex-shrink-0 px-2.5 py-1 rounded border border-input text-[10px] font-semibold
+                         text-muted-foreground hover:text-primary hover:border-primary disabled:opacity-50
                          disabled:cursor-not-allowed transition-colors cursor-pointer"
             >
               {compacting ? "Compacting..." : "Compact"}

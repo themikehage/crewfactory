@@ -2,7 +2,7 @@
 **Type:** PRODUCTION
 **Description:** Web interface for CrewFactory with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Wraps the @earendil-works/pi-coding-agent SDK.
 **Stack:** Bun, Hono, React 19, Vite, TypeScript (strict), Tailwind CSS v4, Framer Motion, WebSocket
-**Theme:** Slack Aubergine (light) with dark mode support
+**Theme:** oklch theme (Tailwind CSS v4) with light and dark mode (dark by default)
 **Deployment Target:** Coolify (Docker)
 **Database Tier:** No database (localStorage client-side, filesystem sessions server-side at /tmp/crewfactory)
 
@@ -56,9 +56,9 @@
 - Responsive padding, font sizes, and button sizing throughout
 
 ### Theme
-- Supabase dark theme via tailwindcss-tweakcn
-- Colors: bg #121212, surface #171717, accent green #4ade80
-- Typography: Outfit (display/body), JetBrains Mono (mono)
+- oklch theme with light and dark mode support (dark by default)
+- Colors: defined dynamically using oklch values (bg, card, popover, primary, secondary, muted, accent, destructive, border, input, ring, sidebar, etc.)
+- Typography: Outfit (sans), JetBrains Mono (mono)
 - Design tokens via Tailwind CSS v4 @theme (always use semantic tokens, no raw hex in code)
 
 ### Workspace & Hybrid Agent Instantiation
@@ -147,7 +147,7 @@
 - **Decoupled Architecture**: No hardcoding or concrete project coupling. Standardized blueprints loaded dynamically from JSON configurations (`apps/server/src/laboratory/blueprints/`).
 - **Sequential Multi-Variant Runs**: Executes three variants sequentially to prevent rate limits:
   1. **Single Agent (Baseline)**: Virtual single-agent channel.
-  2. **Multi-Agent No Leader (Horizontal)**: Direct debate with open broadcast reply mode.
+  2. **Multi-Agent No Leader (Horizontal)**: Direct debate using a sequential round-robin execution loop with consensus barriers to prevent infinite chatter loops.
   3. **Multi-Agent With Leader (Hierarchical)**: Targeted debate moderated by a lead agent with a structured negotiation protocol (agreement, counter-offers, round tracking, escalations).
 - **LLM-Judge Evaluation**: Automated judge scoring outputs from 0-100 on customizable criteria, providing reasons.
 - **Compound Scoring Engine**: Computes Global Score based on weights (50% Quality, 30% Efficiency, 20% Negotiation). Efficiency calculated using execution time and token overhead relative to Single Agent baseline.

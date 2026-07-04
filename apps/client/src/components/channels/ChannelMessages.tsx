@@ -20,13 +20,13 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 min-h-0">
       {messages.length === 0 && activeStreamList.length === 0 && (
-        <div className="flex flex-col items-center justify-center h-full text-text-secondary text-sm gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-surface border border-surface-hover flex items-center justify-center">
-            <span className="text-accent font-bold text-lg">#</span>
+        <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-3">
+          <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
+            <span className="text-primary font-bold text-lg">#</span>
           </div>
           <div className="text-center">
-            <p className="font-medium text-text-primary text-sm">No messages in this channel yet</p>
-            <p className="text-xs text-text-secondary/60 mt-1">Send a message below to trigger channel agents</p>
+            <p className="font-medium text-foreground text-sm">No messages in this channel yet</p>
+            <p className="text-xs text-muted-foreground/60 mt-1">Send a message below to trigger channel agents</p>
           </div>
         </div>
       )}
@@ -42,7 +42,7 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
                 A
               </div>
             )}
-            <span className="text-xs font-semibold text-text-primary">
+            <span className="text-xs font-semibold text-foreground">
               {msg.role === "user" ? "You" : msg.agentName || msg.agentId || "Agent"}
             </span>
             {msg.role === "agent" && (
@@ -50,7 +50,7 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
                 AGENT
               </span>
             )}
-            <span className="text-[10px] text-text-secondary/50">
+            <span className="text-[10px] text-muted-foreground/50">
               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -58,8 +58,8 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
           <div
             className={`max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
               msg.role === "user"
-                ? "bg-accent/15 text-text-primary border border-accent/20 rounded-tr-none"
-                : "bg-surface text-text-primary border border-surface-hover rounded-tl-none shadow-sm"
+                ? "bg-primary/15 text-foreground border border-primary/20 rounded-tr-none"
+                : "bg-card text-foreground border border-input rounded-tl-none shadow-sm"
             }`}
           >
             <RichMarkdown content={msg.content} />
@@ -73,7 +73,7 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
             <div className="w-4 h-4 rounded-full bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-[9px] font-bold text-blue-400">
               A
             </div>
-            <span className="text-xs font-semibold text-text-primary">
+            <span className="text-xs font-semibold text-foreground">
               {stream.agentName || stream.agentId}
             </span>
             <span className="text-[10px] bg-blue-400/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5">
@@ -82,17 +82,17 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
             </span>
           </div>
 
-          <div className="max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl rounded-tl-none bg-surface text-text-primary border border-surface-hover shadow-sm text-sm leading-relaxed">
+          <div className="max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl rounded-tl-none bg-card text-foreground border border-input shadow-sm text-sm leading-relaxed">
             {stream.text ? (
               <RichMarkdown content={stream.text} />
             ) : (
-              <div className="flex items-center gap-2 h-6 text-text-secondary/60 italic text-xs">
+              <div className="flex items-center gap-2 h-6 text-muted-foreground/60 italic text-xs">
                 <span>Generating response...</span>
                 <div className="flex gap-1 items-center">
                   {[0, 1, 2].map((i) => (
                     <span
                       key={i}
-                      className="w-1.5 h-1.5 rounded-full bg-accent/60 animate-bounce"
+                      className="w-1.5 h-1.5 rounded-full bg-primary/60 animate-bounce"
                       style={{ animationDelay: `${i * 0.15}s` }}
                     />
                   ))}

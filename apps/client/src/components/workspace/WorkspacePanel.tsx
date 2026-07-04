@@ -310,9 +310,9 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
   }, [files, pathContents, searchQuery]);
 
   return (
-    <div className="w-full h-full flex flex-col bg-surface overflow-hidden border-l border-surface select-none">
+    <div className="w-full h-full flex flex-col bg-card overflow-hidden border-l border-border select-none">
       {error && (
-        <div className="px-3 py-1.5 bg-error/10 border-b border-error/20 text-error text-[10px] flex items-center justify-between flex-shrink-0">
+        <div className="px-3 py-1.5 bg-destructive/10 border-b border-error/20 text-destructive text-[10px] flex items-center justify-between flex-shrink-0">
           <span className="truncate">{error}</span>
           <button onClick={() => setError(null)} className="underline cursor-pointer flex-shrink-0 ml-2">
             Dismiss
@@ -321,23 +321,23 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
       )}
 
       <div className="flex-1 flex flex-col md:flex-row overflow-hidden min-h-0">
-        <div className="w-full md:w-64 lg:w-64 border-b md:border-b-0 md:border-r border-surface flex flex-col overflow-hidden p-3 bg-surface/20 flex-shrink-0 min-h-[250px] md:min-h-0 md:h-full">
+        <div className="w-full md:w-64 lg:w-64 border-b md:border-b-0 md:border-r border-border flex flex-col overflow-hidden p-3 bg-card/20 flex-shrink-0 min-h-[250px] md:min-h-0 md:h-full">
           <div className="mb-2.5 flex-shrink-0">
             <input
               type="text"
               placeholder="Search files..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-bg border border-surface-hover hover:border-accent/40 focus:border-accent outline-none text-text-primary px-2.5 py-1 rounded text-xs transition-all font-sans"
+              className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1 rounded text-xs transition-all font-sans"
             />
           </div>
 
-          <div className="flex items-center justify-between pb-2 mb-2 border-b border-surface/50 flex-shrink-0 text-text-secondary">
+          <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/50 flex-shrink-0 text-muted-foreground">
             <span className="text-[10px] uppercase tracking-wider font-semibold">Files</span>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => loadWorkspace("")}
-                className="p-1 text-text-secondary hover:text-text-primary hover:bg-surfaceHover/50 rounded transition-colors cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-foreground hover:bg-surfaceHover/50 rounded transition-colors cursor-pointer"
                 title="Refresh Root"
               >
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -350,7 +350,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
               </button>
               <button
                 onClick={() => setAddingRootType("file")}
-                className="p-1 text-text-secondary hover:text-success rounded transition-colors cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-primary rounded transition-colors cursor-pointer"
                 title="New File in Root"
               >
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -364,7 +364,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
               </button>
               <button
                 onClick={() => setAddingRootType("folder")}
-                className="p-1 text-text-secondary hover:text-warning rounded transition-colors cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-warning rounded transition-colors cursor-pointer"
                 title="New Folder in Root"
               >
                 <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -377,7 +377,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
           <div className="flex-1 overflow-y-auto min-h-0">
             {loading && files.length === 0 ? (
               <div className="h-24 flex items-center justify-center">
-                <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
             ) : (
               <WorkspaceFileTree
@@ -397,7 +397,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
           </div>
         </div>
 
-        <div className="flex-1 min-w-0 overflow-hidden flex flex-col bg-bg h-full">
+        <div className="flex-1 min-w-0 overflow-hidden flex flex-col bg-background h-full">
           <WorkspaceFileEditor
             file={selectedFile}
             activeRepoName={activeRepoName}

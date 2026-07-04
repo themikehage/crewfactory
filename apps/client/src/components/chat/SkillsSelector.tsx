@@ -27,7 +27,7 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
       <button
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
-        className={`flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer ${
+        className={`flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 cursor-pointer ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
         title="Session skills list"
@@ -48,7 +48,7 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
         onClose={() => setOpen(false)}
         title={`Session Skills (${skills.length} detected)`}
       >
-        <div className="p-3 space-y-1.5 bg-surface">
+        <div className="p-3 space-y-1.5 bg-card">
           {skills.map((s) => (
             <div
               key={s.name}
@@ -58,15 +58,15 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
                   setOpen(false);
                 }
               }}
-              className="group flex flex-col p-2 rounded-md hover:bg-surface-hover/50 border border-transparent transition-all cursor-pointer"
+              className="group flex flex-col p-2 rounded-md hover:bg-card-hover/50 border border-transparent transition-all cursor-pointer"
             >
               <div className="flex items-center justify-between gap-2 mb-1">
-                <span className="font-mono font-bold text-text-primary truncate max-w-[65%]">
+                <span className="font-mono font-bold text-foreground truncate max-w-[65%]">
                   {s.name}
                 </span>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
                   <span className={`text-[8px] px-1 py-0.2 rounded font-semibold uppercase ${
-                    s.scope === "project" ? "bg-accent/15 text-accent" : "bg-highlight/15 text-highlight"
+                    s.scope === "project" ? "bg-primary/15 text-primary" : "bg-highlight/15 text-highlight"
                   }`}>
                     {s.scope === "project" ? "Proj" : "User"}
                   </span>
@@ -76,19 +76,19 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
                       setViewingSkill(s);
                       setOpen(false);
                     }}
-                    className="text-[10px] text-accent hover:underline px-1 py-0.5 cursor-pointer font-semibold"
+                    className="text-[10px] text-primary hover:underline px-1 py-0.5 cursor-pointer font-semibold"
                   >
                     View
                   </button>
                 </div>
               </div>
-              <p className="text-[10px] text-text-secondary/80 line-clamp-2 leading-relaxed">
+              <p className="text-[10px] text-muted-foreground/80 line-clamp-2 leading-relaxed">
                 {s.description}
               </p>
             </div>
           ))}
           {skills.length === 0 && (
-            <p className="text-text-secondary text-[11px] text-center py-6">
+            <p className="text-muted-foreground text-[11px] text-center py-6">
               No active skills in this session.
             </p>
           )}
@@ -101,7 +101,7 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
         footer={
           <button
             onClick={() => setViewingSkill(null)}
-            className="px-4 py-1.5 bg-surface-hover hover:bg-surface-hover/80 text-text-primary font-semibold rounded-lg text-xs cursor-pointer transition-colors"
+            className="px-4 py-1.5 bg-card-hover hover:bg-card-hover/80 text-foreground font-semibold rounded-lg text-xs cursor-pointer transition-colors"
           >
             Close
           </button>
@@ -110,28 +110,28 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
         {viewingSkill && (
           <div className="p-5 space-y-4">
             <div className="flex items-center gap-2.5 mb-4">
-              <span className="font-mono font-bold text-text-primary text-sm">
+              <span className="font-mono font-bold text-foreground text-sm">
                 {viewingSkill.name}
               </span>
               <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
-                viewingSkill.scope === "project" ? "bg-accent/15 text-accent" : "bg-highlight/15 text-highlight"
+                viewingSkill.scope === "project" ? "bg-primary/15 text-primary" : "bg-highlight/15 text-highlight"
               }`}>
                 {viewingSkill.scope === "project" ? "Project-local" : "User-global"}
               </span>
             </div>
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Description
               </span>
-              <p className="text-xs text-text-secondary bg-bg/50 p-2.5 border border-surface-hover/30 rounded-lg mt-1 leading-relaxed">
+              <p className="text-xs text-muted-foreground bg-background/50 p-2.5 border border-input/30 rounded-lg mt-1 leading-relaxed">
                 {viewingSkill.description}
               </p>
             </div>
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-text-secondary">
+              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
                 Instructions
               </span>
-              <div className="bg-bg/40 p-4 border border-surface-hover/40 rounded-lg mt-1 max-w-none">
+              <div className="bg-background/40 p-4 border border-input/40 rounded-lg mt-1 max-w-none">
                 <RichMarkdown content={viewingSkill.content || "*No instruction text*"} />
               </div>
             </div>

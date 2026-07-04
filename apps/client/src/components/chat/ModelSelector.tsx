@@ -158,7 +158,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
           setActiveProvider(null);
         }}
         disabled={disabled}
-        className={`flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer ${
+        className={`flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 cursor-pointer ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
       >
@@ -169,7 +169,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
           {selected ? selected.modelName : "Select model"}
         </span>
         {error && (
-          <span className="text-error ml-1" title={error}>!</span>
+          <span className="text-destructive ml-1" title={error}>!</span>
         )}
         <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${open ? "rotate-180" : ""}`}>
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -177,12 +177,12 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
       </button>
 
       {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-64 bg-surface border border-surface-hover rounded-lg shadow-lg z-50 overflow-hidden">
+        <div className="absolute bottom-full left-0 mb-1 w-64 bg-card border border-input rounded-lg shadow-lg z-50 overflow-hidden">
           {activeProvider && currentProvider ? (
             <>
               <button
                 onClick={() => setActiveProvider(null)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors border-b border-surface-hover"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors border-b border-input"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
@@ -196,8 +196,8 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
                     onClick={() => handleSelectModel(currentProvider.id, m.id, m.name)}
                     className={`w-full text-left px-4 py-2 text-xs transition-colors ${
                       selected?.provider === currentProvider.id && selected?.modelId === m.id
-                        ? "bg-accent/15 text-accent"
-                        : "text-text-primary hover:bg-surface-hover"
+                        ? "bg-primary/15 text-primary"
+                        : "text-foreground hover:bg-card-hover"
                     }`}
                   >
                     <div className="truncate">{m.name}</div>
@@ -212,17 +212,17 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
                   <button
                     key={p.id}
                     onClick={() => setActiveProvider(p.id)}
-                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-text-primary hover:bg-surface-hover transition-colors"
+                    className="w-full flex items-center justify-between px-3 py-2 text-xs text-foreground hover:bg-card-hover transition-colors"
                   >
                     <div className="flex items-center gap-2 min-w-0">
                       <span
                         className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
-                          selected?.provider === p.id ? "bg-accent" : "bg-success"
+                          selected?.provider === p.id ? "bg-primary" : "bg-primary"
                         }`}
                       />
                       <span className="truncate">{p.name}</span>
                     </div>
-                    <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className="text-text-secondary flex-shrink-0 ml-2">
+                    <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground flex-shrink-0 ml-2">
                       <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
                     </svg>
                   </button>
@@ -233,7 +233,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
                   navigate("/settings");
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-accent hover:bg-surface-hover transition-colors border-t border-surface-hover"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-primary hover:bg-card-hover transition-colors border-t border-input"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />

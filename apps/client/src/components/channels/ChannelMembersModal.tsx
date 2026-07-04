@@ -70,27 +70,27 @@ export function ChannelMembersModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ duration: 0.18 }}
-        className="relative w-full max-w-xl bg-surface border border-surface-hover rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
+        className="relative w-full max-w-xl bg-card border border-input rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh]"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-hover flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-input flex-shrink-0">
           <div className="flex items-center gap-2">
-            <span className="text-accent font-bold text-base">#</span>
+            <span className="text-primary font-bold text-base">#</span>
             <div>
-              <h2 className="text-sm font-semibold text-text-primary">Miembros de #{channelName}</h2>
-              <p className="text-xs text-text-secondary">Gestiona los agentes y sus modos de respuesta</p>
+              <h2 className="text-sm font-semibold text-foreground">Miembros de #{channelName}</h2>
+              <p className="text-xs text-muted-foreground">Gestiona los agentes y sus modos de respuesta</p>
             </div>
           </div>
           <div className="flex items-center gap-2">
             <button
               onClick={() => setShowAddModal(true)}
-              className="px-3 py-1.5 text-xs font-medium bg-accent text-bg rounded-lg hover:bg-accent/90 transition-colors flex items-center gap-1"
+              className="px-3 py-1.5 text-xs font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1"
             >
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
               </svg>
               Añadir Agente
             </button>
-            <button onClick={onClose} className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors">
+            <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors">
               <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
@@ -100,7 +100,7 @@ export function ChannelMembersModal({
 
         <div className="flex-1 overflow-y-auto p-5 space-y-3 min-h-0">
           {members.length === 0 && (
-            <div className="text-center py-10 text-text-secondary text-sm">
+            <div className="text-center py-10 text-muted-foreground text-sm">
               No hay agentes en este canal. Haz click en "Añadir Agente" para comenzar.
             </div>
           )}
@@ -114,7 +114,7 @@ export function ChannelMembersModal({
             return (
               <div
                 key={m.agentId}
-                className="bg-bg border border-surface-hover rounded-xl p-4 flex flex-col gap-3"
+                className="bg-background border border-input rounded-xl p-4 flex flex-col gap-3"
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
@@ -122,14 +122,14 @@ export function ChannelMembersModal({
                       AG
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-text-primary text-sm truncate">{name}</h4>
-                      <p className="text-xs text-text-secondary font-mono truncate">{role}</p>
+                      <h4 className="font-semibold text-foreground text-sm truncate">{name}</h4>
+                      <p className="text-xs text-muted-foreground font-mono truncate">{role}</p>
                     </div>
                   </div>
 
                   <button
                     onClick={() => onRemoveMember(m.agentId)}
-                    className="p-1.5 rounded-lg text-text-secondary hover:text-error hover:bg-error/10 transition-colors text-xs flex items-center gap-1"
+                    className="p-1.5 rounded-lg text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors text-xs flex items-center gap-1"
                     title="Remover agente del canal"
                   >
                     <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -138,14 +138,14 @@ export function ChannelMembersModal({
                   </button>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-surface-hover/50 items-start">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-input/50 items-start">
                   <div>
-                    <label className="text-xs font-medium text-text-secondary block mb-1">Reply Mode</label>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Reply Mode</label>
                     <select
                       disabled={updatingId === m.agentId}
                       value={m.replyMode}
                       onChange={(e) => handleModeChange(m.agentId, e.target.value as ReplyMode)}
-                      className="w-full bg-surface border border-surface-hover rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50 capitalize cursor-pointer"
+                      className="w-full bg-card border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary/50 capitalize cursor-pointer"
                     >
                       <option value="user-only">User-only</option>
                       <option value="broadcast">Broadcast</option>
@@ -155,12 +155,12 @@ export function ChannelMembersModal({
                   </div>
 
                   <div>
-                    <label className="text-xs font-medium text-text-secondary block mb-1">Role</label>
+                    <label className="text-xs font-medium text-muted-foreground block mb-1">Role</label>
                     <select
                       disabled={updatingId === m.agentId}
                       value={m.role || "member"}
                       onChange={(e) => handleRoleChange(m.agentId, e.target.value as ChannelRole)}
-                      className="w-full bg-surface border border-surface-hover rounded-lg px-2.5 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50 capitalize cursor-pointer"
+                      className="w-full bg-card border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary/50 capitalize cursor-pointer"
                     >
                       <option value="lead">Lead</option>
                       <option value="senior">Senior</option>
@@ -171,11 +171,11 @@ export function ChannelMembersModal({
 
                   {m.replyMode === "targeted" && (
                     <div className="sm:col-span-2">
-                      <label className="text-xs font-medium text-text-secondary block mb-1">Target Agents</label>
+                      <label className="text-xs font-medium text-muted-foreground block mb-1">Target Agents</label>
                       <button
                         type="button"
                         onClick={() => setEditingTargetsAgentId(isEditingTargets ? null : m.agentId)}
-                        className="w-full py-1.5 px-2.5 bg-surface border border-surface-hover rounded-lg text-xs font-medium text-accent hover:bg-accent/10 transition-colors flex items-center justify-between"
+                        className="w-full py-1.5 px-2.5 bg-card border border-input rounded-lg text-xs font-medium text-primary hover:bg-primary/10 transition-colors flex items-center justify-between"
                       >
                         <span className="truncate">
                           {m.targetAgentIds && m.targetAgentIds.length > 0
@@ -195,9 +195,9 @@ export function ChannelMembersModal({
                     initial={{ opacity: 0, height: 0 }}
                     animate={{ opacity: 1, height: "auto" }}
                     exit={{ opacity: 0, height: 0 }}
-                    className="bg-surface/60 border border-surface-hover/80 p-3 rounded-lg space-y-2 mt-1"
+                    className="bg-card/60 border border-input/80 p-3 rounded-lg space-y-2 mt-1"
                   >
-                    <p className="text-xs font-medium text-text-primary">
+                    <p className="text-xs font-medium text-foreground">
                       Selecciona a cuáles agentes de este canal responderá {name}:
                     </p>
                     <div className="space-y-1.5 max-h-36 overflow-y-auto">
@@ -208,7 +208,7 @@ export function ChannelMembersModal({
                           return (
                             <label
                               key={otherAgent.id}
-                              className="flex items-center justify-between p-2 rounded-lg bg-bg/60 border border-surface-hover/40 hover:border-accent/30 cursor-pointer transition-colors"
+                              className="flex items-center justify-between p-2 rounded-lg bg-background/60 border border-input/40 hover:border-primary/30 cursor-pointer transition-colors"
                             >
                               <div className="flex items-center gap-2">
                                 <input
@@ -216,11 +216,11 @@ export function ChannelMembersModal({
                                   checked={isTarget}
                                   onChange={() => toggleTarget(m, otherAgent.id)}
                                   disabled={updatingId === m.agentId}
-                                  className="rounded border-surface-hover text-accent focus:ring-accent/50"
+                                  className="rounded border-input text-primary focus:ring-primary/50"
                                 />
-                                <span className="text-xs font-medium text-text-primary">{otherAgent.name}</span>
+                                <span className="text-xs font-medium text-foreground">{otherAgent.name}</span>
                               </div>
-                              <span className="text-[10px] text-text-secondary font-mono">{otherAgent.role}</span>
+                              <span className="text-[10px] text-muted-foreground font-mono">{otherAgent.role}</span>
                             </label>
                           );
                         })}

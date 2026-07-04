@@ -355,9 +355,6 @@ export class ExperimentRunner {
       // 6. Stop agent
       try { await agentRegistry.stop(regId, false); } catch {}
 
-      // 7. Delete channel dir
-      try { channelStore.deleteChannel(username, channelId); } catch {}
-
       return {
         status: (rawOutput && !runError) ? "completed" : "failed",
         durationMs: Date.now() - startTime,
@@ -627,11 +624,6 @@ export class ExperimentRunner {
           await agentRegistry.stop(regId, false);
         } catch {}
       }
-
-      // 8. Delete channel dir
-      try {
-        channelStore.deleteChannel(username, channelId);
-      } catch {}
 
       return {
         status: (rawOutput && !runError) ? "completed" : "failed",

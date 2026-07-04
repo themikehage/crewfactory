@@ -80,9 +80,9 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
 
   if (loading) {
     return (
-      <div className="flex-1 flex items-center justify-center p-6 text-text-secondary text-xs">
+      <div className="flex-1 flex items-center justify-center p-6 text-muted-foreground text-xs">
         <div className="flex items-center gap-2">
-          <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+          <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
           <span>Cargando datos de benchmark...</span>
         </div>
       </div>
@@ -91,17 +91,17 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
 
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-4 max-w-4xl mx-auto w-full">
-      <div className="flex items-center justify-between pb-4 border-b border-surface-hover/60">
+      <div className="flex items-center justify-between pb-4 border-b border-input/60">
         <div>
-          <h3 className="text-sm font-semibold text-text-primary">Benchmark de Eficiencia (A vs B)</h3>
-          <p className="text-[10px] text-text-secondary/60 mt-0.5">
+          <h3 className="text-sm font-semibold text-foreground">Benchmark de Eficiencia (A vs B)</h3>
+          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
             Mide y compara el rendimiento del canal multi-agente frente a una ejecución single-agent (baseline).
           </p>
         </div>
         <button
           onClick={handleRun}
           disabled={running}
-          className="px-3.5 py-1.5 bg-accent hover:opacity-90 disabled:opacity-50 text-bg text-[11px] font-semibold rounded-lg shadow-sm transition-opacity flex items-center gap-1.5 cursor-pointer"
+          className="px-3.5 py-1.5 bg-primary hover:opacity-90 disabled:opacity-50 text-background text-[11px] font-semibold rounded-lg shadow-sm transition-opacity flex items-center gap-1.5 cursor-pointer"
         >
           {running ? (
             <>
@@ -120,20 +120,20 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
       </div>
 
       {error && (
-        <div className="p-3 bg-error/10 border border-error/20 text-error rounded-lg text-xs">
+        <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg text-xs">
           {error}
         </div>
       )}
 
       {running && !report && (
-        <div className="p-12 bg-surface border border-surface-hover rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
+        <div className="p-12 bg-card border border-input rounded-2xl flex flex-col items-center justify-center text-center space-y-3">
           <div className="relative w-10 h-10">
-            <div className="absolute inset-0 border-4 border-accent/20 rounded-full" />
-            <div className="absolute inset-0 border-4 border-accent border-t-transparent rounded-full animate-spin" />
+            <div className="absolute inset-0 border-4 border-primary/20 rounded-full" />
+            <div className="absolute inset-0 border-4 border-primary border-t-transparent rounded-full animate-spin" />
           </div>
           <div className="space-y-1">
-            <p className="text-xs font-semibold text-text-primary">Ejecutando pruebas del benchmark...</p>
-            <p className="text-[10px] text-text-secondary/60">
+            <p className="text-xs font-semibold text-foreground">Ejecutando pruebas del benchmark...</p>
+            <p className="text-[10px] text-muted-foreground/60">
               Corriendo Conditions A (Baseline) y B (Canal) sobre los briefs del dataset de prueba. Esto tomará unos momentos.
             </p>
           </div>
@@ -141,10 +141,10 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
       )}
 
       {report ? (
-        <div className="p-5 bg-surface border border-surface-hover rounded-2xl shadow-sm text-xs leading-relaxed overflow-x-auto relative">
+        <div className="p-5 bg-card border border-input rounded-2xl shadow-sm text-xs leading-relaxed overflow-x-auto relative">
           {running && (
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] text-accent font-semibold bg-accent/10 border border-accent/20 px-2.5 py-1 rounded-full">
-              <div className="w-2 h-2 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] text-primary font-semibold bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
+              <div className="w-2 h-2 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span>Actualizando reporte en vivo...</span>
             </div>
           )}
@@ -152,19 +152,19 @@ export function ChannelBenchmarkPanel({ channelId }: Props) {
         </div>
       ) : (
         !running && (
-          <div className="p-12 bg-surface border border-surface-hover rounded-2xl flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-4">
-            <div className="w-12 h-12 rounded-2xl bg-bg border border-surface-hover flex items-center justify-center text-accent text-lg">
+          <div className="p-12 bg-card border border-input rounded-2xl flex flex-col items-center justify-center text-center max-w-lg mx-auto space-y-4">
+            <div className="w-12 h-12 rounded-2xl bg-background border border-input flex items-center justify-center text-primary text-lg">
               📊
             </div>
             <div className="space-y-1">
-              <p className="text-xs font-semibold text-text-primary">Sin Reportes Disponibles</p>
-              <p className="text-[10px] text-text-secondary/60 leading-relaxed">
+              <p className="text-xs font-semibold text-foreground">Sin Reportes Disponibles</p>
+              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
                 Haz clic en el botón superior para correr las pruebas. Evaluaremos la precisión de fichas estimadas, tiempo transcurrido y tokens de contexto utilizados.
               </p>
             </div>
             <button
               onClick={handleRun}
-              className="px-4 py-2 bg-surface hover:bg-surface-hover border border-surface-hover/80 text-text-primary rounded-xl font-medium text-xs shadow-sm transition-colors cursor-pointer"
+              className="px-4 py-2 bg-card hover:bg-card-hover border border-input/80 text-foreground rounded-xl font-medium text-xs shadow-sm transition-colors cursor-pointer"
             >
               Comenzar Evaluación
             </button>

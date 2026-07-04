@@ -23,9 +23,9 @@ export function HtmlPreview({ html }: Props) {
   };
 
   return (
-    <div className="my-3 rounded-lg overflow-hidden border border-surface-hover shadow-md text-xs bg-surface font-sans">
-      <div className="bg-surface-hover/30 px-3 py-2 border-b border-surface-hover flex justify-between items-center">
-        <span className="font-semibold text-text-secondary text-[11px] uppercase tracking-wider">
+    <div className="my-3 rounded-lg overflow-hidden border border-input shadow-md text-xs bg-card font-sans">
+      <div className="bg-card-hover/30 px-3 py-2 border-b border-input flex justify-between items-center">
+        <span className="font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">
           HTML Document Output
         </span>
         <div className="flex gap-1.5">
@@ -33,8 +33,8 @@ export function HtmlPreview({ html }: Props) {
             onClick={() => setShowHtml(true)}
             className={`px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer ${
               showHtml
-                ? "bg-accent/20 text-accent font-semibold"
-                : "text-text-secondary hover:text-text-primary"
+                ? "bg-primary/20 text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Preview
@@ -43,15 +43,15 @@ export function HtmlPreview({ html }: Props) {
             onClick={() => setShowHtml(false)}
             className={`px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer ${
               !showHtml
-                ? "bg-accent/20 text-accent font-semibold"
-                : "text-text-secondary hover:text-text-primary"
+                ? "bg-primary/20 text-primary font-semibold"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Source
           </button>
           <button
             onClick={handleDownload}
-            className="px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer text-text-secondary hover:text-text-primary hover:bg-surface-hover/50"
+            className="px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer text-muted-foreground hover:text-foreground hover:bg-card-hover/50"
             title="Download as .html"
           >
             <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="inline-block mr-0.5">
@@ -71,7 +71,7 @@ export function HtmlPreview({ html }: Props) {
           />
         </div>
       ) : (
-        <pre className="p-3 max-h-80 overflow-y-auto overflow-x-auto text-[10px] text-text-secondary font-mono leading-normal bg-code-bg">
+        <pre className="p-3 max-h-80 overflow-y-auto overflow-x-auto text-[10px] text-muted-foreground font-mono leading-normal bg-muted">
           {html}
         </pre>
       )}

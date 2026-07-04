@@ -59,7 +59,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
       <button
         onClick={() => !disabled && setOpen(!open)}
         disabled={disabled}
-        className={`flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors px-1 py-0.5 cursor-pointer ${
+        className={`flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 cursor-pointer ${
           disabled ? "opacity-50 cursor-not-allowed" : ""
         }`}
       >
@@ -77,12 +77,12 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
         onClose={() => setOpen(false)}
         title="Allowed Tools"
       >
-        <div className="p-2 bg-surface">
-          <div className="px-1.5 pb-2 flex gap-2 border-b border-surface-hover mb-2">
+        <div className="p-2 bg-card">
+          <div className="px-1.5 pb-2 flex gap-2 border-b border-input mb-2">
             <button
               onClick={() => applyPreset("full")}
               className={`px-2 py-0.5 rounded transition-colors cursor-pointer text-xs ${
-                isFullAccess ? "bg-accent/20 text-accent font-semibold" : "text-text-secondary hover:text-text-primary bg-surface-hover"
+                isFullAccess ? "bg-primary/20 text-primary font-semibold" : "text-muted-foreground hover:text-foreground bg-card-hover"
               }`}
             >
               Full
@@ -90,7 +90,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
             <button
               onClick={() => applyPreset("readonly")}
               className={`px-2 py-0.5 rounded transition-colors cursor-pointer text-xs ${
-                isReadOnly ? "bg-accent/20 text-accent font-semibold" : "text-text-secondary hover:text-text-primary bg-surface-hover"
+                isReadOnly ? "bg-primary/20 text-primary font-semibold" : "text-muted-foreground hover:text-foreground bg-card-hover"
               }`}
             >
               Read-Only
@@ -102,7 +102,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
               return (
                 <label
                   key={t.id}
-                  className="flex items-start gap-2.5 p-1.5 rounded-md hover:bg-surface-hover/50 cursor-pointer transition-colors"
+                  className="flex items-start gap-2.5 p-1.5 rounded-md hover:bg-card-hover/50 cursor-pointer transition-colors"
                 >
                   <input
                     type="checkbox"
@@ -111,8 +111,8 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
                     className="mt-0.5 accent-accent"
                   />
                   <div>
-                    <div className="font-semibold text-text-primary font-mono text-xs">{t.id}</div>
-                    <div className="text-text-secondary/70 text-[10px] leading-snug">{t.desc}</div>
+                    <div className="font-semibold text-foreground font-mono text-xs">{t.id}</div>
+                    <div className="text-muted-foreground/70 text-[10px] leading-snug">{t.desc}</div>
                   </div>
                 </label>
               );

@@ -52,7 +52,7 @@ interface Props {
 export function EditResult({ text, filePath, details, isError }: Props) {
   if (isError) {
     return (
-      <div className="flex items-center gap-2 text-error text-xs font-mono">
+      <div className="flex items-center gap-2 text-destructive text-xs font-mono">
         <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
           <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
         </svg>
@@ -67,12 +67,12 @@ export function EditResult({ text, filePath, details, isError }: Props) {
         {filePath && (
           <button
             onClick={() => openInWorkspace(filePath)}
-            className="font-mono text-[11px] text-accent/70 hover:text-accent hover:underline underline-offset-2 transition-colors cursor-pointer block"
+            className="font-mono text-[11px] text-primary/70 hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer block"
           >
             {filePath}
           </button>
         )}
-        <p className="text-success text-xs font-mono">{text}</p>
+        <p className="text-primary text-xs font-mono">{text}</p>
       </div>
     );
   }
@@ -84,28 +84,28 @@ export function EditResult({ text, filePath, details, isError }: Props) {
       {filePath && (
         <button
           onClick={() => openInWorkspace(filePath)}
-          className="font-mono text-[11px] text-accent/70 hover:text-accent hover:underline underline-offset-2 transition-colors cursor-pointer block"
+          className="font-mono text-[11px] text-primary/70 hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer block"
         >
           {filePath}
         </button>
       )}
-      <div className="font-mono text-[11px] rounded-md overflow-hidden border border-surface-hover/40">
+      <div className="font-mono text-[11px] rounded-md overflow-hidden border border-input/40">
         {lines.map((line, i) => {
         if (line.type === "hunk") {
           return (
-            <div key={i} className="px-3 py-0.5 bg-accent/5 text-accent/50 text-[10px]">
+            <div key={i} className="px-3 py-0.5 bg-primary/5 text-primary/50 text-[10px]">
               {line.content}
             </div>
           );
         }
         const bgClass =
-          line.type === "add" ? "bg-success/8 border-l-2 border-success/50" :
-          line.type === "remove" ? "bg-error/8 border-l-2 border-error/50" :
+          line.type === "add" ? "bg-primary/8 border-l-2 border-success/50" :
+          line.type === "remove" ? "bg-destructive/8 border-l-2 border-error/50" :
           "border-l-2 border-transparent";
         const textClass =
-          line.type === "add" ? "text-success" :
-          line.type === "remove" ? "text-error/80" :
-          "text-text-secondary/60";
+          line.type === "add" ? "text-primary" :
+          line.type === "remove" ? "text-destructive/80" :
+          "text-muted-foreground/60";
         const prefix =
           line.type === "add" ? "+" :
           line.type === "remove" ? "−" :
@@ -114,7 +114,7 @@ export function EditResult({ text, filePath, details, isError }: Props) {
         return (
           <div key={i} className={`flex items-start gap-2 px-3 py-0.5 ${bgClass}`}>
             {line.lineNum !== undefined && (
-              <span className="text-text-secondary/30 w-5 flex-shrink-0 text-right select-none">
+              <span className="text-muted-foreground/30 w-5 flex-shrink-0 text-right select-none">
                 {line.lineNum}
               </span>
             )}

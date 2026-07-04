@@ -156,8 +156,17 @@ class ChannelOrchestrator {
     const controller = new AbortController();
     this.channelAbortControllers.set(key, controller);
 
-    // Fire-and-forget: do not await — returns immediately
-    this.runDispatchRound(username, channelId, userMsg, 1, controller.signal);
+    // Check if this channel uses broadcast (cooperative/leaderless) reply mode
+    const isBroadcastChannel = channel.members.some(m => m.replyMode === "broadcast");
+
+    if (isBroadcastChannel) {
+      this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal).catch((err) => {
+        console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
+      });
+    } else {
+      // Fire-and-forget: do not await — returns immediately
+      this.runDispatchRound(username, channelId, userMsg, 1, controller.signal);
+    }
   }
 
   /**
@@ -720,7 +729,7 @@ class ChannelOrchestrator {
     }
 
     const trimmed = fullResponse.trim();
-    const isSilent = !trimmed || trimmed.toLowerCase() === "(silent)" || trimmed.toLowerCase() === "(silencioso)";
+    const isSilent = this.isSilentContent(trimmed);
 
     broadcast(channelId, {
       type: "channel_agent_end",
@@ -902,6 +911,146 @@ class ChannelOrchestrator {
       `--- New message from ${senderLabel} ---\n` +
       `${incomingMsg.content}`
     );
+  }
+
+  private isSilentContent(content: string): boolean {
+    if (!content) return true;
+    const SILENT_REGEX = /^\s*[\(\[\*]*\s*silent(ioso)?\s*[\)\]\*]*[\s\.]*$/i;
+    return SILENT_REGEX.test(content.trim());
+  }
+
+  private async runSequentialBroadcastLoop(
+    username: string,
+    channelId: string,
+    initialMsg: ChannelMessage,
+    signal: AbortSignal
+  ): Promise<void> {
+    const key = `${channelId}:${initialMsg.sessionId || "default"}`;
+    const channel = channelStore.getChannel(username, channelId);
+    if (!channel || channel.members.length === 0) return;
+
+    const maxDepth = channel.maxChainDepth ?? MAX_CHAIN_DEPTH;
+    let depth = 1;
+    let currentIncomingMsg = initialMsg;
+
+    while (depth <= maxDepth && !signal.aborted && !this.abortedDispatches.has(key)) {
+      console.log(`[ChannelOrchestrator] Sequential Round ${depth} starting...`);
+      let roundActive = false;
+
+      for (const member of channel.members) {
+        if (signal.aborted || this.abortedDispatches.has(key)) return;
+
+        // Skip if the member is the author of the last message
+        if (currentIncomingMsg.role === "agent" && currentIncomingMsg.agentId === member.agentId) {
+          continue;
+        }
+
+        // Check if the member is eligible to respond to currentIncomingMsg
+        const recipients = this.resolveRecipients(channel, currentIncomingMsg);
+        const isEligible = recipients.some(r => r.agentId === member.agentId);
+        if (!isEligible) continue;
+
+        // Process task ledger updates (mark tasks as done)
+        const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
+        const ledger = new TaskLedger(ledgerPath);
+        const openTasks = ledger.getOpenTasksFor(member.agentId);
+        for (const ot of openTasks) {
+          ledger.updateStatus(ot.id, "done");
+          broadcast(channelId, {
+            type: "channel_task_updated",
+            channelId,
+            sessionId: currentIncomingMsg.sessionId,
+            task: ot,
+            status: "done",
+          });
+        }
+
+        const queue = this.getOrCreateQueue(member.agentId);
+        let result: DispatchResult;
+        try {
+          result = await queue.enqueue({
+            id: crypto.randomUUID(),
+            signal,
+            execute: () => this.runAgentPrompt(username, channelId, member, currentIncomingMsg, signal),
+          });
+        } catch (err: any) {
+          if (err.message === "Aborted before enqueue" || err.message === "Aborted while queued" || err.message === "Queue cleared") {
+            return;
+          }
+          console.error(`[ChannelOrchestrator] Queue error for agent ${member.agentId}:`, err);
+          continue;
+        }
+
+        if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) continue;
+
+        // Append to store, broadcast, and update current message
+        channelStore.appendMessage(username, channelId, result.agentMsg);
+        broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
+
+        eventBroker.publishEvent(username, {
+          sourceType: "channel",
+          sourceId: channelId,
+          sourceName: channel.name,
+          eventType: "agent_message",
+          agentName: result.agentMsg.agentName,
+          detail: result.agentMsg.content,
+        });
+
+        currentIncomingMsg = result.agentMsg;
+        roundActive = true;
+
+        // Check agreement
+        let isAgreed = false;
+        if (channel.negotiationProtocol) {
+          const negotiationState = channelStore.getNegotiationState(username, channelId);
+          const sm = new NegotiationStateMachine(channel.negotiationProtocol, negotiationState);
+          const receiverId = currentIncomingMsg.role === "user" ? "user" : currentIncomingMsg.agentId || "user";
+          const senderId = member.agentId;
+          const ingestResult = sm.ingest(senderId, receiverId, currentIncomingMsg.content);
+
+          channelStore.saveNegotiationState(username, channelId, sm.getState());
+
+          broadcast(channelId, {
+            type: "channel_negotiation_round",
+            channelId,
+            sessionId: currentIncomingMsg.sessionId,
+            agentId: senderId,
+            receiverId,
+            rounds: ingestResult.rounds,
+            status: sm.getState()[ingestResult.pairKey]?.status || "open",
+          });
+
+          if (ingestResult.matched === "agreed") {
+            isAgreed = true;
+            broadcast(channelId, {
+              type: "channel_negotiation_agreement",
+              channelId,
+              sessionId: currentIncomingMsg.sessionId,
+              agentId: senderId,
+              receiverId,
+              content: currentIncomingMsg.content,
+            });
+          }
+        }
+
+        if (isAgreed) {
+          console.log(`[ChannelOrchestrator] Consensus reached. Stopping sequence.`);
+          return;
+        }
+      }
+
+      if (!roundActive) {
+        console.log(`[ChannelOrchestrator] Equilibrium reached (all agents silent). Stopping sequence.`);
+        return;
+      }
+
+      depth++;
+    }
+
+    if (depth > maxDepth) {
+      console.warn(`[ChannelOrchestrator] Max chain depth reached (${maxDepth}) for channel ${channelId}`);
+      broadcast(channelId, { type: "channel_chain_limit", channelId, maxChainDepth: maxDepth });
+    }
   }
 }
 

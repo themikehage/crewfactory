@@ -400,119 +400,11 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       });
     }
   }
-
   if (data.type === "channel_abort") {
     const channelId = data.channelId as string;
     const sessionId = data.sessionId as string | undefined;
     if (channelId) {
       channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
-    }
-  }
-
-  if (data.type === "llm_request") {
-    const requestId = data.requestId as string;
-    const prompt = data.prompt as string;
-    const systemPrompt = data.systemPrompt as string | undefined;
-    const model = data.model as string | undefined;
-
-    console.log(`[WS Server] Received llm_request. requestId=${requestId}, model=${model}`);
-
-    if (!requestId || !prompt) {
-      console.log(`[WS Server] llm_request missing prompt/requestId. requestId=${requestId}`);
-      safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: "Missing requestId or prompt" }));
-      return;
-    }
-
-    const tempSessionId = `llm_${requestId}_${crypto.randomUUID()}`;
-    console.log(`[WS Server] Creating temp session tempSessionId=${tempSessionId}`);
-
-    try {
-      const session = await piSessionManager.getOrCreateSession(user.username, tempSessionId);
-
-      if (model) {
-        try {
-          console.log(`[WS Server] Setting model=${model} for temp session`);
-          const { modelRegistry } = piSessionManager.getUserContext(user.username);
-          let resolvedModel: any = null;
-          if (model.includes("/")) {
-            const [providerId, modelId] = model.split("/");
-            resolvedModel = modelRegistry.find(providerId, modelId);
-          } else {
-            resolvedModel = modelRegistry.getAvailable().find(m => m.id === model);
-          }
-
-          if (resolvedModel) {
-            await session.setModel(resolvedModel);
-            console.log(`[WS Server] Successfully set model=${resolvedModel.provider}/${resolvedModel.id}`);
-          } else {
-            throw new Error(`Model ${model} not found in registry`);
-          }
-        } catch (e) {
-          console.error(`[WS Server] Failed to set model for temp session`, e);
-          safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: `Failed to set model: ${e}` }));
-          await piSessionManager.destroySession(user.username, tempSessionId);
-          return;
-        }
-      }
-
-      const { modelRegistry } = piSessionManager.getUserContext(user.username);
-      if (!session.model || !modelRegistry.hasConfiguredAuth(session.model)) {
-        const available = modelRegistry.getAvailable();
-        if (available.length > 0) {
-          try {
-            console.log(`[WS Server] Fallback to available[0]=${available[0].provider}/${available[0].id}`);
-            await session.setModel(available[0]);
-          } catch (e) {
-            console.error(`[WS Server] Failed to set fallback model`, e);
-            safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: `No model configured: ${e}` }));
-            await piSessionManager.destroySession(user.username, tempSessionId);
-            return;
-          }
-        } else {
-          console.log(`[WS Server] No available providers configured`);
-          safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: "No providers configured. Go to Settings to add an API key." }));
-          await piSessionManager.destroySession(user.username, tempSessionId);
-          return;
-        }
-      }
-
-      const unsub = session.subscribe((evt: any) => {
-        if (evt.type === "message_update") {
-          const delta = evt.assistantMessageEvent;
-          if (delta?.type === "text_delta" && delta.delta) {
-            safeSend(ws, JSON.stringify({ type: "llm_delta", requestId, text: delta.delta }));
-          }
-        }
-      });
-
-      try {
-        const finalPrompt = systemPrompt ? `${systemPrompt}\n\n---\n\n${prompt}` : prompt;
-        console.log(`[WS Server] Starting prompt execution for tempSessionId=${tempSessionId}`);
-        await session.prompt(finalPrompt);
-        console.log(`[WS Server] Finished prompt execution for tempSessionId=${tempSessionId}`);
-
-        let rawResult = "";
-        const msgs = [...session.messages].reverse() as any[];
-        const lastMsg = msgs.find((m: any) => m.role === "assistant");
-        if (lastMsg) {
-          if (typeof lastMsg.content === "string") rawResult = lastMsg.content;
-          else if (Array.isArray(lastMsg.content)) {
-            rawResult = lastMsg.content.map((c: any) => c.text || "").join("\n");
-          }
-        }
-
-        console.log(`[WS Server] Sending llm_complete. result length=${rawResult.length}`);
-        safeSend(ws, JSON.stringify({ type: "llm_complete", requestId, result: rawResult.trim() }));
-      } catch (e) {
-        console.error(`[WS Server] Prompt execution failed for tempSessionId=${tempSessionId}`, e);
-        safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: String(e) }));
-      } finally {
-        unsub();
-        await piSessionManager.destroySession(user.username, tempSessionId);
-      }
-    } catch (e) {
-      console.error(`[llm_request] Fatal error for requestId ${requestId}:`, e);
-      safeSend(ws, JSON.stringify({ type: "llm_error", requestId, error: String(e) }));
     }
   }
 }

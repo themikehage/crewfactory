@@ -37,6 +37,8 @@ export interface VariantRunResult {
 
 export interface Variant {
   type: "single" | "multi_no_leader" | "multi_with_leader";
+  channelId?: string;
+  activeSessionId?: string | null;
   agents: Agent[];
   result?: VariantRunResult;
 }

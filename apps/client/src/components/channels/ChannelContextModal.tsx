@@ -55,21 +55,21 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ duration: 0.18 }}
-        className="relative w-full max-w-lg bg-surface border border-surface-hover rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
+        className="relative w-full max-w-lg bg-card border border-input rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-hover flex-shrink-0">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-input flex-shrink-0">
           <div>
-            <h2 className="text-sm font-semibold text-text-primary flex items-center gap-1.5">
+            <h2 className="text-sm font-semibold text-foreground flex items-center gap-1.5">
               <span>Variables de Contexto</span>
-              <span className="text-xs text-accent font-normal">(#{channelName})</span>
+              <span className="text-xs text-primary font-normal">(#{channelName})</span>
             </h2>
-            <p className="text-xs text-text-secondary mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               Define variables clave-valor que los agentes conocerán al responder en este canal
             </p>
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors"
+            className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors"
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
@@ -80,7 +80,7 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
         <form onSubmit={handleSubmit} className="flex flex-col flex-1 min-h-0">
           <div className="flex-1 overflow-y-auto px-5 py-4 space-y-3">
             {items.length === 0 && (
-              <div className="text-center py-8 text-text-secondary text-xs">
+              <div className="text-center py-8 text-muted-foreground text-xs">
                 No hay variables de contexto configuradas para este canal.
               </div>
             )}
@@ -92,19 +92,19 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
                   placeholder="CLAVE (ej. API_URL)"
                   value={item.key}
                   onChange={(e) => handleChange(index, "key", e.target.value)}
-                  className="w-1/3 bg-bg border border-surface-hover rounded-lg px-3 py-1.5 text-xs text-text-primary font-mono focus:outline-none focus:border-accent/50"
+                  className="w-1/3 bg-background border border-input rounded-lg px-3 py-1.5 text-xs text-foreground font-mono focus:outline-none focus:border-primary/50"
                 />
                 <input
                   type="text"
                   placeholder="Valor (ej. https://api.staging.com)"
                   value={item.value}
                   onChange={(e) => handleChange(index, "value", e.target.value)}
-                  className="flex-1 bg-bg border border-surface-hover rounded-lg px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent/50"
+                  className="flex-1 bg-background border border-input rounded-lg px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary/50"
                 />
                 <button
                   type="button"
                   onClick={() => handleRemove(index)}
-                  className="p-1.5 text-text-secondary hover:text-error hover:bg-error/10 rounded-lg transition-colors flex-shrink-0"
+                  className="p-1.5 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-lg transition-colors flex-shrink-0"
                   title="Eliminar variable"
                 >
                   <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -117,7 +117,7 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
             <button
               type="button"
               onClick={handleAddField}
-              className="w-full py-2 border border-dashed border-surface-hover hover:border-accent/40 rounded-lg text-xs text-text-secondary hover:text-accent transition-colors flex items-center justify-center gap-1 mt-2"
+              className="w-full py-2 border border-dashed border-input hover:border-primary/40 rounded-lg text-xs text-muted-foreground hover:text-primary transition-colors flex items-center justify-center gap-1 mt-2"
             >
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
@@ -127,23 +127,23 @@ export function ChannelContextModal({ channelName, context, onClose, onSave }: P
           </div>
 
           {error && (
-            <div className="mx-5 mb-2 bg-error/10 border border-error/30 text-error text-xs px-3 py-2 rounded-lg">
+            <div className="mx-5 mb-2 bg-destructive/10 border border-error/30 text-destructive text-xs px-3 py-2 rounded-lg">
               {error}
             </div>
           )}
 
-          <div className="flex gap-2 px-5 py-4 border-t border-surface-hover flex-shrink-0 bg-surface/40">
+          <div className="flex gap-2 px-5 py-4 border-t border-input flex-shrink-0 bg-card/40">
             <button
               type="button"
               onClick={onClose}
-              className="flex-1 py-2 text-xs font-medium text-text-secondary border border-surface-hover rounded-lg hover:bg-surface-hover transition-colors"
+              className="flex-1 py-2 text-xs font-medium text-muted-foreground border border-input rounded-lg hover:bg-card-hover transition-colors"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="flex-1 py-2 text-xs font-medium bg-accent text-bg rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+              className="flex-1 py-2 text-xs font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
             >
               {saving ? "Guardando..." : "Guardar Contexto"}
             </button>

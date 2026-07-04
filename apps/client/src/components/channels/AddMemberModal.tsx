@@ -53,14 +53,14 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ duration: 0.18 }}
-        className="relative w-full max-w-md bg-surface border border-surface-hover rounded-2xl shadow-2xl overflow-hidden"
+        className="relative w-full max-w-md bg-card border border-input rounded-2xl shadow-2xl overflow-hidden"
       >
-        <div className="flex items-center justify-between px-5 py-4 border-b border-surface-hover">
+        <div className="flex items-center justify-between px-5 py-4 border-b border-input">
           <div>
-            <h2 className="text-sm font-semibold text-text-primary">Add Agent to Channel</h2>
-            <p className="text-xs text-text-secondary mt-0.5">Configure agent behavior in this channel</p>
+            <h2 className="text-sm font-semibold text-foreground">Add Agent to Channel</h2>
+            <p className="text-xs text-muted-foreground mt-0.5">Configure agent behavior in this channel</p>
           </div>
-          <button onClick={onClose} className="p-1.5 rounded-lg text-text-secondary hover:text-text-primary hover:bg-surface-hover transition-colors">
+          <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors">
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -69,17 +69,17 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
           {candidates.length === 0 ? (
-            <p className="text-sm text-text-secondary text-center py-4">
+            <p className="text-sm text-muted-foreground text-center py-4">
               All registered agents are already in this channel.
             </p>
           ) : (
             <>
               <div>
-                <label className="text-xs font-medium text-text-secondary block mb-1.5">Select Agent</label>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Select Agent</label>
                 <select
                   value={selectedAgentId}
                   onChange={(e) => setSelectedAgentId(e.target.value)}
-                  className="w-full bg-bg border border-surface-hover rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50"
+                  className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
                 >
                   {candidates.map((a) => (
                     <option key={a.id} value={a.id}>
@@ -90,11 +90,11 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
               </div>
 
               <div>
-                <label className="text-xs font-medium text-text-secondary block mb-1.5">Channel Role</label>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Channel Role</label>
                 <select
                   value={role}
                   onChange={(e) => setRole(e.target.value as ChannelRole)}
-                  className="w-full bg-bg border border-surface-hover rounded-lg px-3 py-2 text-sm text-text-primary focus:outline-none focus:border-accent/50 capitalize"
+                  className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 capitalize"
                 >
                   <option value="lead">Lead</option>
                   <option value="senior">Senior</option>
@@ -104,7 +104,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
               </div>
 
               <div>
-                <label className="text-xs font-medium text-text-secondary block mb-1.5">Reply Mode</label>
+                <label className="text-xs font-medium text-muted-foreground block mb-1.5">Reply Mode</label>
                 <div className="grid grid-cols-2 gap-2">
                   {(["user-only", "broadcast", "targeted", "mention-only"] as ReplyMode[]).map((mode) => (
                     <button
@@ -113,15 +113,15 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
                       onClick={() => setReplyMode(mode)}
                       className={`py-2 px-2 rounded-lg border text-xs font-medium capitalize transition-colors ${
                         replyMode === mode
-                          ? "bg-accent/15 border-accent/40 text-accent"
-                          : "bg-bg border-surface-hover text-text-secondary hover:text-text-primary"
+                          ? "bg-primary/15 border-primary/40 text-primary"
+                          : "bg-background border-input text-muted-foreground hover:text-foreground"
                       }`}
                     >
                       {mode}
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-text-secondary/70 mt-1.5 leading-normal">
+                <p className="text-[11px] text-muted-foreground/70 mt-1.5 leading-normal">
                   {replyMode === "user-only" && "Agent responds only to human messages. Does not trigger other agents."}
                   {replyMode === "broadcast" && "Agent responds to human and other agent messages. Triggers all channel members."}
                   {replyMode === "targeted" && "Agent responds to human and selected target agents. Triggers specified targets."}
@@ -131,15 +131,15 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
 
               {replyMode === "targeted" && (
                 <div>
-                  <label className="text-xs font-medium text-text-secondary block mb-1.5">Target Agents to Trigger</label>
-                  <div className="space-y-1.5 max-h-36 overflow-y-auto bg-bg p-2 rounded-lg border border-surface-hover">
+                  <label className="text-xs font-medium text-muted-foreground block mb-1.5">Target Agents to Trigger</label>
+                  <div className="space-y-1.5 max-h-36 overflow-y-auto bg-background p-2 rounded-lg border border-input">
                     {availableAgents.map((a) => (
-                      <label key={a.id} className="flex items-center gap-2 text-xs text-text-primary cursor-pointer hover:bg-surface/50 p-1 rounded">
+                      <label key={a.id} className="flex items-center gap-2 text-xs text-foreground cursor-pointer hover:bg-card/50 p-1 rounded">
                         <input
                           type="checkbox"
                           checked={targetAgentIds.includes(a.id)}
                           onChange={() => toggleTarget(a.id)}
-                          className="rounded border-surface-hover text-accent focus:ring-accent/50"
+                          className="rounded border-input text-primary focus:ring-primary/50"
                         />
                         <span>{a.name} ({a.role})</span>
                       </label>
@@ -149,7 +149,7 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
               )}
 
               {error && (
-                <div className="bg-error/10 border border-error/30 text-error text-xs px-3 py-2 rounded-lg">
+                <div className="bg-destructive/10 border border-error/30 text-destructive text-xs px-3 py-2 rounded-lg">
                   {error}
                 </div>
               )}
@@ -158,14 +158,14 @@ export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose
                 <button
                   type="button"
                   onClick={onClose}
-                  className="flex-1 py-2 text-sm font-medium text-text-secondary border border-surface-hover rounded-lg hover:bg-surface-hover transition-colors"
+                  className="flex-1 py-2 text-sm font-medium text-muted-foreground border border-input rounded-lg hover:bg-card-hover transition-colors"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || !selectedAgentId}
-                  className="flex-1 py-2 text-sm font-medium bg-accent text-bg rounded-lg hover:bg-accent/90 transition-colors disabled:opacity-50"
+                  className="flex-1 py-2 text-sm font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
                 >
                   {submitting ? "Adding..." : "Add to Channel"}
                 </button>

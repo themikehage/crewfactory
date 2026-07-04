@@ -283,9 +283,9 @@ export function LogsConsolePage({
     const sourceLabel = log.sourceType === "channel" ? "Canal" : "Sesión";
 
     return (
-      <div key={idx} className="hover:bg-surface-hover/20 px-2 py-1 border-b border-surface-hover/10 leading-relaxed">
+      <div key={idx} className="hover:bg-card-hover/20 px-2 py-1 border-b border-input/10 leading-relaxed">
         <div className="flex flex-wrap items-baseline gap-1.5">
-          <span className="text-text-secondary/40 select-none shrink-0">
+          <span className="text-muted-foreground/40 select-none shrink-0">
             [{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}]
           </span>
 
@@ -301,57 +301,57 @@ export function LogsConsolePage({
 
           <div className="flex-1 min-w-0">
             {log.eventType === "user_message" && (
-              <span className="text-text-primary">
-                👤 <span className="font-semibold text-text-secondary">Usuario:</span> "{log.detail}"
+              <span className="text-foreground">
+                👤 <span className="font-semibold text-muted-foreground">Usuario:</span> "{log.detail}"
               </span>
             )}
 
             {log.eventType === "agent_message" && (
-              <span className="text-text-primary">
+              <span className="text-foreground">
                 🤖 <span className="font-semibold text-purple-400">Respuesta:</span> "{log.detail}"
               </span>
             )}
 
             {log.eventType === "agent_start" && (
-              <span className="text-accent/80 italic font-sans select-none">
+              <span className="text-primary/80 italic font-sans select-none">
                 🎬 Iniciando respuesta...
               </span>
             )}
 
             {log.eventType === "agent_end" && (
-              <span className="text-text-secondary/50 italic font-sans select-none">
+              <span className="text-muted-foreground/50 italic font-sans select-none">
                 ⏹️ Finalizó respuesta.
               </span>
             )}
 
             {log.eventType === "text_delta" && (
-              <span className="text-text-primary block font-mono whitespace-pre-wrap mt-0.5 bg-surface/30 p-1.5 rounded border border-surface-hover/10 leading-relaxed">
-                ✍️ <span className="font-semibold text-text-secondary">Escribiendo:</span> {log.detail}
+              <span className="text-foreground block font-mono whitespace-pre-wrap mt-0.5 bg-card/30 p-1.5 rounded border border-input/10 leading-relaxed">
+                ✍️ <span className="font-semibold text-muted-foreground">Escribiendo:</span> {log.detail}
               </span>
             )}
 
             {log.eventType === "thinking_delta" && (
-              <span className="text-accent/60 block font-mono whitespace-pre-wrap mt-0.5 bg-accent/5 p-1.5 rounded border border-accent/10 leading-relaxed">
-                🧠 <span className="font-semibold text-accent/80">Pensando:</span> {log.detail}
+              <span className="text-primary/60 block font-mono whitespace-pre-wrap mt-0.5 bg-primary/5 p-1.5 rounded border border-primary/10 leading-relaxed">
+                🧠 <span className="font-semibold text-primary/80">Pensando:</span> {log.detail}
               </span>
             )}
 
             {log.eventType === "tool_start" && (
               <span className="text-warning/80">
-                🛠️ <span className="font-bold font-mono">Tool Start:</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-text-secondary/70 font-mono">{JSON.stringify(log.detail.args)}</span>)
+                🛠️ <span className="font-bold font-mono">Tool Start:</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-muted-foreground/70 font-mono">{JSON.stringify(log.detail.args)}</span>)
               </span>
             )}
 
             {log.eventType === "tool_end" && (
-              <span className={log.detail.isError ? "text-error/80" : "text-accent/80"}>
-                {log.detail.isError ? "❌" : "✓"} <span className="font-bold font-mono">Tool End:</span> <span className={log.detail.isError ? "text-error" : "text-accent"}>{log.detail.toolName}</span> ({log.detail.isError ? "error" : "success"})
+              <span className={log.detail.isError ? "text-destructive/80" : "text-primary/80"}>
+                {log.detail.isError ? "❌" : "✓"} <span className="font-bold font-mono">Tool End:</span> <span className={log.detail.isError ? "text-destructive" : "text-primary"}>{log.detail.toolName}</span> ({log.detail.isError ? "error" : "success"})
                 {!log.detail.isError && log.detail.result && (
-                  <span className="text-text-secondary/60 text-[10px] ml-2 block font-sans">
+                  <span className="text-muted-foreground/60 text-[10px] ml-2 block font-sans">
                     Resultado: {typeof log.detail.result === "string" ? log.detail.result.slice(0, 150) : JSON.stringify(log.detail.result).slice(0, 150)}...
                   </span>
                 )}
                 {log.detail.isError && log.detail.result && (
-                  <span className="text-error/70 text-[10px] ml-2 block font-sans whitespace-pre-wrap">
+                  <span className="text-destructive/70 text-[10px] ml-2 block font-sans whitespace-pre-wrap">
                     Error: {String(log.detail.result)}
                   </span>
                 )}
@@ -359,7 +359,7 @@ export function LogsConsolePage({
             )}
 
             {log.eventType === "error" && (
-              <span className="text-error font-semibold">
+              <span className="text-destructive font-semibold">
                 ⚠️ Error: {log.detail}
               </span>
             )}
@@ -370,15 +370,15 @@ export function LogsConsolePage({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-bg overflow-hidden p-4 sm:p-6 font-sans">
+    <div className="flex-1 flex flex-col h-full bg-background overflow-hidden p-4 sm:p-6 font-sans">
       {/* Selector de Pestañas */}
-      <div className="flex border-b border-surface-hover mb-4 flex-shrink-0">
+      <div className="flex border-b border-input mb-4 flex-shrink-0">
         <button
           onClick={() => setActiveTab("sessions")}
           className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-all ${
             activeTab === "sessions"
-              ? "border-accent text-accent"
-              : "border-transparent text-text-secondary hover:text-text-primary"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           Sesiones en Streaming
@@ -387,8 +387,8 @@ export function LogsConsolePage({
           onClick={() => setActiveTab("logs")}
           className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-all ${
             activeTab === "logs"
-              ? "border-accent text-accent"
-              : "border-transparent text-text-secondary hover:text-text-primary"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
           Trazas de Sistema
@@ -399,12 +399,12 @@ export function LogsConsolePage({
         /* VISTA A: GRILLA DE SESIONES */
         <div className="flex-1 overflow-y-auto min-h-0">
           {sessionsLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-2 text-text-secondary/55">
-              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center py-20 space-y-2 text-muted-foreground/55">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span className="text-xs">Cargando sesiones...</span>
             </div>
           ) : displaySessions.length === 0 ? (
-            <div className="text-center text-text-secondary/40 text-xs py-20">
+            <div className="text-center text-muted-foreground/40 text-xs py-20">
               No hay sesiones activas en este momento.
             </div>
           ) : (
@@ -412,7 +412,7 @@ export function LogsConsolePage({
               {displaySessions.map((session) => {
                 // Resolver el tipo y color del badge del contexto de la sesión
                 let badgeText = "Global";
-                let badgeColor = "bg-text-secondary/10 text-text-secondary border-text-secondary/20";
+                let badgeColor = "bg-text-secondary/10 text-muted-foreground border-text-secondary/20";
                 
                 if (session.repoName) {
                   badgeText = `Proyecto: ${session.repoName}`;
@@ -434,25 +434,25 @@ export function LogsConsolePage({
                   statusDotColor = "bg-warning animate-pulse";
                   statusLabel = "Streaming...";
                 } else if (session.status === "task-running") {
-                  statusDotColor = "bg-accent animate-pulse";
+                  statusDotColor = "bg-primary animate-pulse";
                   statusLabel = "Task Running...";
                 } else if (session.status === "active") {
-                  statusDotColor = "bg-success";
+                  statusDotColor = "bg-primary";
                   statusLabel = "Activa";
                 }
 
                 return (
                   <div
                     key={session.id}
-                    className="bg-surface border border-surface-hover/60 rounded-xl p-4 flex flex-col justify-between hover:border-accent/30 transition-all shadow-md gap-3"
+                    className="bg-card border border-input/60 rounded-xl p-4 flex flex-col justify-between hover:border-primary/30 transition-all shadow-md gap-3"
                   >
                     <div>
                       {/* Cabecera de la tarjeta: Título y Dot de Estado */}
                       <div className="flex items-start justify-between gap-2 mb-1.5">
-                        <h3 className="font-semibold text-text-primary text-sm truncate flex-1 leading-snug">
+                        <h3 className="font-semibold text-foreground text-sm truncate flex-1 leading-snug">
                           {session.name}
                         </h3>
-                        <span className="flex items-center gap-1 text-[10px] font-semibold text-text-secondary shrink-0 select-none">
+                        <span className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground shrink-0 select-none">
                           <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
                           {statusLabel}
                         </span>
@@ -466,11 +466,11 @@ export function LogsConsolePage({
                       </div>
                     </div>
 
-                    <div className="border-t border-surface-hover/30 pt-3 flex items-center justify-between mt-1 text-[10px] text-text-secondary select-none">
+                    <div className="border-t border-input/30 pt-3 flex items-center justify-between mt-1 text-[10px] text-muted-foreground select-none">
                       {/* Última actividad / Tiempo relativo */}
                       <div className="flex flex-col">
-                        <span className="text-text-secondary/40 uppercase tracking-widest text-[8px] font-bold">Actividad</span>
-                        <span className="font-medium text-text-secondary/80">
+                        <span className="text-muted-foreground/40 uppercase tracking-widest text-[8px] font-bold">Actividad</span>
+                        <span className="font-medium text-muted-foreground/80">
                           {formatRelativeTime(session.updatedAt, session.status)}
                         </span>
                       </div>
@@ -478,7 +478,7 @@ export function LogsConsolePage({
                       {/* Botón de abrir chat */}
                       <button
                         onClick={() => handleOpenSession(session)}
-                        className="py-1 px-3 text-xs font-semibold bg-accent text-bg hover:opacity-90 rounded-lg transition-opacity cursor-pointer shadow-sm shrink-0"
+                        className="py-1 px-3 text-xs font-semibold bg-primary text-background hover:opacity-90 rounded-lg transition-opacity cursor-pointer shadow-sm shrink-0"
                       >
                         Abrir Chat
                       </button>
@@ -493,14 +493,14 @@ export function LogsConsolePage({
         /* VISTA B: CONSOLA DE TRACES (LOGS) */
         <div className="flex-1 flex flex-col min-h-0">
           {/* Controles de Consola */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-surface border border-surface-hover rounded-xl mb-4 flex-shrink-0 text-xs text-text-secondary">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-card border border-input rounded-xl mb-4 flex-shrink-0 text-xs text-muted-foreground">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-text-primary">Origen:</span>
+                <span className="font-semibold text-foreground">Origen:</span>
                 <select
                   value={filterSource}
                   onChange={(e) => setFilterSource(e.target.value as any)}
-                  className="bg-bg border border-surface-hover rounded px-2.5 py-1 text-text-primary outline-none focus:border-accent cursor-pointer"
+                  className="bg-background border border-input rounded px-2.5 py-1 text-foreground outline-none focus:border-primary cursor-pointer"
                 >
                   <option value="all">Todos</option>
                   <option value="session">Sesiones</option>
@@ -508,7 +508,7 @@ export function LogsConsolePage({
                 </select>
               </div>
 
-              <div className="flex items-center gap-3 border-l border-surface-hover pl-4 select-none">
+              <div className="flex items-center gap-3 border-l border-input pl-4 select-none">
                 <label className="flex items-center gap-1.5 cursor-pointer">
                   <input
                     type="checkbox"
@@ -543,7 +543,7 @@ export function LogsConsolePage({
 
             <div className="flex items-center gap-3 ml-auto">
               <div className="flex items-center gap-1.5 select-none">
-                <span className={`w-2 h-2 rounded-full ${wsConnected ? "bg-success animate-pulse" : "bg-error"}`} />
+                <span className={`w-2 h-2 rounded-full ${wsConnected ? "bg-primary animate-pulse" : "bg-destructive"}`} />
                 <span className="text-[10px] font-mono">{wsConnected ? "ws-connected" : "ws-disconnected"}</span>
               </div>
 
@@ -551,8 +551,8 @@ export function LogsConsolePage({
                 onClick={() => setPauseScroll(!pauseScroll)}
                 className={`px-3 py-1.5 rounded-lg border font-semibold transition-colors cursor-pointer ${
                   pauseScroll
-                    ? "border-accent/40 bg-accent/15 text-accent"
-                    : "border-surface-hover hover:bg-surface-hover text-text-secondary hover:text-text-primary"
+                    ? "border-primary/40 bg-primary/15 text-primary"
+                    : "border-input hover:bg-card-hover text-muted-foreground hover:text-foreground"
                 }`}
               >
                 {pauseScroll ? "Reanudar Autoscroll" : "Congelar Scroll"}
@@ -560,7 +560,7 @@ export function LogsConsolePage({
 
               <button
                 onClick={() => setLogs([])}
-                className="px-3 py-1.5 rounded-lg border border-surface-hover hover:bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer font-semibold"
+                className="px-3 py-1.5 rounded-lg border border-input hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-semibold"
               >
                 Limpiar Pantalla
               </button>
@@ -568,18 +568,18 @@ export function LogsConsolePage({
           </div>
 
           {/* Pantalla del terminal de Logs */}
-          <div className="flex-1 bg-surface border border-surface-hover rounded-xl shadow-2xl overflow-hidden flex flex-col min-h-0 relative">
+          <div className="flex-1 bg-card border border-input rounded-xl shadow-2xl overflow-hidden flex flex-col min-h-0 relative">
             {logsLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-text-secondary/55">
-                <div className="w-6 h-6 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+              <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-muted-foreground/55">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs">Cargando trazas...</span>
               </div>
             ) : filteredLogs.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-text-secondary/40 text-xs font-mono select-none">
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/40 text-xs font-mono select-none">
                 &gt;_ Esperando trazas de logs del sistema...
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] text-text-primary space-y-2 selection:bg-accent/30 selection:text-text-primary">
+              <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] text-foreground space-y-2 selection:bg-primary/30 selection:text-foreground">
                 {filteredLogs.map((log, idx) => renderLogLine(log, idx))}
                 <div ref={consoleEndRef} />
               </div>

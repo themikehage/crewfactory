@@ -212,15 +212,15 @@ export function SessionSidebar({
   );
 
   return (
-    <div className="flex flex-col h-full bg-bg select-none text-text-primary">
+    <div className="flex flex-col h-full bg-background select-none text-foreground">
       {/* Factory Button */}
-      <div className="p-3 border-b border-surface flex-shrink-0">
+      <div className="p-3 border-b border-border flex-shrink-0">
         <button
           onClick={handleGoFactory}
           className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
             isGlobal
-              ? "bg-surface text-accent border border-accent/30"
-              : "bg-surface/40 text-text-secondary hover:bg-surface hover:text-accent border border-transparent hover:border-accent/20"
+              ? "bg-card text-primary border border-primary/30"
+              : "bg-card/40 text-muted-foreground hover:bg-card hover:text-primary border border-transparent hover:border-primary/20"
           }`}
           title="Global workspace"
         >
@@ -239,10 +239,10 @@ export function SessionSidebar({
       <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-3">
         {/* Repos Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground/70">
             <button
               onClick={() => setIsOpenRepos((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left"
             >
               <svg
                 width="12"
@@ -261,7 +261,7 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/projects")}
-              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Projects"
             >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -273,9 +273,9 @@ export function SessionSidebar({
           {isOpenRepos && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingRepos ? (
-                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : repos.length === 0 ? (
-                <div className="text-xs text-text-secondary/40 px-3 py-1">No projects</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1">No projects</div>
               ) : (
                 repos.map((repo) => {
                   const isActive = activeRepoName === repo.id && !activeAgent && !activeChannel;
@@ -285,8 +285,8 @@ export function SessionSidebar({
                       onClick={() => handleSelectRepoClick(repo.id || repo.name, repo.name)}
                       className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
                         isActive
-                          ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
-                          : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
+                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
                       }`}
                     >
                       <svg
@@ -294,7 +294,7 @@ export function SessionSidebar({
                         height="12"
                         viewBox="0 0 20 20"
                         fill="currentColor"
-                        className="flex-shrink-0 text-text-secondary/60"
+                        className="flex-shrink-0 text-muted-foreground/60"
                       >
                         <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
                       </svg>
@@ -309,10 +309,10 @@ export function SessionSidebar({
 
         {/* Agents Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground/70">
             <button
               onClick={() => setIsOpenAgents((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left"
             >
               <svg
                 width="12"
@@ -331,7 +331,7 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/agents")}
-              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Agents"
             >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -343,9 +343,9 @@ export function SessionSidebar({
           {isOpenAgents && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingAgents ? (
-                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : agents.length === 0 ? (
-                <div className="text-xs text-text-secondary/40 px-3 py-1">No agents</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1">No agents</div>
               ) : (
                 agents.map((agent) => {
                   const isActive = activeAgent?.id === agent.id && !activeChannel;
@@ -355,8 +355,8 @@ export function SessionSidebar({
                       onClick={() => handleSelectAgentClick({ id: agent.id, name: agent.name })}
                       className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
                         isActive
-                          ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
-                          : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
+                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
                       }`}
                     >
                       <svg
@@ -364,7 +364,7 @@ export function SessionSidebar({
                         height="12"
                         viewBox="0 0 20 20"
                         fill="currentColor"
-                        className="flex-shrink-0 text-text-secondary/60"
+                        className="flex-shrink-0 text-muted-foreground/60"
                       >
                         <path
                           fillRule="evenodd"
@@ -383,10 +383,10 @@ export function SessionSidebar({
 
         {/* Channels Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/70">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground/70">
             <button
               onClick={() => setIsOpenChannels((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-text-primary transition-colors cursor-pointer text-left"
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left"
             >
               <svg
                 width="12"
@@ -405,7 +405,7 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/channels")}
-              className="p-0.5 hover:bg-surface rounded text-text-secondary hover:text-accent transition-all cursor-pointer font-bold text-xs leading-none"
+              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
               title="Manage Channels"
             >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -417,9 +417,9 @@ export function SessionSidebar({
           {isOpenChannels && (
             <div className="px-2 mt-1 space-y-0.5">
               {loadingChannels ? (
-                <div className="text-xs text-text-secondary/40 px-3 py-1 animate-pulse">Loading...</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1 animate-pulse">Loading...</div>
               ) : channels.length === 0 ? (
-                <div className="text-xs text-text-secondary/40 px-3 py-1">No channels</div>
+                <div className="text-xs text-muted-foreground/40 px-3 py-1">No channels</div>
               ) : (
                 channels.map((channel) => {
                   const isActive = activeChannel?.id === channel.id;
@@ -429,11 +429,11 @@ export function SessionSidebar({
                       onClick={() => handleSelectChannelClick({ id: channel.id, name: channel.name })}
                       className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
                         isActive
-                          ? "bg-surface-hover text-text-primary font-medium border-l-2 border-accent rounded-l-none pl-2"
-                          : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
+                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
                       }`}
                     >
-                      <span className="font-bold text-xs text-text-secondary/60 flex-shrink-0 w-3 text-center">#</span>
+                      <span className="font-bold text-xs text-muted-foreground/60 flex-shrink-0 w-3 text-center">#</span>
                       <span className="truncate">{channel.name}</span>
                     </button>
                   );
@@ -445,8 +445,8 @@ export function SessionSidebar({
       </div>
 
       {/* Admin Links */}
-      <div className="p-2 border-t border-surface/60 bg-surface/10 space-y-1 flex-shrink-0">
-        <div className="px-3 py-1 text-xs uppercase tracking-wider font-semibold text-text-secondary/60">
+      <div className="p-2 border-t border-border/60 bg-card/10 space-y-1 flex-shrink-0">
+        <div className="px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground/60">
           Admin
         </div>
         {adminItems.map((item) => {
@@ -457,12 +457,12 @@ export function SessionSidebar({
               onClick={() => onNavigate && onNavigate(item.path)}
               className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
                 isActive
-                  ? "bg-surface text-text-primary font-medium"
-                  : "text-text-secondary hover:bg-surface/50 hover:text-text-primary"
+                  ? "bg-card text-foreground font-medium"
+                  : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
               }`}
             >
               <span
-                className={`${isActive ? "text-accent" : "text-text-secondary"} w-4 flex justify-center flex-shrink-0`}
+                className={`${isActive ? "text-primary" : "text-muted-foreground"} w-4 flex justify-center flex-shrink-0`}
               >
                 {item.icon}
               </span>

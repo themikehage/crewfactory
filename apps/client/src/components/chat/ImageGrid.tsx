@@ -183,14 +183,14 @@ export function ImageGrid({
     <div className="my-3 font-sans">
       {images.length > 1 && (
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-semibold text-text-secondary/70 uppercase tracking-wider">
+          <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
             {images.length} image{images.length !== 1 ? "s" : ""}
           </span>
           <button
             onClick={downloadAll}
             disabled={downloading !== null}
             className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]
-                       text-text-secondary hover:text-text-primary hover:bg-surface-hover/50
+                       text-muted-foreground hover:text-foreground hover:bg-card-hover/50
                        transition-colors disabled:opacity-50 cursor-pointer"
           >
             <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
@@ -207,7 +207,7 @@ export function ImageGrid({
           return (
             <div
               key={i}
-              className="group relative rounded-lg overflow-hidden border border-surface-hover bg-surface hover:border-accent/40 shadow-sm transition-all"
+              className="group relative rounded-lg overflow-hidden border border-input bg-card hover:border-primary/40 shadow-sm transition-all"
             >
               <div className="aspect-square w-full overflow-hidden bg-black/10 flex items-center justify-center">
                 <AuthenticatedImage
@@ -251,7 +251,7 @@ export function ImageGrid({
               </div>
 
               {img.title && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-text-primary truncate">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-foreground truncate">
                   {img.title}
                 </div>
               )}

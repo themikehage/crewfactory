@@ -60,7 +60,25 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
-      setStreamingAgents(data.streamingAgents || {});
+      
+      setStreamingAgents((prev) => {
+        const merged = { ...prev };
+        for (const [agentId, serverStream] of Object.entries(data.streamingAgents || {})) {
+          const s = serverStream as StreamingAgentState;
+          if (merged[agentId]) {
+            // Keep the longer text/thinking to avoid losing any web socket deltas
+            merged[agentId] = {
+              ...s,
+              text: merged[agentId].text.length > s.text.length ? merged[agentId].text : s.text,
+              thinking: (merged[agentId].thinking?.length || 0) > (s.thinking?.length || 0) ? merged[agentId].thinking : s.thinking,
+              toolCalls: { ...s.toolCalls, ...merged[agentId].toolCalls }
+            };
+          } else {
+            merged[agentId] = s;
+          }
+        }
+        return merged;
+      });
     } catch (err: any) {
       console.error("Failed to load active channel streamings:", err);
     }
@@ -126,8 +144,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           }));
         } else if (data.type === "channel_agent_token") {
           setStreamingAgents((prev) => {
-            const current = prev[data.agentId];
-            if (!current) return prev;
+            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
             return {
               ...prev,
               [data.agentId]: { ...current, text: current.text + data.token },
@@ -135,8 +152,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           });
         } else if (data.type === "channel_agent_thinking") {
           setStreamingAgents((prev) => {
-            const current = prev[data.agentId];
-            if (!current) return prev;
+            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
             return {
               ...prev,
               [data.agentId]: { ...current, thinking: (current.thinking || "") + data.token },
@@ -144,8 +160,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           });
         } else if (data.type === "channel_agent_tool_start") {
           setStreamingAgents((prev) => {
-            const current = prev[data.agentId];
-            if (!current) return prev;
+            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
             const tools = { ...(current.toolCalls || {}) };
             tools[data.toolCallId] = { toolName: data.toolName, args: data.args, result: null, isError: false };
             return {
@@ -155,8 +170,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           });
         } else if (data.type === "channel_agent_tool_end") {
           setStreamingAgents((prev) => {
-            const current = prev[data.agentId];
-            if (!current) return prev;
+            const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
             const tools = { ...(current.toolCalls || {}) };
             if (tools[data.toolCallId]) {
               tools[data.toolCallId] = {

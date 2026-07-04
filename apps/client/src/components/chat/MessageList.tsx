@@ -101,7 +101,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
     <div className="my-1.5">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-[11px] text-text-secondary/50 hover:text-text-secondary transition-colors cursor-pointer select-none"
+        className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer select-none"
       >
         <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
           <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
@@ -112,7 +112,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
         </svg>
       </button>
       {open && (
-        <div className="mt-1.5 pl-4 border-l-2 border-accent/20 text-[11px] text-text-secondary/60 font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+        <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground/60 font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
           {thinking}
         </div>
       )}
@@ -126,19 +126,19 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
   return (
     <div className={clsx(
       "flex items-center gap-1.5 mt-2 pt-1.5 border-t select-none text-[10px] font-mono",
-      msg.role === "user" ? "border-bg/10 text-bg/60" : "border-surface-hover/30 text-text-secondary/40"
+      msg.role === "user" ? "border-bg/10 text-background/60" : "border-input/30 text-muted-foreground/40"
     )}>
       <button
         onClick={() => { const i = msg.siblings!.indexOf(msg.id!); if (i > 0) onNavigate(msg.siblings![i - 1]); }}
         disabled={idx === 0}
-        className={clsx("p-0.5 rounded transition-colors cursor-pointer", idx > 0 ? (msg.role === "user" ? "hover:bg-bg/10 hover:text-bg text-bg/80" : "hover:bg-surface-hover hover:text-text-primary text-text-secondary/80") : "opacity-30 cursor-not-allowed")}
+        className={clsx("p-0.5 rounded transition-colors cursor-pointer", idx > 0 ? (msg.role === "user" ? "hover:bg-background/10 hover:text-background text-background/80" : "hover:bg-card-hover hover:text-foreground text-muted-foreground/80") : "opacity-30 cursor-not-allowed")}
         title="Previous version"
       >←</button>
       <span>{idx + 1} / {msg.siblings.length}</span>
       <button
         onClick={() => { const i = msg.siblings!.indexOf(msg.id!); if (i < msg.siblings!.length - 1) onNavigate(msg.siblings![i + 1]); }}
         disabled={idx === msg.siblings.length - 1}
-        className={clsx("p-0.5 rounded transition-colors cursor-pointer", idx < msg.siblings.length - 1 ? (msg.role === "user" ? "hover:bg-bg/10 hover:text-bg text-bg/80" : "hover:bg-surface-hover hover:text-text-primary text-text-secondary/80") : "opacity-30 cursor-not-allowed")}
+        className={clsx("p-0.5 rounded transition-colors cursor-pointer", idx < msg.siblings.length - 1 ? (msg.role === "user" ? "hover:bg-background/10 hover:text-background text-background/80" : "hover:bg-card-hover hover:text-foreground text-muted-foreground/80") : "opacity-30 cursor-not-allowed")}
         title="Next version"
       >→</button>
     </div>
@@ -197,14 +197,14 @@ function AssistantTextBlock({
           const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
-            <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-surface-hover overflow-hidden bg-surface flex flex-col font-sans">
-              <div className="bg-surface-hover/50 px-3 py-1.5 border-b border-surface-hover flex items-center justify-between text-[11px] text-text-secondary">
+            <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-input overflow-hidden bg-card flex flex-col font-sans">
+              <div className="bg-card-hover/50 px-3 py-1.5 border-b border-input flex items-center justify-between text-[11px] text-muted-foreground">
                 <span className="font-medium truncate">PDF Preview: {m.title || "Document"}</span>
                 <a
                   href={fileUrl}
                   target="_blank"
                   rel="noreferrer"
-                  className="px-2 py-0.5 rounded bg-accent/10 border border-accent/20 hover:bg-accent/25 text-accent font-semibold transition-colors cursor-pointer"
+                  className="px-2 py-0.5 rounded bg-primary/10 border border-primary/20 hover:bg-primary/25 text-primary font-semibold transition-colors cursor-pointer"
                 >
                   Open in New Tab
                 </a>
@@ -222,8 +222,8 @@ function AssistantTextBlock({
           const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
-            <div key={`audio-${i}`} className="w-full p-3 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
-              <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Audio output"}</span>
+            <div key={`audio-${i}`} className="w-full p-3 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
+              <span className="text-[11px] font-semibold text-muted-foreground truncate">{m.title || "Audio output"}</span>
               <audio controls src={fileUrl} className="w-full h-8 outline-none animate-fade-in" />
             </div>
           );
@@ -233,9 +233,9 @@ function AssistantTextBlock({
           const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
-            <div key={`video-${i}`} className="w-full p-2 bg-surface border border-surface-hover rounded-lg flex flex-col gap-1.5 font-sans">
-              <span className="text-[11px] font-semibold text-text-secondary truncate">{m.title || "Video output"}</span>
-              <video controls src={fileUrl} className="w-full rounded border border-surface-hover max-h-96" />
+            <div key={`video-${i}`} className="w-full p-2 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
+              <span className="text-[11px] font-semibold text-muted-foreground truncate">{m.title || "Video output"}</span>
+              <video controls src={fileUrl} className="w-full rounded border border-input max-h-96" />
             </div>
           );
         })}
@@ -246,20 +246,20 @@ function AssistantTextBlock({
           const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
           const extension = m.url.split(".").pop() || "file";
           return (
-            <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-surface border border-surface-hover rounded-lg font-sans">
+            <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-card border border-input rounded-lg font-sans">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded bg-accent/15 flex items-center justify-center text-accent text-[10px] font-extrabold select-none shrink-0 border border-accent/20 uppercase">
+                <div className="w-9 h-9 rounded bg-primary/15 flex items-center justify-center text-primary text-[10px] font-extrabold select-none shrink-0 border border-primary/20 uppercase">
                   {extension.substring(0, 3)}
                 </div>
                 <div className="flex flex-col min-w-0">
-                  <span className="text-xs font-semibold text-text-primary truncate">{filename}</span>
-                  <span className="text-[9px] text-text-secondary/50 uppercase font-mono">{extension}</span>
+                  <span className="text-xs font-semibold text-foreground truncate">{filename}</span>
+                  <span className="text-[9px] text-muted-foreground/50 uppercase font-mono">{extension}</span>
                 </div>
               </div>
               <a
                 href={fileUrl}
                 download={filename}
-                className="px-3 py-1.5 text-[11px] font-semibold rounded bg-accent text-bg hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
+                className="px-3 py-1.5 text-[11px] font-semibold rounded bg-primary text-background hover:opacity-90 transition-opacity cursor-pointer flex items-center justify-center shrink-0"
               >
                 Download
               </a>
@@ -301,8 +301,8 @@ function AgentTurn({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-surface border border-surface-hover flex items-center justify-center">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-accent">
+      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-card border border-input flex items-center justify-center">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
           <path d="M4 17L10 11L4 5" />
           <path d="M12 19H20" />
         </svg>
@@ -322,7 +322,7 @@ function AgentTurn({
                 }
                 if (block.type === "text" && block.text) {
                   return (
-                    <div key={i} className="text-text-primary text-sm leading-relaxed">
+                    <div key={i} className="text-foreground text-sm leading-relaxed">
                       <AssistantTextBlock
                         text={block.text}
                         sessionId={sessionId}
@@ -363,18 +363,18 @@ function AgentTurn({
               })}
 
               {isLast && isStreaming && (
-                <span className="inline-block w-2 h-4 ml-1 bg-accent animate-pulse rounded-sm" />
+                <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse rounded-sm" />
               )}
 
               {isLast && (msg.provider || msg.model || msg.usage) && !isStreaming && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-[10px] text-text-secondary/40 font-mono">
-                  {msg.provider && <span>provider: <span className="text-text-secondary/60">{msg.provider}</span></span>}
-                  {msg.model && <span>• model: <span className="text-text-secondary/60">{msg.model}</span></span>}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-[10px] text-muted-foreground/40 font-mono">
+                  {msg.provider && <span>provider: <span className="text-muted-foreground/60">{msg.provider}</span></span>}
+                  {msg.model && <span>• model: <span className="text-muted-foreground/60">{msg.model}</span></span>}
                   {msg.usage && (
                     <>
-                      <span>• tokens: <span className="text-text-secondary/60">{msg.usage.totalTokens ?? (msg.usage.input + msg.usage.output)}</span></span>
+                      <span>• tokens: <span className="text-muted-foreground/60">{msg.usage.totalTokens ?? (msg.usage.input + msg.usage.output)}</span></span>
                       {msg.usage.cost?.total !== undefined && (
-                        <span>• cost: <span className="text-text-secondary/60">${msg.usage.cost.total.toFixed(6)}</span></span>
+                        <span>• cost: <span className="text-muted-foreground/60">${msg.usage.cost.total.toFixed(6)}</span></span>
                       )}
                     </>
                   )}
@@ -449,10 +449,10 @@ function UserBubble({
     <div className="flex gap-3 justify-end my-1">
       <div className="max-w-[80%] sm:max-w-[75%] space-y-2 flex flex-col items-end">
         {cleanText && (
-          <div className="bg-accent text-bg rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm text-right w-fit">
+          <div className="bg-primary text-background rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm text-right w-fit">
             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words font-sans text-left">{cleanText}</p>
             {msg.isError && (
-              <div className="mt-1.5 text-xs text-bg/60">Error sending message</div>
+              <div className="mt-1.5 text-xs text-background/60">Error sending message</div>
             )}
           </div>
         )}
@@ -475,20 +475,20 @@ function UserBubble({
               const resolved = resolveFileUrl(att.path, sessionId, activeRepoName, activeAgentId, activeChannelId);
               const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
               return (
-                <div key={idx} className="flex items-center justify-between p-2.5 bg-surface border border-surface-hover rounded-lg font-sans text-left w-full">
+                <div key={idx} className="flex items-center justify-between p-2.5 bg-card border border-input rounded-lg font-sans text-left w-full">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded bg-accent/15 flex items-center justify-center text-accent text-[9px] font-extrabold select-none shrink-0 border border-accent/20 uppercase">
+                    <div className="w-8 h-8 rounded bg-primary/15 flex items-center justify-center text-primary text-[9px] font-extrabold select-none shrink-0 border border-primary/20 uppercase">
                       {att.name.split(".").pop()?.substring(0, 3) || "doc"}
                     </div>
                     <div className="flex flex-col min-w-0">
-                      <span className="text-[11px] font-semibold text-text-primary truncate">{att.name}</span>
-                      <span className="text-[8px] text-text-secondary/50 uppercase font-mono">{att.name.split(".").pop()}</span>
+                      <span className="text-[11px] font-semibold text-foreground truncate">{att.name}</span>
+                      <span className="text-[8px] text-muted-foreground/50 uppercase font-mono">{att.name.split(".").pop()}</span>
                     </div>
                   </div>
                   <a
                     href={fileUrl}
                     download={att.name}
-                    className="px-2 py-1 text-[10px] font-semibold rounded bg-accent text-bg hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+                    className="px-2 py-1 text-[10px] font-semibold rounded bg-primary text-background hover:opacity-90 transition-opacity cursor-pointer shrink-0"
                   >
                     Download
                   </a>
@@ -513,7 +513,7 @@ export const MessageList: FC<Props> = ({
 }) => {
   if (messages.length === 0) {
     return (
-      <div className="flex flex-col items-center justify-center h-64 gap-3 text-text-secondary">
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
         <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="opacity-30">
           <path d="M4 17L10 11L4 5" />
           <path d="M12 19H20" />

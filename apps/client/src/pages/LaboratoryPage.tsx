@@ -53,20 +53,20 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
   const mentionNames = ["user", ...registeredAgents.map((a) => a.name)];
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[560px] min-h-0 bg-surface/10 rounded-2xl border border-surface-hover/60 overflow-hidden">
+    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[560px] min-h-0 bg-card/10 rounded-2xl border border-input/60 overflow-hidden">
       {/* Panel del Chat (70%) */}
-      <div className="lg:col-span-2 flex flex-col h-full bg-surface/5 min-h-0 border-r border-surface-hover/40 relative">
+      <div className="lg:col-span-2 flex flex-col h-full bg-card/5 min-h-0 border-r border-input/40 relative">
         <div className="absolute inset-0 flex flex-col min-h-0">
-          <div className="px-4 py-2.5 border-b border-surface-hover/30 bg-surface/10 flex items-center justify-between text-xs text-text-secondary">
+          <div className="px-4 py-2.5 border-b border-input/30 bg-card/10 flex items-center justify-between text-xs text-muted-foreground">
             <span className="font-semibold tracking-wide">Conversación del Experimento (Lectura)</span>
             {status === "running" && (
-              <span className="flex items-center gap-1.5 text-accent font-bold animate-pulse">
-                <span className="w-2 h-2 bg-accent rounded-full animate-ping" />
+              <span className="flex items-center gap-1.5 text-primary font-bold animate-pulse">
+                <span className="w-2 h-2 bg-primary rounded-full animate-ping" />
                 Debatiendo en vivo...
               </span>
             )}
           </div>
-          <div className="flex-1 min-h-0 overflow-y-auto bg-bg/25">
+          <div className="flex-1 min-h-0 overflow-y-auto bg-background/25">
             <ChannelMessageList
               messages={messages}
               streamingAgents={streamingAgents}
@@ -82,23 +82,23 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
       </div>
 
       {/* Panel de Telemetría (30%) */}
-      <div className="p-5 flex flex-col bg-surface/10 min-h-0 overflow-y-auto text-left justify-between">
+      <div className="p-5 flex flex-col bg-card/10 min-h-0 overflow-y-auto text-left justify-between">
         <div className="space-y-6">
           <div>
-            <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-2">
+            <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-2">
               Telemetría y Estado
             </h4>
-            <div className="flex items-center justify-between bg-bg/50 border border-surface-hover/60 rounded-xl p-3.5">
-              <span className="text-xs font-semibold text-text-primary">Estado de Corrida</span>
+            <div className="flex items-center justify-between bg-background/50 border border-input/60 rounded-xl p-3.5">
+              <span className="text-xs font-semibold text-foreground">Estado de Corrida</span>
               <span
                 className={`text-[9px] px-2 py-0.5 rounded-lg font-mono font-bold uppercase tracking-wider ${
                   status === "completed"
-                    ? "bg-accent/10 text-accent border border-accent/20"
+                    ? "bg-primary/10 text-primary border border-primary/20"
                     : status === "running"
                     ? "bg-blue-500/10 text-blue-400 border border-blue-400/20 animate-pulse"
                     : status === "failed"
-                    ? "bg-error/10 text-error border border-error/20"
-                    : "bg-bg text-text-secondary border border-surface-hover"
+                    ? "bg-destructive/10 text-destructive border border-error/20"
+                    : "bg-background text-muted-foreground border border-input"
                 }`}
               >
                 {status}
@@ -111,27 +111,27 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               {/* Score Matrix */}
               {result.scores && (
                 <div className="space-y-3">
-                  <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                  <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                     Evaluación LLM-Judge
                   </h4>
-                  <div className="bg-bg/40 border border-surface-hover/40 rounded-xl p-4 space-y-4">
+                  <div className="bg-background/40 border border-input/40 rounded-xl p-4 space-y-4">
                     <div className="flex flex-col items-center py-2">
-                      <div className="relative w-20 h-20 flex items-center justify-center rounded-full bg-accent/5 border border-accent/25 shadow-[0_0_15px_rgba(74,222,128,0.05)]">
-                        <span className="text-2xl font-black text-accent">{result.scores.globalScore}</span>
+                      <div className="relative w-20 h-20 flex items-center justify-center rounded-full bg-primary/5 border border-primary/25 shadow-[0_0_15px_rgba(74,222,128,0.05)]">
+                        <span className="text-2xl font-black text-primary">{result.scores.globalScore}</span>
                       </div>
-                      <span className="text-[10px] font-bold text-text-secondary uppercase tracking-wider mt-2.5">
+                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-2.5">
                         Global Score
                       </span>
                     </div>
 
-                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-surface-hover/30">
-                      <div className="text-center p-2 bg-bg/25 rounded-lg border border-surface-hover/30">
-                        <p className="text-[9px] text-text-secondary font-bold uppercase">Calidad</p>
-                        <p className="text-base font-black text-text-primary mt-0.5">{result.scores.taskQuality}</p>
+                    <div className="grid grid-cols-2 gap-3 pt-2 border-t border-input/30">
+                      <div className="text-center p-2 bg-background/25 rounded-lg border border-input/30">
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Calidad</p>
+                        <p className="text-base font-black text-foreground mt-0.5">{result.scores.taskQuality}</p>
                       </div>
-                      <div className="text-center p-2 bg-bg/25 rounded-lg border border-surface-hover/30">
-                        <p className="text-[9px] text-text-secondary font-bold uppercase">Eficiencia</p>
-                        <p className="text-base font-black text-text-primary mt-0.5">{result.scores.efficiencyScore}</p>
+                      <div className="text-center p-2 bg-background/25 rounded-lg border border-input/30">
+                        <p className="text-[9px] text-muted-foreground font-bold uppercase">Eficiencia</p>
+                        <p className="text-base font-black text-foreground mt-0.5">{result.scores.efficiencyScore}</p>
                       </div>
                     </div>
                   </div>
@@ -140,32 +140,32 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
 
               {/* Estadísticas */}
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                   Métricas de Ejecución
                 </h4>
-                <div className="bg-bg/40 border border-surface-hover/40 rounded-xl p-3.5 space-y-2.5 text-xs font-mono text-text-secondary leading-relaxed">
+                <div className="bg-background/40 border border-input/40 rounded-xl p-3.5 space-y-2.5 text-xs font-mono text-muted-foreground leading-relaxed">
                   <div className="flex justify-between">
                     <span>Duración:</span>
-                    <span className="text-text-primary font-bold">{(result.durationMs / 1000).toFixed(1)}s</span>
+                    <span className="text-foreground font-bold">{(result.durationMs / 1000).toFixed(1)}s</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tokens entrada:</span>
-                    <span className="text-text-primary">{result.tokensIn}</span>
+                    <span className="text-foreground">{result.tokensIn}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Tokens salida:</span>
-                    <span className="text-text-primary">{result.tokensOut}</span>
+                    <span className="text-foreground">{result.tokensOut}</span>
                   </div>
                   {result.negotiationRounds !== undefined && (
                     <div className="flex justify-between">
                       <span>Rondas debate:</span>
-                      <span className="text-text-primary">{result.negotiationRounds}</span>
+                      <span className="text-foreground">{result.negotiationRounds}</span>
                     </div>
                   )}
                   {result.escalationsToLeader !== undefined && (
                     <div className="flex justify-between">
                       <span>Escalaciones:</span>
-                      <span className="text-text-primary">{result.escalationsToLeader}</span>
+                      <span className="text-foreground">{result.escalationsToLeader}</span>
                     </div>
                   )}
                 </div>
@@ -174,13 +174,13 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               {/* Mostrar resultado final textual (o error) */}
               {result.finalOutput && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] uppercase font-bold text-text-secondary tracking-wider">
+                  <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
                     {result.status === "failed" ? "Detalle del Error" : "Resultado Final"}
                   </h4>
                   <pre className={`text-[10px] border rounded-xl p-3 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-left leading-relaxed ${
                     result.status === "failed" 
-                      ? "bg-error/5 text-error border-error/20" 
-                      : "bg-bg/30 text-text-secondary border-surface-hover"
+                      ? "bg-destructive/5 text-destructive border-error/20" 
+                      : "bg-background/30 text-muted-foreground border-input"
                   }`}>
                     {result.finalOutput}
                   </pre>
@@ -189,15 +189,15 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
             </div>
           ) : (
             status === "running" ? (
-              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-text-secondary space-y-3">
-                <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin" />
-                <span className="font-semibold tracking-wide text-accent">Debate en progreso...</span>
-                <span className="text-[10px] text-text-secondary/70 max-w-[200px]">
+              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-muted-foreground space-y-3">
+                <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="font-semibold tracking-wide text-primary">Debate en progreso...</span>
+                <span className="text-[10px] text-muted-foreground/70 max-w-[200px]">
                   Los agentes están analizando y colaborando en tiempo real. Seguí la conversación a la izquierda.
                 </span>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-text-secondary/50 italic bg-bg/20 rounded-xl border border-dashed border-surface-hover/60">
+              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-muted-foreground/50 italic bg-background/20 rounded-xl border border-dashed border-input/60">
                 Esperando el inicio de la corrida...
               </div>
             )
@@ -248,6 +248,7 @@ export function LaboratoryPage({
   const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader">("single");
 
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const lastAutoSwitchedVariantRef = useRef<"single" | "multiNoLeader" | "multiWithLeader" | null>(null);
 
   const activeExp = experiments.find((e) => e.id === selectedExpId) || null;
 
@@ -297,7 +298,24 @@ export function LaboratoryPage({
   // Reset variant tab on selected experiment change
   useEffect(() => {
     setActiveVariantTab("single");
+    lastAutoSwitchedVariantRef.current = null;
   }, [selectedExpId]);
+
+  // Automatically switch tab to currently running variant
+  useEffect(() => {
+    if (activeExp && activeExp.status === "running") {
+      const runningVariant = (["single", "multiNoLeader", "multiWithLeader"] as const).find((vKey) => {
+        const run = activeExp.variants?.[vKey];
+        return run?.activeSessionId && !run?.result;
+      });
+      if (runningVariant && lastAutoSwitchedVariantRef.current !== runningVariant) {
+        lastAutoSwitchedVariantRef.current = runningVariant;
+        setActiveVariantTab(runningVariant);
+      }
+    } else {
+      lastAutoSwitchedVariantRef.current = null;
+    }
+  }, [activeExp]);
 
   const handleGenerateTeam = async () => {
     if (!generatorPrompt.trim()) return;
@@ -721,9 +739,9 @@ export function LaboratoryPage({
   };
 
   return (
-    <div className="flex h-full min-h-0 bg-bg text-text-primary font-body">
+    <div className="flex h-full min-h-0 bg-background text-foreground font-body">
       {/* Area Principal de Contenido (Abarca todo el ancho de la página al quitar el sidebar) */}
-      <div className="flex-1 min-w-0 bg-bg flex flex-col p-6 overflow-y-auto">
+      <div className="flex-1 min-w-0 bg-background flex flex-col p-6 overflow-y-auto">
         <AnimatePresence mode="wait">
           {!selectedExpId ? (
             <motion.div
@@ -734,10 +752,10 @@ export function LaboratoryPage({
               className="space-y-6 max-w-5xl mx-auto w-full"
             >
               {/* Card Header del Generador */}
-              <div className="bg-surface border border-surface-hover rounded-2xl p-6">
+              <div className="bg-card border border-input rounded-2xl p-6">
                 <div className="flex items-center gap-2 mb-2">
-                  <span className="p-2 bg-accent/10 rounded-xl">
-                    <svg className="w-5 h-5 text-accent" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <span className="p-2 bg-primary/10 rounded-xl">
+                    <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                       <path
                         strokeLinecap="round"
                         strokeLinejoin="round"
@@ -748,7 +766,7 @@ export function LaboratoryPage({
                   </span>
                   <div>
                     <h1 className="text-lg font-bold">Generá tu Equipo con IA</h1>
-                    <p className="text-xs text-text-secondary">
+                    <p className="text-xs text-muted-foreground">
                       Ingresá una descripción y la IA configurará los Agentes Programáticos y el Canal correspondiente.
                     </p>
                   </div>
@@ -760,17 +778,17 @@ export function LaboratoryPage({
                     onChange={(e) => setGeneratorPrompt(e.target.value)}
                     placeholder="Ejemplo: Necesito un equipo de redactores publicitarios. Quiero un agente especialista en copy persuasivo, un corrector ortográfico y un coordinador que apruebe y decida."
                     rows={4}
-                    className="w-full bg-bg border border-surface-hover rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-accent transition-colors font-body text-text-primary"
+                    className="w-full bg-background border border-input rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors font-body text-foreground"
                   />
 
                   {genError && (
-                    <div className="p-3 bg-error/10 border border-error/20 text-error rounded-xl text-xs flex items-center gap-2">
+                    <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-xl text-xs flex items-center gap-2">
                       <span className="font-bold">Error:</span> {genError}
                     </div>
                   )}
 
                   {instantiationSuccess && (
-                    <div className="p-3 bg-accent/10 border border-accent/20 text-accent rounded-xl text-xs flex items-center gap-2">
+                    <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs flex items-center gap-2">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
                       </svg>
@@ -779,9 +797,9 @@ export function LaboratoryPage({
                   )}
 
                   {/* Selector de Modelo al lado del botón de generar */}
-                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 bg-bg/40 p-3 rounded-xl border border-surface-hover/50">
+                  <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 bg-background/40 p-3 rounded-xl border border-input/50">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] uppercase font-bold text-text-secondary tracking-wider font-mono">
+                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider font-mono">
                         Modelo Generador:
                       </span>
                       <ModelSelector
@@ -793,7 +811,7 @@ export function LaboratoryPage({
                     <button
                       onClick={handleGenerateTeam}
                       disabled={generating || !generatorPrompt.trim()}
-                      className="w-full sm:w-auto px-4 py-2 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center justify-center gap-2 cursor-pointer"
+                      className="w-full sm:w-auto px-4 py-2 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center justify-center gap-2 cursor-pointer"
                     >
                       {generating ? (
                         <>
@@ -816,19 +834,19 @@ export function LaboratoryPage({
                   className="space-y-6"
                 >
                   <div className="flex justify-between items-center">
-                    <h2 className="text-sm font-bold text-text-primary tracking-wide uppercase">Propuesta Generada (Editable)</h2>
+                    <h2 className="text-sm font-bold text-foreground tracking-wide uppercase">Propuesta Generada (Editable)</h2>
                     <div className="flex gap-2">
                       <button
                         onClick={handleSaveExperimentDirect}
                         disabled={editableTeam.agents.length < 3}
-                        className="px-4 py-1.5 bg-surface hover:bg-surface-hover border border-surface-hover text-text-primary disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        className="px-4 py-1.5 bg-card hover:bg-card-hover border border-input text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
                         Crear Experimento
                       </button>
                       <button
                         onClick={handleInstantiateTeam}
                         disabled={instantiating || editableTeam.agents.length < 3}
-                        className="px-4 py-1.5 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center gap-2 cursor-pointer"
+                        className="px-4 py-1.5 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center gap-2 cursor-pointer"
                       >
                         {instantiating ? (
                           <>
@@ -850,38 +868,38 @@ export function LaboratoryPage({
                         </svg>
                         <span>Regla de Negocio: Mínimo de Agentes</span>
                       </div>
-                      <p className="text-text-secondary leading-relaxed">
+                      <p className="text-muted-foreground leading-relaxed">
                         Se requiere un mínimo de <strong>3 agentes</strong> para poder ejecutar los tracks colaborativos (Colaboración Horizontal y Colaboración Jerárquica). Agregá más agentes al equipo para cumplir con esta regla.
                       </p>
                     </div>
                   )}
 
                   {/* Creador de Experimento Directo (Unificado) */}
-                  <div className="bg-surface border border-surface-hover rounded-2xl p-5 space-y-4 text-left">
-                    <div className="flex items-center gap-2 pb-2 border-b border-surface-hover/50">
-                      <span className="p-1.5 bg-accent/10 rounded-lg text-accent">
+                  <div className="bg-card border border-input rounded-2xl p-5 space-y-4 text-left">
+                    <div className="flex items-center gap-2 pb-2 border-b border-input/50">
+                      <span className="p-1.5 bg-primary/10 rounded-lg text-primary">
                         <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
                         </svg>
                       </span>
-                      <h3 className="font-bold text-xs uppercase tracking-wider text-text-primary">Configuración del Experimento</h3>
+                      <h3 className="font-bold text-xs uppercase tracking-wider text-foreground">Configuración del Experimento</h3>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                        <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                           Nombre del Experimento
                         </label>
                         <input
                           type="text"
                           value={editorName}
                           onChange={(e) => setEditorName(e.target.value)}
-                          className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                          className="w-full bg-background border border-input rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary font-semibold"
                           placeholder="Nombre del experimento..."
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                        <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                           Criterios de Evaluación del LLM-Judge
                         </label>
                         <div className="flex gap-1.5 mb-2">
@@ -896,11 +914,11 @@ export function LaboratoryPage({
                               }
                             }}
                             placeholder="Agregar criterio..."
-                            className="flex-1 bg-bg border border-surface-hover rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-accent text-text-primary"
+                            className="flex-1 bg-background border border-input rounded-lg px-2.5 py-1 text-xs focus:outline-none focus:border-primary text-foreground"
                           />
                           <button
                             onClick={handleAddCriterion}
-                            className="px-2.5 py-1 bg-bg border border-surface-hover hover:bg-surface-hover rounded-lg text-xs font-bold cursor-pointer"
+                            className="px-2.5 py-1 bg-background border border-input hover:bg-card-hover rounded-lg text-xs font-bold cursor-pointer"
                           >
                             +
                           </button>
@@ -909,12 +927,12 @@ export function LaboratoryPage({
                           {editorCriteria.map((c, i) => (
                             <span
                               key={i}
-                              className="text-[9px] px-2 py-0.5 bg-bg border border-surface-hover rounded text-text-secondary flex items-center gap-1.5"
+                              className="text-[9px] px-2 py-0.5 bg-background border border-input rounded text-muted-foreground flex items-center gap-1.5"
                             >
                               <span>{c}</span>
                               <button
                                 onClick={() => handleRemoveCriterion(i)}
-                                className="text-error hover:text-error/85 font-bold cursor-pointer"
+                                className="text-destructive hover:text-destructive/85 font-bold cursor-pointer"
                               >
                                 ×
                               </button>
@@ -927,9 +945,9 @@ export function LaboratoryPage({
 
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Formulario de Canal Editable */}
-                    <div className="bg-surface border border-surface-hover rounded-2xl p-5 lg:col-span-1 flex flex-col justify-between">
+                    <div className="bg-card border border-input rounded-2xl p-5 lg:col-span-1 flex flex-col justify-between">
                       <div className="space-y-4">
-                        <div className="flex items-center gap-2 mb-1 border-b border-surface-hover/50 pb-2">
+                        <div className="flex items-center gap-2 mb-1 border-b border-input/50 pb-2">
                           <span className="p-1.5 bg-blue-500/10 rounded-lg text-blue-400">
                             <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                               <path
@@ -940,35 +958,35 @@ export function LaboratoryPage({
                               />
                             </svg>
                           </span>
-                          <h3 className="font-bold text-xs text-text-primary uppercase tracking-wider">Ajustes del Canal</h3>
+                          <h3 className="font-bold text-xs text-foreground uppercase tracking-wider">Ajustes del Canal</h3>
                         </div>
 
                         <div>
-                          <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                          <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                             Nombre del Canal
                           </label>
                           <input
                             type="text"
                             value={editableTeam.channel.name}
                             onChange={(e) => handleUpdateChannelField("name", e.target.value)}
-                            className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                            className="w-full bg-background border border-input rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary font-semibold"
                           />
                         </div>
 
                         <div>
-                          <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                          <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                             Descripción
                           </label>
                           <textarea
                             value={editableTeam.channel.description || ""}
                             onChange={(e) => handleUpdateChannelField("description", e.target.value)}
                             rows={3}
-                            className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent leading-relaxed"
+                            className="w-full bg-background border border-input rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary leading-relaxed"
                           />
                         </div>
 
                         <div className="flex justify-between items-center text-xs">
-                          <span className="text-text-secondary font-medium">Límite de debate:</span>
+                          <span className="text-muted-foreground font-medium">Límite de debate:</span>
                           <div className="flex items-center gap-1.5">
                             <input
                               type="number"
@@ -976,21 +994,21 @@ export function LaboratoryPage({
                               max={20}
                               value={editableTeam.channel.maxChainDepth || 5}
                               onChange={(e) => handleUpdateChannelField("maxChainDepth", parseInt(e.target.value) || 5)}
-                              className="w-14 bg-bg border border-surface-hover rounded-lg px-2 py-0.5 text-xs font-mono text-text-primary focus:outline-none focus:border-accent text-center"
+                              className="w-14 bg-background border border-input rounded-lg px-2 py-0.5 text-xs font-mono text-foreground focus:outline-none focus:border-primary text-center"
                             />
-                            <span className="text-text-secondary">rondas</span>
+                            <span className="text-muted-foreground">rondas</span>
                           </div>
                         </div>
 
                         {/* Variables de Contexto KV del Canal */}
-                        <div className="border-t border-surface-hover pt-4 mt-2 space-y-2">
+                        <div className="border-t border-input pt-4 mt-2 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] uppercase font-bold text-text-secondary tracking-wider font-mono">
+                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider font-mono">
                               Contexto KV
                             </span>
                             <button
                               onClick={handleAddContextItem}
-                              className="text-[10px] text-accent hover:underline font-bold cursor-pointer"
+                              className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
                             >
                               + Agregar
                             </button>
@@ -1003,25 +1021,25 @@ export function LaboratoryPage({
                                   placeholder="Clave"
                                   value={ctx.key}
                                   onChange={(e) => handleUpdateContextItem(idx, e.target.value, ctx.value)}
-                                  className="flex-1 min-w-0 bg-bg border border-surface-hover rounded px-2 py-0.5 text-[10px] text-text-primary font-mono focus:outline-none focus:border-accent"
+                                  className="flex-1 min-w-0 bg-background border border-input rounded px-2 py-0.5 text-[10px] text-foreground font-mono focus:outline-none focus:border-primary"
                                 />
                                 <input
                                   type="text"
                                   placeholder="Valor"
                                   value={ctx.value}
                                   onChange={(e) => handleUpdateContextItem(idx, ctx.key, e.target.value)}
-                                  className="flex-1 min-w-0 bg-bg border border-surface-hover rounded px-2 py-0.5 text-[10px] text-text-primary focus:outline-none focus:border-accent"
+                                  className="flex-1 min-w-0 bg-background border border-input rounded px-2 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary"
                                 />
                                 <button
                                   onClick={() => handleRemoveContextItem(idx)}
-                                  className="text-error hover:text-error/80 font-bold px-1.5 cursor-pointer text-xs"
+                                  className="text-destructive hover:text-destructive/80 font-bold px-1.5 cursor-pointer text-xs"
                                 >
                                   ×
                                 </button>
                               </div>
                             ))}
                             {(editableTeam.channel.context || []).length === 0 && (
-                              <span className="text-[10px] text-text-secondary/50 block italic py-2">
+                              <span className="text-[10px] text-muted-foreground/50 block italic py-2">
                                 Sin variables de contexto
                               </span>
                             )}
@@ -1037,31 +1055,31 @@ export function LaboratoryPage({
                         return (
                           <div
                             key={ag.id}
-                            className="bg-surface border border-surface-hover rounded-2xl p-5 flex flex-col gap-4 hover:border-accent/10 transition-colors"
+                            className="bg-card border border-input rounded-2xl p-5 flex flex-col gap-4 hover:border-primary/10 transition-colors"
                           >
-                            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start border-b border-surface-hover/40 pb-3">
+                            <div className="flex flex-col sm:flex-row gap-4 justify-between items-start border-b border-input/40 pb-3">
                               {/* Identificación del Agente */}
                               <div className="grid grid-cols-2 gap-3 flex-1 w-full">
                                 <div>
-                                  <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                     Nombre del Agente
                                   </label>
                                   <input
                                     type="text"
                                     value={ag.name}
                                     onChange={(e) => handleUpdateAgentField(ag.id, "name", e.target.value)}
-                                    className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1 text-xs text-text-primary focus:outline-none focus:border-accent font-semibold"
+                                    className="w-full bg-background border border-input rounded-xl px-3 py-1 text-xs text-foreground focus:outline-none focus:border-primary font-semibold"
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                     ID (Kebab-case)
                                   </label>
                                   <input
                                     type="text"
                                     value={ag.id}
                                     onChange={(e) => handleUpdateAgentId(ag.id, e.target.value)}
-                                    className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1 text-xs text-text-primary focus:outline-none focus:border-accent font-mono"
+                                    className="w-full bg-background border border-input rounded-xl px-3 py-1 text-xs text-foreground focus:outline-none focus:border-primary font-mono"
                                   />
                                 </div>
                               </div>
@@ -1070,13 +1088,13 @@ export function LaboratoryPage({
                               {mInfo && (
                                 <div className="flex gap-2 w-full sm:w-auto items-end">
                                   <div className="flex-1 sm:flex-initial">
-                                    <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                    <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                       Rol Canal
                                     </label>
                                     <select
                                       value={mInfo.role || "member"}
                                       onChange={(e) => handleUpdateMemberRole(ag.id, e.target.value)}
-                                      className="w-full bg-bg border border-surface-hover rounded-xl px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-accent cursor-pointer"
+                                      className="w-full bg-background border border-input rounded-xl px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary cursor-pointer"
                                     >
                                       <option value="member">Member</option>
                                       <option value="lead">Lead</option>
@@ -1086,14 +1104,14 @@ export function LaboratoryPage({
                                   </div>
 
                                   <div className="flex-1 sm:flex-initial">
-                                    <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                    <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                       Reply Mode
                                     </label>
                                     <select
                                       value={mInfo.replyMode}
                                       disabled={mInfo.role === "lead"}
                                       onChange={(e) => handleUpdateMemberReplyMode(ag.id, e.target.value)}
-                                      className="w-full bg-bg border border-surface-hover rounded-xl px-2.5 py-1 text-xs text-text-primary focus:outline-none focus:border-accent disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
+                                      className="w-full bg-background border border-input rounded-xl px-2.5 py-1 text-xs text-foreground focus:outline-none focus:border-primary disabled:opacity-60 disabled:cursor-not-allowed cursor-pointer"
                                     >
                                       <option value="mention-only">Mention Only</option>
                                       <option value="broadcast">Broadcast</option>
@@ -1104,7 +1122,7 @@ export function LaboratoryPage({
 
                                   <button
                                     onClick={() => handleRemoveAgent(ag.id)}
-                                    className="p-2 bg-error/10 hover:bg-error/20 border border-error/20 hover:border-error/45 text-error rounded-xl text-xs font-bold transition-all cursor-pointer h-[30px] flex items-center justify-center aspect-square"
+                                    className="p-2 bg-destructive/10 hover:bg-destructive/20 border border-error/20 hover:border-error/45 text-destructive rounded-xl text-xs font-bold transition-all cursor-pointer h-[30px] flex items-center justify-center aspect-square"
                                     title="Remover Agente"
                                   >
                                     <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -1118,32 +1136,32 @@ export function LaboratoryPage({
                             {/* Rol del Agente e Instrucciones */}
                             <div className="space-y-3">
                               <div>
-                                <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                   Propósito (Role)
                                 </label>
                                 <input
                                   type="text"
                                   value={ag.role}
                                   onChange={(e) => handleUpdateAgentField(ag.id, "role", e.target.value)}
-                                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-1.5 text-xs text-text-primary focus:outline-none focus:border-accent font-medium font-mono"
+                                  className="w-full bg-background border border-input rounded-xl px-3 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary font-medium font-mono"
                                 />
                               </div>
 
                               <div>
-                                <label className="text-[9px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                                <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                   System Prompt (Instrucciones)
                                 </label>
                                 <textarea
                                   value={ag.systemPrompt}
                                   onChange={(e) => handleUpdateAgentField(ag.id, "systemPrompt", e.target.value)}
                                   rows={4}
-                                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs text-text-primary focus:outline-none focus:border-accent leading-relaxed font-mono"
+                                  className="w-full bg-background border border-input rounded-xl px-3 py-2 text-xs text-foreground focus:outline-none focus:border-primary leading-relaxed font-mono"
                                 />
                               </div>
 
                               {/* Modelo del Agente */}
-                              <div className="flex items-center gap-2 bg-bg/30 px-3 py-2 rounded-xl border border-surface-hover/30">
-                                <span className="text-[9px] uppercase font-bold text-text-secondary tracking-wider font-mono">
+                              <div className="flex items-center gap-2 bg-background/30 px-3 py-2 rounded-xl border border-input/30">
+                                <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider font-mono">
                                   Modelo del Agente:
                                 </span>
                                 <ModelSelector
@@ -1160,7 +1178,7 @@ export function LaboratoryPage({
                       {/* Botón para Agregar Agente */}
                       <button
                         onClick={handleAddAgent}
-                        className="w-full py-4 border border-dashed border-surface-hover hover:border-accent/40 rounded-2xl flex items-center justify-center gap-2 text-xs text-text-secondary hover:text-accent transition-all cursor-pointer bg-surface/5 hover:bg-surface/10 font-bold"
+                        className="w-full py-4 border border-dashed border-input hover:border-primary/40 rounded-2xl flex items-center justify-center gap-2 text-xs text-muted-foreground hover:text-primary transition-all cursor-pointer bg-card/5 hover:bg-card/10 font-bold"
                       >
                         <svg className="w-4.5 h-4.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 4v16m8-8H4" />
@@ -1181,10 +1199,10 @@ export function LaboratoryPage({
               className="space-y-6 text-left max-w-5xl mx-auto w-full flex flex-col h-full min-h-0"
             >
               {/* Cabecera del Experimento */}
-              <div className="bg-surface border border-surface-hover rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
+              <div className="bg-card border border-input rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
                 <div>
                   <div className="flex items-center gap-2 mb-1">
-                    <span className="p-1 bg-accent/10 rounded text-accent">
+                    <span className="p-1 bg-primary/10 rounded text-primary">
                       <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path
                           strokeLinecap="round"
@@ -1194,9 +1212,9 @@ export function LaboratoryPage({
                         />
                       </svg>
                     </span>
-                    <h1 className="text-base font-bold text-text-primary">{activeExp.name}</h1>
+                    <h1 className="text-base font-bold text-foreground">{activeExp.name}</h1>
                   </div>
-                  <p className="text-xs text-text-secondary leading-relaxed max-w-2xl">{activeExp.taskPrompt}</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">{activeExp.taskPrompt}</p>
                 </div>
 
                 <div className="flex gap-2 flex-shrink-0">
@@ -1204,13 +1222,13 @@ export function LaboratoryPage({
                     <>
                       <button
                         onClick={() => openEditModal(activeExp)}
-                        className="px-3 py-1.5 bg-bg hover:bg-bg/85 border border-surface-hover text-text-primary rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        className="px-3 py-1.5 bg-background hover:bg-background/85 border border-input text-foreground rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
                         Editar
                       </button>
                       <button
                         onClick={() => handleDeleteExp(activeExp.id)}
-                        className="px-3 py-1.5 bg-bg hover:bg-error/10 border border-surface-hover hover:border-error/30 text-error rounded-xl text-xs font-bold transition-all cursor-pointer"
+                        className="px-3 py-1.5 bg-background hover:bg-destructive/10 border border-input hover:border-error/30 text-destructive rounded-xl text-xs font-bold transition-all cursor-pointer"
                       >
                         Eliminar
                       </button>
@@ -1220,7 +1238,7 @@ export function LaboratoryPage({
                           setRunPromptValue(activeExp.taskPrompt);
                           setIsRunPromptModalOpen(true);
                         }}
-                        className="px-4 py-1.5 bg-accent text-bg hover:bg-accent/90 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                        className="px-4 py-1.5 bg-primary text-background hover:bg-primary/90 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
                       >
                         <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                           <path d="M8 5v14l11-7z" />
@@ -1231,7 +1249,7 @@ export function LaboratoryPage({
                   ) : (
                     <button
                       onClick={() => handleStopRun(activeExp.id)}
-                      className="px-4 py-1.5 bg-error hover:bg-error/90 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
+                      className="px-4 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
                     >
                       <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
                         <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
@@ -1244,15 +1262,15 @@ export function LaboratoryPage({
 
               {/* Rúbrica y Criterios */}
               {activeExp.judge?.criteria && (
-                <div className="bg-surface border border-surface-hover rounded-2xl p-5 flex-shrink-0">
-                  <h3 className="text-xs font-bold text-text-primary uppercase tracking-wider mb-2.5">
+                <div className="bg-card border border-input rounded-2xl p-5 flex-shrink-0">
+                  <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2.5">
                     Rúbrica de Evaluación
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {activeExp.judge.criteria.map((c, i) => (
                       <span
                         key={i}
-                        className="text-xs px-3 py-1 bg-bg border border-surface-hover rounded-xl text-text-secondary"
+                        className="text-xs px-3 py-1 bg-background border border-input rounded-xl text-muted-foreground"
                       >
                         {c}
                       </span>
@@ -1262,7 +1280,7 @@ export function LaboratoryPage({
               )}
 
               {/* Selector de Pestañas de Variante */}
-              <div className="flex border-b border-surface-hover/40 gap-1 flex-shrink-0 mt-2">
+              <div className="flex border-b border-input/40 gap-1 flex-shrink-0 mt-2">
                 {(["single", "multiNoLeader", "multiWithLeader"] as const).map((vKey) => {
                   const label =
                     vKey === "single"
@@ -1281,16 +1299,16 @@ export function LaboratoryPage({
                       onClick={() => setActiveVariantTab(vKey)}
                       className={`px-4 py-2.5 text-xs font-semibold border-b-2 -mb-[1px] transition-all flex items-center gap-1.5 cursor-pointer ${
                         isActive
-                          ? "text-accent border-accent font-bold"
-                          : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
+                          ? "text-primary border-primary font-bold"
+                          : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
                       }`}
                     >
                       {label}
                       {isRunning && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-accent animate-ping" />
+                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
                       )}
                       {hasResult && (
-                        <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-accent" : "bg-error"}`} />
+                        <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
                       )}
                     </button>
                   );
@@ -1321,8 +1339,8 @@ export function LaboratoryPage({
               animate={{ opacity: 1 }}
               className="flex-1 flex flex-col items-center justify-center text-center p-12"
             >
-              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-xs text-text-secondary">Cargando detalles del experimento...</p>
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+              <p className="text-xs text-muted-foreground">Cargando detalles del experimento...</p>
             </motion.div>
           )}
         </AnimatePresence>
@@ -1334,20 +1352,20 @@ export function LaboratoryPage({
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-surface border border-surface-hover rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl text-left"
+            className="bg-card border border-input rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl text-left"
           >
             <div>
-              <h3 className="text-sm font-bold text-text-primary tracking-wide uppercase">
+              <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">
                 {editingExpId ? "Editar Experimento" : "Nuevo Experimento"}
               </h3>
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-[11px] text-muted-foreground">
                 Diseñá tu caso de prueba y configurá los criterios del LLM-Judge para evaluar las variantes.
               </p>
             </div>
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                   Nombre del Experimento
                 </label>
                 <input
@@ -1355,12 +1373,12 @@ export function LaboratoryPage({
                   value={editorName}
                   onChange={(e) => setEditorName(e.target.value)}
                   placeholder="Ej: Benchmark Traducción de Código"
-                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary"
+                  className="w-full bg-background border border-input rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                   Prompt de Tarea (Task Prompt)
                 </label>
                 <textarea
@@ -1368,12 +1386,12 @@ export function LaboratoryPage({
                   onChange={(e) => setEditorPrompt(e.target.value)}
                   placeholder="Ej: Escribe un script en Python que calcule el factorial de un número usando recursividad."
                   rows={4}
-                  className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary font-mono"
+                  className="w-full bg-background border border-input rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground font-mono"
                 />
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                   Criterios de Evaluación
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -1382,11 +1400,11 @@ export function LaboratoryPage({
                     value={newCriterion}
                     onChange={(e) => setNewCriterion(e.target.value)}
                     placeholder="Ej: Completitud"
-                    className="flex-1 bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary"
+                    className="flex-1 bg-background border border-input rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground"
                   />
                   <button
                     onClick={handleAddCriterion}
-                    className="px-3 py-2 bg-bg border border-surface-hover hover:bg-surface-hover rounded-xl text-xs font-bold text-text-primary cursor-pointer"
+                    className="px-3 py-2 bg-background border border-input hover:bg-card-hover rounded-xl text-xs font-bold text-foreground cursor-pointer"
                   >
                     Agregar
                   </button>
@@ -1395,12 +1413,12 @@ export function LaboratoryPage({
                   {editorCriteria.map((c, i) => (
                     <span
                       key={i}
-                      className="text-[10px] px-2.5 py-1 bg-bg border border-surface-hover rounded-lg text-text-secondary flex items-center gap-1.5"
+                      className="text-[10px] px-2.5 py-1 bg-background border border-input rounded-lg text-muted-foreground flex items-center gap-1.5"
                     >
                       <span>{c}</span>
                       <button
                         onClick={() => handleRemoveCriterion(i)}
-                        className="text-error hover:text-error/80 font-bold cursor-pointer"
+                        className="text-destructive hover:text-destructive/80 font-bold cursor-pointer"
                       >
                         ×
                       </button>
@@ -1410,17 +1428,17 @@ export function LaboratoryPage({
               </div>
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-surface-hover/50 pt-4">
+            <div className="flex justify-end gap-2 border-t border-input/50 pt-4">
               <button
                 onClick={() => setIsEditorOpen(false)}
-                className="px-4 py-2 bg-bg border border-surface-hover hover:bg-surface-hover rounded-xl text-xs font-bold text-text-primary cursor-pointer"
+                className="px-4 py-2 bg-background border border-input hover:bg-card-hover rounded-xl text-xs font-bold text-foreground cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleSaveExperiment}
                 disabled={!editorName.trim() || !editorPrompt.trim()}
-                className="px-4 py-2 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
+                className="px-4 py-2 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
               >
                 Guardar Experimento
               </button>
@@ -1435,19 +1453,19 @@ export function LaboratoryPage({
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-surface border border-surface-hover rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl text-left"
+            className="bg-card border border-input rounded-2xl w-full max-w-xl p-6 space-y-4 shadow-2xl text-left"
           >
             <div>
-              <h3 className="text-sm font-bold text-text-primary tracking-wide uppercase">
+              <h3 className="text-sm font-bold text-foreground tracking-wide uppercase">
                 Iniciar Corrida de Experimento
               </h3>
-              <p className="text-[11px] text-text-secondary">
+              <p className="text-[11px] text-muted-foreground">
                 Ingresá la tarea específica (prompt) sobre la cual querés que debata y resuelva la tripulación en esta ejecución.
               </p>
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">
+              <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                 Tarea / Prompt de Ejecución
               </label>
               <textarea
@@ -1455,24 +1473,24 @@ export function LaboratoryPage({
                 onChange={(e) => setRunPromptValue(e.target.value)}
                 placeholder="Ej: Escribe un script en Python que busque imágenes en un directorio usando glob y PIL."
                 rows={5}
-                className="w-full bg-bg border border-surface-hover rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary font-mono leading-relaxed"
+                className="w-full bg-background border border-input rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-primary text-foreground font-mono leading-relaxed"
               />
             </div>
 
-            <div className="flex justify-end gap-2 border-t border-surface-hover/50 pt-4">
+            <div className="flex justify-end gap-2 border-t border-input/50 pt-4">
               <button
                 onClick={() => {
                   setIsRunPromptModalOpen(false);
                   setRunningExpId(null);
                 }}
-                className="px-4 py-2 bg-bg border border-surface-hover hover:bg-surface-hover rounded-xl text-xs font-bold text-text-primary cursor-pointer"
+                className="px-4 py-2 bg-background border border-input hover:bg-card-hover rounded-xl text-xs font-bold text-foreground cursor-pointer"
               >
                 Cancelar
               </button>
               <button
                 onClick={handleConfirmRun}
                 disabled={!runPromptValue.trim()}
-                className="px-4 py-2 bg-accent text-bg hover:bg-accent/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
+                className="px-4 py-2 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 rounded-xl text-xs font-bold transition-all shadow cursor-pointer"
               >
                 Confirmar y Ejecutar
               </button>

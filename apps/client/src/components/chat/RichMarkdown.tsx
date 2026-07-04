@@ -54,7 +54,7 @@ export function RichMarkdown({ content }: Props) {
             if (inline) {
               return (
                 <code
-                  className="bg-surface-hover/80 text-accent font-mono px-1.5 py-0.5 rounded text-xs"
+                  className="bg-card-hover/80 text-primary font-mono px-1.5 py-0.5 rounded text-xs"
                   {...props}
                 >
                   {children}
@@ -66,25 +66,25 @@ export function RichMarkdown({ content }: Props) {
 
             if (isTree) {
               return (
-                <div className="my-3 rounded-lg overflow-x-auto border border-surface-hover shadow-md font-mono text-xs">
-                  <div className="bg-surface px-3 py-1.5 border-b border-surface-hover text-[10px] text-text-secondary flex items-center gap-1.5">
+                <div className="my-3 rounded-lg overflow-x-auto border border-input shadow-md font-mono text-xs">
+                  <div className="bg-card px-3 py-1.5 border-b border-input text-[10px] text-muted-foreground flex items-center gap-1.5">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
                       <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
                     </svg>
                     <span>File Tree</span>
                   </div>
-                  <pre className="m-0 p-3 bg-code-bg whitespace-pre">{codeString}</pre>
+                  <pre className="m-0 p-3 bg-muted whitespace-pre">{codeString}</pre>
                 </div>
               );
             }
 
             return (
-              <div className="my-3 rounded-lg overflow-x-auto border border-surface-hover shadow-md font-mono text-xs">
-                <div className="bg-surface px-3 py-1.5 border-b border-surface-hover text-[10px] text-text-secondary flex justify-between items-center">
+              <div className="my-3 rounded-lg overflow-x-auto border border-input shadow-md font-mono text-xs">
+                <div className="bg-card px-3 py-1.5 border-b border-input text-[10px] text-muted-foreground flex justify-between items-center">
                   <span>{match ? match[1] : "code"}</span>
                   <button
                     onClick={() => navigator.clipboard.writeText(codeString)}
-                    className="hover:text-text-primary transition-colors text-[10px]"
+                    className="hover:text-foreground transition-colors text-[10px]"
                   >
                     Copy
                   </button>
@@ -118,21 +118,21 @@ export function RichMarkdown({ content }: Props) {
             return <li className="break-words">{children}</li>;
           },
           h1({ children }) {
-            return <h1 className="text-base font-bold text-text-primary mt-4 mb-2">{children}</h1>;
+            return <h1 className="text-base font-bold text-foreground mt-4 mb-2">{children}</h1>;
           },
           h2({ children }) {
-            return <h2 className="text-sm font-bold text-text-primary mt-3 mb-2">{children}</h2>;
+            return <h2 className="text-sm font-bold text-foreground mt-3 mb-2">{children}</h2>;
           },
           blockquote({ children }) {
             return (
-              <blockquote className="border-l-2 border-accent/40 pl-3 my-2 text-text-secondary/80 italic">
+              <blockquote className="border-l-2 border-primary/40 pl-3 my-2 text-muted-foreground/80 italic">
                 {children}
               </blockquote>
             );
           },
           table({ children }) {
             return (
-              <div className="overflow-x-auto my-3 rounded-lg border border-surface-hover shadow-sm">
+              <div className="overflow-x-auto my-3 rounded-lg border border-input shadow-sm">
                 <table className="min-w-full border-collapse text-xs">
                   {children}
                 </table>
@@ -140,24 +140,24 @@ export function RichMarkdown({ content }: Props) {
             );
           },
           thead({ children }) {
-            return <thead className="bg-surface-hover/60">{children}</thead>;
+            return <thead className="bg-card-hover/60">{children}</thead>;
           },
           th({ children }) {
             return (
-              <th className="px-3 py-2 text-left font-semibold text-text-primary border-b border-surface-hover whitespace-nowrap">
+              <th className="px-3 py-2 text-left font-semibold text-foreground border-b border-input whitespace-nowrap">
                 {children}
               </th>
             );
           },
           td({ children }) {
             return (
-              <td className="px-3 py-1.5 text-text-secondary border-b border-surface-hover/40">
+              <td className="px-3 py-1.5 text-muted-foreground border-b border-input/40">
                 {children}
               </td>
             );
           },
           tr({ children }) {
-            return <tr className="hover:bg-surface-hover/20 transition-colors">{children}</tr>;
+            return <tr className="hover:bg-card-hover/20 transition-colors">{children}</tr>;
           },
           a({ href, children, ...props }) {
             if (href?.startsWith("workspace-file://")) {
@@ -172,14 +172,14 @@ export function RichMarkdown({ content }: Props) {
                       new CustomEvent("openWorkspaceFile", { detail: { path: relPath } })
                     );
                   }}
-                  className="text-accent hover:underline font-mono bg-accent/5 hover:bg-accent/10 px-1.5 py-0.5 rounded transition-all inline cursor-pointer text-xs"
+                  className="text-primary hover:underline font-mono bg-primary/5 hover:bg-primary/10 px-1.5 py-0.5 rounded transition-all inline cursor-pointer text-xs"
                 >
                   {children}
                 </button>
               );
             }
             return (
-              <a href={href} className="text-accent hover:underline" {...props}>
+              <a href={href} className="text-primary hover:underline" {...props}>
                 {children}
               </a>
             );

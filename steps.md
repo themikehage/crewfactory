@@ -465,4 +465,10 @@ crear un plan de despliegue facil en vps
 - [x] 52.6 Unificar barra de pestañas en `MainLayout.tsx` eliminando pestañas del laboratorio y simplificando navegación
 - [x] 52.7 Modificar `LaboratoryPage.tsx` para usar el Generador de IA como la vista por defecto y permitir guardar experimentos directamente
 - [x] 52.8 Verificar la compilación exitosa y el typechecking completo de cliente y servidor
-
+## Phase 53: Migración de Tema oklch y Dark Mode por Defecto
+- [x] 53.1 Configurar variables oklch en `:root` y `.dark` de `index.css`
+- [x] 53.2 Mapear tokens del nuevo tema Tailwind v4 y oklch en `@theme inline` en `index.css`
+- [x] 53.3 Habilitar el modo oscuro por defecto agregando la clase `dark` a la etiqueta `html` de `index.html`
+- [x] 53.4 Sanear `OrgChartLines.tsx` eliminando strokes hardcodeados en favor de clases `stroke-border` y `stroke-muted`
+- [x] 53.5 Migrar de forma automatizada todas las clases obsoletas de Slack y CrewFactory a los nuevos tokens de tema en 64 archivos .tsx
+- [x] 53.6 Compilar y verificar el build exitoso de la aplicación cliente

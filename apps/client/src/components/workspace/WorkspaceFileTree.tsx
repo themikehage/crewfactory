@@ -100,12 +100,12 @@ function TreeNode({
     }
 
     const ext = file.name.split(".").pop()?.toLowerCase();
-    let color = "text-text-secondary";
+    let color = "text-muted-foreground";
     if (ext === "js" || ext === "jsx") color = "text-[#f1e05a]";
     else if (ext === "ts" || ext === "tsx") color = "text-[#3178c6]";
     else if (ext === "html") color = "text-[#e34c26]";
     else if (ext === "css") color = "text-[#563d7c]";
-    else if (ext === "json") color = "text-success";
+    else if (ext === "json") color = "text-primary";
     else if (ext === "md") color = "text-highlight";
 
     return (
@@ -130,8 +130,8 @@ function TreeNode({
       <div
         className={`group flex items-center justify-between px-2 py-1 text-xs rounded hover:bg-surfaceHover/50 transition-colors cursor-pointer border border-transparent ${
           selectedPath === file.path
-            ? "bg-surfaceHover border-accent/20 text-text-primary"
-            : "text-text-secondary hover:text-text-primary"
+            ? "bg-surfaceHover border-primary/20 text-foreground"
+            : "text-muted-foreground hover:text-foreground"
         }`}
         style={{ paddingLeft: `${level * 12 + 6}px` }}
         onClick={handleClick}
@@ -140,7 +140,7 @@ function TreeNode({
           {file.isDirectory ? (
             <button
               onClick={handleToggle}
-              className="p-0.5 hover:bg-surfaceHover rounded transition-colors text-text-secondary/50 hover:text-text-primary flex-shrink-0 cursor-pointer"
+              className="p-0.5 hover:bg-surfaceHover rounded transition-colors text-muted-foreground/50 hover:text-foreground flex-shrink-0 cursor-pointer"
             >
               <svg
                 width="12"
@@ -175,7 +175,7 @@ function TreeNode({
                 if (e.key === "Escape") setIsEditing(false);
               }}
               onClick={(e) => e.stopPropagation()}
-              className="flex-1 min-w-0 bg-bg border border-accent/50 outline-none text-text-primary px-1 rounded text-xs py-0.5"
+              className="flex-1 min-w-0 bg-background border border-primary/50 outline-none text-foreground px-1 rounded text-xs py-0.5"
               autoFocus
             />
           ) : (
@@ -193,7 +193,7 @@ function TreeNode({
                   onToggleExpand(file.path);
                   setAddingType("file");
                 }}
-                className="p-1 text-text-secondary hover:text-success rounded transition-colors cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-primary rounded transition-colors cursor-pointer"
                 title="New File"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -211,7 +211,7 @@ function TreeNode({
                   onToggleExpand(file.path);
                   setAddingType("folder");
                 }}
-                className="p-1 text-text-secondary hover:text-warning rounded transition-colors cursor-pointer"
+                className="p-1 text-muted-foreground hover:text-warning rounded transition-colors cursor-pointer"
                 title="New Folder"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -225,7 +225,7 @@ function TreeNode({
               e.stopPropagation();
               setIsEditing(true);
             }}
-            className="p-1 text-text-secondary hover:text-accent rounded transition-colors cursor-pointer"
+            className="p-1 text-muted-foreground hover:text-primary rounded transition-colors cursor-pointer"
             title="Rename"
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -237,7 +237,7 @@ function TreeNode({
               e.stopPropagation();
               onDelete(file.path);
             }}
-            className="p-1 text-text-secondary hover:text-error rounded transition-colors cursor-pointer"
+            className="p-1 text-muted-foreground hover:text-destructive rounded transition-colors cursor-pointer"
             title="Delete"
           >
             <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -273,7 +273,7 @@ function TreeNode({
               height="14"
               viewBox="0 0 20 20"
               fill="currentColor"
-              className="text-text-secondary flex-shrink-0"
+              className="text-muted-foreground flex-shrink-0"
             >
               <path
                 fillRule="evenodd"
@@ -295,7 +295,7 @@ function TreeNode({
               if (e.key === "Escape") setAddingType(null);
             }}
             placeholder={`new ${addingType}...`}
-            className="flex-1 min-w-0 bg-bg border border-accent/50 outline-none text-text-primary px-1 rounded text-xs py-0.5"
+            className="flex-1 min-w-0 bg-background border border-primary/50 outline-none text-foreground px-1 rounded text-xs py-0.5"
             autoFocus
           />
         </div>
@@ -322,7 +322,7 @@ function TreeNode({
             ))
           ) : (
             <div
-              className="text-[10px] text-text-secondary/40 py-0.5 font-mono italic"
+              className="text-[10px] text-muted-foreground/40 py-0.5 font-mono italic"
               style={{ paddingLeft: `${(level + 1) * 12 + 24}px` }}
             >
               (empty folder)
@@ -377,7 +377,7 @@ export function WorkspaceFileTree({
               height="14"
               viewBox="0 0 20 20"
               fill="currentColor"
-              className="text-text-secondary flex-shrink-0"
+              className="text-muted-foreground flex-shrink-0"
             >
               <path
                 fillRule="evenodd"
@@ -396,7 +396,7 @@ export function WorkspaceFileTree({
               if (e.key === "Escape") onCancelAddingRoot();
             }}
             placeholder={`new ${addingRootType}...`}
-            className="flex-1 min-w-0 bg-bg border border-accent/50 outline-none text-text-primary px-1 rounded text-xs py-0.5"
+            className="flex-1 min-w-0 bg-background border border-primary/50 outline-none text-foreground px-1 rounded text-xs py-0.5"
             autoFocus
           />
         </div>

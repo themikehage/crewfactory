@@ -73,10 +73,10 @@ export function ChannelOrgChart({ members, registeredAgents }: Props) {
         {levels.map((lvl) => (
           <div key={lvl.role} className="space-y-2">
             <div className="flex items-center gap-2 px-1">
-              <h4 className="text-[10px] font-bold text-text-secondary uppercase tracking-widest">
+              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
                 {MOBILE_LEVEL_LABELS[lvl.role] ?? lvl.role}
               </h4>
-              <span className="text-[9px] text-text-secondary/50 bg-surface-hover/50 px-1.5 py-0.5 rounded-full">
+              <span className="text-[9px] text-muted-foreground/50 bg-card-hover/50 px-1.5 py-0.5 rounded-full">
                 {lvl.list.length}
               </span>
             </div>
@@ -108,7 +108,7 @@ export function ChannelOrgChart({ members, registeredAgents }: Props) {
   }
 
   return (
-    <div ref={containerRef} className="flex-1 overflow-auto p-6 bg-bg/25 flex justify-center items-start min-h-0">
+    <div ref={containerRef} className="flex-1 overflow-auto p-6 bg-background/25 flex justify-center items-start min-h-0">
       <div className="relative" style={{ width: `${totalWidth}px`, height: `${totalHeight}px` }}>
         <OrgChartLines
           levels={levels}

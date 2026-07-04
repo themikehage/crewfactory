@@ -157,26 +157,26 @@ export function DashboardPage({ onSelectRepo }: Props) {
   };
 
   return (
-    <div className="h-full flex flex-col bg-bg">
+    <div className="h-full flex flex-col bg-background">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-4xl mx-auto p-3 sm:p-6 space-y-6">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div>
-              <h1 className="text-text-primary font-semibold text-base">Proyectos</h1>
-              <p className="text-text-secondary text-[11px] mt-0.5">
+              <h1 className="text-foreground font-semibold text-base">Proyectos</h1>
+              <p className="text-muted-foreground text-[11px] mt-0.5">
                 Inicializa un proyecto vacío o clona uno existente de Git para trabajar con el agente.
               </p>
             </div>
             <div className="flex gap-2">
               <button
                 onClick={() => onSelectRepo(null, null)}
-                className="text-xs bg-surface-hover/20 text-text-secondary hover:text-text-primary border border-surface-hover/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
+                className="text-xs bg-card-hover/20 text-muted-foreground hover:text-foreground border border-input/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
                 Workspace Global
               </button>
               <button
                 onClick={() => setShowModal(true)}
-                className="text-xs bg-accent/10 text-accent hover:bg-accent/20 border border-accent/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
+                className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
                 + Nuevo Proyecto
               </button>
@@ -184,43 +184,43 @@ export function DashboardPage({ onSelectRepo }: Props) {
           </div>
 
           {error && (
-            <div className="p-4 bg-error/10 border border-error/20 text-error rounded-lg text-xs">
+            <div className="p-4 bg-destructive/10 border border-error/20 text-destructive rounded-lg text-xs">
               {error}
             </div>
           )}
 
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
-              <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-              <p className="text-sm text-text-secondary mt-4">Cargando repositorios...</p>
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <p className="text-sm text-muted-foreground mt-4">Cargando repositorios...</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
               {repos.map((repo) => (
                 <div
                   key={repo.name}
-                  className="bg-surface rounded-lg p-4 border border-surface-hover/30 hover:border-accent/40 transition-all flex flex-col justify-between"
+                  className="bg-card rounded-lg p-4 border border-input/30 hover:border-primary/40 transition-all flex flex-col justify-between"
                 >
                   <div>
                     <div className="flex items-center gap-2 mb-3">
-                      <div className="w-7 h-7 rounded-lg bg-surface-hover flex items-center justify-center">
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-accent" strokeWidth="2">
+                      <div className="w-7 h-7 rounded-lg bg-card-hover flex items-center justify-center">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-primary" strokeWidth="2">
                           <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                         </svg>
                       </div>
-                      <span className="font-semibold text-sm text-text-primary truncate">{repo.name}</span>
+                      <span className="font-semibold text-sm text-foreground truncate">{repo.name}</span>
                     </div>
-                    <p className="text-[11px] text-text-secondary font-mono truncate">
+                    <p className="text-[11px] text-muted-foreground font-mono truncate">
                       ID: {repo.id || repo.name}
                     </p>
-                    <p className="text-[11px] text-text-secondary mt-1">
+                    <p className="text-[11px] text-muted-foreground mt-1">
                       Última modificación: {new Date(repo.lastModified).toLocaleDateString()}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 mt-4">
                     <button
                       onClick={() => onSelectRepo(repo.id || repo.name, repo.name)}
-                      className="flex-1 py-1.5 bg-surface-hover/20 hover:bg-accent hover:text-bg text-text-primary border border-surface-hover/30 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
+                      className="flex-1 py-1.5 bg-card-hover/20 hover:bg-primary hover:text-background text-foreground border border-input/30 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
                     >
                       Abrir
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
@@ -230,7 +230,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     </button>
                     <button
                       onClick={() => handleStartRename(repo)}
-                      className="p-1.5 bg-surface-hover/20 hover:bg-blue-400 hover:text-bg text-text-secondary hover:text-text-primary rounded-lg transition-all cursor-pointer border border-transparent hover:border-blue-400/30"
+                      className="p-1.5 bg-card-hover/20 hover:bg-blue-400 hover:text-background text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer border border-transparent hover:border-blue-400/30"
                       title="Renombrar Proyecto"
                     >
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -240,7 +240,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     </button>
                     <button
                       onClick={() => setDeleteRepo(repo)}
-                      className="p-1.5 bg-surface-hover/20 hover:bg-error hover:text-bg text-text-secondary hover:text-text-primary rounded-lg transition-all cursor-pointer border border-transparent hover:border-error/30"
+                      className="p-1.5 bg-card-hover/20 hover:bg-destructive hover:text-background text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer border border-transparent hover:border-error/30"
                       title="Eliminar Proyecto"
                     >
                       <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -252,19 +252,19 @@ export function DashboardPage({ onSelectRepo }: Props) {
               ))}
 
               {repos.length === 0 && (
-                <div className="col-span-full bg-surface rounded-lg p-8 text-center border border-surface-hover/30 border-dashed">
-                  <div className="w-10 h-10 rounded-full bg-surface-hover flex items-center justify-center mx-auto mb-3">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-text-secondary" strokeWidth="2">
+                <div className="col-span-full bg-card rounded-lg p-8 text-center border border-input/30 border-dashed">
+                  <div className="w-10 h-10 rounded-full bg-card-hover flex items-center justify-center mx-auto mb-3">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" className="text-muted-foreground" strokeWidth="2">
                       <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z" />
                     </svg>
                   </div>
-                  <h3 className="font-semibold text-text-primary text-sm">No hay proyectos</h3>
-                  <p className="text-xs text-text-secondary mt-1 max-w-xs mx-auto">
+                  <h3 className="font-semibold text-foreground text-sm">No hay proyectos</h3>
+                  <p className="text-xs text-muted-foreground mt-1 max-w-xs mx-auto">
                     Crea o clona un repositorio para empezar a trabajar con el agente.
                   </p>
                   <button
                     onClick={() => setShowModal(true)}
-                    className="mt-4 px-4 py-1.5 bg-accent/10 text-accent hover:bg-accent/20 border border-accent/25 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+                    className="mt-4 px-4 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 rounded-lg text-xs font-semibold transition-all cursor-pointer"
                   >
                     Crear proyecto
                   </button>
@@ -277,11 +277,11 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-surface border border-surface-hover rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-text-primary mb-4">Nuevo Proyecto / Repositorio</h2>
+          <div className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h2 className="text-base font-bold text-foreground mb-4">Nuevo Proyecto / Repositorio</h2>
             <form onSubmit={handleCreateRepo} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Nombre del Proyecto
                 </label>
                 <input
@@ -290,12 +290,12 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   placeholder="ej. mi-app-web"
                   value={repoName}
                   onChange={(e) => setRepoName(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   URL de Clonación Git (Opcional)
                 </label>
                 <input
@@ -303,12 +303,12 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   placeholder="ej. https://github.com/usuario/repo.git"
                   value={cloneUrl}
                   onChange={(e) => setCloneUrl(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
               {submitError && (
-                <div className="p-3 bg-error/10 border border-error/20 text-error rounded-lg text-xs">
+                <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg text-xs">
                   {submitError}
                 </div>
               )}
@@ -322,14 +322,14 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     setCloneUrl("");
                     setSubmitError(null);
                   }}
-                  className="px-4 py-2 border border-surface-hover rounded-lg text-sm hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={submitting}
-                  className="px-4 py-2 bg-accent hover:opacity-90 disabled:opacity-50 text-bg rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
+                  className="px-4 py-2 bg-primary hover:opacity-90 disabled:opacity-50 text-background rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
                   {submitting ? "Creando..." : "Crear Proyecto"}
                 </button>
@@ -341,11 +341,11 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
       {renameRepo && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-surface border border-surface-hover rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-text-primary mb-4">Renombrar Proyecto</h2>
+          <div className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h2 className="text-base font-bold text-foreground mb-4">Renombrar Proyecto</h2>
             <form onSubmit={handleRename} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   Nuevo Nombre del Proyecto
                 </label>
                 <input
@@ -353,7 +353,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   required
                   value={newName}
                   onChange={(e) => setNewName(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
@@ -364,13 +364,13 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     setRenameRepo(null);
                     setNewName("");
                   }}
-                  className="px-4 py-2 border border-surface-hover rounded-lg text-sm hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-accent hover:opacity-90 text-bg rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
+                  className="px-4 py-2 bg-primary hover:opacity-90 text-background rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
                   Guardar
                 </button>
@@ -382,15 +382,15 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
       {deleteRepo && (
         <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <div className="bg-surface border border-surface-hover rounded-xl w-full max-w-md p-6 shadow-2xl">
-            <h2 className="text-base font-bold text-error mb-2">Eliminar Proyecto</h2>
-            <p className="text-xs text-text-secondary mb-4 leading-relaxed">
+          <div className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl">
+            <h2 className="text-base font-bold text-destructive mb-2">Eliminar Proyecto</h2>
+            <p className="text-xs text-muted-foreground mb-4 leading-relaxed">
               Esta acción es destructiva. Se borrará la carpeta de código, los archivos subidos y todas las sesiones de chat asociadas.
             </p>
             <form onSubmit={handleDeleteRepo} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-2">
-                  Escribí <span className="font-mono text-text-primary font-bold">{deleteRepo.name}</span> para confirmar:
+                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                  Escribí <span className="font-mono text-foreground font-bold">{deleteRepo.name}</span> para confirmar:
                 </label>
                 <input
                   type="text"
@@ -398,7 +398,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   placeholder="Nombre del proyecto"
                   value={confirmDeleteName}
                   onChange={(e) => setConfirmDeleteName(e.target.value)}
-                  className="w-full px-3 py-2 bg-bg border border-surface-hover rounded-lg text-sm text-text-primary focus:outline-none focus:border-accent"
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
                 />
               </div>
 
@@ -409,14 +409,14 @@ export function DashboardPage({ onSelectRepo }: Props) {
                     setDeleteRepo(null);
                     setConfirmDeleteName("");
                   }}
-                  className="px-4 py-2 border border-surface-hover rounded-lg text-sm hover:bg-surface-hover text-text-primary transition-colors cursor-pointer"
+                  className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
                 >
                   Cancelar
                 </button>
                 <button
                   type="submit"
                   disabled={confirmDeleteName !== deleteRepo.name || deleting}
-                  className="px-4 py-2 bg-error hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-text-primary rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
+                  className="px-4 py-2 bg-destructive hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-foreground rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
                   {deleting ? "Eliminando..." : "Eliminar de todos modos"}
                 </button>

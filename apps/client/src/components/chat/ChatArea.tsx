@@ -12,10 +12,10 @@ const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 function getSandboxLabel(tools: string[]): { label: string; color: string } {
   const hasWrite = tools.includes("write") || tools.includes("edit") || tools.includes("bash");
   const hasRead = tools.includes("read") || tools.includes("grep") || tools.includes("find") || tools.includes("ls");
-  if (tools.length === 0) return { label: "No Tools", color: "text-error" };
+  if (tools.length === 0) return { label: "No Tools", color: "text-destructive" };
   if (!hasWrite && hasRead) return { label: "Read-Only", color: "text-warning" };
-  if (tools.length === ALL_TOOL_NAMES.length) return { label: "Full Access", color: "text-success" };
-  return { label: `${tools.length}/${ALL_TOOL_NAMES.length} Tools`, color: "text-accent" };
+  if (tools.length === ALL_TOOL_NAMES.length) return { label: "Full Access", color: "text-primary" };
+  return { label: `${tools.length}/${ALL_TOOL_NAMES.length} Tools`, color: "text-primary" };
 }
 
 interface MessageUsage {
@@ -454,7 +454,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
 
   if (!sessionId) {
     return (
-      <div className="h-full flex items-center justify-center text-text-secondary">
+      <div className="h-full flex items-center justify-center text-muted-foreground">
         <p>Select or create a session to start</p>
       </div>
     );
@@ -463,12 +463,12 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
   return (
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 h-full">
-        <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border-b border-surface text-xs text-text-secondary flex-shrink-0">
+        <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border-b border-border text-xs text-muted-foreground flex-shrink-0">
           <span
-            className={`w-2 h-2 rounded-full ${connected ? "bg-success" : "bg-warning"}`}
+            className={`w-2 h-2 rounded-full ${connected ? "bg-primary" : "bg-warning"}`}
           />
           {connected ? "Connected" : "Reconnecting..."}
-          {streaming && <span className="ml-2 text-accent">Streaming...</span>}
+          {streaming && <span className="ml-2 text-primary">Streaming...</span>}
           {activeObservers > 0 && (
             <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-[10px] animate-pulse flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-blue-400" />
@@ -476,7 +476,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
             </span>
           )}
           {tasksState.status !== "idle" && (
-            <span className="ml-2 px-1.5 py-0.2 rounded bg-accent/15 text-accent font-semibold text-[10px]">
+            <span className="ml-2 px-1.5 py-0.2 rounded bg-primary/15 text-primary font-semibold text-[10px]">
               Task Queue: {tasksState.status}
             </span>
           )}
@@ -486,8 +486,8 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
             </span>
             <button
               onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
-              className={`px-2 py-0.5 border border-surface hover:border-accent hover:text-accent rounded cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold ${
-                rightDrawerOpen ? "text-accent border-accent bg-accent/10" : ""
+              className={`px-2 py-0.5 border border-border hover:border-primary hover:text-primary rounded cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold ${
+                rightDrawerOpen ? "text-primary border-primary bg-primary/10" : ""
               }`}
             >
               Ops & Tasks
@@ -495,7 +495,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
           </span>
         </div>
         {error && (
-          <div className="px-3 sm:px-4 py-2 bg-error/10 border-b border-error/20 text-error text-xs flex-shrink-0">
+          <div className="px-3 sm:px-4 py-2 bg-destructive/10 border-b border-error/20 text-destructive text-xs flex-shrink-0">
             {error}
             <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
           </div>
@@ -526,7 +526,7 @@ export function ChatArea({ sessionId, activeRepoName, activeAgent = null, active
           />
         )}
         {isReadOnlyExecution ? (
-          <div className="p-4 bg-surface border-t border-surface-hover flex flex-col items-center justify-center gap-2 flex-shrink-0 text-text-secondary/70">
+          <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 flex-shrink-0 text-muted-foreground/70">
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-[10px] uppercase tracking-wider font-mono">
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />

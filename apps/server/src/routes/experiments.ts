@@ -5,6 +5,8 @@ import { ExperimentStore } from "../laboratory/experiment-store";
 import { ExperimentRunner } from "../laboratory/experiment-runner";
 import { piSessionManager } from "../pi/session-manager";
 import { type LabStance, type LabAgent, type LabExperiment } from "shared";
+import { agentRegistry } from "../agents";
+import { channelStore } from "../channels";
 
 export const experimentsRouter = new Hono();
 
@@ -30,6 +32,178 @@ experimentsRouter.get("/default-model", async (c) => {
 experimentsRouter.get("/blueprints", async (c) => {
   const blueprints = await ExperimentStore.listBlueprints();
   return c.json({ blueprints });
+});
+
+// Generate agents and channel with AI
+experimentsRouter.post("/generate", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const { prompt, model } = await c.req.json();
+  if (!prompt) return c.json({ error: "Prompt is required" }, 400);
+
+  const userDefaultModel = piSessionManager.getUserDefaultModel(username);
+  const selectedModel = model || userDefaultModel || "anthropic/claude-3-5-sonnet";
+
+  const tempSessionId = `generate_${crypto.randomUUID()}`;
+  console.log(`[Experiments /generate] Running AI generator on tempSessionId=${tempSessionId} with model=${selectedModel}`);
+
+  try {
+    const session = await piSessionManager.getOrCreateSession(username, tempSessionId);
+
+    // Resolve model in modelRegistry
+    const { modelRegistry } = piSessionManager.getUserContext(username);
+    let resolvedModel: any = null;
+    if (selectedModel.includes("/")) {
+      const [providerId, modelId] = selectedModel.split("/");
+      resolvedModel = modelRegistry.find(providerId, modelId);
+    } else {
+      resolvedModel = modelRegistry.getAvailable().find(m => m.id === selectedModel);
+    }
+
+    if (resolvedModel) {
+      await session.setModel(resolvedModel);
+    } else {
+      const available = modelRegistry.getAvailable();
+      if (available.length > 0) {
+        await session.setModel(available[0]);
+      }
+    }
+
+    const systemPrompt = `You are an expert AI Architect. Your task is to analyze the user's description and generate a complete Hierarchical Multi-Agent Crew team configuration.
+You must output a JSON object representing:
+1. An array of Agents.
+2. A Channel configuration containing those agents as members, with structured targeted routing links.
+
+DESIGN PRINCIPLES FOR HIERARCHICAL TEAMS:
+- EXACTLY ONE agent must be the leader (role: "lead").
+- The leader coordinates the debate. In their systemPrompt (which must be written in Spanish), instruct them to define the initial strategy, delegate tasks to specific team members using the format "DELEGATE: @agent-id — task description", collect inputs, and write "ACUERDO ALCANZADO." to finalize the work.
+- The leader's replyMode must be "user-only".
+- The other agents (role: "member" or "senior") must act as specialists. In their systemPrompt (which must be written in Spanish), instruct them to focus exclusively on their assigned task, reply directly to the leader, explicitly mention the leader (e.g. "@leader-agent-id") at the end of their messages to invoke them, and return exactly "(silent)" if they have no tasks assigned or if consensus has been reached.
+- The other agents' replyMode must be "targeted", and their targetAgentIds array MUST contain ONLY the leader's agentId.
+
+Each agent in the agents array must conform to this schema:
+- id: string (kebab-case identifier using lowercase alphanumeric characters and dashes, e.g., "creative-director")
+- name: string (Human-readable name, e.g., "Creative Director")
+- role: string (Role description, e.g., "Coordinates campaign strategy")
+- systemPrompt: string (System instructions for this agent, detailed and specific following the design principles above. System prompts must be written in Spanish.)
+- model: string (The model ID provided: "${selectedModel}")
+- skills: array of strings (empty by default: [])
+
+The channel must conform to this schema:
+- name: string (Name of the channel, e.g., "Creative Team")
+- description: string (Description of the channel's purpose)
+- members: array of objects containing:
+  - agentId: string (Matching the id of the agent, e.g., "creative-director")
+  - replyMode: "targeted" | "user-only"
+  - targetAgentIds: array of strings (If the agent is a member, this must be [leaderAgentId]. If the agent is the leader, this can be ["__user__", and the other agent ids])
+  - role: "lead" | "senior" | "member" (make sure exactly one is "lead")
+- maxChainDepth: number (1-20, default 15)
+
+Output ONLY a valid JSON object matching this format:
+{
+  "agents": [
+    { "id": "creative-director", "name": "Creative Director", "role": "...", "systemPrompt": "...", "model": "...", "skills": [] }
+  ],
+  "channel": {
+    "name": "...",
+    "description": "...",
+    "members": [
+      { "agentId": "creative-director", "replyMode": "user-only", "targetAgentIds": ["__user__", "copywriter"], "role": "lead" },
+      { "agentId": "copywriter", "replyMode": "targeted", "targetAgentIds": ["creative-director"], "role": "member" }
+    ],
+    "maxChainDepth": 15
+  }
+}
+No explanations, code blocks, or markdown fences. Just the raw JSON.`;
+
+    await session.prompt(`${systemPrompt}\n\nUser Request:\n"${prompt}"`);
+
+    // Extract raw JSON
+    const msgs = [...session.messages].reverse();
+    const lastMsg = msgs.find((m: any) => m.role === "assistant") as any;
+    let rawResult = "";
+    if (lastMsg) {
+      if (typeof lastMsg.content === "string") rawResult = lastMsg.content;
+      else if (Array.isArray(lastMsg.content)) {
+        rawResult = lastMsg.content.map((cl: any) => cl.text || "").join("\n");
+      }
+    }
+
+    rawResult = rawResult.trim();
+    if (rawResult.startsWith("```")) {
+      rawResult = rawResult.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
+    }
+
+    const parsed = JSON.parse(rawResult);
+    return c.json(parsed);
+  } catch (e: any) {
+    console.error("[Experiments /generate] Generation failed:", e);
+    return c.json({ error: String(e) }, 500);
+  } finally {
+    await piSessionManager.destroySession(username, tempSessionId);
+  }
+});
+
+// Instantiate a generated team (Agents + Channel)
+experimentsRouter.post("/instantiate", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const { agents, channel } = await c.req.json();
+  if (!agents || !channel) return c.json({ error: "Agents and channel configurations are required" }, 400);
+
+  const registeredAgentIds: string[] = [];
+
+  try {
+    // 1. Register each agent
+    for (const ag of agents) {
+      // Check if already registered
+      if (agentRegistry.get(ag.id)) {
+        console.log(`[Experiments /instantiate] Agent ${ag.id} already exists. Skipping registration.`);
+        registeredAgentIds.push(ag.id);
+        continue;
+      }
+
+      await agentRegistry.register(username, {
+        id: ag.id,
+        name: ag.name,
+        role: ag.role,
+        systemPrompt: ag.systemPrompt,
+        model: ag.model || "anthropic/claude-3-5-sonnet",
+        skills: ag.skills || []
+      }, true); // save to disk
+
+      registeredAgentIds.push(ag.id);
+      console.log(`[Experiments /instantiate] Registered agent: ${ag.id}`);
+    }
+
+    // 2. Create the channel
+    const newChannel = channelStore.createChannel(username, {
+      name: channel.name,
+      description: channel.description || "Canal instanciado desde el Laboratorio",
+      maxChainDepth: channel.maxChainDepth || 5,
+      showThinking: false,
+      showTools: false,
+      context: channel.context || []
+    } as any);
+
+    // 3. Map members with registered IDs
+    const members = channel.members.map((m: any) => ({
+      agentId: m.agentId,
+      replyMode: m.role === "lead" ? "user-only" : (m.replyMode || "mention-only"),
+      role: m.role || "member",
+      targetAgentIds: m.targetAgentIds || []
+    }));
+
+    channelStore.updateMembers(username, newChannel.id, members);
+    console.log(`[Experiments /instantiate] Created channel: ${newChannel.id} with ${members.length} members`);
+
+    return c.json({ success: true, channelId: newChannel.id });
+  } catch (err: any) {
+    console.error("[Experiments /instantiate] Instantiation failed:", err);
+    return c.json({ error: `Failed to instantiate team: ${err.message}` }, 500);
+  }
 });
 
 // Get experiment detail
@@ -157,9 +331,17 @@ experimentsRouter.post("/:id/stop", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const id = c.req.param("id");
-  if (!ExperimentRunner.isRunning(id)) {
+
+  const exp = await ExperimentStore.getExperiment(username, id);
+  if (!exp) return c.json({ error: "Experiment not found" }, 404);
+
+  const isRunningInMemory = ExperimentRunner.isRunning(id);
+  const isRunningInDb = exp.status === "running";
+
+  if (!isRunningInMemory && !isRunningInDb) {
     return c.json({ error: "Experiment is not running" }, 400);
   }
+
   await ExperimentRunner.stopExperiment(username, id);
   return c.json({ success: true });
 });
@@ -197,6 +379,19 @@ experimentsRouter.delete("/:id", async (c) => {
   if (ExperimentRunner.isRunning(id)) {
     return c.json({ error: "Cannot delete a running experiment" }, 409);
   }
+
+  // Clean up associated temporary channel directories
+  const channelIds = [
+    `lab_${id}_single`,
+    `lab_${id}_multiNoLeader`,
+    `lab_${id}_multiWithLeader`
+  ];
+  for (const channelId of channelIds) {
+    try {
+      channelStore.deleteChannel(username, channelId);
+    } catch {}
+  }
+
   await ExperimentStore.deleteExperiment(username, id);
   return c.json({ success: true });
 });

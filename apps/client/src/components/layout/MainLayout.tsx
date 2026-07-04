@@ -212,25 +212,25 @@ export function MainLayout({
 
     return (
       <nav aria-label="Breadcrumb" className="flex items-center gap-1 sm:gap-1.5 text-xs sm:text-sm">
-        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-accent inline-block flex-shrink-0" />
+        <span className="w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full bg-primary inline-block flex-shrink-0" />
         {items.map((item, index) => {
           const isLast = index === items.length - 1;
           return (
             <div key={index} className="flex items-center gap-1 sm:gap-1.5">
               {index > 0 && (
-                <span className="text-text-secondary/60 font-normal select-none px-0.5 sm:px-1">/</span>
+                <span className="text-muted-foreground/60 font-normal select-none px-0.5 sm:px-1">/</span>
               )}
               {item.path && !isLast ? (
                 <button
                   onClick={() => onNavigate(item.path!)}
-                  className="text-text-secondary hover:text-text-primary transition-colors font-medium cursor-pointer"
+                  className="text-muted-foreground hover:text-foreground transition-colors font-medium cursor-pointer"
                 >
                   {item.label}
                 </button>
               ) : (
                 <span
                   className={`${
-                    isLast ? "font-semibold text-text-primary" : "text-text-secondary font-medium"
+                    isLast ? "font-semibold text-foreground" : "text-muted-foreground font-medium"
                   }`}
                 >
                   {item.label}
@@ -243,19 +243,19 @@ export function MainLayout({
     );
   };
   return (
-    <div className="h-dvh flex flex-col bg-bg text-text-primary overflow-hidden font-sans">
-      <header className="h-10 sm:h-12 border-b border-surface px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-surface/30">
+    <div className="h-dvh flex flex-col bg-background text-foreground overflow-hidden font-sans">
+      <header className="h-10 sm:h-12 border-b border-border px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-card/30">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
             onClick={() => onSelectRepo ? onSelectRepo(null, null) : onNavigate("/")}
-            className="p-1 text-text-secondary hover:text-text-primary rounded cursor-pointer flex-shrink-0"
+            className="p-1 text-muted-foreground hover:text-foreground rounded cursor-pointer flex-shrink-0"
             title="Inicio"
           >
             <Logo size={20} className="sm:w-[22px] sm:h-[22px] w-[18px] h-[18px]" />
           </button>
           <button
             onClick={() => setSidebarOpen((p) => !p)}
-            className="sm:hidden p-1 text-text-secondary hover:text-text-primary rounded flex-shrink-0"
+            className="sm:hidden p-1 text-muted-foreground hover:text-foreground rounded flex-shrink-0"
             title="Toggle sidebar"
           >
             <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
@@ -275,7 +275,7 @@ export function MainLayout({
         <aside
           className={`${
             sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-surface bg-bg transition-transform duration-200`}
+          } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-border bg-background transition-transform duration-200`}
         >
           <SessionSidebar
             activeRepoName={activeRepoId}
@@ -288,12 +288,12 @@ export function MainLayout({
             onSelectChannel={onSelectChannel}
           />
         </aside>
-        <main className="flex-1 min-w-0 flex flex-col h-full bg-bg">
+        <main className="flex-1 min-w-0 flex flex-col h-full bg-background">
           {isContextView && (
-            <div className="flex items-center justify-between px-4 border-b border-surface bg-surface/5 flex-shrink-0">
+            <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
               <div className="flex gap-1">
                 {route.page === "laboratory" ? (
-                  <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-accent border-b-2 border-accent -mb-[1px]">
+                  <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
                     <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                       <path d="M4.5 3h15" />
                       <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
@@ -309,11 +309,11 @@ export function MainLayout({
                         onClick={() => onNavigate(tab.path)}
                         className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
                           isActive
-                            ? "text-accent border-accent font-semibold"
-                            : "text-text-secondary border-transparent hover:text-text-primary hover:border-surface-hover"
+                            ? "text-primary border-primary font-semibold"
+                            : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
                         }`}
                       >
-                        <span className={isActive ? "text-accent" : "text-text-secondary"}>
+                        <span className={isActive ? "text-primary" : "text-muted-foreground"}>
                           {tab.icon}
                         </span>
                         {tab.label}
@@ -329,7 +329,7 @@ export function MainLayout({
                   <>
                     <button
                       onClick={() => setExperimentPopoverOpen((p) => !p)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
                       title="Ver experimentos"
                     >
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -353,7 +353,7 @@ export function MainLayout({
                   <>
                     <button
                       onClick={() => setSessionPopoverOpen((p) => !p)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-surface hover:bg-surface text-text-secondary hover:text-text-primary transition-all cursor-pointer bg-surface/10"
+                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
                       title="Ver sesiones"
                     >
                       <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">

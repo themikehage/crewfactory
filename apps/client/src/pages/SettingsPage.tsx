@@ -47,10 +47,10 @@ export function SettingsPage() {
   ] as const;
 
   return (
-    <div className="h-full flex flex-col bg-bg">
+    <div className="h-full flex flex-col bg-background">
       <div className="flex-1 overflow-y-auto">
         <div className="max-w-2xl mx-auto p-3 sm:p-6 space-y-6">
-          <div className="flex border-b border-surface-hover/30 mb-6 gap-2 pb-1.5 w-full overflow-x-auto scrollbar-none flex-nowrap">
+          <div className="flex border-b border-input/30 mb-6 gap-2 pb-1.5 w-full overflow-x-auto scrollbar-none flex-nowrap">
             {tabs.map((tab) => {
               const active = activeTab === tab.id;
               return (
@@ -59,8 +59,8 @@ export function SettingsPage() {
                   onClick={() => setActiveTab(tab.id)}
                   className={`flex-none px-4 py-2 text-xs sm:text-sm font-semibold rounded-lg transition-all whitespace-nowrap cursor-pointer ${
                     active
-                      ? "text-accent bg-accent/10 border border-accent/25"
-                      : "text-text-secondary hover:text-text-primary hover:bg-surface-hover/20 border border-transparent"
+                      ? "text-primary bg-primary/10 border border-primary/25"
+                      : "text-muted-foreground hover:text-foreground hover:bg-card-hover/20 border border-transparent"
                   }`}
                 >
                   {tab.label}

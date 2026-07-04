@@ -27,9 +27,9 @@ interface Props {
 }
 
 const statusConfig: Record<SessionStatus, { color: string; label: string }> = {
-  active: { color: "bg-success", label: "Active" },
+  active: { color: "bg-primary", label: "Active" },
   streaming: { color: "bg-warning", label: "Streaming..." },
-  "task-running": { color: "bg-accent", label: "Task Running..." },
+  "task-running": { color: "bg-primary", label: "Task Running..." },
   sleeping: { color: "bg-text-secondary/30", label: "Sleeping" },
 };
 
@@ -199,18 +199,18 @@ export function SessionPopover({
       />
 
       {/* Popover flotante */}
-      <div className="absolute right-0 top-full mt-2 w-80 bg-surface border border-surface-hover rounded-xl shadow-2xl flex flex-col z-55 animate-scale-in max-h-[420px] overflow-hidden">
+      <div className="absolute right-0 top-full mt-2 w-80 bg-card border border-input rounded-xl shadow-2xl flex flex-col z-55 animate-scale-in max-h-[420px] overflow-hidden">
         {/* Header */}
-        <div className="p-3 border-b border-surface-hover flex items-center justify-between flex-shrink-0 bg-surface/80 backdrop-blur-md">
+        <div className="p-3 border-b border-input flex items-center justify-between flex-shrink-0 bg-card/80 backdrop-blur-md">
           <div className="flex flex-col min-w-0">
-            <span className="text-[9px] text-text-secondary/70 uppercase tracking-wider font-semibold">Historial de Sesiones</span>
-            <span className="text-xs font-bold text-accent truncate" title={contextLabel}>
+            <span className="text-[9px] text-muted-foreground/70 uppercase tracking-wider font-semibold">Historial de Sesiones</span>
+            <span className="text-xs font-bold text-primary truncate" title={contextLabel}>
               {contextLabel}
             </span>
           </div>
           <button
             onClick={onClose}
-            className="p-1 hover:bg-surface-hover rounded text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+            className="p-1 hover:bg-card-hover rounded text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             title="Cerrar"
           >
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -220,11 +220,11 @@ export function SessionPopover({
         </div>
 
         {/* Nueva Sesión */}
-        <div className="p-2 border-b border-surface-hover flex-shrink-0 flex flex-col gap-2">
+        <div className="p-2 border-b border-input flex-shrink-0 flex flex-col gap-2">
           <button
             onClick={createSession}
             disabled={creating}
-            className="w-full py-1.5 text-xs bg-accent text-bg rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity font-semibold cursor-pointer flex items-center justify-center gap-1"
+            className="w-full py-1.5 text-xs bg-primary text-background rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity font-semibold cursor-pointer flex items-center justify-center gap-1"
           >
             {creating ? (
               "Creando..."
@@ -238,26 +238,26 @@ export function SessionPopover({
             )}
           </button>
           
-          <label className="flex items-center justify-between px-1.5 py-0.5 text-[10px] text-text-secondary hover:text-text-primary transition-colors cursor-pointer select-none font-medium">
+          <label className="flex items-center justify-between px-1.5 py-0.5 text-[10px] text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none font-medium">
             <span>Ver Ejecuciones API/CLI</span>
             <input
               type="checkbox"
               checked={showExecutions}
               onChange={(e) => setShowExecutions(e.target.checked)}
-              className="accent-accent w-3 h-3 rounded border-surface-hover bg-bg cursor-pointer"
+              className="accent-accent w-3 h-3 rounded border-input bg-background cursor-pointer"
             />
           </label>
         </div>
 
         {/* Lista */}
-        <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-surface/20 max-h-[300px]">
+        <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-card/20 max-h-[300px]">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-2 text-text-secondary/55">
-              <div className="w-4 h-4 border-2 border-accent border-t-transparent rounded-full animate-spin" />
+            <div className="flex flex-col items-center justify-center py-8 space-y-2 text-muted-foreground/55">
+              <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span className="text-[10px]">Cargando sesiones...</span>
             </div>
           ) : filteredSessions.length === 0 ? (
-            <div className="text-center py-6 text-text-secondary/50 text-[11px]">
+            <div className="text-center py-6 text-muted-foreground/50 text-[11px]">
               Sin sesiones en este contexto
             </div>
           ) : (
@@ -274,8 +274,8 @@ export function SessionPopover({
                     }}
                     className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all cursor-pointer ${
                       isActive
-                        ? "bg-surface-hover/80 text-text-primary border border-surface-hover"
-                        : "text-text-secondary hover:bg-surface-hover/40 hover:text-text-primary border border-transparent"
+                        ? "bg-card-hover/80 text-foreground border border-input"
+                        : "text-muted-foreground hover:bg-card-hover/40 hover:text-foreground border border-transparent"
                     }`}
                   >
                     <div className="flex items-center gap-1.5">
@@ -284,17 +284,17 @@ export function SessionPopover({
                       )}
                       {isExec && (
                         <span className={`text-[8px] px-1 py-0.2 rounded font-bold uppercase flex-shrink-0 ${
-                          s.id.includes("_channel_") ? "bg-accent/15 text-accent border border-accent/20" : "bg-purple-500/15 text-purple-400 border border-purple-500/20"
+                          s.id.includes("_channel_") ? "bg-primary/15 text-primary border border-primary/20" : "bg-purple-500/15 text-purple-400 border border-purple-500/20"
                         }`}>
                           {s.id.includes("_channel_") ? "CLI" : "API"}
                         </span>
                       )}
                       <span className="truncate flex-1 font-medium font-sans">{s.name}</span>
                     </div>
-                    <div className="flex items-center justify-between mt-0.5 text-[9px] text-text-secondary/60">
+                    <div className="flex items-center justify-between mt-0.5 text-[9px] text-muted-foreground/60">
                       <span>{isExec ? "Ejecución histórica" : `${s.messageCount} mensajes`}</span>
                       {s.status && s.status !== "sleeping" && !isExec && (
-                        <span className={`font-semibold ${cfg?.color.replace("bg-", "text-") || "text-text-secondary/50"}`}>
+                        <span className={`font-semibold ${cfg?.color.replace("bg-", "text-") || "text-muted-foreground/50"}`}>
                           {cfg?.label}
                         </span>
                       )}
@@ -304,7 +304,7 @@ export function SessionPopover({
                     <button
                       onClick={(e) => handleDeleteClick(e, s.id)}
                       className="absolute right-2 top-1/2 -translate-y-1/2
-                                 text-text-secondary hover:text-error transition-colors p-1 rounded hover:bg-surface-hover opacity-0 group-hover:opacity-100 cursor-pointer"
+                                 text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-card-hover opacity-0 group-hover:opacity-100 cursor-pointer"
                       title="Eliminar Sesión"
                     >
                       <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
@@ -321,20 +321,20 @@ export function SessionPopover({
         {/* Modal de confirmación de borrado */}
         {confirmDeleteId && (
           <div className="fixed inset-0 z-60 flex items-center justify-center bg-black/60 backdrop-blur-xs animate-fade-in">
-            <div className="bg-surface border border-surface-hover rounded-xl p-4 mx-4 max-w-xs w-full shadow-2xl animate-scale-in">
-              <p className="text-xs font-medium text-text-primary mb-3">
+            <div className="bg-card border border-input rounded-xl p-4 mx-4 max-w-xs w-full shadow-2xl animate-scale-in">
+              <p className="text-xs font-medium text-foreground mb-3">
                 ¿Estás seguro de que querés borrar esta sesión? Se eliminarán todos los mensajes.
               </p>
               <div className="flex justify-end gap-2">
                 <button
                   onClick={handleCancelDelete}
-                  className="px-2.5 py-1.5 text-xs rounded-lg bg-surface-hover text-text-secondary hover:text-text-primary transition-colors cursor-pointer font-medium"
+                  className="px-2.5 py-1.5 text-xs rounded-lg bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer font-medium"
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleConfirmDelete}
-                  className="px-2.5 py-1.5 text-xs rounded-lg bg-error text-white hover:opacity-90 transition-opacity cursor-pointer font-medium"
+                  className="px-2.5 py-1.5 text-xs rounded-lg bg-destructive text-white hover:opacity-90 transition-opacity cursor-pointer font-medium"
                 >
                   Borrar
                 </button>

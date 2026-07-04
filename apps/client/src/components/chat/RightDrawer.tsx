@@ -35,16 +35,16 @@ export function RightDrawer({
       animate={{ x: 0 }}
       exit={{ x: "100%" }}
       transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="w-85 sm:w-96 flex flex-col h-full bg-surface border-l border-surface-hover flex-shrink-0 relative z-10"
+      className="w-85 sm:w-96 flex flex-col h-full bg-card border-l border-input flex-shrink-0 relative z-10"
     >
-      <div className="h-12 border-b border-surface-hover flex items-center justify-between px-3 flex-shrink-0 bg-bg/50 backdrop-blur-xs">
-        <div className="flex bg-bg/60 p-0.5 rounded-lg border border-surface-hover/50 gap-0.5">
+      <div className="h-12 border-b border-input flex items-center justify-between px-3 flex-shrink-0 bg-background/50 backdrop-blur-xs">
+        <div className="flex bg-background/60 p-0.5 rounded-lg border border-input/50 gap-0.5">
           <button
             onClick={() => setActiveTab("tasks")}
             className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeTab === "tasks"
-                ? "text-accent bg-surface-hover"
-                : "text-text-secondary hover:text-text-primary"
+                ? "text-primary bg-card-hover"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Tasks
@@ -53,8 +53,8 @@ export function RightDrawer({
             onClick={() => setActiveTab("infra")}
             className={`px-3 py-1 text-xs font-semibold rounded-md transition-all cursor-pointer ${
               activeTab === "infra"
-                ? "text-accent bg-surface-hover"
-                : "text-text-secondary hover:text-text-primary"
+                ? "text-primary bg-card-hover"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Infrastructure
@@ -63,7 +63,7 @@ export function RightDrawer({
 
         <button
           onClick={onClose}
-          className="text-text-secondary hover:text-text-primary p-1 cursor-pointer transition-colors"
+          className="text-muted-foreground hover:text-foreground p-1 cursor-pointer transition-colors"
           title="Close panel"
         >
           <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
