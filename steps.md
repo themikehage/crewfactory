@@ -503,3 +503,4 @@ crear un plan de despliegue facil en vps
 - [x] 56.5 Proteger desestructuraciones de argumentos en tarjetas UI interactivas (DynamicFormCard, DiffApplyCard, ApprovalForm, AgentConfigCard) contra valores indefinidos o nulos para prevenir crasheos de React durante el streaming
 - [x] 56.6 Validar la compilación exitosa del cliente
 - [x] 56.7 Implementar manejo controlado de errores de red y de parseo de JSON en `AgentConfigCard` al consultar endpoints de configuración
+- [x] 56.8 Desbloquear el loop de ejecución del backend notificando errores de carga por WebSocket (`action: "error"`) y retornando estados fallidos al agente en `configure_agent_card`

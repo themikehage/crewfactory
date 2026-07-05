@@ -145,6 +145,12 @@ export function createUiTools(workspaceDir: string) {
           details: { status: "configured", settings: result.payload }
         };
       }
+      if (result.action === "error" || result.payload?.error) {
+        return {
+          content: [{ type: "text", text: `failed: ${result.payload?.error || "unknown error"}` }],
+          details: { status: "error", error: result.payload?.error }
+        };
+      }
       return {
         content: [{ type: "text", text: "cancelled" }],
         details: { status: "cancelled" }

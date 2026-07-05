@@ -104,6 +104,19 @@ export function AgentConfigCard({ toolCallId, args, result, sessionId }: Props) 
     fetchData();
   }, [targetAgentId]);
 
+  // Desbloquear backend en caso de error de carga para que continúe su ejecución
+  useEffect(() => {
+    if (error && !isResolved && sessionId) {
+      wsClient.send({
+        type: "ui_action",
+        sessionId,
+        componentId: toolCallId,
+        action: "error",
+        payload: { error },
+      });
+    }
+  }, [error, isResolved, sessionId, toolCallId]);
+
   const handleAction = (action: "confirm" | "cancel") => {
     if (isResolved || !sessionId) return;
     setLocalAction(action);
