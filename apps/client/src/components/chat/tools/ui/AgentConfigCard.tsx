@@ -34,6 +34,7 @@ export function AgentConfigCard({ toolCallId, args, result, sessionId }: Props) 
   const [models, setModels] = useState<ModelOption[]>([]);
   const [selectedModel, setSelectedModel] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   const { targetAgentId = "" } = args || {};
   const resolvedStatus = result?.content?.[0]?.text; // "configured" | "cancelled"
@@ -42,40 +43,59 @@ export function AgentConfigCard({ toolCallId, args, result, sessionId }: Props) 
   useEffect(() => {
     const fetchData = async () => {
       try {
+        setError(null);
+        setLoading(true);
         const token = localStorage.getItem("token");
         // Cargar detalles del agente
         const agentRes = await fetch(`/api/agents/${targetAgentId}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         
+        if (!agentRes.ok) {
+          throw new Error(`Error al obtener agente (${agentRes.status})`);
+        }
+
+        const contentTypeAgent = agentRes.headers.get("content-type");
+        if (!contentTypeAgent || !contentTypeAgent.includes("application/json")) {
+          throw new Error("La respuesta del agente no es JSON válido");
+        }
+
         // Cargar proveedores y modelos
         const provRes = await fetch("/api/providers", {
           headers: { Authorization: `Bearer ${token}` },
         });
 
-        if (agentRes.ok && provRes.ok) {
-          const agentData = await agentRes.json();
-          const provData = await provRes.json();
+        if (!provRes.ok) {
+          throw new Error(`Error al obtener proveedores (${provRes.status})`);
+        }
 
-          setAgent(agentData);
-          setSelectedModel(agentData.model || "");
-          setSystemPrompt(agentData.systemPrompt || "");
+        const contentTypeProv = provRes.headers.get("content-type");
+        if (!contentTypeProv || !contentTypeProv.includes("application/json")) {
+          throw new Error("La respuesta de proveedores no es JSON válido");
+        }
 
-          // Consolidar lista plana de modelos
-          const list: ModelOption[] = [];
-          provData.providers?.forEach((p: any) => {
-            p.models?.forEach((m: any) => {
-              list.push({
-                id: m.id,
-                name: m.name,
-                provider: p.id,
-              });
+        const agentData = await agentRes.json();
+        const provData = await provRes.json();
+
+        setAgent(agentData);
+        setSelectedModel(agentData.model || "");
+        setSystemPrompt(agentData.systemPrompt || "");
+
+        // Consolidar lista plana de modelos
+        const list: ModelOption[] = [];
+        provData.providers?.forEach((p: any) => {
+          p.models?.forEach((m: any) => {
+            list.push({
+              id: m.id,
+              name: m.name,
+              provider: p.id,
             });
           });
-          setModels(list);
-        }
-      } catch (e) {
+        });
+        setModels(list);
+      } catch (e: any) {
         console.error("Failed to fetch agent configuration requirements:", e);
+        setError(e.message || "Error al cargar la configuración");
       } finally {
         setLoading(false);
       }
@@ -103,6 +123,17 @@ export function AgentConfigCard({ toolCallId, args, result, sessionId }: Props) 
     return (
       <div className="w-full max-w-sm rounded-xl border border-input/40 bg-card/40 p-4 font-sans shadow-md my-3 flex items-center justify-center h-48">
         <span className="text-xs text-muted-foreground/60 animate-pulse">Cargando configuración...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="w-full max-w-sm rounded-xl border border-error/30 bg-error/5 p-4 font-sans shadow-md my-3 flex flex-col items-center justify-center min-h-[96px] text-xs text-error">
+        <svg className="w-5 h-5 text-error mb-2 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+        </svg>
+        <span className="text-center font-semibold leading-relaxed">{error}</span>
       </div>
     );
   }

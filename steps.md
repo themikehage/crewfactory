@@ -502,3 +502,4 @@ crear un plan de despliegue facil en vps
 - [x] 56.4 Validar la compilación exitosa del servidor
 - [x] 56.5 Proteger desestructuraciones de argumentos en tarjetas UI interactivas (DynamicFormCard, DiffApplyCard, ApprovalForm, AgentConfigCard) contra valores indefinidos o nulos para prevenir crasheos de React durante el streaming
 - [x] 56.6 Validar la compilación exitosa del cliente
+- [x] 56.7 Implementar manejo controlado de errores de red y de parseo de JSON en `AgentConfigCard` al consultar endpoints de configuración
