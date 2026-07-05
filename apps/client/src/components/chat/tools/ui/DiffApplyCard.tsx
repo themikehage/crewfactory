@@ -18,7 +18,7 @@ interface Props {
 
 export function DiffApplyCard({ toolCallId, args, result, sessionId }: Props) {
   const [localAction, setLocalAction] = useState<"confirm" | "cancel" | null>(null);
-  const { path, description, originalContent = "", proposedContent = "" } = args;
+  const { path = "", description, originalContent = "", proposedContent = "" } = args;
 
   const resolvedStatus = result?.content?.[0]?.text; // "applied" | "discarded"
   const isResolved = !!resolvedStatus;
