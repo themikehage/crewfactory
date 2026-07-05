@@ -232,6 +232,16 @@ export class AgentSession {
               }
             }
             this.emit({ type: "agent_end", messages: evt.messages, willRetry: false });
+          } else if (evt.type === "message_start") {
+            this.emit({
+              type: "message_start",
+              message: evt.message,
+            });
+          } else if (evt.type === "message_end") {
+            this.emit({
+              type: "message_end",
+              message: evt.message,
+            });
           } else if (evt.type === "message_update") {
             if (evt.assistantMessageEvent?.type === "text_delta" || evt.assistantMessageEvent?.type === "thinking_delta") {
               this.emit({
