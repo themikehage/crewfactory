@@ -6,9 +6,11 @@
     "strict": true,
     "skipLibCheck": true,
     "noEmit": true,
+    "allowImportingTsExtensions": true,
     "paths": {
       "@/*": ["./src/*"]
     }
   },
-  "include": ["src"]
+  "include": ["src"],
+  "exclude": ["src/ai/vendor"]
 }

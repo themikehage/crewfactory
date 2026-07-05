@@ -507,3 +507,17 @@ crear un plan de despliegue facil en vps
 - [x] 56.9 Refactorizar `MediaCard` para renderizar de forma declarativa el estado de error de la imagen, evitando la manipulación directa del DOM y el duplicado de textos residuales en la UI
 - [x] 56.10 Reemplazar fallbacks de strings vacíos `""` en los atributos `src` de `WorkspaceFileEditor` y `PreviewPanel` por `undefined` para evitar advertencias en consola
 - [x] 56.11 Corregir resolución y autorización de imágenes en `MediaCard` importando y utilizando `resolveImageUrl` y `AuthenticatedImage` con los parámetros del contexto de workspace
+
+## Phase 57: PI SDK Vendorization & Core Removal
+- [x] 57.1 Modular model registry implementation in src/ai/model-registry
+- [x] 57.2 User credentials storage adapter in src/ai/auth-storage
+- [x] 57.3 Local lightweight skills parser loader in src/ai/load-skills
+- [x] 57.4 Local resource loader for context orchestration in src/ai/resource-loader
+- [x] 57.5 Local session persistence adapter in src/ai/session-persistence
+- [x] 57.6 Custom bash execution tool adapter in src/ai/bash-tool
+- [x] 57.7 Local ES module wrapper AgentSession in src/ai/agent-session
+- [x] 57.8 Barrel exports configuration in src/ai/index
+- [x] 57.9 Redirection of imports in all 5 server components and cleanup of getAgentDir
+- [x] 57.10 Dependency removal of @earendil-works/pi-coding-agent from package.json
+- [x] 57.11 Code verification, compatibility mapping, and static typecheck validation
+

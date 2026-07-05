@@ -1,0 +1,6 @@
+{
+  "name": "@vendor/agent",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts"
+}

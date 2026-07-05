@@ -5,11 +5,10 @@ import {
   ModelRegistry,
   SessionManager,
   DefaultResourceLoader,
-  getAgentDir,
   createBashToolDefinition,
   type AgentSession,
   type AgentSessionEvent,
-} from "@earendil-works/pi-coding-agent";
+} from "../ai";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
 import { AVAILABLE_TOOLS } from "shared";
@@ -22,14 +21,6 @@ import { createUiTools } from "./ui-tools";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
-  try {
-    const realAgentDir = getAgentDir();
-    const globalSkillsDir = resolve(realAgentDir, "skills");
-    if (existsSync(globalSkillsDir)) {
-      paths.push(globalSkillsDir);
-    }
-  } catch (e) {
-  }
 
   // Todas las entidades (proyectos, agentes, canales) ven las factory skills globales
   if (username) {
@@ -244,7 +235,7 @@ class PiSessionManager {
           mkdirSync(sessionDir, { recursive: true });
         }
 
-    // Persistir metadatos de sesión (guardar y leer metadata.json con repoName, agentId y channelId)
+    // Persistir metadatos de sesiÃ³n (guardar y leer metadata.json con repoName, agentId y channelId)
     const metadataPath = join(sessionDir, "metadata.json");
     let resolvedRepoName = repoName;
     let resolvedAgentId = agentId;
@@ -278,7 +269,7 @@ class PiSessionManager {
     // Asegurar estructura de carpetas
     ensureWorkspaceStructure(username);
 
-    // Asignar cwd dinámicamente según el contexto (Repo vs Agent vs Channel vs Global)
+    // Asignar cwd dinÃ¡micamente segÃºn el contexto (Repo vs Agent vs Channel vs Global)
     const workspaceBase = join(userDir, "workspace");
     let workspaceDir = workspaceBase;
     if (resolvedChannelId) {
@@ -333,7 +324,8 @@ class PiSessionManager {
       `- render_chart: Use this tool to display bar, line, area, or pie charts to visualize quantitative data, metrics, or analytical trends. Avoid writing Python/matplotlib scripts or generating image files for charts if they can be represented using this tool.\n` +
       `- request_approval: Before executing any critical, destructive, or potentially dangerous actions (such as running build/deploy scripts, deleting files, or executing system commands via bash), you MUST call this tool to request explicit user confirmation.\n` +
       `- ask_question: When you need to ask the user a question to clarify requirements, solicit design feedback, or resolve choices, call this tool to present a clean single/multi-choice form or custom text field.\n` +
-      `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n`
+      `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n` +
+      `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n`
     ];
 
     if (mcpToolNames.length > 0) {

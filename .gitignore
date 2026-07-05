@@ -15,3 +15,6 @@ skills/
 /openspec
 /backups
 /scratch
+# System reserved files created by redirection issues
+nul
+**/nul

@@ -93,6 +93,25 @@ export function createUiTools(workspaceDir: string) {
     }
   };
 
+  const renderHtmlTool = {
+    name: "render_html",
+    description: "Render an HTML document inside the chat stream for live preview. Use for web pages, mockups, dashboards, or any HTML output the user should see rendered.",
+    parameters: {
+      type: "object",
+      properties: {
+        html: { type: "string", description: "Full HTML document content starting with <!DOCTYPE html> or <html>." },
+        title: { type: "string", description: "Optional title for the HTML document preview card." }
+      },
+      required: ["html"]
+    },
+    execute: async (toolCallId: string, args: any) => {
+      return {
+        content: [{ type: "text", text: `HTML document "${args.title || "output"}" rendered successfully.` }],
+        details: { status: "rendered" }
+      };
+    }
+  };
+
   const renderChartTool = {
     name: "render_chart",
     description: "Render an interactive chart (bar, line, pie, or area) inside the chat stream to display analytical data.",
@@ -133,6 +152,7 @@ export function createUiTools(workspaceDir: string) {
     requestApprovalTool,
     askQuestionTool,
     renderImagesTool,
+    renderHtmlTool,
     renderChartTool
   ];
 }

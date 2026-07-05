@@ -95,7 +95,7 @@ export async function decomposeObjective(username: string, sessionId: string, ob
           textContent = lastMsg.content;
         } else if (Array.isArray(lastMsg.content)) {
           textContent = lastMsg.content
-            .map((c) => ("text" in c ? c.text : ""))
+            .map((c: any) => ("text" in c ? c.text : ""))
             .join("\n");
         }
       }
@@ -257,7 +257,7 @@ async function runTaskLoop(username: string, sessionId: string): Promise<void> {
             logSummary = lastMsg.content;
           } else if (Array.isArray(lastMsg.content)) {
             logSummary = lastMsg.content
-              .map((c) => ("text" in c ? c.text : "thinking" in c ? c.thinking : ""))
+              .map((c: any) => ("text" in c ? c.text : "thinking" in c ? c.thinking : ""))
               .join("\n");
           }
         }

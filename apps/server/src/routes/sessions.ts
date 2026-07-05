@@ -606,6 +606,7 @@ sessionsRouter.post(
           "request_approval",
           "ask_question",
           "render_images",
+          "render_html",
           "render_chart",
         ])
       )

@@ -1,6 +1,6 @@
 # CrewFactory
 **Type:** PRODUCTION
-**Description:** Web interface for CrewFactory with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Wraps the @earendil-works/pi-coding-agent SDK.
+**Description:** Web interface for CrewFactory with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Powered by a local vendored AI agent runner module.
 **Stack:** Bun, Hono, React 19, Vite, TypeScript (strict), Tailwind CSS v4, Framer Motion, WebSocket
 **Theme:** oklch theme (Tailwind CSS v4) with light and dark mode (dark by default)
 **Deployment Target:** Coolify (Docker)
@@ -36,7 +36,7 @@
 
 ### Provider Management
 - Dynamic provider configuration via web UI (no env vars needed)
-- 35 supported providers from pi SDK plus native Qwen Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, Mistral, Qwen, etc.)
+- Native OpenAI-compatible cloud providers and Qwen Cloud (Anthropic, OpenAI, Google, DeepSeek, Groq, Mistral, Qwen, etc. routed via compatible endpoints)
 - API key management: add/remove keys per provider, persisted to auth.json
 - Model selector below chat input: shows only configured providers, nested dropdown for model selection
 - Model persistence in localStorage, applied to sessions via SDK's setModel()
@@ -180,7 +180,7 @@
 - **Rich Interactive Control**: Filtering by source type (Sessions/Channels) and event type (Messages/Thoughts/Tools), manual scrolling freezer, screen log clearing, and WebSocket connection status badges.
 
 ### AutoConsulting Multi-Agent Pi Integration (`autoconsulting`)
-- **WebBuilder Agent**: Autonomous A2A agent powered directly by `@earendil-works/pi-coding-agent` SDK (port 4104).
+- **WebBuilder Agent**: Autonomous A2A agent powered by the local AI runner module (port 4104).
 - **Project Workspaces**: Each project maintains its own isolated workspace at `/tmp/ac-projects/{projectId}`.
 - **Deployment Skills**: Pre-installed static skills for GitHub (`github-deploy`), Cloudflare (`cloudflare-deploy`), and Neon Postgres (`neon-db`).
 - **Real-Time Streaming API & WS**: Server mounts `/api/pi/projects` endpoints and `/ws/pi` WebSocket handler for live streaming of tool executions and agent responses.
@@ -276,12 +276,13 @@
 
 ```
 apps/client/   React 19 + Vite + Tailwind CSS v4 + Framer Motion
-apps/server/   Bun + Hono + Zod + @earendil-works/pi-coding-agent SDK
+apps/server/   Bun + Hono + Zod + Local AI Runner Module (src/ai/)
 packages/shared/  Shared Zod schemas and types
 ```
 
 ### Key Server Modules
-- `pi/session-manager.ts` — Singleton managing AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `repoName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
+- `ai/` — Vendored and decoupled core agent runtime, including ModelRegistry, SessionManager (persistence), DefaultResourceLoader, AuthStorage, BashTool, and loadSkills.
+- `pi/session-manager.ts` — Singleton managing local AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `repoName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
 - `pi/task-runner.ts` — Task runner queue storage and supervisor background loop execution.
 - `routes/files.ts` — Workspace file CRUD API with `?repo=name` scoping and `/workspace-repos` endpoints for repo management.
 - `routes/preview.ts` — Preview file serving, config CRUD (`/config`), and build trigger/abort (`/build`)

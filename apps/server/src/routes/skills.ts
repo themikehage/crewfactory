@@ -1,5 +1,5 @@
 import { Hono } from "hono";
-import { loadSkills } from "@earendil-works/pi-coding-agent";
+import { loadSkills } from "../ai/load-skills";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { getResolvedSkillPaths } from "../pi/session-manager";

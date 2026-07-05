@@ -1,5 +1,5 @@
 import type { AgentDefinition, AgentStatus } from "shared";
-import type { AgentSession } from "@earendil-works/pi-coding-agent";
+import type { AgentSession } from "../ai";
 import type { Hono } from "hono";
 
 export interface AgentServer {

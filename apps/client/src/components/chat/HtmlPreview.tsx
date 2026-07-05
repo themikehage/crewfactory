@@ -2,9 +2,10 @@ import { useState } from "react";
 
 interface Props {
   html: string;
+  title?: string;
 }
 
-export function HtmlPreview({ html }: Props) {
+export function HtmlPreview({ html, title }: Props) {
   const [showHtml, setShowHtml] = useState(true);
 
   const handleDownload = () => {
@@ -26,7 +27,7 @@ export function HtmlPreview({ html }: Props) {
     <div className="my-3 rounded-lg overflow-hidden border border-input shadow-md text-xs bg-card font-sans">
       <div className="bg-card-hover/30 px-3 py-2 border-b border-input flex justify-between items-center">
         <span className="font-semibold text-muted-foreground text-[11px] uppercase tracking-wider">
-          HTML Document Output
+          {title || "HTML Document Output"}
         </span>
         <div className="flex gap-1.5">
           <button

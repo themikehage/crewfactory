@@ -305,6 +305,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "request_approval",
             "ask_question",
             "render_images",
+            "render_html",
             "render_chart",
           ])
         )

@@ -1,4 +1,4 @@
-import { ModelRegistry } from "@earendil-works/pi-coding-agent";
+import { ModelRegistry } from "../ai";
 
 export function registerQwenProvider(registry: ModelRegistry) {
   registry.registerProvider("qwen", {

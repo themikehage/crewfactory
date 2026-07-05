@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": false,
+    "skipLibCheck": true,
+    "noEmit": true,
+    "allowImportingTsExtensions": true,
+    "paths": {
+      "../../../ai/src/index.ts": ["./ai/src/index.ts"],
+      "../agent-loop.ts": ["./agent/src/agent-loop.ts"],
+      "../types.ts": ["./agent/src/types.ts"]
+    }
+  },
+  "include": ["agent/src/**/*", "ai/src/**/*"]
+}

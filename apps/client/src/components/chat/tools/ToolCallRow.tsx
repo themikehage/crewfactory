@@ -10,6 +10,7 @@ import { ApprovalForm } from "./ApprovalForm";
 import { ChartView } from "./ChartView";
 import { AskQuestionForm } from "./AskQuestionForm";
 import { ImageGrid } from "../ImageGrid";
+import { HtmlPreview } from "../HtmlPreview";
 
 export interface ToolContentBlock {
   type: string;
@@ -139,6 +140,15 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  render_html: {
+    label: "html",
+    colorClass: "text-accent",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h8a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
   render_chart: {
     label: "gráfico",
     colorClass: "text-accent",
@@ -174,6 +184,7 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
     case "request_approval": return (args.title as string) || "Petición de aprobación";
     case "ask_question": return (args.question as string) || "Pregunta al usuario";
     case "render_images": return Array.isArray(args.images) ? `${args.images.length} imágenes` : "Imágenes";
+    case "render_html": return (args.title as string) || "HTML document";
     case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
     default: return JSON.stringify(args).slice(0, 50);
   }
@@ -212,6 +223,7 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
     case "request_approval": return text || "esperando...";
     case "ask_question": return text || "esperando...";
     case "render_images": return "renderizado";
+    case "render_html": return "renderizado";
     case "render_chart": return "renderizado";
     default: return "done";
   }
@@ -274,6 +286,13 @@ function ToolBody({
           activeChannelId={activeChannelId}
         />
       );
+    case "render_html":
+      return (
+        <HtmlPreview
+          html={(args.html as string) || ""}
+          title={args.title as string | undefined}
+        />
+      );
     case "render_chart":
       return (
         <ChartView
@@ -313,6 +332,7 @@ export function ToolCallRow({
       toolName === "request_approval" ||
       toolName === "ask_question" ||
       toolName === "render_images" ||
+      toolName === "render_html" ||
       toolName === "render_chart"
     )
   );
