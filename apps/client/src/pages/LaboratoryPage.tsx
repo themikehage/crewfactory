@@ -41,12 +41,14 @@ interface VariantViewerProps {
   experimentId: string;
   variantKey: "single" | "multiNoLeader" | "multiWithLeader";
   activeSessionId: string | null;
-  status: string; // "pending" | "running" | "completed" | "failed"
+  status: string;
   result: any;
   criteria?: string[];
+  expName?: string;
+  expDescription?: string;
 }
 
-function VariantViewer({ experimentId, variantKey, activeSessionId, status, result, criteria }: VariantViewerProps) {
+function VariantViewer({ experimentId, variantKey, activeSessionId, status, result, criteria, expName, expDescription }: VariantViewerProps) {
   const l = useLiterals(u);
   const channelId = `lab_${experimentId}_${variantKey}`;
   const targetChannelId = activeSessionId ? channelId : null;
@@ -95,6 +97,15 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
       {/* Panel de Telemetría (30%) */}
       <div className="p-5 flex flex-col bg-card/10 min-h-0 overflow-y-auto text-left justify-between">
         <div className="space-y-6">
+          {expName && (
+            <div>
+              <p className="text-xs font-bold text-foreground leading-snug">{expName}</p>
+              {expDescription && (
+                <p className="text-[11px] text-muted-foreground leading-relaxed mt-0.5">{expDescription}</p>
+              )}
+            </div>
+          )}
+
           {criteria && criteria.length > 0 && (
             <div>
               <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-2">
@@ -1187,45 +1198,24 @@ export function LaboratoryPage({
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="space-y-6 text-left max-w-5xl mx-auto w-full flex flex-col h-full min-h-0"
+              className="flex-1 min-h-0"
             >
-              {/* Cabecera del Experimento */}
-              <div className="bg-card border border-input rounded-2xl p-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 flex-shrink-0">
-                <div>
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="p-1 bg-primary/10 rounded text-primary">
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth="2"
-                          d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"
-                        />
-                      </svg>
-                    </span>
-                    <h1 className="text-base font-bold text-foreground">{activeExp.name}</h1>
-                  </div>
-                  <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">{activeExp.taskPrompt}</p>
-                </div>
-              </div>
-
-              {/* Visor de la Variante Activa */}
-              <div className="flex-1 min-h-0">
-                <VariantViewer
-                  experimentId={activeExp.id}
-                  variantKey={activeVariantTab}
-                  activeSessionId={activeExp.variants[activeVariantTab]?.activeSessionId || null}
-                  status={
-                    activeExp.status === "running"
-                      ? (activeExp.variants[activeVariantTab]?.result
-                        ? activeExp.variants[activeVariantTab].result.status
-                        : (activeExp.variants[activeVariantTab]?.activeSessionId ? "running" : "pending"))
-                      : (activeExp.variants[activeVariantTab]?.result?.status || "pending")
-                  }
-                  result={activeExp.variants[activeVariantTab]?.result || null}
-                  criteria={activeExp.judge?.criteria}
-                />
-              </div>
+              <VariantViewer
+                experimentId={activeExp.id}
+                variantKey={activeVariantTab}
+                activeSessionId={activeExp.variants[activeVariantTab]?.activeSessionId || null}
+                status={
+                  activeExp.status === "running"
+                    ? (activeExp.variants[activeVariantTab]?.result
+                      ? activeExp.variants[activeVariantTab].result.status
+                      : (activeExp.variants[activeVariantTab]?.activeSessionId ? "running" : "pending"))
+                    : (activeExp.variants[activeVariantTab]?.result?.status || "pending")
+                }
+                result={activeExp.variants[activeVariantTab]?.result || null}
+                criteria={activeExp.judge?.criteria}
+                expName={activeExp.name}
+                expDescription={activeExp.taskPrompt}
+              />
             </motion.div>
           ) : (
             <motion.div
