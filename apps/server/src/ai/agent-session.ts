@@ -58,7 +58,9 @@ export class AgentSession {
         description: toolDef.description,
         parameters: toolDef.parameters || toolDef.schema || {},
         execute: async (toolCallId, params, signal) => {
-          const res = await toolDef.execute(params, { signal, toolCallId });
+          const res = toolDef.name === "bash"
+            ? await toolDef.execute(params, { signal, toolCallId })
+            : await toolDef.execute(toolCallId, params, signal);
           if (res && typeof res === "object" && "content" in res && Array.isArray(res.content)) {
             return res;
           }
