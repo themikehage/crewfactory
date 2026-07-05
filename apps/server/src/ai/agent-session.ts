@@ -221,6 +221,7 @@ export class AgentSession {
               this.emit({
                 type: "message_update",
                 assistantMessageEvent: evt.assistantMessageEvent,
+                message: evt.message,
               });
             }
           } else if (evt.type === "tool_execution_start") {
