@@ -11,14 +11,16 @@ import { literals as u } from "./ChatArea.literals";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
-function getSandboxLabel(tools: string[]): { label: string; color: string } {
-  const hasWrite = tools.includes("write") || tools.includes("edit") || tools.includes("bash");
-  const hasRead = tools.includes("read") || tools.includes("grep") || tools.includes("find") || tools.includes("ls");
-  if (tools.length === 0) return { label: "No Tools", color: "text-destructive" };
-  if (!hasWrite && hasRead) return { label: "Read-Only", color: "text-warning" };
-  if (tools.length === ALL_TOOL_NAMES.length) return { label: "Full Access", color: "text-primary" };
-  return { label: `${tools.length}/${ALL_TOOL_NAMES.length} Tools`, color: "text-primary" };
-}
+    function getSandboxLabel(tools: string[]): { label: string; color: string } {
+      const coreTools = ALL_TOOL_NAMES;
+      const activeCore = tools.filter(t => coreTools.includes(t));
+      const hasWrite = activeCore.includes("write") || activeCore.includes("edit") || activeCore.includes("bash");
+      const hasRead = activeCore.includes("read") || activeCore.includes("grep") || activeCore.includes("find") || activeCore.includes("ls");
+      if (activeCore.length === 0) return { label: "No Tools", color: "text-destructive" };
+      if (!hasWrite && hasRead) return { label: "Read-Only", color: "text-warning" };
+      if (activeCore.length === coreTools.length) return { label: "Full Access", color: "text-primary" };
+      return { label: `${activeCore.length}/${coreTools.length} Tools`, color: "text-primary" };
+    }
 
 interface MessageUsage {
   input: number;
@@ -379,25 +381,6 @@ const l = useLiterals(u);
     send({ type: "abort", sessionId });
   }, [sessionId, send]);
 
-  const handleCompact = useCallback(() => {
-    send({ type: "compact", sessionId });
-  }, [sessionId, send]);
-
-  const handleRefreshContext = useCallback(async () => {
-    if (!sessionId) return;
-    try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/context`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (res.ok) {
-        const data = await res.json();
-        if (data.contextUsage || data.sessionStats) {
-          setContextData(data);
-        }
-      }
-    } catch {}
-  }, [sessionId]);
 
   const handleNavigate = useCallback(async (targetId: string) => {
     if (!sessionId) return;
@@ -528,8 +511,8 @@ const l = useLiterals(u);
           <ContextMeter
             contextUsage={contextData?.contextUsage ?? null}
             sessionStats={contextData?.sessionStats ?? null}
-            onCompact={handleCompact}
-            onRefresh={handleRefreshContext}
+            
+            
           />
         )}
         {isReadOnlyExecution ? (
