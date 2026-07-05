@@ -243,7 +243,7 @@ const l = useLiterals(u);
           </div>
           <div className="flex-1 w-full h-full bg-white">
             <iframe
-              src={previewBlobUrl || ""}
+              src={previewBlobUrl || undefined}
               className="w-full h-full border-0"
               title={l.fullscreen}
             />
@@ -389,7 +389,7 @@ const l = useLiterals(u);
         ) : isHtml && activeTab === "preview" ? (
           <div className="w-full h-full bg-white">
             <iframe
-              src={previewBlobUrl || ""}
+              src={previewBlobUrl || undefined}
               className="w-full h-full border-0"
               title="HTML Preview Pane"
             />
@@ -397,7 +397,7 @@ const l = useLiterals(u);
         ) : isImage ? (
           <div className="w-full h-full overflow-auto bg-black/10 flex items-center justify-center p-4">
             <img
-              src={previewBlobUrl || ""}
+              src={previewBlobUrl || undefined}
               alt={file.name}
               className="max-w-full max-h-full object-contain rounded border border-border shadow-md"
             />

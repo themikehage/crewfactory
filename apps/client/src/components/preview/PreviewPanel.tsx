@@ -399,7 +399,7 @@ const l = useLiterals(u);
             <iframe
               key={iframeKey}
               ref={iframeRef}
-              src={previewSrc || ""}
+              src={previewSrc || undefined}
               className="w-full h-full border-0"
               title="Project Preview"
             />

@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { wsClient } from "@/lib/ws-client";
 
 interface Props {
@@ -11,7 +12,12 @@ interface Props {
 }
 
 export function MediaCard({ args, sessionId }: Props) {
-  const { mediaPath, title, prompt, aspectRatio = "16:9" } = args;
+  const { mediaPath, title = "Multimedia", prompt, aspectRatio = "16:9" } = args || {};
+  const [hasError, setHasError] = useState(false);
+
+  useEffect(() => {
+    setHasError(false);
+  }, [mediaPath]);
 
   const getAspectClass = () => {
     switch (aspectRatio) {
@@ -51,23 +57,18 @@ export function MediaCard({ args, sessionId }: Props) {
     <div className="w-full max-w-sm rounded-xl border border-input/40 bg-card/40 overflow-hidden font-sans shadow-md my-3 transition-colors">
       {/* Visual Container */}
       <div className={`w-full bg-bg relative overflow-hidden flex items-center justify-center ${getAspectClass()}`}>
-        <img
-          src={getSafeSrc()}
-          alt={title}
-          className="w-full h-full object-cover"
-          onError={(e) => {
-            // Fallback en caso de que no cargue la imagen
-            const img = e.currentTarget;
-            img.style.display = "none";
-            const parent = img.parentElement;
-            if (parent) {
-              const label = document.createElement("span");
-              label.className = "text-xs text-muted-foreground/60 p-4 text-center font-mono";
-              label.innerText = `[Media Asset: ${title}]`;
-              parent.appendChild(label);
-            }
-          }}
-        />
+        {hasError ? (
+          <span className="text-xs text-muted-foreground/60 p-4 text-center font-mono">
+            [Media Asset: {title}]
+          </span>
+        ) : (
+          <img
+            src={getSafeSrc()}
+            alt={title}
+            className="w-full h-full object-cover"
+            onError={() => setHasError(true)}
+          />
+        )}
       </div>
 
       {/* Info & Metadata */}
