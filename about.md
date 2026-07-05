@@ -26,12 +26,13 @@
 
 ### Multimedia Support (Images & Documents)
 - **Hybrid Input Strategy**:
-  - **Images**: converted to base64 on client and sent inline via WebSocket using the pi SDK's native vision parameters (`images?: ImageContent[]`).
+  - **Images**: converted to base64 on client and sent inline via WebSocket using the pi SDK's native vision parameters (`images?: ImageContent[]`). Image grid in chat supports click-to-expand modal with fullscreen overlay, Escape to close, and authenticated image loading.
   - **Documents (PDF, Office, etc.)**: uploaded via Multipart HTTP POST directly to the workspace storage folder (`assets/uploads`), auto-appending workspace paths to the prompt so agents can read them.
 - **Visual Preview Templates (Premium UI)**:
   - **PDFs**: rendered inline via authenticated iframe viewers with "Open in New Tab" controls.
   - **Audio & Video**: embedded natively using HTML5 `<audio>` and `<video>` players with customizable layouts.
   - **Office Documents (DOCX, XLSX, PPTX, etc.)**: rendered as premium info cards with extension badges and direct authenticated download buttons.
+- **Syntax Highlighting in Workspace**: Code files in `WorkspaceFileEditor` receive language-class tags (`language-typescript`, `language-json`, etc.) based on file extension for CSS syntax highlighting support.
 
 ### Provider Management
 - Dynamic provider configuration via web UI (no env vars needed)
@@ -55,8 +56,10 @@
 - Header: compact on mobile (h-10 vs h-12)
 - Responsive padding, font sizes, and button sizing throughout
 
-### Theme
+### Theme & Localization
 - oklch theme with light and dark mode support (dark by default)
+- **Theme toggle** in Settings (General): Dark / Light / System, persisted in localStorage, applied via class on `<html>` with `matchMedia` listener for system preference
+- **Language selector** in Settings (General): English / Spanish, persists locale in localStorage, uses per-component `.literals.ts` files for full i18n coverage
 - Colors: defined dynamically using oklch values (bg, card, popover, primary, secondary, muted, accent, destructive, border, input, ring, sidebar, etc.)
 - Typography: Outfit (sans), JetBrains Mono (mono)
 - Design tokens via Tailwind CSS v4 @theme (always use semantic tokens, no raw hex in code)
@@ -136,6 +139,7 @@
 - **Independent AI Workers**: Programmatic agents with isolated workspaces at `/tmp/crewfactory/{username}/agents/{agentId}/workspace` and persistent definitions (`definition.json`), fully isolated per user.
 - **Factory Architecture**: Factory function `createAgentServer` producing lightweight Hono servers per agent.
 - **Unified Chat Integration**: Integrated directly into main `ChatArea` as a First-Class Context (`agentId`), providing isolated sessions, custom system prompts, inherited skills, and model selection.
+- **Agent Profile Photos**: Agents support optional avatars via `avatarUrl`. Upload/remove avatar in the agent edit modal. Avatar stored server-side at `/tmp/crewfactory/{username}/agents/{agentId}/avatar.*` and served via `GET /api/agents/:id/avatar`.
 
 ### Multi-Agent Group Channels (`channelId`) & Mention System
 - **Collaborative Group Spaces**: Multi-agent channels with isolated workspaces at `/tmp/crewfactory/{username}/channels/{channelId}/workspace` and append-only message logs (`messages.jsonl`), fully isolated per user.
@@ -197,6 +201,7 @@
 - **Rich Monitoring UI**: "Historial" (Executions) logs tab in `AgentsPage.tsx` with collapsable tool detail pre-blocks and real-time Observed status indicators in `ChatArea.tsx`.
 
 ### Model Context Protocol (MCP) Marketplace & Gallery
+- **Single Source of Truth**: MCP configuration lives exclusively in the dedicated `/mcps` page. The Settings tab no longer duplicates MCP management; instead it provides a quick link to `/mcps`.
 - **Predefined Catalog Gallery**: Browse and install popular MCP servers (Filesystem, GitHub, PostgreSQL, Puppeteer, Memory Graph, Brave Search) with a single-click installation.
 - **Custom Stdio & HTTP support**: Register custom servers using local stdio commands (Node/Python subprocesses) or remote HTTP/SSE links.
 - **Preflight Connection Testing**: Connect to a server temporarily to discover and list tools before saving the configuration.
@@ -327,7 +332,7 @@ packages/shared/  Shared Zod schemas and types
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
 - `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and a right-side SessionDrawer trigger button.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
-- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos (Repos), Agentes, and Canales, and administration links.
+- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos (Repos), Agentes, and Canales, and administration links. Active highlight is suppressed when the current page is not a session view (Laboratory, Settings, Agents, Channels, etc.).
 - `components/sidebar/SessionDrawer.tsx` — Sliding right drawer containing session history list, message counts, session statuses, creation, and deletion controls.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).
