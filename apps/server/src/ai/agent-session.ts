@@ -281,6 +281,7 @@ export class AgentSession {
       );
     } catch (err: any) {
       this.emit({ type: "agent_error", error: err.message });
+      this.emit({ type: "agent_end", messages: [], willRetry: false });
     } finally {
       this.isStreaming = false;
       this.abortController = null;
