@@ -63,7 +63,7 @@ export function AppRouter() {
   const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
   const [runPromptValue, setRunPromptValue] = useState("");
   const [runningExpId, setRunningExpId] = useState<string | null>(null);
-  const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader">("single");
+  const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader" | "compare">("single");
 
   const fetchExperiments = useCallback(async () => {
     try {
@@ -77,14 +77,29 @@ export function AppRouter() {
     }
   }, []);
 
-  const handleStopRun = useCallback(async (expId: string) => {
+  const handleStopRun = useCallback(async (id?: string) => {
+    const targetId = id || runningExpId;
+    if (!targetId) return;
     try {
-      await apiFetch(`/api/experiments/${expId}/stop`, { method: "POST" });
-      fetchExperiments();
+      await apiFetch(`/api/experiments/${targetId}/stop`, { method: "POST" });
     } catch (e) {
       console.error("Failed to stop experiment:", e);
+    } finally {
+      setRunningExpId(null);
     }
-  }, [fetchExperiments]);
+  }, [runningExpId]);
+
+  const handleJudgeExp = useCallback(async (id: string) => {
+    try {
+      const res = await apiFetch(`/api/experiments/${id}/judge`, { method: "POST" });
+      if (res.ok) {
+        const data = await res.json();
+        setExperiments((prev) => prev.map((e) => (e.id === id ? data.experiment : e)));
+      }
+    } catch (e) {
+      console.error("Failed to judge experiment:", e);
+    }
+  }, []);
 
   const handleConfirmRun = useCallback(async () => {
     if (!runningExpId) return;
@@ -297,6 +312,7 @@ export function AppRouter() {
           setIsLabEditorOpen(true);
         }
       }}
+      onJudgeExperiment={handleJudgeExp}
     >
       {route.page === "projects" && (
         <DashboardPage onNavigate={navigate} onSelectRepo={handleSelectRepo} />

@@ -411,6 +411,8 @@ export const VariantRunResultSchema = z.object({
     efficiencyScore: z.number(),
     negotiationScore: z.number().optional(),
     globalScore: z.number(),
+    judgeReasoning: z.string().optional(),
+    criteriaScores: z.record(z.number()).optional(),
   }),
 });
 export type VariantRunResult = z.infer<typeof VariantRunResultSchema>;

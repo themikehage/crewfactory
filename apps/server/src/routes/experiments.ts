@@ -3,10 +3,13 @@ import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { ExperimentStore } from "../laboratory/experiment-store";
 import { ExperimentRunner } from "../laboratory/experiment-runner";
+import { LabJudge } from "../laboratory/judge";
+import { calculateVariantScores } from "../laboratory/scoring";
 import { piSessionManager } from "../pi/session-manager";
 import { type LabStance, type LabAgent, type LabExperiment } from "shared";
 import { agentRegistry } from "../agents";
 import { channelStore } from "../channels";
+import { broadcastToUser } from "../ws/handler";
 
 export const experimentsRouter = new Hono();
 
@@ -369,6 +372,72 @@ experimentsRouter.patch("/:id", async (c) => {
   exp.status = "designing";
   await ExperimentStore.saveExperiment(username, exp);
   return c.json({ experiment: exp });
+});
+
+// On-demand judge evaluation
+experimentsRouter.post("/:id/judge", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+
+  const exp = await ExperimentStore.getExperiment(username, id);
+  if (!exp) return c.json({ error: "Experiment not found" }, 404);
+  if (exp.status !== "completed") return c.json({ error: "Experiment must be completed first" }, 409);
+  if (ExperimentRunner.isRunning(id)) return c.json({ error: "Experiment is still running" }, 409);
+
+  const single = exp.variants.single.result;
+  const noLeader = exp.variants.multiNoLeader.result;
+  const withLeader = exp.variants.multiWithLeader.result;
+
+  if (!single || !noLeader || !withLeader) {
+    return c.json({ error: "All variants must have results before judging" }, 409);
+  }
+
+  try {
+    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: "running", activeVariant: "judging" });
+
+    const judgeResults = await LabJudge.evaluateRuns(username, exp.taskPrompt, exp.judge.criteria, {
+      single: single.finalOutput,
+      multiNoLeader: noLeader.finalOutput,
+      multiWithLeader: withLeader.finalOutput,
+    });
+
+    const baselineStats = {
+      durationMs: single.durationMs,
+      totalTokens: single.tokensIn + single.tokensOut,
+    };
+
+    exp.variants.single.result!.scores = calculateVariantScores(
+      "single",
+      judgeResults.single.globalScore,
+      single.durationMs, single.tokensIn, single.tokensOut,
+      null, undefined,
+      { reasoning: judgeResults.single.reasoning, criteriaScores: judgeResults.single.scores }
+    );
+    exp.variants.multiNoLeader.result!.scores = calculateVariantScores(
+      "multi_no_leader",
+      judgeResults.multiNoLeader.globalScore,
+      noLeader.durationMs, noLeader.tokensIn, noLeader.tokensOut,
+      baselineStats,
+      { agreementReached: noLeader.agreementReached, rounds: noLeader.negotiationRounds || 0, maxRounds: 5, escalationsToLeader: 0 },
+      { reasoning: judgeResults.multiNoLeader.reasoning, criteriaScores: judgeResults.multiNoLeader.scores }
+    );
+    exp.variants.multiWithLeader.result!.scores = calculateVariantScores(
+      "multi_with_leader",
+      judgeResults.multiWithLeader.globalScore,
+      withLeader.durationMs, withLeader.tokensIn, withLeader.tokensOut,
+      baselineStats,
+      { agreementReached: withLeader.agreementReached, rounds: withLeader.negotiationRounds || 0, maxRounds: 5, escalationsToLeader: withLeader.escalationsToLeader || 0 },
+      { reasoning: judgeResults.multiWithLeader.reasoning, criteriaScores: judgeResults.multiWithLeader.scores }
+    );
+
+    await ExperimentStore.saveExperiment(username, exp);
+    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: "completed", experiment: exp });
+    return c.json({ experiment: exp });
+  } catch (e: any) {
+    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: "completed" });
+    return c.json({ error: e.message || "Judge evaluation failed" }, 500);
+  }
 });
 
 // Delete experiment

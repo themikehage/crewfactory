@@ -163,7 +163,9 @@ export class ExperimentRunner {
             singleResult.durationMs,
             singleResult.tokensIn,
             singleResult.tokensOut,
-            null
+            null,
+            undefined,
+            { reasoning: judgeResults.single.reasoning, criteriaScores: judgeResults.single.scores }
           );
 
           exp.variants.multiNoLeader.result!.scores = calculateVariantScores(
@@ -178,7 +180,8 @@ export class ExperimentRunner {
               rounds: noLeaderResult.negotiationRounds || 0,
               maxRounds: 5,
               escalationsToLeader: 0
-            }
+            },
+            { reasoning: judgeResults.multiNoLeader.reasoning, criteriaScores: judgeResults.multiNoLeader.scores }
           );
 
           exp.variants.multiWithLeader.result!.scores = calculateVariantScores(
@@ -193,7 +196,8 @@ export class ExperimentRunner {
               rounds: withLeaderResult.negotiationRounds || 0,
               maxRounds: 5,
               escalationsToLeader: withLeaderResult.escalationsToLeader || 0
-            }
+            },
+            { reasoning: judgeResults.multiWithLeader.reasoning, criteriaScores: judgeResults.multiWithLeader.scores }
           );
         } else {
           console.warn(`[ExperimentRunner] Skipping auto evaluation because one or more variants failed.`);

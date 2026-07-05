@@ -25,11 +25,12 @@ interface Props {
   selectedExpId?: string | null;
   experiments?: any[];
   onDeleteExperiment?: (id: string) => void;
-  activeVariantTab?: "single" | "multiNoLeader" | "multiWithLeader";
-  setActiveVariantTab?: (tab: "single" | "multiNoLeader" | "multiWithLeader") => void;
+  activeVariantTab?: "single" | "multiNoLeader" | "multiWithLeader" | "compare";
+  setActiveVariantTab?: (tab: "single" | "multiNoLeader" | "multiWithLeader" | "compare") => void;
   onRunExperiment?: (id: string) => void;
   onStopExperiment?: (id: string) => void;
   onEditExperiment?: (id: string) => void;
+  onJudgeExperiment?: (id: string) => void;
 }
 
 export function MainLayout({
@@ -46,11 +47,12 @@ export function MainLayout({
   selectedExpId = null,
   experiments = [],
   onDeleteExperiment,
-  activeVariantTab = "single",
+  activeVariantTab = "single" as "single" | "multiNoLeader" | "multiWithLeader" | "compare",
   setActiveVariantTab,
   onRunExperiment,
   onStopExperiment,
   onEditExperiment,
+  onJudgeExperiment,
 }: Props) {
   const l = useLiterals(u);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -330,39 +332,59 @@ export function MainLayout({
               <div className="flex gap-1">
                 {route.page === "laboratory" ? (
                   selectedExpId ? (
-                    ((["single", "multiNoLeader", "multiWithLeader"] as const).map((vKey) => {
-                      const label =
-                        vKey === "single"
-                          ? "Baseline (Un Agente)"
-                          : vKey === "multiNoLeader"
-                          ? "Colaboración Horizontal"
-                          : "Colaboración Jerárquica";
-                      const isActive = activeVariantTab === vKey;
+                    (() => {
                       const activeExp = experiments.find((e) => e.id === selectedExpId);
-                      const runData = activeExp?.variants?.[vKey];
-                      const hasResult = !!runData?.result;
-                      const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
-
+                      const isCompleted = activeExp?.status === "completed";
+                      const variantDefs = [
+                        { key: "single" as const, label: "Baseline" },
+                        { key: "multiNoLeader" as const, label: "H. Horizontal" },
+                        { key: "multiWithLeader" as const, label: "H. Jerárquico" },
+                      ];
                       return (
-                        <button
-                          key={vKey}
-                          onClick={() => setActiveVariantTab?.(vKey)}
-                          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                            isActive
-                              ? "text-primary border-primary font-semibold"
-                              : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                          }`}
-                        >
-                          {label}
-                          {isRunning && (
-                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                        <>
+                          {variantDefs.map(({ key: vKey, label }) => {
+                            const runData = activeExp?.variants?.[vKey];
+                            const hasResult = !!runData?.result;
+                            const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
+                            const isActive = activeVariantTab === vKey;
+                            return (
+                              <button
+                                key={vKey}
+                                onClick={() => setActiveVariantTab?.(vKey)}
+                                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                  isActive
+                                    ? "text-primary border-primary font-semibold"
+                                    : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                }`}
+                              >
+                                {label}
+                                {isRunning && (
+                                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                                )}
+                                {hasResult && (
+                                  <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
+                                )}
+                              </button>
+                            );
+                          })}
+                          {isCompleted && (
+                            <button
+                              onClick={() => setActiveVariantTab?.("compare")}
+                              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                activeVariantTab === "compare"
+                                  ? "text-primary border-primary font-semibold"
+                                  : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                              }`}
+                            >
+                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M18 20V10M12 20V4M6 20v-6" />
+                              </svg>
+                              Comparativa
+                            </button>
                           )}
-                          {hasResult && (
-                            <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
-                          )}
-                        </button>
+                        </>
                       );
-                    }))
+                    })()
                   ) : (
                     <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
                       <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -445,6 +467,22 @@ export function MainLayout({
                               </button>
                             )}
                             
+                            {/* Re-evaluar con Judge (solo cuando completed) */}
+                            {experiments.find((e) => e.id === selectedExpId)?.status === "completed" && (
+                              <button
+                                onClick={() => {
+                                  setActionsOpen(false);
+                                  onJudgeExperiment?.(selectedExpId);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-primary">
+                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                </svg>
+                                Re-evaluar
+                              </button>
+                            )}
+
                             {/* Edit */}
                             <button
                               onClick={() => {

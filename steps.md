@@ -521,3 +521,16 @@ crear un plan de despliegue facil en vps
 - [x] 57.10 Dependency removal of @earendil-works/pi-coding-agent from package.json
 - [x] 57.11 Code verification, compatibility mapping, and static typecheck validation
 
+## Phase 58: Judge Management UI — Scores por Criterio + Evaluación On-Demand
+- [x] 58.1 Extender `VariantRunResultSchema.scores` (shared) con `judgeReasoning?` y `criteriaScores?`
+- [x] 58.2 `scoring.ts` aceptar y retornar `judgeDetail` opcional
+- [x] 58.3 `experiment-runner.ts` pasar `criteriaScores` + `reasoning` del judge a `calculateVariantScores`
+- [x] 58.4 Endpoint `POST /api/experiments/:id/judge` on-demand (con `broadcastToUser` de `experiment_status`)
+- [x] 58.5 Sincronizar tipo espejo del cliente en `apps/client/src/types/laboratory.ts` (gap no previsto por el plan)
+- [x] 58.6 `LaboratoryPage.tsx` panel derecho: desglose por criterio (tabla) + reasoning cards + rubric tags con score
+- [x] 58.7 `LaboratoryPage.tsx` + `AppRouter.tsx` + `MainLayout.tsx` tab "Comparativa" en header, cards side-by-side con ganadora y desglose por criterio
+- [x] 58.8 Botón "Re-evaluar con Judge" en vista comparativa y en popover del header (solo cuando `completed`)
+- [x] 58.9 Estado `isJudging` local + spinner de feedback
+- [x] 58.10 Validar `tsc --noEmit` limpio en server y client
+- [x] 58.11 Documentar plan en `plans/judge-management-ui.md` y actualizar `about.md`
+

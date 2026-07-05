@@ -32,6 +32,8 @@ export interface VariantRunResult {
     efficiencyScore: number;
     negotiationScore?: number;
     globalScore: number;
+    judgeReasoning?: string;
+    criteriaScores?: Record<string, number>;
   };
 }
 
