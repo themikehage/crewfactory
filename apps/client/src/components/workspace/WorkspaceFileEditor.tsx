@@ -12,6 +12,27 @@ interface Props {
   onSave: (path: string, content: string) => Promise<void>;
 }
 
+const EXT_LANGUAGE_MAP: Record<string, string> = {
+  ts: "language-typescript",
+  tsx: "language-tsx",
+  js: "language-javascript",
+  jsx: "language-jsx",
+  json: "language-json",
+  py: "language-python",
+  html: "language-html",
+  htm: "language-html",
+  css: "language-css",
+  env: "language-bash",
+  yml: "language-yaml",
+  yaml: "language-yaml",
+  md: "language-markdown",
+};
+
+function getLanguageClass(name: string): string {
+  const ext = name.split(".").pop()?.toLowerCase() || "";
+  return EXT_LANGUAGE_MAP[ext] || "";
+}
+
 // Decode base64 to unicode string safely
 function decodeBase64Unicode(str: string): string {
   try {
@@ -383,7 +404,7 @@ const l = useLiterals(u);
             }}
             onKeyDown={handleKeyDown}
             spellCheck={false}
-            className="w-full h-full bg-transparent text-foreground font-mono text-[11px] leading-relaxed p-3.5 outline-none resize-none border-0 focus:ring-0"
+            className={`w-full h-full bg-transparent text-foreground font-mono text-[11px] leading-relaxed p-3.5 outline-none resize-none border-0 focus:ring-0 ${file ? getLanguageClass(file.name) : ""}`}
             placeholder="File is empty"
           />
         ) : isHtml && activeTab === "preview" ? (

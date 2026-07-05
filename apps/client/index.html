@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en" class="dark">
+<html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -14,6 +14,19 @@
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="/favicon.png" />
     <title>CrewFactory</title>
+    <script>
+      (function () {
+        const theme = localStorage.getItem("theme") || "system";
+        const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (isDark) {
+          document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#121212");
+        } else {
+          document.documentElement.classList.remove("dark");
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#ffffff");
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

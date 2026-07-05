@@ -1,6 +1,9 @@
 import { useState } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LocaleSelector } from "./LocaleSelector";
+import { ThemeToggle } from "./ThemeToggle";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./GeneralTab.literals";
 
 interface GeneralTabProps {
   token: string | null;
@@ -8,7 +11,8 @@ interface GeneralTabProps {
 
 export function GeneralTab({ token }: GeneralTabProps) {
   const { user, logout, changePassword } = useAuth();
-  
+  const l = useLiterals(u);
+
   const [showPasswordForm, setShowPasswordForm] = useState(false);
   const [pwCurrent, setPwCurrent] = useState("");
   const [pwNew, setPwNew] = useState("");
@@ -118,8 +122,28 @@ export function GeneralTab({ token }: GeneralTabProps) {
         </button>
       </div>
 
-      <div className="bg-card rounded-lg p-4 border border-input/30">
-        <LocaleSelector />
+      <div className="bg-card rounded-lg p-4 border border-input/30 space-y-4">
+        <h3 className="text-foreground font-semibold text-sm">{l.appearance}</h3>
+        <div className="flex flex-col gap-3">
+          <ThemeToggle />
+          <div className="flex items-center gap-2">
+            <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider w-14">
+              {l.language}
+            </span>
+            <LocaleSelector />
+          </div>
+        </div>
+      </div>
+
+      <div className="bg-card rounded-lg p-4 border border-input/30 space-y-2">
+        <h3 className="text-foreground font-semibold text-sm">{l.mcpLink}</h3>
+        <p className="text-muted-foreground text-[11px]">{l.mcpDesc}</p>
+        <button
+          onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: { path: "/mcps" } }))}
+          className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
+        >
+          Open MCP Marketplace
+        </button>
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30">
@@ -285,7 +309,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
 
         <div className="border-t border-input/30 pt-3 space-y-3">
           <div className="text-xs font-semibold text-foreground">Import Backup</div>
-          
+
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Import Mode</label>
@@ -357,7 +381,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
             <p className="text-muted-foreground text-xs leading-relaxed">
               You are about to restore a backup using <strong className="text-foreground">Overwrite</strong> mode. This will permanently delete all your existing configuration, credentials, agents, channels, and projects.
             </p>
-            
+
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
               <div className="text-primary font-semibold text-xs">Safe Recommendation:</div>
               <p className="text-muted-foreground text-[11px] leading-relaxed">

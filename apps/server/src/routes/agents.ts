@@ -6,6 +6,8 @@ import { getUsername } from "../lib/auth-helpers";
 import { agentRegistry } from "../agents";
 import { AgentDefinitionSchema, UpdateAgentDefinitionSchema } from "shared";
 import { piSessionManager } from "../pi/session-manager";
+import { join } from "node:path";
+import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 
 export const agentsRouter = new Hono();
 
@@ -206,5 +208,84 @@ agentsRouter.get("/:id/executions/:execId", async (c) => {
     }),
     c.env
   );
+});
+
+agentsRouter.post("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
+
+  const body = await c.req.parseBody();
+  const file = body.file as File | undefined;
+  if (!file) return c.json({ error: "No file provided" }, 400);
+
+  const agentDir = join("/tmp/crewfactory", username, "agents", id);
+  if (!existsSync(agentDir)) {
+    // @ts-ignore
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(agentDir, { recursive: true });
+  }
+
+  try {
+    const files = readdirSync(agentDir);
+    for (const f of files) {
+      if (f.startsWith("avatar.")) {
+        unlinkSync(join(agentDir, f));
+      }
+    }
+  } catch {}
+
+  const ext = file.name.split(".").pop() || "png";
+  const avatarPath = join(agentDir, `avatar.${ext}`);
+  const buffer = await file.arrayBuffer();
+  writeFileSync(avatarPath, Buffer.from(buffer));
+
+  const avatarUrl = `/api/agents/${id}/avatar`;
+  agentRegistry.setAvatarUrl(username, id, avatarUrl);
+
+  return c.json({ avatarUrl });
+});
+
+agentsRouter.get("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
+
+  const agentDir = join("/tmp/crewfactory", username, "agents", id);
+  if (!existsSync(agentDir)) return c.notFound();
+
+  const files = readdirSync(agentDir);
+  const avatarFile = files.find((f) => f.startsWith("avatar."));
+  if (!avatarFile) return c.notFound();
+
+  const file = Bun.file(join(agentDir, avatarFile));
+  return c.body(file.stream());
+});
+
+agentsRouter.delete("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
+
+  const agentDir = join("/tmp/crewfactory", username, "agents", id);
+  if (existsSync(agentDir)) {
+    try {
+      const files = readdirSync(agentDir);
+      for (const f of files) {
+        if (f.startsWith("avatar.")) {
+          unlinkSync(join(agentDir, f));
+        }
+      }
+    } catch {}
+  }
+
+  agentRegistry.setAvatarUrl(username, id, null);
+  return c.body(null, 204);
 });
 

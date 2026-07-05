@@ -57,6 +57,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     idPatternTitle: "lowercase letters, numbers, and dashes only",
     deleteConfirm_1: 'Are you sure you want to delete agent "',
     deleteConfirm_2: '"? This will stop its server and permanently delete all its associated chat sessions.',
+    avatarField: "Avatar",
+    avatarRemove: "Remove avatar",
   },
   es: {
     deleting: "Eliminando...",
@@ -114,5 +116,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     idPatternTitle: "solo minusculas, numeros y guiones",
     deleteConfirm_1: "¿Estas seguro de que quieres eliminar al agente \"",
     deleteConfirm_2: "\"? Esto detendra su servidor y eliminara todas sus sesiones de chat asociadas de manera permanente.",
+    avatarField: "Avatar",
+    avatarRemove: "Eliminar avatar",
   },
 };

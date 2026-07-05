@@ -5,7 +5,6 @@ import { GeneralTab } from "@/components/settings/GeneralTab";
 import { ProvidersTab } from "@/components/settings/ProvidersTab";
 import { EnvVarsTab } from "@/components/settings/EnvVarsTab";
 import { IntegrationsTab } from "@/components/settings/IntegrationsTab";
-import { McpTab } from "@/components/settings/McpTab";
 
 interface EnvVar {
   key: string;
@@ -14,7 +13,7 @@ interface EnvVar {
 
 export function SettingsPage() {
   const l = useLiterals(u);
-  const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations" | "mcp">("providers");
+  const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations">("providers");
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
   const [envLoading, setEnvLoading] = useState(true);
   const [envError, setEnvError] = useState("");
@@ -45,7 +44,6 @@ export function SettingsPage() {
     { id: "providers", label: l.tabProviders },
     { id: "env", label: l.tabEnv },
     { id: "integrations", label: l.tabIntegrations },
-    { id: "mcp", label: l.tabMcp },
     { id: "general", label: l.tabGeneral },
   ] as const;
 
@@ -72,14 +70,8 @@ export function SettingsPage() {
             })}
           </div>
 
-          {activeTab === "general" && (
-            <GeneralTab token={token} />
-          )}
-
-          {activeTab === "providers" && (
-            <ProvidersTab token={token} />
-          )}
-
+          {activeTab === "general" && <GeneralTab token={token} />}
+          {activeTab === "providers" && <ProvidersTab token={token} />}
           {activeTab === "env" && (
             <EnvVarsTab
               token={token}
@@ -90,17 +82,8 @@ export function SettingsPage() {
               fetchEnvVars={fetchEnvVars}
             />
           )}
-
           {activeTab === "integrations" && (
-            <IntegrationsTab
-              token={token}
-              envVars={envVars}
-              fetchEnvVars={fetchEnvVars}
-            />
-          )}
-
-          {activeTab === "mcp" && (
-            <McpTab token={token} />
+            <IntegrationsTab token={token} envVars={envVars} fetchEnvVars={fetchEnvVars} />
           )}
         </div>
       </div>

@@ -58,6 +58,13 @@ function AgentCard({
   const l = useLiterals(u);
   const [deleting, setDeleting] = useState(false);
 
+  const initials = agent.name
+    .split(" ")
+    .map((n) => n[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
   const handleDelete = async () => {
     if (
       !window.confirm(
@@ -85,10 +92,12 @@ function AgentCard({
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0">
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-primary">
-              <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
-            </svg>
+          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+            {agent.avatarUrl ? (
+              <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover" />
+            ) : (
+              <span className="text-xs font-bold text-primary">{initials}</span>
+            )}
           </div>
           <div className="min-w-0">
             <p className="font-medium text-foreground text-sm truncate">{agent.name}</p>
@@ -157,16 +166,22 @@ function RegisterModal({
   agent,
   onClose,
   onSubmit,
+  onUploadAvatar,
+  onDeleteAvatar,
 }: {
   agent?: AgentInfo | null;
   onClose: () => void;
   onSubmit: (def: AgentDefinition) => Promise<unknown>;
+  onUploadAvatar?: (id: string, file: File) => Promise<string>;
+  onDeleteAvatar?: (id: string) => Promise<void>;
 }) {
   const l = useLiterals(u);
   const [form, setForm] = useState<AgentDefinition>(DEFAULT_FORM);
   const [skillsInput, setSkillsInput] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (agent) {
@@ -181,6 +196,7 @@ function RegisterModal({
             if (data.definition) {
               setForm(data.definition);
               setSkillsInput(data.definition.skills?.join(", ") || "");
+              setAvatarPreview(data.definition.avatarUrl || null);
             }
           }
         } catch (err) {
@@ -190,6 +206,18 @@ function RegisterModal({
       fetchDetail();
     }
   }, [agent]);
+
+  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    setAvatarFile(file);
+    if (file) {
+      setAvatarPreview(URL.createObjectURL(file));
+    } else if (agent?.avatarUrl) {
+      setAvatarPreview(agent.avatarUrl);
+    } else {
+      setAvatarPreview(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -208,7 +236,11 @@ function RegisterModal({
         model: form.model?.trim() || undefined,
         port: form.port || undefined,
       };
-      await onSubmit(def);
+      const result = await onSubmit(def);
+      const agentId = agent?.id || (result as AgentInfo)?.id;
+      if (avatarFile && agentId && onUploadAvatar) {
+        await onUploadAvatar(agentId, avatarFile);
+      }
       onClose();
     } catch (err: any) {
       setError(err.message || l.saveError);
@@ -250,6 +282,41 @@ function RegisterModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
+          {agent && (
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                {avatarPreview ? (
+                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
+                ) : (
+                  <span className="text-xs font-bold text-primary">{agent.name.slice(0, 2).toUpperCase()}</span>
+                )}
+              </div>
+              <div className="flex-1">
+                <label className="text-xs font-medium text-muted-foreground block mb-1">Avatar</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-card-hover file:text-foreground hover:file:bg-card-hover/80 file:cursor-pointer"
+                  />
+                  {agent.avatarUrl && onDeleteAvatar && (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        await onDeleteAvatar(agent.id);
+                        setAvatarPreview(null);
+                        setAvatarFile(null);
+                      }}
+                      className="text-xs text-destructive hover:underline"
+                    >
+                      Remove
+                    </button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground block mb-1">{l.idField}</label>
@@ -372,7 +439,7 @@ interface AgentsPageProps {
 
 export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
   const l = useLiterals(u);
-  const { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent } = useAgents();
+  const { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent, uploadAvatar, deleteAvatar } = useAgents();
   const [showRegister, setShowRegister] = useState(false);
   const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
   const [selectedAgentForExecutions, setSelectedAgentForExecutions] = useState<{ id: string; name: string } | null>(null);
@@ -492,6 +559,8 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
               setEditingAgent(null);
             }}
             onSubmit={handleRegisterOrUpdate}
+            onUploadAvatar={uploadAvatar}
+            onDeleteAvatar={deleteAvatar}
           />
         )}
       </AnimatePresence>

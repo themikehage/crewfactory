@@ -150,6 +150,16 @@ export function ImageGrid({
   activeChannelId = null,
 }: Props) {
   const [downloading, setDownloading] = useState<string | null>(null);
+  const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!previewUrl) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPreviewUrl(null);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [previewUrl]);
 
   const downloadImage = useCallback(async (resolvedUrl: string, filename?: string) => {
     setDownloading(resolvedUrl);
@@ -165,14 +175,14 @@ export function ImageGrid({
       const blobUrl = URL.createObjectURL(blob);
       const a = document.createElement("a");
       a.href = blobUrl;
-      
+
       const ext = blob.type.split("/")[1] || "png";
       let downloadName = filename || "image";
       const hasExt = /\.(jpg|jpeg|png|webp|gif|svg)$/i.test(downloadName);
       if (!hasExt) {
         downloadName = `${downloadName}.${ext}`;
       }
-      
+
       a.download = downloadName;
       document.body.appendChild(a);
       a.click();
@@ -243,7 +253,8 @@ export function ImageGrid({
           return (
             <div
               key={i}
-              className="group relative rounded-lg overflow-hidden border border-input bg-card hover:border-primary/40 shadow-sm transition-all"
+              onClick={() => setPreviewUrl(resolved)}
+              className="group relative rounded-lg overflow-hidden border border-input bg-card hover:border-primary/40 shadow-sm transition-all cursor-pointer"
             >
               <div className="aspect-square w-full overflow-hidden bg-black/10 flex items-center justify-center">
                 <AuthenticatedImage
@@ -259,7 +270,10 @@ export function ImageGrid({
 
               <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
                 <button
-                  onClick={() => downloadImage(resolved, img.title)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    downloadImage(resolved, img.title);
+                  }}
                   disabled={isDownloading}
                   className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors disabled:opacity-50 cursor-pointer"
                   title="Download image"
@@ -275,7 +289,10 @@ export function ImageGrid({
                   )}
                 </button>
                 <button
-                  onClick={() => openImageInNewTab(resolved)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    openImageInNewTab(resolved);
+                  }}
                   className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
                   title="Open in new tab"
                 >
@@ -295,6 +312,29 @@ export function ImageGrid({
           );
         })}
       </div>
+
+      {previewUrl && (
+        <div
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4"
+          onClick={() => setPreviewUrl(null)}
+        >
+          <div className="relative max-w-[90vw] max-h-[90vh]" onClick={(e) => e.stopPropagation()}>
+            <button
+              onClick={() => setPreviewUrl(null)}
+              className="absolute -top-10 right-0 p-1.5 bg-white/10 hover:bg-white/20 rounded-full transition-colors cursor-pointer"
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor" className="text-white">
+                <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <AuthenticatedImage
+              src={previewUrl}
+              alt="Preview"
+              className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg"
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

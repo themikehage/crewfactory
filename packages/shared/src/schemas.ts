@@ -187,6 +187,7 @@ export const AgentDefinitionSchema = z.object({
   skills: z.array(z.string()).optional(),
   port: z.number().int().min(1024).max(65535).optional(),
   serialTools: z.array(z.string()).optional(),
+  avatarUrl: z.string().optional(),
 });
 export type AgentDefinition = z.infer<typeof AgentDefinitionSchema>;
 
@@ -204,6 +205,7 @@ export const AgentInfoSchema = z.object({
   port: z.number().optional(),
   createdAt: z.string(),
   skills: z.array(z.string()).optional(),
+  avatarUrl: z.string().optional(),
 });
 export type AgentInfo = z.infer<typeof AgentInfoSchema>;
 

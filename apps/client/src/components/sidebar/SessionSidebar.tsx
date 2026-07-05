@@ -130,6 +130,7 @@ export function SessionSidebar({
   }, [fetchRepos, fetchAgents, fetchChannels]);
 
   const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
+  const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
 
   const handleGoFactory = useCallback(() => {
     if (onSelectRepo) onSelectRepo(null, null);
@@ -294,7 +295,7 @@ export function SessionSidebar({
                 <div className="text-xs text-muted-foreground px-3 py-1">{l.noProjects}</div>
               ) : (
                 repos.map((repo) => {
-                  const isActive = activeRepoName === repo.id && !activeAgent && !activeChannel;
+                  const isActive = isSessionView && activeRepoName === repo.id && !activeAgent && !activeChannel;
                   return (
                     <button
                       key={repo.id || repo.name}
@@ -364,7 +365,7 @@ export function SessionSidebar({
                 <div className="text-xs text-muted-foreground px-3 py-1">{l.noAgents}</div>
               ) : (
                 agents.map((agent) => {
-                  const isActive = activeAgent?.id === agent.id && !activeChannel;
+                  const isActive = isSessionView && activeAgent?.id === agent.id && !activeChannel;
                   return (
                     <button
                       key={agent.id}
@@ -438,7 +439,7 @@ export function SessionSidebar({
                 <div className="text-xs text-muted-foreground px-3 py-1">{l.noChannels}</div>
               ) : (
                 channels.map((channel) => {
-                  const isActive = activeChannel?.id === channel.id;
+                  const isActive = isSessionView && activeChannel?.id === channel.id;
                   return (
                     <button
                       key={channel.id}

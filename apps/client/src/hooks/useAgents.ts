@@ -105,5 +105,34 @@ export function useAgents() {
     return agent;
   }, [fetchAgents]);
 
-  return { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent, promptAgent };
+  const uploadAvatar = useCallback(async (id: string, file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await fetch(`/api/agents/${id}/avatar`, {
+      method: "POST",
+      headers: { Authorization: `Bearer ${getToken()}` },
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    await fetchAgents();
+    return data.avatarUrl;
+  }, [fetchAgents]);
+
+  const deleteAvatar = useCallback(async (id: string): Promise<void> => {
+    const res = await fetch(`/api/agents/${id}/avatar`, {
+      method: "DELETE",
+      headers: { Authorization: `Bearer ${getToken()}` },
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    await fetchAgents();
+  }, [fetchAgents]);
+
+  return { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent, promptAgent, uploadAvatar, deleteAvatar };
 }

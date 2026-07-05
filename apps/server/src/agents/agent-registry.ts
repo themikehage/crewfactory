@@ -111,10 +111,30 @@ class AgentRegistry {
           port: entry.server.definition.port,
           createdAt: entry.createdAt,
           skills: entry.server.definition.skills,
+          avatarUrl: entry.server.definition.avatarUrl,
         });
       }
     }
     return result;
+  }
+
+  getAvatarPath(username: string, id: string): string | null {
+    const agentDir = this.getAgentDir(username, id);
+    try {
+      const files = readdirSync(agentDir);
+      const avatarFile = files.find((f) => f.startsWith("avatar."));
+      if (avatarFile) return join(agentDir, avatarFile);
+    } catch {}
+    return null;
+  }
+
+  setAvatarUrl(username: string, id: string, avatarUrl: string | null): void {
+    const entry = this.agents.get(id);
+    if (!entry || entry.username !== username) return;
+    entry.server.definition.avatarUrl = avatarUrl || undefined;
+    const agentDir = this.getAgentDir(username, id);
+    const defPath = join(agentDir, "definition.json");
+    writeFileSync(defPath, JSON.stringify(entry.server.definition, null, 2), "utf-8");
   }
 
   async stop(id: string, removeDisk = true): Promise<void> {
