@@ -284,7 +284,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
             <h2 className="text-base font-bold text-foreground mb-4">{l.createModalTitle}</h2>
             <form onSubmit={handleCreateRepo} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   {l.projectNameLabel}
                 </label>
                 <input
@@ -298,7 +298,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   {l.cloneUrlLabel}
                 </label>
                 <input
@@ -348,7 +348,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
             <h2 className="text-base font-bold text-foreground mb-4">{l.renameModalTitle}</h2>
             <form onSubmit={handleRename} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   {l.newNameLabel}
                 </label>
                 <input
@@ -392,7 +392,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
             </p>
             <form onSubmit={handleDeleteRepo} className="space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+                <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
                   {l.confirmLabel.replace("{name}", deleteRepo.name)}
                 </label>
                 <input

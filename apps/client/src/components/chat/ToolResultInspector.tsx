@@ -316,12 +316,12 @@ function MediaRenderer({
         return (
           <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-card border border-input rounded-lg font-sans">
             <div className="flex items-center gap-2.5 min-w-0">
-              <div className="w-9 h-9 rounded bg-primary/15 flex items-center justify-center text-primary text-[10px] font-extrabold select-none shrink-0 border border-primary/20 uppercase">
+              <div className="w-9 h-9 rounded bg-primary/15 flex items-center justify-center text-primary text-xs font-extrabold select-none shrink-0 border border-primary/20 uppercase">
                 {extension.substring(0, 3)}
               </div>
               <div className="flex flex-col min-w-0">
                 <span className="text-xs font-semibold text-foreground truncate">{filename}</span>
-                <span className="text-[9px] text-muted-foreground/50 uppercase font-mono">{extension}</span>
+                <span className="text-xs text-muted-foreground uppercase font-mono">{extension}</span>
               </div>
             </div>
             <a
@@ -377,7 +377,7 @@ export function ToolResultInspector({
         <div className="flex items-center gap-2 min-w-0">
           <span className="w-1.5 h-1.5 rounded-full bg-warning flex-shrink-0" />
           <span className="font-mono font-semibold text-foreground truncate">{toolName}</span>
-          <span className="text-[10px] text-muted-foreground/50">executed</span>
+          <span className="text-xs text-muted-foreground">executed</span>
         </div>
         <svg
           width="12"
@@ -397,8 +397,8 @@ export function ToolResultInspector({
       {isOpen && (
         <div className="border-t border-input">
           {args && Object.keys(args).length > 0 && (
-            <div className="px-3 py-1.5 bg-muted border-b border-input/40 text-[10px] text-muted-foreground font-mono break-all">
-              <span className="text-muted-foreground/50">params:</span>{" "}
+            <div className="px-3 py-1.5 bg-muted border-b border-input/40 text-xs text-muted-foreground font-mono break-all">
+              <span className="text-muted-foreground">params:</span>{" "}
               {JSON.stringify(args)}
             </div>
           )}

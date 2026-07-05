@@ -232,7 +232,7 @@ const l = useLiterals(u);
         );
       default:
         return (
-          <div className={`${base} bg-text-secondary/5 border-text-secondary/15 text-muted-foreground/50`}>
+          <div className={`${base} bg-text-secondary/5 border-text-secondary/15 text-muted-foreground`}>
             <div className="w-3 h-3 rounded-full bg-text-secondary/20" />
             No build yet
           </div>
@@ -251,7 +251,7 @@ const l = useLiterals(u);
               <button
                 onClick={handleBuildNow}
                 disabled={isBuilding}
-                className="px-2 py-1 text-[10px] font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
+                className="px-2 py-1 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
               >
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
                   <polygon points="2,0 10,5 2,10" />
@@ -307,7 +307,7 @@ const l = useLiterals(u);
       {logOpen && buildLogs.length > 0 && (
         <div className="flex-shrink-0 border-b border-border">
           <div className="flex items-center justify-between px-3 py-1 bg-muted/80">
-            <span className="text-[10px] font-mono text-muted-foreground font-semibold uppercase tracking-wider">
+            <span className="text-xs font-mono text-muted-foreground font-semibold uppercase tracking-wider">
               Build Log
             </span>
             <button
@@ -345,7 +345,7 @@ const l = useLiterals(u);
 
       {/* Error banner */}
       {previewState?.status === "error" && previewState?.error && !logOpen && (
-        <div className="px-3 py-1.5 bg-destructive/10 border-b border-error/20 text-destructive text-[10px] font-mono leading-relaxed flex-shrink-0 max-h-16 overflow-y-auto">
+        <div className="px-3 py-1.5 bg-destructive/10 border-b border-error/20 text-destructive text-xs font-mono leading-relaxed flex-shrink-0 max-h-16 overflow-y-auto">
           {previewState.error}
         </div>
       )}
@@ -354,7 +354,7 @@ const l = useLiterals(u);
       <div className="flex-1 flex items-start justify-center overflow-auto bg-muted p-2 sm:p-4 min-h-0">
         {!repoName ||
         (previewState?.status === "idle" && !previewState?.distExists && buildLogs.length === 0) ? (
-          <div className="flex flex-col items-center justify-center h-full text-muted-foreground/60 gap-3">
+          <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
             <svg
               width="48"
               height="48"
@@ -435,7 +435,7 @@ const l = useLiterals(u);
 
             <div className="flex-1 overflow-y-auto p-4 space-y-4">
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Framework
                 </label>
                 <select
@@ -475,7 +475,7 @@ const l = useLiterals(u);
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Build Command
                 </label>
                 <input
@@ -495,13 +495,13 @@ const l = useLiterals(u);
                   disabled={configForm.framework === "html"}
                   className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1.5 rounded text-xs transition-all disabled:opacity-40 disabled:cursor-not-allowed font-mono"
                 />
-                <p className="text-[10px] text-muted-foreground/50 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Shell command to build the project (runs in the repo root)
                 </p>
               </div>
 
               <div>
-                <label className="block text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
+                <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Output Directory
                 </label>
                 <input
@@ -516,7 +516,7 @@ const l = useLiterals(u);
                   placeholder="dist"
                   className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1.5 rounded text-xs transition-all font-mono"
                 />
-                <p className="text-[10px] text-muted-foreground/50 mt-1">
+                <p className="text-xs text-muted-foreground mt-1">
                   Relative path to the build output directory
                 </p>
               </div>

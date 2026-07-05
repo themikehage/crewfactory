@@ -41,7 +41,7 @@ const ROLE_CONFIG: Record<ChannelRole, {
   observer: {
     label: "Observer",
     order: 3,
-    badgeClass: "bg-background text-muted-foreground/50 border-input/50",
+    badgeClass: "bg-background text-muted-foreground border-input/50",
     borderClass: "border-dashed border-input/50",
     shadowClass: "",
     accentBarClass: "bg-transparent",
@@ -89,16 +89,16 @@ const [showTooltip, setShowTooltip] = useState(false);
           <span className="font-semibold text-foreground text-xs truncate">
             {name}
           </span>
-          <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold uppercase tracking-wider border flex-shrink-0 ${cfg.badgeClass}`}>
+          <span className={`px-1.5 py-0.5 rounded text-xs font-semibold uppercase tracking-wider border flex-shrink-0 ${cfg.badgeClass}`}>
             {cfg.label}
           </span>
         </div>
 
-        <span className="text-[10px] text-muted-foreground font-mono truncate block mt-0.5 pl-1">
+        <span className="text-xs text-muted-foreground font-mono truncate block mt-0.5 pl-1">
           {role}
         </span>
 
-        <div className="flex items-center justify-between text-[9px] text-muted-foreground/70 mt-1.5 pt-1.5 border-t border-input/40 pl-1">
+        <div className="flex items-center justify-between text-xs text-muted-foreground mt-1.5 pt-1.5 border-t border-input/40 pl-1">
           {replyModeIcon && (
             <span className="flex items-center gap-1" title={replyModeIcon.label}>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" className="opacity-60">
@@ -116,8 +116,8 @@ const [showTooltip, setShowTooltip] = useState(false);
 
         {showTooltip && skills.length > 0 && (
           <div className="absolute -top-2 left-1/2 -translate-x-1/2 -translate-y-full bg-card border border-input rounded-lg p-2.5 shadow-xl z-50 w-48 pointer-events-none">
-            <p className="text-[10px] font-semibold text-foreground truncate">{name}</p>
-            <p className="text-[9px] text-muted-foreground mt-1 leading-tight">
+            <p className="text-xs font-semibold text-foreground truncate">{name}</p>
+            <p className="text-xs text-muted-foreground mt-1 leading-tight">
               <span className="text-foreground font-medium">Skills:</span>{" "}
               {skills.join(", ")}
             </p>

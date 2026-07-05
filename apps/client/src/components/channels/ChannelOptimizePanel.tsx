@@ -113,7 +113,7 @@ const l = useLiterals(u);
       <div className="flex items-center justify-between pb-4 border-b border-input/60">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Optimización de Prompts (Meta-Loop)</h3>
-          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Ajusta iterativamente las instrucciones del Lead Agent para maximizar la precisión del canal.
           </p>
         </div>
@@ -149,7 +149,7 @@ const l = useLiterals(u);
           </div>
           <div className="space-y-1">
             <p className="text-xs font-semibold text-foreground">Iniciando Optimización...</p>
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground">
               Evaluando el canal mediante benchmarks y refinando instrucciones. Cada iteración tarda unos momentos.
             </p>
           </div>
@@ -159,7 +159,7 @@ const l = useLiterals(u);
       {history.length > 0 ? (
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-1 space-y-3">
-            <h4 className="text-[10px] text-muted-foreground font-bold uppercase tracking-wider">Iteraciones</h4>
+            <h4 className="text-xs text-muted-foreground font-bold uppercase tracking-wider">Iteraciones</h4>
             <div className="space-y-2">
               {history.map((entry) => (
                 <button
@@ -173,7 +173,7 @@ const l = useLiterals(u);
                 >
                   <div className="space-y-0.5">
                     <div className="text-xs font-semibold">Iteración {entry.iteration}</div>
-                    <div className="text-[9px] text-muted-foreground/60">
+                    <div className="text-xs text-muted-foreground">
                       {new Date(entry.timestamp).toLocaleTimeString()}
                     </div>
                   </div>
@@ -183,7 +183,7 @@ const l = useLiterals(u);
             </div>
 
             {running && (
-              <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl flex items-center gap-2.5 text-[10px] text-primary">
+              <div className="p-4 bg-primary/5 border border-primary/15 rounded-xl flex items-center gap-2.5 text-xs text-primary">
                 <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 <span>Ejecutando iteración {history.length + 1}...</span>
               </div>
@@ -196,7 +196,7 @@ const l = useLiterals(u);
                 <div className="flex items-center justify-between border-b border-input/60 pb-3">
                   <div>
                     <h4 className="text-xs font-bold text-foreground">Detalle de Prompts Sugeridos</h4>
-                    <p className="text-[9px] text-muted-foreground/60 mt-0.5">
+                    <p className="text-xs text-muted-foreground mt-0.5">
                       Instrucciones refinadas y guardadas para el Lead Agent en la Iteración {selectedEntry.iteration}.
                     </p>
                   </div>
@@ -208,10 +208,10 @@ const l = useLiterals(u);
                 <div className="space-y-3">
                   {Object.entries(selectedEntry.prompts).map(([agentId, prompt]) => (
                     <div key={agentId} className="space-y-1">
-                      <div className="text-[10px] text-muted-foreground uppercase font-mono tracking-wider">
+                      <div className="text-xs text-muted-foreground uppercase font-mono tracking-wider">
                         Prompt de Sistema (ID: {agentId})
                       </div>
-                      <pre className="p-4 bg-background/55 border border-input/40 rounded-xl text-[10px] text-foreground font-mono whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto select-text">
+                      <pre className="p-4 bg-background/55 border border-input/40 rounded-xl text-xs text-foreground font-mono whitespace-pre-wrap leading-relaxed max-h-96 overflow-y-auto select-text">
                         {prompt}
                       </pre>
                     </div>
@@ -229,7 +229,7 @@ const l = useLiterals(u);
             </div>
             <div className="space-y-1">
               <p className="text-xs font-semibold text-foreground">Sin Historial de Optimización</p>
-              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 Haz clic en el botón superior para correr el loop de optimización meta-agente. Ejecutaremos el suite de pruebas y usaremos el LLM para corregir desviaciones en las instrucciones del Lead Agent.
               </p>
             </div>

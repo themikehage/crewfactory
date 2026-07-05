@@ -31,7 +31,7 @@ export function HtmlPreview({ html }: Props) {
         <div className="flex gap-1.5">
           <button
             onClick={() => setShowHtml(true)}
-            className={`px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer ${
+            className={`px-2 py-0.5 rounded transition-colors text-xs cursor-pointer ${
               showHtml
                 ? "bg-primary/20 text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -41,7 +41,7 @@ export function HtmlPreview({ html }: Props) {
           </button>
           <button
             onClick={() => setShowHtml(false)}
-            className={`px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer ${
+            className={`px-2 py-0.5 rounded transition-colors text-xs cursor-pointer ${
               !showHtml
                 ? "bg-primary/20 text-primary font-semibold"
                 : "text-muted-foreground hover:text-foreground"
@@ -51,7 +51,7 @@ export function HtmlPreview({ html }: Props) {
           </button>
           <button
             onClick={handleDownload}
-            className="px-2 py-0.5 rounded transition-colors text-[10px] cursor-pointer text-muted-foreground hover:text-foreground hover:bg-card-hover/50"
+            className="px-2 py-0.5 rounded transition-colors text-xs cursor-pointer text-muted-foreground hover:text-foreground hover:bg-card-hover/50"
             title="Download as .html"
           >
             <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="inline-block mr-0.5">
@@ -71,7 +71,7 @@ export function HtmlPreview({ html }: Props) {
           />
         </div>
       ) : (
-        <pre className="p-3 max-h-80 overflow-y-auto overflow-x-auto text-[10px] text-muted-foreground font-mono leading-normal bg-muted">
+        <pre className="p-3 max-h-80 overflow-y-auto overflow-x-auto text-xs text-muted-foreground font-mono leading-normal bg-muted">
           {html}
         </pre>
       )}

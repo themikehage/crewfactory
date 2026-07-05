@@ -100,14 +100,14 @@ const l = useLiterals(u);
     switch (task.status) {
       case "running":
         return (
-          <span className="flex items-center gap-1 text-[10px] px-1.5 py-0.5 rounded border border-success/30 text-primary bg-primary/5 font-semibold">
+          <span className="flex items-center gap-1 text-xs px-1.5 py-0.5 rounded border border-success/30 text-primary bg-primary/5 font-semibold">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             Running
           </span>
         );
       case "done":
         return (
-          <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-success/20 text-primary/80 bg-primary/5 font-semibold">
+          <span className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded border border-success/20 text-primary/80 bg-primary/5 font-semibold">
             <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
             </svg>
@@ -116,7 +116,7 @@ const l = useLiterals(u);
         );
       case "failed":
         return (
-          <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-error/30 text-destructive bg-destructive/5 font-semibold">
+          <span className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded border border-error/30 text-destructive bg-destructive/5 font-semibold">
             <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l3.293-3.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
@@ -125,7 +125,7 @@ const l = useLiterals(u);
         );
       default:
         return (
-          <span className="flex items-center gap-0.5 text-[10px] px-1.5 py-0.5 rounded border border-input text-muted-foreground/70 bg-card/5 font-semibold">
+          <span className="flex items-center gap-0.5 text-xs px-1.5 py-0.5 rounded border border-input text-muted-foreground bg-card/5 font-semibold">
             Pending
           </span>
         );
@@ -228,7 +228,7 @@ const l = useLiterals(u);
               No active steps in this session queue. Generate a structured step plan using AI decomposition, or add steps manually.
             </div>
             <div className="space-y-2">
-              <label className="text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+              <label className="text-xs uppercase font-semibold text-muted-foreground tracking-wider">
                 Decompose Objective with AI
               </label>
               <textarea
@@ -253,7 +253,7 @@ const l = useLiterals(u);
               <span className="absolute inset-0 flex items-center" aria-hidden="true">
                 <span className="w-full border-t border-input/50" />
               </span>
-              <span className="relative bg-card px-2 text-[10px] uppercase font-bold text-muted-foreground/50">
+              <span className="relative bg-card px-2 text-xs uppercase font-bold text-muted-foreground">
                 Or
               </span>
             </div>
@@ -291,7 +291,7 @@ const l = useLiterals(u);
                         {(index + 1).toString().padStart(2, "0")}
                       </span>
                       <span className={`text-xs font-semibold truncate ${
-                        task.status === "done" ? "text-muted-foreground/70 line-through" : "text-foreground"
+                        task.status === "done" ? "text-muted-foreground line-through" : "text-foreground"
                       }`}>
                         {task.title}
                       </span>
@@ -327,7 +327,7 @@ const l = useLiterals(u);
                             className="w-full h-24 px-2 py-1.5 bg-background border border-input rounded text-xs text-foreground font-mono focus:border-primary outline-none resize-none"
                             placeholder={l.stepPromptPlaceholder}
                           />
-                          <div className="flex justify-end gap-2 text-[10px]">
+                          <div className="flex justify-end gap-2 text-xs">
                             <button
                               onClick={() => setEditingTask(null)}
                               className="px-2 py-1 bg-card-hover text-foreground font-medium rounded cursor-pointer transition-colors"
@@ -345,7 +345,7 @@ const l = useLiterals(u);
                       ) : (
                         <div className="space-y-3">
                           <div className="space-y-1">
-                            <div className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-wider">
+                            <div className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
                               Prompt Instructions
                             </div>
                             <p className="text-xs text-muted-foreground whitespace-pre-wrap leading-relaxed bg-background/30 p-2 border border-input/30 rounded">
@@ -355,10 +355,10 @@ const l = useLiterals(u);
 
                           {task.log && (
                             <div className="space-y-1">
-                              <div className="text-[9px] uppercase font-bold text-muted-foreground/60 tracking-wider">
+                              <div className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
                                 Step Execution Output
                               </div>
-                              <div className="max-h-48 overflow-y-auto p-2 bg-background border border-input text-[10px] font-mono text-muted-foreground/90 rounded select-text whitespace-pre-wrap leading-normal scrollbar-thin">
+                              <div className="max-h-48 overflow-y-auto p-2 bg-background border border-input text-xs font-mono text-muted-foreground/90 rounded select-text whitespace-pre-wrap leading-normal scrollbar-thin">
                                 {task.log}
                                 <div ref={logsEndRef} />
                               </div>
@@ -366,7 +366,7 @@ const l = useLiterals(u);
                           )}
 
                           {status !== "running" && (
-                            <div className="flex justify-between items-center pt-1 text-[10px] text-muted-foreground/70 border-t border-input/40">
+                            <div className="flex justify-between items-center pt-1 text-xs text-muted-foreground border-t border-input/40">
                               <div className="flex gap-1.5">
                                 <button
                                   onClick={() => handleMoveStep(index, "up")}
@@ -434,7 +434,7 @@ const l = useLiterals(u);
                   placeholder="Describe step tasks in detail..."
                   className="w-full h-20 px-2.5 py-1.5 bg-background border border-input rounded text-xs text-foreground font-mono focus:border-primary outline-none resize-none"
                 />
-                <div className="flex justify-end gap-2 text-[10px]">
+                <div className="flex justify-end gap-2 text-xs">
                   <button
                     onClick={() => setNewStep(null)}
                     className="px-2 py-1 bg-card-hover text-foreground font-medium rounded cursor-pointer transition-colors"

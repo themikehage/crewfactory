@@ -231,7 +231,7 @@ const l = useLiterals(u);
                   <div>
                     <div className="flex items-center gap-2">
                       <h3 className="text-foreground text-sm font-semibold">{integration.name}</h3>
-                      <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                         isConnected ? "bg-primary/10 text-primary border border-success/20" : "bg-warning/10 text-warning border border-warning/20"
                       }`}>
                         {isConnected ? "Connected" : "Disconnected"}
@@ -263,7 +263,7 @@ const l = useLiterals(u);
                                 setIsConfiguringEnv({ integrationId: integration.id, envVar });
                                 setConfiguringEnvVal("");
                               }}
-                              className={`text-[10px] px-2.5 py-1 rounded transition-colors font-semibold cursor-pointer ${
+                              className={`text-xs px-2.5 py-1 rounded transition-colors font-semibold cursor-pointer ${
                                 configured ? "bg-card-hover hover:bg-card-hover/80 text-muted-foreground hover:text-foreground" : "bg-primary/10 hover:bg-primary/25 text-primary"
                               }`}
                             >
@@ -286,7 +286,7 @@ const l = useLiterals(u);
                           setNewActionPrompt("");
                           setNewActionDesc("");
                         }}
-                        className="text-[10px] text-primary hover:underline font-semibold cursor-pointer"
+                        className="text-xs text-primary hover:underline font-semibold cursor-pointer"
                       >
                         + Add Action
                       </button>
@@ -300,15 +300,15 @@ const l = useLiterals(u);
                             <div className="min-w-0">
                               <div className="text-foreground text-xs font-semibold">{action.name}</div>
                               {action.description && (
-                                <p className="text-muted-foreground text-[10px] mt-0.5">{action.description}</p>
+                                <p className="text-muted-foreground text-xs mt-0.5">{action.description}</p>
                               )}
-                              <div className="text-[10px] text-primary font-mono mt-1 truncate bg-background/50 px-2 py-0.5 rounded border border-input/10 max-w-lg">
+                              <div className="text-xs text-primary font-mono mt-1 truncate bg-background/50 px-2 py-0.5 rounded border border-input/10 max-w-lg">
                                 {action.prompt}
                               </div>
                             </div>
                             <button
                               onClick={() => handleDeleteAction(integration.id, action.id)}
-                              className="text-[10px] text-muted-foreground hover:text-destructive transition-colors px-2 py-1 flex-shrink-0 font-semibold cursor-pointer text-left sm:text-right"
+                              className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 flex-shrink-0 font-semibold cursor-pointer text-left sm:text-right"
                             >
                               Remove
                             </button>
@@ -492,7 +492,7 @@ const l = useLiterals(u);
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg
                              text-foreground placeholder-text-secondary outline-none focus:border-primary transition-colors text-sm font-mono"
                 />
-                <p className="text-[10px] text-muted-foreground mt-1">Use braces to enclose repo-specific context variables (e.g. &#123;dokployAppId&#125;).</p>
+                <p className="text-xs text-muted-foreground mt-1">Use braces to enclose repo-specific context variables (e.g. &#123;dokployAppId&#125;).</p>
               </div>
             </div>
             <div className="flex gap-2 justify-end">

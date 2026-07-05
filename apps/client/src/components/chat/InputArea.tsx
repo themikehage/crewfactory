@@ -467,7 +467,7 @@ export function InputArea({
                     className="w-8 h-8 object-cover rounded border border-input"
                   />
                 ) : (
-                  <div className="w-8 h-8 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-[9px] font-bold">
+                  <div className="w-8 h-8 rounded bg-primary/10 border border-primary/20 flex items-center justify-center text-primary text-xs font-bold">
                     DOC
                   </div>
                 )}
@@ -475,14 +475,14 @@ export function InputArea({
                   <span className="text-foreground truncate font-sans font-medium">
                     {att.file.name}
                   </span>
-                  <span className="text-muted-foreground/60 text-[9px]">
+                  <span className="text-muted-foreground text-xs">
                     {(att.file.size / 1024).toFixed(1)} KB
                   </span>
                 </div>
                 <button
                   type="button"
                   onClick={() => removeAttachment(att.id)}
-                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-white hover:bg-destructive/95 flex items-center justify-center cursor-pointer shadow-sm text-[9px] font-bold"
+                  className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-destructive text-white hover:bg-destructive/95 flex items-center justify-center cursor-pointer shadow-sm text-xs font-bold"
                 >
                   ×
                 </button>
@@ -524,7 +524,7 @@ export function InputArea({
               ref={mentionACRef}
               className="absolute bottom-full left-0 mb-1.5 w-56 bg-card border border-primary/30 rounded-lg shadow-xl z-50 overflow-hidden text-xs max-h-48 overflow-y-auto"
             >
-              <div className="px-2.5 py-1.5 text-[10px] font-semibold text-muted-foreground border-b border-input tracking-wide uppercase">
+              <div className="px-2.5 py-1.5 text-xs font-semibold text-muted-foreground border-b border-input tracking-wide uppercase">
                 Mention
               </div>
               {filteredMentions.map((t, idx) => (
@@ -537,7 +537,7 @@ export function InputArea({
                       : "text-muted-foreground hover:bg-card-hover/50 hover:text-foreground"
                   }`}
                 >
-                  <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-[9px] shrink-0">
+                  <span className="w-5 h-5 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-xs shrink-0">
                     {t.name[0]?.toUpperCase()}
                   </span>
                   <span className="font-medium">@{t.name}</span>
@@ -559,7 +559,7 @@ export function InputArea({
                   }`}
                 >
                   <span className="font-mono font-bold text-foreground">{`/${s.name}`}</span>
-                  <span className="text-[10px] text-muted-foreground truncate max-w-full">{s.description}</span>
+                  <span className="text-xs text-muted-foreground truncate max-w-full">{s.description}</span>
                 </button>
               ))}
             </div>

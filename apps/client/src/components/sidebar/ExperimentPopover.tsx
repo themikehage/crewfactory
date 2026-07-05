@@ -62,7 +62,7 @@ export function ExperimentPopover({
         {/* Header */}
         <div className="p-3 border-b border-input flex items-center justify-between flex-shrink-0 bg-card/80 backdrop-blur-md">
           <div className="flex flex-col min-w-0">
-            <span className="text-[9px] text-muted-foreground/70 uppercase tracking-wider font-semibold">Historial</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Historial</span>
             <span className="text-xs font-bold text-primary truncate">
               Experimentos
             </span>
@@ -97,12 +97,12 @@ export function ExperimentPopover({
         {/* Lista */}
         <div className="flex-1 overflow-y-auto p-2 space-y-1 bg-card/20 max-h-[300px]">
           {loading ? (
-            <div className="flex flex-col items-center justify-center py-8 space-y-2 text-muted-foreground/55">
+            <div className="flex flex-col items-center justify-center py-8 space-y-2 text-muted-foreground">
               <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <span className="text-[10px]">Cargando experimentos...</span>
+              <span className="text-xs">Cargando experimentos...</span>
             </div>
           ) : experiments.length === 0 ? (
-            <div className="text-center py-6 text-muted-foreground/50 text-[11px]">
+            <div className="text-center py-6 text-muted-foreground text-[11px]">
               Sin experimentos registrados
             </div>
           ) : (
@@ -126,9 +126,9 @@ export function ExperimentPopover({
                       <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.color}`} title={cfg.label} />
                       <span className="truncate flex-1 font-medium font-sans">{exp.name}</span>
                     </div>
-                    <div className="flex items-center justify-between mt-0.5 text-[9px] text-muted-foreground/60">
+                    <div className="flex items-center justify-between mt-0.5 text-xs text-muted-foreground">
                       <span className="truncate max-w-[170px]">{exp.taskPrompt}</span>
-                      <span className={`font-semibold ${cfg.color.replace("bg-", "text-") || "text-muted-foreground/50"}`}>
+                      <span className={`font-semibold ${cfg.color.replace("bg-", "text-") || "text-muted-foreground"}`}>
                         {cfg.label}
                       </span>
                     </div>

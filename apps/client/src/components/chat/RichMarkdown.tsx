@@ -67,7 +67,7 @@ export function RichMarkdown({ content }: Props) {
             if (isTree) {
               return (
                 <div className="my-3 rounded-lg overflow-x-auto border border-input shadow-md font-mono text-xs">
-                  <div className="bg-card px-3 py-1.5 border-b border-input text-[10px] text-muted-foreground flex items-center gap-1.5">
+                  <div className="bg-card px-3 py-1.5 border-b border-input text-xs text-muted-foreground flex items-center gap-1.5">
                     <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0">
                       <path d="M22 19a2 2 0 01-2 2H4a2 2 0 01-2-2V5a2 2 0 012-2h5l2 3h9a2 2 0 012 2z" />
                     </svg>
@@ -80,11 +80,11 @@ export function RichMarkdown({ content }: Props) {
 
             return (
               <div className="my-3 rounded-lg overflow-x-auto border border-input shadow-md font-mono text-xs">
-                <div className="bg-card px-3 py-1.5 border-b border-input text-[10px] text-muted-foreground flex justify-between items-center">
+                <div className="bg-card px-3 py-1.5 border-b border-input text-xs text-muted-foreground flex justify-between items-center">
                   <span>{match ? match[1] : "code"}</span>
                   <button
                     onClick={() => navigator.clipboard.writeText(codeString)}
-                    className="hover:text-foreground transition-colors text-[10px]"
+                    className="hover:text-foreground transition-colors text-xs"
                   >
                     Copy
                   </button>

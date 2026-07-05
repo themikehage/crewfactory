@@ -42,7 +42,7 @@ export function ReadResult({ content, args }: Props) {
         >
           <img src={src} alt={path} className="max-h-48 object-contain" />
         </div>
-        <p className="text-[10px] text-muted-foreground/50 font-mono mt-1">{imageBlock.mimeType}</p>
+        <p className="text-xs text-muted-foreground font-mono mt-1">{imageBlock.mimeType}</p>
         {lightboxOpen && (
           <div
             className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4 backdrop-blur-sm cursor-zoom-out"
@@ -60,14 +60,14 @@ export function ReadResult({ content, args }: Props) {
 
   return (
     <div className="w-full">
-      <div className="flex items-center justify-between mb-1.5 text-[10px] font-mono">
+      <div className="flex items-center justify-between mb-1.5 text-xs font-mono">
         <button
           onClick={() => path && openInWorkspace(path)}
           className="text-primary/60 hover:text-primary hover:underline underline-offset-2 transition-colors cursor-pointer"
         >
           {lang}
         </button>
-        <span className="text-muted-foreground/50">{lines.length} lines</span>
+        <span className="text-muted-foreground">{lines.length} lines</span>
       </div>
       <pre className="text-[11px] font-mono leading-relaxed text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-64 overflow-y-auto border border-input/40">
         {text}

@@ -223,7 +223,7 @@ const l = useLiterals(u);
                                 />
                                 <span className="text-xs font-medium text-foreground">{otherAgent.name}</span>
                               </div>
-                              <span className="text-[10px] text-muted-foreground font-mono">{otherAgent.role}</span>
+                              <span className="text-xs text-muted-foreground font-mono">{otherAgent.role}</span>
                             </label>
                           );
                         })}

@@ -66,7 +66,7 @@ function CreateChannelModal({
               value={name}
               onChange={(e) => setName(e.target.value)}
               placeholder={l.channelNamePlaceholder}
-              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>
 
@@ -76,7 +76,7 @@ function CreateChannelModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={l.descriptionPlaceholder}
-              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>
 
@@ -256,7 +256,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
         {!loading && !error && channels.length === 0 && (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
             <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
-              <span className="text-muted-foreground/50 font-bold text-lg">#</span>
+              <span className="text-muted-foreground font-bold text-lg">#</span>
             </div>
             <div className="text-center">
               <p className="text-sm font-medium text-foreground">{l.emptyTitle}</p>

@@ -420,13 +420,13 @@ export function MCPMarketplacePage() {
                         {isInstalling && (
                           <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl border border-input/25 z-10 space-y-2 animate-fade-in">
                             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Instalando...</span>
+                            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Instalando...</span>
                           </div>
                         )}
                         {isTesting && (
                           <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl border border-input/25 z-10 space-y-2 animate-fade-in">
                             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Validando...</span>
+                            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Validando...</span>
                           </div>
                         )}
                       </div>
@@ -497,7 +497,7 @@ export function MCPMarketplacePage() {
                           {isTesting && (
                             <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl border border-input/25 z-10 space-y-2 animate-fade-in">
                               <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                              <span className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Validando...</span>
+                              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Validando...</span>
                             </div>
                           )}
                         </div>

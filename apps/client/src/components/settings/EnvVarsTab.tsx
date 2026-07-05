@@ -236,11 +236,11 @@ const l = useLiterals(u);
               <div className="flex items-center gap-2">
                 <button
                   onClick={handleToggleReveal}
-                  className="text-[10px] bg-card-hover hover:bg-card-hover/80 text-muted-foreground hover:text-foreground font-semibold px-2 py-0.5 rounded-full select-none cursor-pointer font-mono"
+                  className="text-xs bg-card-hover hover:bg-card-hover/80 text-muted-foreground hover:text-foreground font-semibold px-2 py-0.5 rounded-full select-none cursor-pointer font-mono"
                 >
                   {isRevealed ? "{l.hideSecrets}" : "{l.revealSecrets}"}
                 </button>
-                <span className="text-[10px] bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full select-none uppercase tracking-wider font-mono">
+                <span className="text-xs bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full select-none uppercase tracking-wider font-mono">
                   Editor Mode
                 </span>
               </div>

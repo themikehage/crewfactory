@@ -149,7 +149,7 @@ const l = useLiterals(u);
                   {showDivider && (
                     <div className="flex items-center gap-3 pt-4 pb-1">
                       <div className="h-px bg-card-hover flex-1" />
-                      <span className="text-[10px] text-muted-foreground uppercase tracking-widest font-semibold">
+                      <span className="text-xs text-muted-foreground uppercase tracking-widest font-semibold">
                         Unconnected
                       </span>
                       <div className="h-px bg-card-hover flex-1" />

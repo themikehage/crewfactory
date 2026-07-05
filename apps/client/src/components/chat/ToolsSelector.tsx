@@ -119,7 +119,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
                   />
                   <div>
                     <div className="font-semibold text-foreground font-mono text-xs">{t.id}</div>
-                    <div className="text-muted-foreground/70 text-[10px] leading-snug">{t.desc}</div>
+                    <div className="text-muted-foreground text-xs leading-snug">{t.desc}</div>
                   </div>
                 </label>
               );

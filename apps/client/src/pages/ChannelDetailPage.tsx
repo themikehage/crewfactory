@@ -74,7 +74,7 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
           </div>
           {channel.description && (
             <>
-              <span className="text-muted-foreground/40 select-none hidden sm:inline">|</span>
+              <span className="text-muted-foreground select-none hidden sm:inline">|</span>
               <span className="text-xs text-muted-foreground truncate hidden sm:inline max-w-xs">{channel.description}</span>
             </>
           )}

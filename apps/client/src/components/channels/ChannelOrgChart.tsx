@@ -73,10 +73,10 @@ const [isMobile, setIsMobile] = useState(false);
         {levels.map((lvl) => (
           <div key={lvl.role} className="space-y-2">
             <div className="flex items-center gap-2 px-1">
-              <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
                 {MOBILE_LEVEL_LABELS[lvl.role] ?? lvl.role}
               </h4>
-              <span className="text-[9px] text-muted-foreground/50 bg-card-hover/50 px-1.5 py-0.5 rounded-full">
+              <span className="text-xs text-muted-foreground bg-card-hover/50 px-1.5 py-0.5 rounded-full">
                 {lvl.list.length}
               </span>
             </div>

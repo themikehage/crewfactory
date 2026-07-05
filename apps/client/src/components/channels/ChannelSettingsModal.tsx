@@ -175,7 +175,7 @@ const l = useLiterals(u);
                 onChange={(e) => setMaxChainDepth(Number(e.target.value))}
                 className="w-full accent-accent cursor-pointer"
               />
-              <p className="text-[10px] text-muted-foreground/60 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Número máximo de respuestas seguidas entre agentes por cada mensaje del usuario antes de frenar la cadena.
               </p>
             </div>
@@ -215,11 +215,11 @@ const l = useLiterals(u);
 
               {benchmarkEnabled && (
                 <div className="pl-6 space-y-1">
-                  <span className="text-[10px] text-muted-foreground/60 block">
+                  <span className="text-xs text-muted-foreground block">
                     A single-agent baseline session runs in parallel with every message to compare performance.
                   </span>
                   <div className="flex items-center gap-2 pt-1">
-                    <span className="text-[10px] text-muted-foreground flex-shrink-0">Baseline model:</span>
+                    <span className="text-xs text-muted-foreground flex-shrink-0">Baseline model:</span>
                     <ModelSelector
                       sessionId={null}
                       value={benchmarkModel}
@@ -251,7 +251,7 @@ const l = useLiterals(u);
               {showAdvanced && (
                 <div className="mt-3 space-y-3 pt-3 border-t border-input/20">
                   <div>
-                    <label className="block text-[10px] text-muted-foreground font-semibold mb-1">
+                    <label className="block text-xs text-muted-foreground font-semibold mb-1">
                       Negotiation Protocol (Zod JSON)
                     </label>
                     <textarea
@@ -259,12 +259,12 @@ const l = useLiterals(u);
                       onChange={(e) => setNegotiationRaw(e.target.value)}
                       placeholder='{ "agreementPattern": "ACUERDO ALCANZADO:", "maxRounds": 3 }'
                       rows={3}
-                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-[10px] outline-none focus:border-primary"
+                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-xs outline-none focus:border-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] text-muted-foreground font-semibold mb-1">
+                    <label className="block text-xs text-muted-foreground font-semibold mb-1">
                       Scoring Rubric (Zod JSON)
                     </label>
                     <textarea
@@ -272,12 +272,12 @@ const l = useLiterals(u);
                       onChange={(e) => setScoringRaw(e.target.value)}
                       placeholder='{ "metrics": [] }'
                       rows={3}
-                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-[10px] outline-none focus:border-primary"
+                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-xs outline-none focus:border-primary"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-[10px] text-muted-foreground font-semibold mb-1">
+                    <label className="block text-xs text-muted-foreground font-semibold mb-1">
                       Delegation Pattern (Zod JSON)
                     </label>
                     <textarea
@@ -285,7 +285,7 @@ const l = useLiterals(u);
                       onChange={(e) => setDelegationRaw(e.target.value)}
                       placeholder='{ "token": "DELEGATE: @(\\w+) — (.+)", "applyToRole": "lead" }'
                       rows={3}
-                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-[10px] outline-none focus:border-primary"
+                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-xs outline-none focus:border-primary"
                     />
                   </div>
                 </div>

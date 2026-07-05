@@ -124,7 +124,7 @@ const l = useLiterals(u);
                     </button>
                   ))}
                 </div>
-                <p className="text-[11px] text-muted-foreground/70 mt-1.5 leading-normal">
+                <p className="text-[11px] text-muted-foreground mt-1.5 leading-normal">
                   {replyMode === "user-only" && l.replyModeUserOnly}
                   {replyMode === "broadcast" && l.replyModeBroadcast}
                   {replyMode === "targeted" && l.replyModeTargeted}

@@ -150,7 +150,7 @@ const l = useLiterals(u);
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
         <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center mb-4">
-          <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground/40">
+          <svg width="24" height="24" viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground">
             <path fillRule="evenodd" d="M12.395 2.553a1 1 0 00-1.45-.385c-.345.23-.614.558-.822.88-.214.33-.403.713-.57 1.116-.334.804-.614 1.768-.84 2.734a31.365 31.365 0 00-.613 3.58 2.64 2.64 0 01-.945-1.067c-.328-.68-.398-1.534-.398-2.654A1 1 0 005.05 6.05 6.981 6.981 0 003 11a7 7 0 1011.95-4.95c-.592-.591-.98-.985-1.348-1.467-.363-.476-.724-1.063-1.207-2.03zM12.12 15.12A3 3 0 017 13s.879.5 2.5.5c0-1 .5-4 1.25-4.5.5 1 .786 1.293 1.371 1.879A2.99 2.99 0 0113 13a2.99 2.99 0 01-.879 2.121z" clipRule="evenodd" />
           </svg>
         </div>
@@ -169,14 +169,14 @@ const l = useLiterals(u);
           <h3 className="text-sm font-semibold text-foreground">
             {benchmarkState === "running" ? "Baseline Agent" : "Benchmark Results"}
           </h3>
-          <p className="text-[10px] text-muted-foreground/60">
+          <p className="text-xs text-muted-foreground">
             {benchmarkState === "running"
               ? "Single-agent processing the same prompt in parallel..."
               : "Channel vs Single-Agent comparison"}
           </p>
         </div>
         {benchmarkState === "running" && (
-          <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full text-[9px] text-primary border border-primary/20 animate-pulse">
+          <div className="flex items-center gap-1.5 bg-primary/10 px-2.5 py-1 rounded-full text-xs text-primary border border-primary/20 animate-pulse">
             <span className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
             <span>Running</span>
           </div>
@@ -193,7 +193,7 @@ const l = useLiterals(u);
         <div className="flex flex-col bg-card border border-input rounded-xl overflow-hidden">
           <div className="px-3 py-2 bg-card-hover/30 border-b border-input/20 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary flex-shrink-0" />
-            <span className="text-[10px] font-semibold text-foreground uppercase tracking-wider">
+            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Channel ({channel?.members?.length ?? 0} agents)
             </span>
           </div>
@@ -201,7 +201,7 @@ const l = useLiterals(u);
             {channelMessages ? (
               <RichMarkdown content={channelMessages} />
             ) : (
-              <span className="text-muted-foreground/40">Output will appear here as the channel processes the request...</span>
+              <span className="text-muted-foreground">Output will appear here as the channel processes the request...</span>
             )}
           </div>
         </div>
@@ -209,7 +209,7 @@ const l = useLiterals(u);
         <div className="flex flex-col bg-card border border-input rounded-xl overflow-hidden">
           <div className="px-3 py-2 bg-card-hover/30 border-b border-input/20 flex items-center gap-2">
             <span className="w-2 h-2 rounded-full bg-primary/60 flex-shrink-0" />
-            <span className="text-[10px] font-semibold text-foreground uppercase tracking-wider">
+            <span className="text-xs font-semibold text-foreground uppercase tracking-wider">
               Baseline ({channel?.benchmark?.baselineModelId || "default"})
             </span>
           </div>
@@ -217,9 +217,9 @@ const l = useLiterals(u);
             {baselineOutput ? (
               <RichMarkdown content={baselineOutput} />
             ) : benchmarkState === "running" ? (
-              <span className="text-muted-foreground/40 animate-pulse">Generating baseline response...</span>
+              <span className="text-muted-foreground animate-pulse">Generating baseline response...</span>
             ) : (
-              <span className="text-muted-foreground/40">Waiting for baseline to start...</span>
+              <span className="text-muted-foreground">Waiting for baseline to start...</span>
             )}
           </div>
         </div>
@@ -231,11 +231,11 @@ const l = useLiterals(u);
           animate={{ opacity: 1, y: 0 }}
           className="bg-card border border-input rounded-xl p-4 space-y-3"
         >
-          <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">Automatic Metrics</h4>
+          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">Automatic Metrics</h4>
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-[10px]">
+            <table className="w-full text-left text-xs">
               <thead>
-                <tr className="border-b border-input text-muted-foreground/60">
+                <tr className="border-b border-input text-muted-foreground">
                   <th className="py-1.5 pr-3">Metric</th>
                   <th className="py-1.5 px-3 text-center">Channel</th>
                   <th className="py-1.5 px-3 text-center">Baseline</th>
@@ -293,13 +293,13 @@ const l = useLiterals(u);
 
       {metrics && benchmarkState === "complete" && (
         <div className="bg-card border border-input rounded-xl p-4 space-y-3">
-          <h4 className="text-[10px] font-bold text-foreground uppercase tracking-wider">
+          <h4 className="text-xs font-bold text-foreground uppercase tracking-wider">
             Quality Evaluation
           </h4>
 
           {judgeState === "idle" && (
             <div className="flex flex-col items-center gap-3 py-3">
-              <p className="text-[10px] text-muted-foreground/60 text-center max-w-sm">
+              <p className="text-xs text-muted-foreground text-center max-w-sm">
                 Run an independent LLM evaluator to score both outputs on completeness, structure, and technical precision.
               </p>
               <button
@@ -320,18 +320,18 @@ const l = useLiterals(u);
                 <div className="absolute inset-0 border-3 border-primary/20 rounded-full" />
                 <div className="absolute inset-0 border-3 border-primary border-t-transparent rounded-full animate-spin" />
               </div>
-              <p className="text-[10px] text-muted-foreground/60">Evaluating with LLM judge...</p>
+              <p className="text-xs text-muted-foreground">Evaluating with LLM judge...</p>
             </div>
           )}
 
           {judgeState === "error" && (
             <div className="space-y-3">
-              <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg text-[10px]">
+              <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg text-xs">
                 {judgeError}
               </div>
               <button
                 onClick={handleRunJudge}
-                className="px-3 py-1.5 bg-card-hover hover:bg-card rounded-lg text-foreground text-[10px] font-medium border border-input transition-colors cursor-pointer"
+                className="px-3 py-1.5 bg-card-hover hover:bg-card rounded-lg text-foreground text-xs font-medium border border-input transition-colors cursor-pointer"
               >
                 Retry Judge
               </button>
@@ -345,9 +345,9 @@ const l = useLiterals(u);
               className="space-y-4"
             >
               <div className="overflow-x-auto">
-                <table className="w-full text-left text-[10px]">
+                <table className="w-full text-left text-xs">
                   <thead>
-                    <tr className="border-b border-input text-muted-foreground/60">
+                    <tr className="border-b border-input text-muted-foreground">
                       <th className="py-1.5 pr-3">Metric</th>
                       <th className="py-1.5 px-3 text-center">Channel</th>
                       <th className="py-1.5 px-3 text-center">Baseline</th>
@@ -393,15 +393,15 @@ const l = useLiterals(u);
 
               {judgeData.channel.explanation && (
                 <div className="p-3 bg-background/40 border border-input/40 rounded-lg">
-                  <p className="text-[10px] text-muted-foreground/60 font-semibold mb-1 uppercase tracking-wider">Explanation</p>
-                  <p className="text-[10px] text-muted-foreground leading-relaxed">{judgeData.channel.explanation}</p>
+                  <p className="text-xs text-muted-foreground font-semibold mb-1 uppercase tracking-wider">Explanation</p>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{judgeData.channel.explanation}</p>
                 </div>
               )}
 
               <div className="flex justify-end">
                 <button
                   onClick={handleRunJudge}
-                  className="px-3 py-1.5 bg-card-hover hover:bg-card rounded-lg text-foreground text-[10px] font-medium border border-input transition-colors cursor-pointer flex items-center gap-1.5"
+                  className="px-3 py-1.5 bg-card-hover hover:bg-card rounded-lg text-foreground text-xs font-medium border border-input transition-colors cursor-pointer flex items-center gap-1.5"
                 >
                   <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor">
                     <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />

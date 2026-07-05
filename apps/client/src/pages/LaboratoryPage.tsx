@@ -88,13 +88,13 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
       <div className="p-5 flex flex-col bg-card/10 min-h-0 overflow-y-auto text-left justify-between">
         <div className="space-y-6">
           <div>
-            <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-2">
+            <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-2">
               Telemetría y Estado
             </h4>
             <div className="flex items-center justify-between bg-background/50 border border-input/60 rounded-xl p-3.5">
               <span className="text-xs font-semibold text-foreground">{l.runStatus}</span>
               <span
-                className={`text-[9px] px-2 py-0.5 rounded-lg font-mono font-bold uppercase tracking-wider ${
+                className={`text-xs px-2 py-0.5 rounded-lg font-mono font-bold uppercase tracking-wider ${
                   status === "completed"
                     ? "bg-primary/10 text-primary border border-primary/20"
                     : status === "running"
@@ -114,7 +114,7 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               {/* Score Matrix */}
               {result.scores && (
                 <div className="space-y-3">
-                  <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
                     Evaluación LLM-Judge
                   </h4>
                   <div className="bg-background/40 border border-input/40 rounded-xl p-4 space-y-4">
@@ -122,18 +122,18 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
                       <div className="relative w-20 h-20 flex items-center justify-center rounded-full bg-primary/5 border border-primary/25 shadow-[0_0_15px_rgba(74,222,128,0.05)]">
                         <span className="text-2xl font-black text-primary">{result.scores.globalScore}</span>
                       </div>
-                      <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mt-2.5">
+                      <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider mt-2.5">
                         Global Score
                       </span>
                     </div>
 
                     <div className="grid grid-cols-2 gap-3 pt-2 border-t border-input/30">
                       <div className="text-center p-2 bg-background/25 rounded-lg border border-input/30">
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase">{l.quality}</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase">{l.quality}</p>
                         <p className="text-base font-black text-foreground mt-0.5">{result.scores.taskQuality}</p>
                       </div>
                       <div className="text-center p-2 bg-background/25 rounded-lg border border-input/30">
-                        <p className="text-[9px] text-muted-foreground font-bold uppercase">{l.efficiency}</p>
+                        <p className="text-xs text-muted-foreground font-bold uppercase">{l.efficiency}</p>
                         <p className="text-base font-black text-foreground mt-0.5">{result.scores.efficiencyScore}</p>
                       </div>
                     </div>
@@ -143,7 +143,7 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
 
               {/* Estadísticas */}
               <div className="space-y-3">
-                <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
                   Métricas de Ejecución
                 </h4>
                 <div className="bg-background/40 border border-input/40 rounded-xl p-3.5 space-y-2.5 text-xs font-mono text-muted-foreground leading-relaxed">
@@ -177,10 +177,10 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               {/* Mostrar resultado final textual (o error) */}
               {result.finalOutput && (
                 <div className="space-y-2">
-                  <h4 className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider">
+                  <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
                     {result.status === "failed" ? "{l.errorDetail}" : "{l.finalResult}"}
                   </h4>
-                  <pre className={`text-[10px] border rounded-xl p-3 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-left leading-relaxed ${
+                  <pre className={`text-xs border rounded-xl p-3 max-h-32 overflow-y-auto whitespace-pre-wrap font-mono text-left leading-relaxed ${
                     result.status === "failed" 
                       ? "bg-destructive/5 text-destructive border-error/20" 
                       : "bg-background/30 text-muted-foreground border-input"
@@ -195,12 +195,12 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
               <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-muted-foreground space-y-3">
                 <div className="w-8 h-8 border-3 border-primary border-t-transparent rounded-full animate-spin" />
                 <span className="font-semibold tracking-wide text-primary">Debate en progreso...</span>
-                <span className="text-[10px] text-muted-foreground/70 max-w-[200px]">
+                <span className="text-xs text-muted-foreground max-w-[200px]">
                   Los agentes están analizando y colaborando en tiempo real. Seguí la conversación a la izquierda.
                 </span>
               </div>
             ) : (
-              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-muted-foreground/50 italic bg-background/20 rounded-xl border border-dashed border-input/60">
+              <div className="flex-1 flex flex-col items-center justify-center py-16 text-center text-xs text-muted-foreground italic bg-background/20 rounded-xl border border-dashed border-input/60">
                 Esperando el inicio de la corrida...
               </div>
             )
@@ -803,7 +803,7 @@ export function LaboratoryPage({
                   {/* Selector de Modelo al lado del botón de generar */}
                   <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 bg-background/40 p-3 rounded-xl border border-input/50">
                     <div className="flex items-center gap-2.5">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider font-mono">
+                      <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider font-mono">
                         Modelo Generador:
                       </span>
                       <ModelSelector
@@ -891,7 +891,7 @@ export function LaboratoryPage({
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                        <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                           Nombre del Experimento
                         </label>
                         <input
@@ -903,7 +903,7 @@ export function LaboratoryPage({
                         />
                       </div>
                       <div>
-                        <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                        <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                           Criterios de Evaluación del LLM-Judge
                         </label>
                         <div className="flex gap-1.5 mb-2">
@@ -931,7 +931,7 @@ export function LaboratoryPage({
                           {editorCriteria.map((c, i) => (
                             <span
                               key={i}
-                              className="text-[9px] px-2 py-0.5 bg-background border border-input rounded text-muted-foreground flex items-center gap-1.5"
+                              className="text-xs px-2 py-0.5 bg-background border border-input rounded text-muted-foreground flex items-center gap-1.5"
                             >
                               <span>{c}</span>
                               <button
@@ -966,7 +966,7 @@ export function LaboratoryPage({
                         </div>
 
                         <div>
-                          <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                          <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                             Nombre del Canal
                           </label>
                           <input
@@ -978,7 +978,7 @@ export function LaboratoryPage({
                         </div>
 
                         <div>
-                          <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                          <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                             Descripción
                           </label>
                           <textarea
@@ -1007,12 +1007,12 @@ export function LaboratoryPage({
                         {/* Variables de Contexto KV del Canal */}
                         <div className="border-t border-input pt-4 mt-2 space-y-2">
                           <div className="flex items-center justify-between">
-                            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider font-mono">
+                            <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider font-mono">
                               Contexto KV
                             </span>
                             <button
                               onClick={handleAddContextItem}
-                              className="text-[10px] text-primary hover:underline font-bold cursor-pointer"
+                              className="text-xs text-primary hover:underline font-bold cursor-pointer"
                             >
                               + Agregar
                             </button>
@@ -1025,14 +1025,14 @@ export function LaboratoryPage({
                                   placeholder="Clave"
                                   value={ctx.key}
                                   onChange={(e) => handleUpdateContextItem(idx, e.target.value, ctx.value)}
-                                  className="flex-1 min-w-0 bg-background border border-input rounded px-2 py-0.5 text-[10px] text-foreground font-mono focus:outline-none focus:border-primary"
+                                  className="flex-1 min-w-0 bg-background border border-input rounded px-2 py-0.5 text-xs text-foreground font-mono focus:outline-none focus:border-primary"
                                 />
                                 <input
                                   type="text"
                                   placeholder="Valor"
                                   value={ctx.value}
                                   onChange={(e) => handleUpdateContextItem(idx, ctx.key, e.target.value)}
-                                  className="flex-1 min-w-0 bg-background border border-input rounded px-2 py-0.5 text-[10px] text-foreground focus:outline-none focus:border-primary"
+                                  className="flex-1 min-w-0 bg-background border border-input rounded px-2 py-0.5 text-xs text-foreground focus:outline-none focus:border-primary"
                                 />
                                 <button
                                   onClick={() => handleRemoveContextItem(idx)}
@@ -1043,7 +1043,7 @@ export function LaboratoryPage({
                               </div>
                             ))}
                             {(editableTeam.channel.context || []).length === 0 && (
-                              <span className="text-[10px] text-muted-foreground/50 block italic py-2">
+                              <span className="text-xs text-muted-foreground block italic py-2">
                                 Sin variables de contexto
                               </span>
                             )}
@@ -1065,7 +1065,7 @@ export function LaboratoryPage({
                               {/* Identificación del Agente */}
                               <div className="grid grid-cols-2 gap-3 flex-1 w-full">
                                 <div>
-                                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                                  <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                     Nombre del Agente
                                   </label>
                                   <input
@@ -1076,7 +1076,7 @@ export function LaboratoryPage({
                                   />
                                 </div>
                                 <div>
-                                  <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                                  <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                     ID (Kebab-case)
                                   </label>
                                   <input
@@ -1092,7 +1092,7 @@ export function LaboratoryPage({
                               {mInfo && (
                                 <div className="flex gap-2 w-full sm:w-auto items-end">
                                   <div className="flex-1 sm:flex-initial">
-                                    <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                                    <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                       Rol Canal
                                     </label>
                                     <select
@@ -1108,7 +1108,7 @@ export function LaboratoryPage({
                                   </div>
 
                                   <div className="flex-1 sm:flex-initial">
-                                    <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                                    <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                       Reply Mode
                                     </label>
                                     <select
@@ -1140,7 +1140,7 @@ export function LaboratoryPage({
                             {/* Rol del Agente e Instrucciones */}
                             <div className="space-y-3">
                               <div>
-                                <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                                <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                   Propósito (Role)
                                 </label>
                                 <input
@@ -1152,7 +1152,7 @@ export function LaboratoryPage({
                               </div>
 
                               <div>
-                                <label className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                                <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                                   System Prompt (Instrucciones)
                                 </label>
                                 <textarea
@@ -1165,7 +1165,7 @@ export function LaboratoryPage({
 
                               {/* Modelo del Agente */}
                               <div className="flex items-center gap-2 bg-background/30 px-3 py-2 rounded-xl border border-input/30">
-                                <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-wider font-mono">
+                                <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider font-mono">
                                   Modelo del Agente:
                                 </span>
                                 <ModelSelector
@@ -1369,7 +1369,7 @@ export function LaboratoryPage({
 
             <div className="space-y-3">
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                   Nombre del Experimento
                 </label>
                 <input
@@ -1382,7 +1382,7 @@ export function LaboratoryPage({
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                   Prompt de Tarea (Task Prompt)
                 </label>
                 <textarea
@@ -1395,7 +1395,7 @@ export function LaboratoryPage({
               </div>
 
               <div>
-                <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                   Criterios de Evaluación
                 </label>
                 <div className="flex gap-2 mb-2">
@@ -1417,7 +1417,7 @@ export function LaboratoryPage({
                   {editorCriteria.map((c, i) => (
                     <span
                       key={i}
-                      className="text-[10px] px-2.5 py-1 bg-background border border-input rounded-lg text-muted-foreground flex items-center gap-1.5"
+                      className="text-xs px-2.5 py-1 bg-background border border-input rounded-lg text-muted-foreground flex items-center gap-1.5"
                     >
                       <span>{c}</span>
                       <button
@@ -1469,7 +1469,7 @@ export function LaboratoryPage({
             </div>
 
             <div>
-              <label className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+              <label className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-1">
                 Tarea / Prompt de Ejecución
               </label>
               <textarea

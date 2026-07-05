@@ -312,7 +312,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
   return (
     <div className="w-full h-full flex flex-col bg-card overflow-hidden border-l border-border select-none">
       {error && (
-        <div className="px-3 py-1.5 bg-destructive/10 border-b border-error/20 text-destructive text-[10px] flex items-center justify-between flex-shrink-0">
+        <div className="px-3 py-1.5 bg-destructive/10 border-b border-error/20 text-destructive text-xs flex items-center justify-between flex-shrink-0">
           <span className="truncate">{error}</span>
           <button onClick={() => setError(null)} className="underline cursor-pointer flex-shrink-0 ml-2">
             Dismiss
@@ -333,7 +333,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
           </div>
 
           <div className="flex items-center justify-between pb-2 mb-2 border-b border-border/50 flex-shrink-0 text-muted-foreground">
-            <span className="text-[10px] uppercase tracking-wider font-semibold">Files</span>
+            <span className="text-xs uppercase tracking-wider font-semibold">Files</span>
             <div className="flex items-center gap-1.5">
               <button
                 onClick={() => loadWorkspace("")}

@@ -476,13 +476,13 @@ const l = useLiterals(u);
           {connected ? l.connected : l.reconnecting}
           {streaming && <span className="ml-2 text-primary">Streaming...</span>}
           {activeObservers > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-[10px] animate-pulse flex items-center gap-1">
+            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-xs animate-pulse flex items-center gap-1">
               <span className="w-1 h-1 rounded-full bg-blue-400" />
               Observado ({activeObservers})
             </span>
           )}
           {tasksState.status !== "idle" && (
-            <span className="ml-2 px-1.5 py-0.2 rounded bg-primary/15 text-primary font-semibold text-[10px]">
+            <span className="ml-2 px-1.5 py-0.2 rounded bg-primary/15 text-primary font-semibold text-xs">
               Task Queue: {tasksState.status}
             </span>
           )}
@@ -492,7 +492,7 @@ const l = useLiterals(u);
             </span>
             <button
               onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
-              className={`px-2 py-0.5 border border-border hover:border-primary hover:text-primary rounded cursor-pointer transition-colors text-[10px] sm:text-xs font-semibold ${
+              className={`px-2 py-0.5 border border-border hover:border-primary hover:text-primary rounded cursor-pointer transition-colors text-xs sm:text-xs font-semibold ${
                 rightDrawerOpen ? "text-primary border-primary bg-primary/10" : ""
               }`}
             >
@@ -533,8 +533,8 @@ const l = useLiterals(u);
           />
         )}
         {isReadOnlyExecution ? (
-          <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 flex-shrink-0 text-muted-foreground/70">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-[10px] uppercase tracking-wider font-mono">
+          <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 flex-shrink-0 text-muted-foreground">
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-xs uppercase tracking-wider font-mono">
               <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                 <path d="M7 11V7a5 5 0 0 1 10 0v4" />

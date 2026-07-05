@@ -26,7 +26,7 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
           </div>
           <div className="text-center">
             <p className="font-medium text-foreground text-sm">No messages in this channel yet</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Send a message below to trigger channel agents</p>
+            <p className="text-xs text-muted-foreground mt-1">Send a message below to trigger channel agents</p>
           </div>
         </div>
       )}
@@ -38,7 +38,7 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
         >
           <div className="flex items-center gap-2 mb-1 px-1">
             {msg.role === "agent" && (
-              <div className="w-4 h-4 rounded-full bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-[9px] font-bold text-purple-400">
+              <div className="w-4 h-4 rounded-full bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-xs font-bold text-purple-400">
                 A
               </div>
             )}
@@ -46,11 +46,11 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
               {msg.role === "user" ? "You" : msg.agentName || msg.agentId || "Agent"}
             </span>
             {msg.role === "agent" && (
-              <span className="text-[9px] bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1.5 py-0.2 rounded font-medium tracking-wide">
+              <span className="text-xs bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1.5 py-0.2 rounded font-medium tracking-wide">
                 AGENT
               </span>
             )}
-            <span className="text-[10px] text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground">
               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -70,13 +70,13 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
       {activeStreamList.map((stream) => (
         <div key={stream.agentId} className="flex flex-col items-start">
           <div className="flex items-center gap-2 mb-1 px-1">
-            <div className="w-4 h-4 rounded-full bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-[9px] font-bold text-blue-400">
+            <div className="w-4 h-4 rounded-full bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-xs font-bold text-blue-400">
               A
             </div>
             <span className="text-xs font-semibold text-foreground">
               {stream.agentName || stream.agentId}
             </span>
-            <span className="text-[10px] bg-blue-400/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5">
+            <span className="text-xs bg-blue-400/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
               STREAMING
             </span>
@@ -86,7 +86,7 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
             {stream.text ? (
               <RichMarkdown content={stream.text} />
             ) : (
-              <div className="flex items-center gap-2 h-6 text-muted-foreground/60 italic text-xs">
+              <div className="flex items-center gap-2 h-6 text-muted-foreground italic text-xs">
                 <span>Generating response...</span>
                 <div className="flex gap-1 items-center">
                   {[0, 1, 2].map((i) => (

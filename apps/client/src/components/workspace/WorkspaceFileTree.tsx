@@ -143,7 +143,7 @@ function TreeNode({
           {file.isDirectory ? (
             <button
               onClick={handleToggle}
-              className="p-0.5 hover:bg-surfaceHover rounded transition-colors text-muted-foreground/50 hover:text-foreground flex-shrink-0 cursor-pointer"
+              className="p-0.5 hover:bg-surfaceHover rounded transition-colors text-muted-foreground hover:text-foreground flex-shrink-0 cursor-pointer"
             >
               <svg
                 width="12"
@@ -325,7 +325,7 @@ function TreeNode({
             ))
           ) : (
             <div
-              className="text-[10px] text-muted-foreground/40 py-0.5 font-mono italic"
+              className="text-xs text-muted-foreground py-0.5 font-mono italic"
               style={{ paddingLeft: `${(level + 1) * 12 + 24}px` }}
             >
               (empty folder)

@@ -39,7 +39,7 @@ export function WriteResult({ text, isError }: Props) {
         </button>
       )}
       {bytes !== null && (
-        <span className="text-[10px] text-muted-foreground/50 ml-auto flex-shrink-0 font-mono">
+        <span className="text-xs text-muted-foreground ml-auto flex-shrink-0 font-mono">
           {bytes < 1024 ? `${bytes} B` : `${(bytes / 1024).toFixed(1)} KB`}
         </span>
       )}

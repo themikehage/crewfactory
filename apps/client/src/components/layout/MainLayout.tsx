@@ -223,7 +223,7 @@ export function MainLayout({
           return (
             <div key={index} className="flex items-center gap-1 sm:gap-1.5">
               {index > 0 && (
-                <span className="text-muted-foreground/60 font-normal select-none px-0.5 sm:px-1">/</span>
+                <span className="text-muted-foreground font-normal select-none px-0.5 sm:px-1">/</span>
               )}
               {item.path && !isLast ? (
                 <button

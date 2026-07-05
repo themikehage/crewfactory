@@ -47,7 +47,7 @@ const l = useLiterals(u);
     let badgeStyle = "border-input bg-background text-muted-foreground";
     if (m.role === "lead") badgeStyle = "border-primary/30 bg-primary/10 text-primary";
     else if (m.role === "senior") badgeStyle = "border-purple-400/30 bg-purple-400/10 text-purple-400";
-    else if (m.role === "observer") badgeStyle = "border-dashed border-text-secondary/20 bg-background/50 text-muted-foreground/60";
+    else if (m.role === "observer") badgeStyle = "border-dashed border-text-secondary/20 bg-background/50 text-muted-foreground";
 
     return (
       <div
@@ -61,11 +61,11 @@ const l = useLiterals(u);
                 <span className={`w-2 h-2 rounded-full ${m.role === "lead" ? "bg-primary" : m.role === "senior" ? "bg-purple-400" : "bg-text-secondary"}`} />
                 <p className="font-medium text-foreground text-xs truncate">{name}</p>
               </div>
-              <span className={`px-1.5 py-0.5 rounded text-[8px] font-semibold border tracking-wider uppercase flex-shrink-0 ${badgeStyle}`}>
+              <span className={`px-1.5 py-0.5 rounded text-xs font-semibold border tracking-wider uppercase flex-shrink-0 ${badgeStyle}`}>
                 {m.role || "member"}
               </span>
             </div>
-            <p className="text-[10px] text-muted-foreground font-mono truncate pl-3.5">{role}</p>
+            <p className="text-xs text-muted-foreground font-mono truncate pl-3.5">{role}</p>
           </div>
           <button
             onClick={() => onRemoveMember(m.agentId)}
@@ -79,7 +79,7 @@ const l = useLiterals(u);
         </div>
 
         <div className="pt-1 border-t border-input/50 flex flex-col gap-1">
-          <span className="text-[10px] text-muted-foreground font-medium">Reply Mode</span>
+          <span className="text-xs text-muted-foreground font-medium">Reply Mode</span>
           <select
             disabled={updatingId === m.agentId}
             value={m.replyMode}
@@ -91,7 +91,7 @@ const l = useLiterals(u);
             <option value="targeted">Targeted</option>
           </select>
           {m.replyMode === "targeted" && m.targetAgentIds && m.targetAgentIds.length > 0 && (
-            <span className="text-[10px] text-muted-foreground/70 truncate">
+            <span className="text-xs text-muted-foreground truncate">
               Targets: {m.targetAgentIds.join(", ")}
             </span>
           )}
@@ -127,28 +127,28 @@ const l = useLiterals(u);
 
         {leads.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[9px] font-bold text-primary/80 uppercase tracking-wider px-1">Leads</div>
+            <div className="text-xs font-bold text-primary/80 uppercase tracking-wider px-1">Leads</div>
             {leads.map(renderMember)}
           </div>
         )}
 
         {seniors.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[9px] font-bold text-purple-400/80 uppercase tracking-wider px-1">Seniors</div>
+            <div className="text-xs font-bold text-purple-400/80 uppercase tracking-wider px-1">Seniors</div>
             {seniors.map(renderMember)}
           </div>
         )}
 
         {regulars.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[9px] font-bold text-muted-foreground/80 uppercase tracking-wider px-1">Members</div>
+            <div className="text-xs font-bold text-muted-foreground/80 uppercase tracking-wider px-1">Members</div>
             {regulars.map(renderMember)}
           </div>
         )}
 
         {observers.length > 0 && (
           <div className="space-y-2">
-            <div className="text-[9px] font-bold text-muted-foreground/60 uppercase tracking-wider px-1">Observers</div>
+            <div className="text-xs font-bold text-muted-foreground uppercase tracking-wider px-1">Observers</div>
             {observers.map(renderMember)}
           </div>
         )}

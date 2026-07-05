@@ -77,7 +77,7 @@ const l = useLiterals(u);
           </p>
         </div>
         {mcpSaving && (
-          <span className="text-[10px] text-primary font-semibold flex items-center gap-1">
+          <span className="text-xs text-primary font-semibold flex items-center gap-1">
             <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
             Guardando...
           </span>
@@ -103,7 +103,7 @@ const l = useLiterals(u);
               <div className="p-4 bg-card-hover/10 border-b border-input/30 flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h3 className="text-foreground text-sm font-semibold capitalize">{name}</h3>
-                  <span className={`text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
                     srv.enabled ? "bg-primary/10 text-primary border border-success/20" : "bg-text-secondary/10 text-muted-foreground border border-input"
                   }`}>
                     {srv.enabled ? "Enabled" : "Disabled"}
@@ -133,7 +133,7 @@ const l = useLiterals(u);
               <div className="p-4 space-y-3 text-xs">
                 <div className="grid grid-cols-1 gap-3">
                   <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{l.command}</label>
+                    <label className="text-xs text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{l.command}</label>
                     <input
                       type="text"
                       value={srv.command}
@@ -153,7 +153,7 @@ const l = useLiterals(u);
                   </div>
 
                   <div>
-                    <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{l.arguments}</label>
+                    <label className="text-xs text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{l.arguments}</label>
                     <input
                       type="text"
                       value={JSON.stringify(srv.args)}
@@ -181,7 +181,7 @@ const l = useLiterals(u);
 
                   {srv.env && Object.entries(srv.env).map(([envKey, envVal]) => (
                     <div key={envKey}>
-                      <label className="text-[10px] text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{envKey}</label>
+                      <label className="text-xs text-muted-foreground block mb-1 font-semibold uppercase tracking-wider">{envKey}</label>
                       <input
                         type="password"
                         value={envVal}

@@ -96,7 +96,7 @@ function AgentCard({
           </div>
         </div>
         <span
-          className={`text-[10px] font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${
+          className={`text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${
             STATUS_COLORS[agent.status] ?? STATUS_COLORS.stopped
           }`}
         >
@@ -108,15 +108,15 @@ function AgentCard({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full border ${roleColor(agent.role)}`}>
+        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${roleColor(agent.role)}`}>
           {agent.role}
         </span>
         {agent.port && (
-          <span className="text-[10px] font-mono text-muted-foreground bg-background border border-input px-2 py-0.5 rounded-full">
+          <span className="text-xs font-mono text-muted-foreground bg-background border border-input px-2 py-0.5 rounded-full">
             :{agent.port}
           </span>
         )}
-        <span className="text-[10px] text-muted-foreground ml-auto">
+        <span className="text-xs text-muted-foreground ml-auto">
           {new Date(agent.createdAt).toLocaleTimeString()}
         </span>
       </div>
@@ -261,7 +261,7 @@ function RegisterModal({
                 placeholder={l.idPlaceholder}
                 pattern="[a-z0-9-]+"
                 title={l.idPatternTitle}
-                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono disabled:opacity-50"
+                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-mono disabled:opacity-50"
               />
             </div>
             <div>
@@ -271,7 +271,7 @@ function RegisterModal({
                 value={form.name}
                 onChange={set("name")}
                 placeholder={l.namePlaceholder}
-                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
               />
             </div>
           </div>
@@ -284,7 +284,7 @@ function RegisterModal({
                 value={form.role}
                 onChange={set("role")}
                 placeholder={l.idPlaceholder}
-                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
               />
             </div>
             <div>
@@ -301,7 +301,7 @@ function RegisterModal({
                   }))
                 }
                 placeholder={l.portPlaceholder}
-                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
+                className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-mono"
               />
             </div>
           </div>
@@ -312,7 +312,7 @@ function RegisterModal({
               value={form.model || ""}
               onChange={set("model")}
               placeholder={l.modelPlaceholder}
-              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 font-mono"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-mono"
             />
           </div>
 
@@ -322,7 +322,7 @@ function RegisterModal({
               value={skillsInput}
               onChange={(e) => setSkillsInput(e.target.value)}
               placeholder={l.skillsPlaceholder}
-              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>
 
@@ -334,7 +334,7 @@ function RegisterModal({
               onChange={set("systemPrompt")}
               rows={5}
               placeholder={l.systemPromptPlaceholder}
-              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/40 focus:outline-none focus:border-primary/50 resize-none font-mono leading-relaxed"
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none font-mono leading-relaxed"
             />
           </div>
 
@@ -445,7 +445,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
         {!loading && !error && agents.length === 0 && (
           <div className="flex flex-col items-center justify-center h-48 text-muted-foreground gap-3">
             <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground/50">
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground">
                 <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
               </svg>
             </div>
@@ -617,15 +617,15 @@ function ExecutionsModal({
                 }`}
               >
                 <div className="flex justify-between items-center w-full">
-                  <span className="font-mono text-[10px] text-muted-foreground">
+                  <span className="font-mono text-xs text-muted-foreground">
                     {exec.id.slice(0, 8)}
                   </span>
-                  <span className="text-[10px] text-muted-foreground">
+                  <span className="text-xs text-muted-foreground">
                     {new Date(exec.createdAt).toLocaleTimeString()}
                   </span>
                 </div>
                 <p className="font-medium text-foreground truncate w-full mt-0.5">{exec.prompt}</p>
-                <div className="flex gap-2 text-[10px] text-muted-foreground mt-1">
+                <div className="flex gap-2 text-xs text-muted-foreground mt-1">
                   <span>{(exec.durationMs / 1000).toFixed(1)}s</span>
                   {exec.errors && exec.errors.length > 0 && (
                     <span className="text-destructive font-medium">⚠️ {exec.errors.length} {l.errors}</span>
@@ -638,7 +638,7 @@ function ExecutionsModal({
           {/* Details Pane */}
           <div className="flex-1 overflow-y-auto p-5 bg-card flex flex-col gap-4">
             {!selectedExec && (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/50">
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="mb-2">
                   <circle cx="12" cy="12" r="10" />
                   <path d="M12 16v-4" />
@@ -668,13 +668,13 @@ function ExecutionsModal({
                     {/* Metrics */}
                     <div className="grid grid-cols-2 gap-3">
                       <div className="bg-background/50 border border-input rounded-xl p-3 flex flex-col">
-                        <span className="text-[10px] text-muted-foreground">{l.execDuration}</span>
+                        <span className="text-xs text-muted-foreground">{l.execDuration}</span>
                         <span className="text-sm font-semibold text-foreground mt-0.5">
                           {(execDetail.durationMs / 1000).toFixed(2)}{l.seconds}
                         </span>
                       </div>
                       <div className="bg-background/50 border border-input rounded-xl p-3 flex flex-col">
-                        <span className="text-[10px] text-muted-foreground">{l.execStatus}</span>
+                        <span className="text-xs text-muted-foreground">{l.execStatus}</span>
                         <span className={`text-sm font-semibold mt-0.5 ${execDetail.errors?.length > 0 ? "text-destructive" : "text-primary"}`}>
                           {execDetail.errors?.length > 0 ? `${execDetail.errors.length} {l.errors}` : "{l.success}"}
                         </span>
@@ -709,20 +709,20 @@ function ExecutionsModal({
                                   <span className={tc.isError ? "text-destructive" : "text-primary"}>●</span>
                                   <span>{tc.name}</span>
                                 </div>
-                                <span className="text-[10px] text-muted-foreground font-sans">
+                                <span className="text-xs text-muted-foreground font-sans">
                                   {tc.endedAt ? `${((new Date(tc.endedAt).getTime() - new Date(tc.startedAt).getTime()) / 1000).toFixed(2)}s` : "{l.running}"}
                                 </span>
                               </summary>
                               <div className="p-4 border-t border-input bg-background/50 flex flex-col gap-3 font-mono">
                                 <div>
-                                  <span className="text-[10px] text-muted-foreground uppercase block mb-1">{l.arguments}</span>
+                                  <span className="text-xs text-muted-foreground uppercase block mb-1">{l.arguments}</span>
                                   <pre className="text-xs bg-background p-2.5 rounded-lg overflow-x-auto text-foreground max-h-40">
                                     {JSON.stringify(tc.args, null, 2)}
                                   </pre>
                                 </div>
                                 {tc.result && (
                                   <div>
-                                    <span className="text-[10px] text-muted-foreground uppercase block mb-1">{l.result}</span>
+                                    <span className="text-xs text-muted-foreground uppercase block mb-1">{l.result}</span>
                                     <pre className="text-xs bg-background p-2.5 rounded-lg overflow-x-auto text-foreground max-h-60 whitespace-pre-wrap">
                                       {typeof tc.result === "string" ? tc.result : JSON.stringify(tc.result, null, 2)}
                                     </pre>
@@ -741,7 +741,7 @@ function ExecutionsModal({
                       <div className="flex flex-col gap-2 border border-input rounded-xl p-3 bg-background/20">
                         {execDetail.messages?.filter((m: any) => m.role !== "system").map((m: any, i: number) => (
                           <div key={i} className={`p-2.5 rounded-lg text-xs leading-relaxed ${m.role === "user" ? "bg-primary/5 ml-8 border border-primary/10" : "bg-card-hover mr-8 border border-input"}`}>
-                            <div className="font-semibold text-foreground mb-1 uppercase tracking-wider text-[9px] text-muted-foreground">
+                            <div className="font-semibold text-foreground mb-1 uppercase tracking-wider text-xs text-muted-foreground">
                               {m.role}
                             </div>
                             <div className="whitespace-pre-wrap text-foreground font-mono text-[11px] leading-normal bg-background/30 p-1.5 rounded border border-input/30 mt-1">

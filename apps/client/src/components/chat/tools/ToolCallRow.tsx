@@ -344,32 +344,32 @@ export function ToolCallRow({
           {meta.label}
         </span>
 
-        <span className="font-mono text-[11px] text-muted-foreground/60 truncate min-w-0 flex-1">
+        <span className="font-mono text-[11px] text-muted-foreground truncate min-w-0 flex-1">
           {argSummary}
         </span>
 
         <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {running ? (
             disabled ? (
-              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+              <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
                 <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20 animate-pulse" />
                 esperando respuesta anterior...
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-[10px] text-warning/70">
+              <span className="flex items-center gap-1.5 text-xs text-warning/70">
                 <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
                 {isInteractive ? "pendiente" : "running"}
               </span>
             )
           ) : hasError ? (
-            <span className="flex items-center gap-1.5 text-[10px] text-destructive">
+            <span className="flex items-center gap-1.5 text-xs text-destructive">
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
               </svg>
               error
             </span>
           ) : (
-            <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+            <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
               <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="text-primary/70">
                 <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
               </svg>
@@ -380,7 +380,7 @@ export function ToolCallRow({
           {!running && !disabled && (
             <svg
               width="11" height="11" viewBox="0 0 20 20" fill="currentColor"
-              className={`text-muted-foreground/40 transition-transform ${expanded ? "rotate-90" : ""}`}
+              className={`text-muted-foreground transition-transform ${expanded ? "rotate-90" : ""}`}
             >
               <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
             </svg>

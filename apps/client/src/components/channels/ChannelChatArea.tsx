@@ -136,7 +136,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           <div className="flex items-center gap-1 bg-background border border-input rounded-lg p-0.5 mr-2">
             <button
               onClick={() => setViewMode("chat")}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
                 viewMode === "chat"
                   ? "bg-card text-foreground border border-input/80"
                   : "text-muted-foreground hover:text-foreground"
@@ -147,7 +147,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
             {channel?.benchmark?.enabled && (
               <button
                 onClick={() => setViewMode("benchmark_live")}
-                className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors relative ${
+                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors relative ${
                   viewMode === "benchmark_live"
                     ? "bg-card text-foreground border border-input/80"
                     : "text-muted-foreground hover:text-foreground"
@@ -159,7 +159,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
             )}
             <button
               onClick={() => setViewMode("org")}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
                 viewMode === "org"
                   ? "bg-card text-foreground border border-input/80"
                   : "text-muted-foreground hover:text-foreground"
@@ -169,7 +169,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
             </button>
             <button
               onClick={() => setViewMode("ledger")}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
                 viewMode === "ledger"
                   ? "bg-card text-foreground border border-input/80"
                   : "text-muted-foreground hover:text-foreground"
@@ -179,7 +179,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
             </button>
             <button
               onClick={() => setViewMode("optimize")}
-              className={`px-2 py-0.5 rounded text-[10px] font-medium transition-colors ${
+              className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
                 viewMode === "optimize"
                   ? "bg-card text-foreground border border-input/80"
                   : "text-muted-foreground hover:text-foreground"
@@ -198,7 +198,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
               <path fillRule="evenodd" d="M3 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
             </svg>
             {(channel?.context?.length ?? 0) > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary text-background font-bold text-[8px] rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-primary text-background font-bold text-xs rounded-full flex items-center justify-center">
                 {channel?.context?.length}
               </span>
             )}
@@ -213,7 +213,7 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
               <path d="M13 6a3 3 0 11-6 0 3 3 0 016 0zM18 8a2 2 0 11-4 0 2 2 0 014 0zM14 15a4 4 0 00-8 0v3h8v-3zM6 8a2 2 0 11-4 0 2 2 0 014 0zM16 18v-3a5.972 5.972 0 00-.75-2.906A3.005 3.005 0 0119 15v3h-3zM4.75 12.094A5.973 5.973 0 004 15v3H1v-3a3 3 0 013.75-2.906z" />
             </svg>
             {(channel?.members?.length ?? 0) > 0 && (
-              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-card-hover text-foreground border border-input font-bold text-[8px] rounded-full flex items-center justify-center">
+              <span className="absolute -top-0.5 -right-0.5 w-3.5 h-3.5 bg-card-hover text-foreground border border-input font-bold text-xs rounded-full flex items-center justify-center">
                 {channel?.members?.length}
               </span>
             )}

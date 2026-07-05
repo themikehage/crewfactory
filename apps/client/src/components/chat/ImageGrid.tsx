@@ -129,7 +129,7 @@ export function AuthenticatedImage({ src, alt, className, ...props }: Authentica
     <div ref={containerRef} className="w-full h-full">
       {loading ? (
         <div className="w-full h-full flex items-center justify-center bg-card animate-pulse">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/30">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
             <circle cx="8.5" cy="8.5" r="1.5" />
             <polyline points="21 15 16 10 5 21" />
@@ -219,13 +219,13 @@ export function ImageGrid({
     <div className="my-3 font-sans">
       {images.length > 1 && (
         <div className="flex items-center justify-between mb-2">
-          <span className="text-[10px] font-semibold text-muted-foreground/70 uppercase tracking-wider">
+          <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             {images.length} image{images.length !== 1 ? "s" : ""}
           </span>
           <button
             onClick={downloadAll}
             disabled={downloading !== null}
-            className="flex items-center gap-1 px-2 py-0.5 rounded text-[10px]
+            className="flex items-center gap-1 px-2 py-0.5 rounded text-xs
                        text-muted-foreground hover:text-foreground hover:bg-card-hover/50
                        transition-colors disabled:opacity-50 cursor-pointer"
           >
@@ -287,7 +287,7 @@ export function ImageGrid({
               </div>
 
               {img.title && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-[10px] text-foreground truncate">
+                <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-xs text-foreground truncate">
                   {img.title}
                 </div>
               )}

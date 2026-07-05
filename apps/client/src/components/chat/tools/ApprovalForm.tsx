@@ -96,7 +96,7 @@ export function ApprovalForm({ toolCallId, args, result, sessionId }: Props) {
         {icon}
         <div className="flex-1 min-w-0">
           <h4 className="text-sm font-bold text-foreground truncate">{title}</h4>
-          <span className={`inline-block mt-0.5 text-[9px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badgeBg}`}>
+          <span className={`inline-block mt-0.5 text-xs uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${badgeBg}`}>
             Aprobación requerida
           </span>
         </div>

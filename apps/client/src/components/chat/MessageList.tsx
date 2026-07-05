@@ -104,7 +104,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
     <div className="my-1.5">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer select-none"
+        className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer select-none"
       >
         <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
           <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
@@ -115,7 +115,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
         </svg>
       </button>
       {open && (
-        <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground/60 font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+        <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
           {thinking}
         </div>
       )}
@@ -129,8 +129,8 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
   const idx = msg.siblings.indexOf(msg.id);
   return (
     <div className={clsx(
-      "flex items-center gap-1.5 mt-2 pt-1.5 border-t select-none text-[10px] font-mono",
-      msg.role === "user" ? "border-bg/10 text-background/60" : "border-input/30 text-muted-foreground/40"
+      "flex items-center gap-1.5 mt-2 pt-1.5 border-t select-none text-xs font-mono",
+      msg.role === "user" ? "border-bg/10 text-background/60" : "border-input/30 text-muted-foreground"
     )}>
       <button
         onClick={() => { const i = msg.siblings!.indexOf(msg.id!); if (i > 0) onNavigate(msg.siblings![i - 1]); }}
@@ -252,12 +252,12 @@ function AssistantTextBlock({
           return (
             <div key={`file-${i}`} className="flex items-center justify-between p-3 bg-card border border-input rounded-lg font-sans">
               <div className="flex items-center gap-2.5 min-w-0">
-                <div className="w-9 h-9 rounded bg-primary/15 flex items-center justify-center text-primary text-[10px] font-extrabold select-none shrink-0 border border-primary/20 uppercase">
+                <div className="w-9 h-9 rounded bg-primary/15 flex items-center justify-center text-primary text-xs font-extrabold select-none shrink-0 border border-primary/20 uppercase">
                   {extension.substring(0, 3)}
                 </div>
                 <div className="flex flex-col min-w-0">
                   <span className="text-xs font-semibold text-foreground truncate">{filename}</span>
-                  <span className="text-[9px] text-muted-foreground/50 uppercase font-mono">{extension}</span>
+                  <span className="text-xs text-muted-foreground uppercase font-mono">{extension}</span>
                 </div>
               </div>
               <a
@@ -395,14 +395,14 @@ function AgentTurn({
               )}
 
               {isLast && (msg.provider || msg.model || msg.usage) && !isStreaming && (
-                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-[10px] text-muted-foreground/40 font-mono">
-                  {msg.provider && <span>provider: <span className="text-muted-foreground/60">{msg.provider}</span></span>}
-                  {msg.model && <span>• model: <span className="text-muted-foreground/60">{msg.model}</span></span>}
+                <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs text-muted-foreground font-mono">
+                  {msg.provider && <span>provider: <span className="text-muted-foreground">{msg.provider}</span></span>}
+                  {msg.model && <span>• model: <span className="text-muted-foreground">{msg.model}</span></span>}
                   {msg.usage && (
                     <>
-                      <span>• tokens: <span className="text-muted-foreground/60">{msg.usage.totalTokens ?? (msg.usage.input + msg.usage.output)}</span></span>
+                      <span>• tokens: <span className="text-muted-foreground">{msg.usage.totalTokens ?? (msg.usage.input + msg.usage.output)}</span></span>
                       {msg.usage.cost?.total !== undefined && (
-                        <span>• cost: <span className="text-muted-foreground/60">${msg.usage.cost.total.toFixed(6)}</span></span>
+                        <span>• cost: <span className="text-muted-foreground">${msg.usage.cost.total.toFixed(6)}</span></span>
                       )}
                     </>
                   )}
@@ -505,18 +505,18 @@ function UserBubble({
               return (
                 <div key={idx} className="flex items-center justify-between p-2.5 bg-card border border-input rounded-lg font-sans text-left w-full">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded bg-primary/15 flex items-center justify-center text-primary text-[9px] font-extrabold select-none shrink-0 border border-primary/20 uppercase">
+                    <div className="w-8 h-8 rounded bg-primary/15 flex items-center justify-center text-primary text-xs font-extrabold select-none shrink-0 border border-primary/20 uppercase">
                       {att.name.split(".").pop()?.substring(0, 3) || "doc"}
                     </div>
                     <div className="flex flex-col min-w-0">
                       <span className="text-[11px] font-semibold text-foreground truncate">{att.name}</span>
-                      <span className="text-[8px] text-muted-foreground/50 uppercase font-mono">{att.name.split(".").pop()}</span>
+                      <span className="text-xs text-muted-foreground uppercase font-mono">{att.name.split(".").pop()}</span>
                     </div>
                   </div>
                   <a
                     href={fileUrl}
                     download={att.name}
-                    className="px-2 py-1 text-[10px] font-semibold rounded bg-primary text-background hover:opacity-90 transition-opacity cursor-pointer shrink-0"
+                    className="px-2 py-1 text-xs font-semibold rounded bg-primary text-background hover:opacity-90 transition-opacity cursor-pointer shrink-0"
                   >
                     Download
                   </a>

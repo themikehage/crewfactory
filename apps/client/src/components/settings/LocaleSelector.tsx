@@ -12,7 +12,7 @@ export function LocaleSelector() {
 
   return (
     <div className="flex items-center gap-2">
-      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
         Language
       </span>
       <div className="flex bg-background border border-input rounded-lg overflow-hidden">

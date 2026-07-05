@@ -106,11 +106,11 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
           </span>
         </div>
         {isResolved ? (
-          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded bg-accent/10 border border-accent/20 text-accent">
+          <span className="text-xs uppercase font-bold px-2 py-0.5 rounded bg-accent/10 border border-accent/20 text-accent">
             Respondido
           </span>
         ) : (
-          <span className="text-[9px] uppercase font-bold px-2 py-0.5 rounded bg-warning/10 border border-warning/20 text-warning animate-pulse">
+          <span className="text-xs uppercase font-bold px-2 py-0.5 rounded bg-warning/10 border border-warning/20 text-warning animate-pulse">
             Pendiente
           </span>
         )}
@@ -126,7 +126,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
         {/* Options Selection */}
         {options.length > 0 && (
           <div className="space-y-2">
-            <span className="text-[9px] uppercase font-bold text-muted-foreground/75 tracking-wider block">
+            <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider block">
               {isMultiSelect ? "Selección múltiple" : "Selección única"}
             </span>
             <div className="grid grid-cols-1 gap-2">
@@ -170,7 +170,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
         {/* Custom Answer / Text Input */}
         {allowCustom && (
           <div className="space-y-1.5">
-            <span className="text-[9px] uppercase font-bold text-muted-foreground/75 tracking-wider block">
+            <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider block">
               Respuesta personalizada
             </span>
             {isResolved ? (
@@ -179,7 +179,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
                   {customText}
                 </div>
               ) : (
-                <span className="text-xs text-muted-foreground/40 italic block py-1">
+                <span className="text-xs text-muted-foreground italic block py-1">
                   Ninguna respuesta personalizada escrita.
                 </span>
               )

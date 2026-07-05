@@ -65,7 +65,7 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
                   {s.name}
                 </span>
                 <div className="flex items-center gap-1.5 flex-shrink-0">
-                  <span className={`text-[8px] px-1 py-0.2 rounded font-semibold uppercase ${
+                  <span className={`text-xs px-1 py-0.2 rounded font-semibold uppercase ${
                     s.scope === "project" ? "bg-primary/15 text-primary" : "bg-highlight/15 text-highlight"
                   }`}>
                     {s.scope === "project" ? "Proj" : "User"}
@@ -76,13 +76,13 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
                       setViewingSkill(s);
                       setOpen(false);
                     }}
-                    className="text-[10px] text-primary hover:underline px-1 py-0.5 cursor-pointer font-semibold"
+                    className="text-xs text-primary hover:underline px-1 py-0.5 cursor-pointer font-semibold"
                   >
                     View
                   </button>
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground/80 line-clamp-2 leading-relaxed">
+              <p className="text-xs text-muted-foreground/80 line-clamp-2 leading-relaxed">
                 {s.description}
               </p>
             </div>
@@ -113,14 +113,14 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
               <span className="font-mono font-bold text-foreground text-sm">
                 {viewingSkill.name}
               </span>
-              <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+              <span className={`text-xs px-1.5 py-0.5 rounded font-semibold uppercase ${
                 viewingSkill.scope === "project" ? "bg-primary/15 text-primary" : "bg-highlight/15 text-highlight"
               }`}>
                 {viewingSkill.scope === "project" ? "Project-local" : "User-global"}
               </span>
             </div>
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Description
               </span>
               <p className="text-xs text-muted-foreground bg-background/50 p-2.5 border border-input/30 rounded-lg mt-1 leading-relaxed">
@@ -128,7 +128,7 @@ export function SkillsSelector({ skills, loading, onSelectSkill, disabled = fals
               </p>
             </div>
             <div>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 Instructions
               </span>
               <div className="bg-background/40 p-4 border border-input/40 rounded-lg mt-1 max-w-none">

@@ -93,7 +93,7 @@ export function EditResult({ text, filePath, details, isError }: Props) {
         {lines.map((line, i) => {
         if (line.type === "hunk") {
           return (
-            <div key={i} className="px-3 py-0.5 bg-primary/5 text-primary/50 text-[10px]">
+            <div key={i} className="px-3 py-0.5 bg-primary/5 text-primary/50 text-xs">
               {line.content}
             </div>
           );
@@ -105,7 +105,7 @@ export function EditResult({ text, filePath, details, isError }: Props) {
         const textClass =
           line.type === "add" ? "text-primary" :
           line.type === "remove" ? "text-destructive/80" :
-          "text-muted-foreground/60";
+          "text-muted-foreground";
         const prefix =
           line.type === "add" ? "+" :
           line.type === "remove" ? "−" :
@@ -114,7 +114,7 @@ export function EditResult({ text, filePath, details, isError }: Props) {
         return (
           <div key={i} className={`flex items-start gap-2 px-3 py-0.5 ${bgClass}`}>
             {line.lineNum !== undefined && (
-              <span className="text-muted-foreground/30 w-5 flex-shrink-0 text-right select-none">
+              <span className="text-muted-foreground w-5 flex-shrink-0 text-right select-none">
                 {line.lineNum}
               </span>
             )}

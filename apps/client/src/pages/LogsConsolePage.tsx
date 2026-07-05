@@ -288,16 +288,16 @@ export function LogsConsolePage({
     return (
       <div key={idx} className="hover:bg-card-hover/20 px-2 py-1 border-b border-input/10 leading-relaxed">
         <div className="flex flex-wrap items-baseline gap-1.5">
-          <span className="text-muted-foreground/40 select-none shrink-0">
+          <span className="text-muted-foreground select-none shrink-0">
             [{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}]
           </span>
 
-          <span className={`text-[10px] font-bold ${sourceColor} shrink-0 select-none`}>
+          <span className={`text-xs font-bold ${sourceColor} shrink-0 select-none`}>
             [{sourceLabel}: {log.sourceName || log.sourceId.substring(0, 8)}]
           </span>
 
           {log.agentName && (
-            <span className="text-[10px] bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1 py-0.2 rounded font-semibold shrink-0 select-none">
+            <span className="text-xs bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1 py-0.2 rounded font-semibold shrink-0 select-none">
               {log.agentName}
             </span>
           )}
@@ -322,7 +322,7 @@ export function LogsConsolePage({
             )}
 
             {log.eventType === "agent_end" && (
-              <span className="text-muted-foreground/50 italic font-sans select-none">
+              <span className="text-muted-foreground italic font-sans select-none">
                 ⏹️ Finalizó respuesta.
               </span>
             )}
@@ -341,7 +341,7 @@ export function LogsConsolePage({
 
             {log.eventType === "tool_start" && (
               <span className="text-warning/80">
-                🛠️ <span className="font-bold font-mono">{l.labelToolStart}</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-muted-foreground/70 font-mono">{JSON.stringify(log.detail.args)}</span>)
+                🛠️ <span className="font-bold font-mono">{l.labelToolStart}</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-muted-foreground font-mono">{JSON.stringify(log.detail.args)}</span>)
               </span>
             )}
 
@@ -349,12 +349,12 @@ export function LogsConsolePage({
               <span className={log.detail.isError ? "text-destructive/80" : "text-primary/80"}>
                 {log.detail.isError ? "❌" : "✓"} <span className="font-bold font-mono">{l.labelToolEnd}</span> <span className={log.detail.isError ? "text-destructive" : "text-primary"}>{log.detail.toolName}</span> ({log.detail.isError ? l.toolError : l.toolSuccess})
                 {!log.detail.isError && log.detail.result && (
-                  <span className="text-muted-foreground/60 text-[10px] ml-2 block font-sans">
+                  <span className="text-muted-foreground text-xs ml-2 block font-sans">
                     Resultado: {typeof log.detail.result === "string" ? log.detail.result.slice(0, 150) : JSON.stringify(log.detail.result).slice(0, 150)}...
                   </span>
                 )}
                 {log.detail.isError && log.detail.result && (
-                  <span className="text-destructive/70 text-[10px] ml-2 block font-sans whitespace-pre-wrap">
+                  <span className="text-destructive/70 text-xs ml-2 block font-sans whitespace-pre-wrap">
                     Error: {String(log.detail.result)}
                   </span>
                 )}
@@ -402,12 +402,12 @@ export function LogsConsolePage({
         /* VISTA A: GRILLA DE SESIONES */
         <div className="flex-1 overflow-y-auto min-h-0">
           {sessionsLoading ? (
-            <div className="flex flex-col items-center justify-center py-20 space-y-2 text-muted-foreground/55">
+            <div className="flex flex-col items-center justify-center py-20 space-y-2 text-muted-foreground">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span className="text-xs">Cargando sesiones...</span>
             </div>
           ) : displaySessions.length === 0 ? (
-            <div className="text-center text-muted-foreground/40 text-xs py-20">
+            <div className="text-center text-muted-foreground text-xs py-20">
               No hay sesiones activas en este momento.
             </div>
           ) : (
@@ -455,7 +455,7 @@ export function LogsConsolePage({
                         <h3 className="font-semibold text-foreground text-sm truncate flex-1 leading-snug">
                           {session.name}
                         </h3>
-                        <span className="flex items-center gap-1 text-[10px] font-semibold text-muted-foreground shrink-0 select-none">
+                        <span className="flex items-center gap-1 text-xs font-semibold text-muted-foreground shrink-0 select-none">
                           <span className={`w-1.5 h-1.5 rounded-full ${statusDotColor}`} />
                           {statusLabel}
                         </span>
@@ -463,16 +463,16 @@ export function LogsConsolePage({
 
                       {/* Badge de Contexto */}
                       <div className="flex flex-wrap gap-2 items-center mb-1 select-none">
-                        <span className={`text-[9px] uppercase tracking-wider font-bold px-2 py-0.5 rounded-md border ${badgeColor}`}>
+                        <span className={`text-xs uppercase tracking-wider font-bold px-2 py-0.5 rounded-md border ${badgeColor}`}>
                           {badgeText}
                         </span>
                       </div>
                     </div>
 
-                    <div className="border-t border-input/30 pt-3 flex items-center justify-between mt-1 text-[10px] text-muted-foreground select-none">
+                    <div className="border-t border-input/30 pt-3 flex items-center justify-between mt-1 text-xs text-muted-foreground select-none">
                       {/* Última actividad / Tiempo relativo */}
                       <div className="flex flex-col">
-                        <span className="text-muted-foreground/40 uppercase tracking-widest text-[8px] font-bold">Actividad</span>
+                        <span className="text-muted-foreground uppercase tracking-widest text-xs font-bold">Actividad</span>
                         <span className="font-medium text-muted-foreground/80">
                           {formatRelativeTime(session.updatedAt, session.status)}
                         </span>
@@ -547,7 +547,7 @@ export function LogsConsolePage({
             <div className="flex items-center gap-3 ml-auto">
               <div className="flex items-center gap-1.5 select-none">
                 <span className={`w-2 h-2 rounded-full ${wsConnected ? "bg-primary animate-pulse" : "bg-destructive"}`} />
-                <span className="text-[10px] font-mono">{wsConnected ? "ws-connected" : "ws-disconnected"}</span>
+                <span className="text-xs font-mono">{wsConnected ? "ws-connected" : "ws-disconnected"}</span>
               </div>
 
               <button
@@ -573,12 +573,12 @@ export function LogsConsolePage({
           {/* Pantalla del terminal de Logs */}
           <div className="flex-1 bg-card border border-input rounded-xl shadow-2xl overflow-hidden flex flex-col min-h-0 relative">
             {logsLoading ? (
-              <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-muted-foreground/55">
+              <div className="flex-1 flex flex-col items-center justify-center space-y-2 text-muted-foreground">
                 <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
                 <span className="text-xs">Cargando trazas...</span>
               </div>
             ) : filteredLogs.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground/40 text-xs font-mono select-none">
+              <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs font-mono select-none">
                 &gt;_ Esperando trazas de logs del sistema...
               </div>
             ) : (

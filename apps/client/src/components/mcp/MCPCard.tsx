@@ -28,28 +28,28 @@ export function MCPCard({
     switch (server.status) {
       case "connected":
         return (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-success/10 text-accent border border-success/20">
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-accent border border-success/20">
             <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
             Conectado
           </span>
         );
       case "connecting":
         return (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-warning/10 text-warning border border-warning/20">
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
             <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
             Conectando...
           </span>
         );
       case "error":
         return (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-destructive/10 text-error border border-destructive/20">
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-destructive/10 text-error border border-destructive/20">
             <span className="w-1.5 h-1.5 rounded-full bg-error" />
             Error
           </span>
         );
       default:
         return (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-muted/20 text-muted-foreground border border-input/20">
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-muted/20 text-muted-foreground border border-input/20">
             <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
             Desconectado
           </span>
@@ -70,7 +70,7 @@ export function MCPCard({
               <h3 className="text-sm font-semibold text-foreground tracking-tight flex items-center gap-2">
                 {server.name}
               </h3>
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
                 {server.category || "General"}
               </span>
             </div>
@@ -78,7 +78,7 @@ export function MCPCard({
           <div className="flex flex-col items-end gap-1.5">
             {server.installed && getStatusBadge()}
             {server.isBuiltin && (
-              <span className="text-[9px] px-1.5 py-0.2 bg-primary/10 text-primary rounded font-mono border border-primary/20">
+              <span className="text-xs px-1.5 py-0.2 bg-primary/10 text-primary rounded font-mono border border-primary/20">
                 Built-in
               </span>
             )}
@@ -90,7 +90,7 @@ export function MCPCard({
         </p>
 
         {/* Configuration Summary */}
-        <div className="pt-2 text-[10px] font-mono text-muted-foreground/80 space-y-1 bg-background/50 p-2.5 rounded-lg border border-input/5">
+        <div className="pt-2 text-xs font-mono text-muted-foreground/80 space-y-1 bg-background/50 p-2.5 rounded-lg border border-input/5">
           {server.transport === "http" ? (
             <div className="truncate">
               <span className="text-primary/70 font-semibold">URL:</span> {server.url}
@@ -130,7 +130,7 @@ export function MCPCard({
               </svg>
             </button>
             {expanded && (
-              <div className="mt-2 max-h-36 overflow-y-auto space-y-1 p-2 bg-background/80 rounded-lg border border-input/10 font-mono text-[9px] text-muted-foreground">
+              <div className="mt-2 max-h-36 overflow-y-auto space-y-1 p-2 bg-background/80 rounded-lg border border-input/10 font-mono text-xs text-muted-foreground">
                 {server.tools.map((t) => (
                   <div key={t} className="flex items-center gap-1.5 py-0.5 truncate hover:text-foreground">
                     <span className="w-1.5 h-1.5 rounded-full bg-accent/40" />
@@ -143,7 +143,7 @@ export function MCPCard({
         )}
 
         {server.installed && server.status === "error" && server.error && (
-          <div className="p-2.5 bg-destructive/5 border border-destructive/20 rounded-lg text-[10px] text-error font-mono overflow-x-auto max-h-24 leading-normal">
+          <div className="p-2.5 bg-destructive/5 border border-destructive/20 rounded-lg text-xs text-error font-mono overflow-x-auto max-h-24 leading-normal">
             <span className="font-bold uppercase tracking-wider block mb-1">Detalle del error:</span>
             {server.error}
           </div>
@@ -182,7 +182,7 @@ export function MCPCard({
                   {onTest && (
                     <button
                       onClick={onTest}
-                      className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-semibold rounded-md text-[10px] border border-primary/20 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-semibold rounded-md text-xs border border-primary/20 transition-colors cursor-pointer"
                       title="Validar herramientas en caliente (ping JSON-RPC)"
                     >
                       Validar
@@ -191,7 +191,7 @@ export function MCPCard({
                   {server.status === "connected" ? (
                     <button
                       onClick={onDisconnect}
-                      className="px-2.5 py-1 bg-muted/20 hover:bg-muted/30 text-muted-foreground font-medium rounded-md text-[10px] transition-colors cursor-pointer"
+                      className="px-2.5 py-1 bg-muted/20 hover:bg-muted/30 text-muted-foreground font-medium rounded-md text-xs transition-colors cursor-pointer"
                       title="Desconectar"
                     >
                       Desconectar
@@ -199,7 +199,7 @@ export function MCPCard({
                   ) : (
                     <button
                       onClick={onConnect}
-                      className="px-2.5 py-1 bg-accent/10 hover:bg-accent/25 text-accent font-semibold rounded-md text-[10px] border border-success/20 transition-colors cursor-pointer"
+                      className="px-2.5 py-1 bg-accent/10 hover:bg-accent/25 text-accent font-semibold rounded-md text-xs border border-success/20 transition-colors cursor-pointer"
                       title="Conectar"
                     >
                       Conectar

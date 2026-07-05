@@ -67,7 +67,7 @@ function ToastCard({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
       <div className="flex-1 text-xs font-semibold leading-normal">{toast.text}</div>
       <button
         onClick={onClose}
-        className="flex-shrink-0 text-muted-foreground/60 hover:text-foreground transition-colors cursor-pointer"
+        className="flex-shrink-0 text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
       >
         <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
           <line x1="18" y1="6" x2="6" y2="18" />

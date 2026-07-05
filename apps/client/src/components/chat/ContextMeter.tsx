@@ -76,12 +76,12 @@ const l = useLiterals(u);
             </div>
           )}
           {showContextBar && (
-            <span className={`text-[10px] font-mono whitespace-nowrap ${textColor}`}>
+            <span className={`text-xs font-mono whitespace-nowrap ${textColor}`}>
               {Math.round(pct)}%
             </span>
           )}
           {showContextBar && (
-            <span className="text-[10px] font-mono text-muted-foreground whitespace-nowrap">
+            <span className="text-xs font-mono text-muted-foreground whitespace-nowrap">
               / {formatNum(contextUsage.contextWindow!)}
             </span>
           )}
@@ -96,7 +96,7 @@ const l = useLiterals(u);
 
       {open && (
         <div className="px-3 sm:px-4 pb-2 flex items-center gap-3">
-          <div className="text-[10px] font-mono">
+          <div className="text-xs font-mono">
             {showContextBar && (
               <span className={textColor}>
                 {formatNum(contextUsage.tokens!)} / {formatNum(contextUsage.contextWindow!)} ({Math.round(pct)}%)
@@ -124,7 +124,7 @@ const l = useLiterals(u);
             <button
               onClick={handleCompact}
               disabled={compacting}
-              className="flex-shrink-0 px-2.5 py-1 rounded border border-input text-[10px] font-semibold
+              className="flex-shrink-0 px-2.5 py-1 rounded border border-input text-xs font-semibold
                          text-muted-foreground hover:text-primary hover:border-primary disabled:opacity-50
                          disabled:cursor-not-allowed transition-colors cursor-pointer"
             >

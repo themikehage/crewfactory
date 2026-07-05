@@ -288,7 +288,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Import Mode</label>
+              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Import Mode</label>
               <select
                 value={importMode}
                 onChange={(e) => setImportMode(e.target.value as "merge" | "overwrite")}
@@ -300,7 +300,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
             </div>
 
             <div className="space-y-1">
-              <label className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">Select ZIP File</label>
+              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Select ZIP File</label>
               <input
                 type="file"
                 accept=".zip"
@@ -377,7 +377,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
             </div>
 
             <div className="space-y-1.5">
-              <label className="text-muted-foreground text-[10px] uppercase font-bold tracking-wider">
+              <label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
                 Type "OVERWRITE" to confirm
               </label>
               <input

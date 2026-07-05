@@ -134,20 +134,20 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
                 <div key={integration.id} className="bg-background/40 border border-input/30 rounded-lg p-3.5 space-y-3">
                   <div className="flex items-center justify-between border-b border-input/20 pb-2">
                     <span className="text-xs font-semibold text-foreground">{integration.name}</span>
-                    <span className="text-[9px] bg-primary/15 border border-success/20 text-primary px-2 py-0.5 rounded-full font-medium">
+                    <span className="text-xs bg-primary/15 border border-success/20 text-primary px-2 py-0.5 rounded-full font-medium">
                       Connected
                     </span>
                   </div>
 
                   {hasRepoVars && (
                     <div className="space-y-2">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider">
+                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
                         Repository Bindings
                       </span>
                       <div className="space-y-2.5">
                         {integration.requiredRepoVars.map((repoVar) => (
                           <div key={repoVar} className="space-y-1">
-                            <label className="text-[10px] text-muted-foreground font-mono block">
+                            <label className="text-xs text-muted-foreground font-mono block">
                               {repoVar}
                             </label>
                             <input
@@ -170,7 +170,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
 
                   {integration.actions.length > 0 && (
                     <div className="space-y-1.5 pt-1">
-                      <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                      <span className="text-xs text-muted-foreground uppercase font-bold tracking-wider block">
                         Quick Actions
                       </span>
                       <div className="grid grid-cols-1 gap-2">
@@ -191,7 +191,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
                             >
                               <span className="font-semibold text-foreground">{action.name}</span>
                               {action.description && (
-                                <span className="text-[10px] text-muted-foreground">{action.description}</span>
+                                <span className="text-xs text-muted-foreground">{action.description}</span>
                               )}
                             </button>
                           );

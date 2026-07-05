@@ -169,7 +169,7 @@ export function MCPCustomForm({
       <div className="space-y-4">
         {/* Name */}
         <div className="grid grid-cols-1 gap-1">
-          <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Nombre del Servidor</label>
+          <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Nombre del Servidor</label>
           <input
             type="text"
             required
@@ -182,7 +182,7 @@ export function MCPCustomForm({
 
         {/* Description */}
         <div className="grid grid-cols-1 gap-1">
-          <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Descripción</label>
+          <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Descripción</label>
           <textarea
             value={description}
             onChange={(e) => setDescription(e.target.value)}
@@ -193,7 +193,7 @@ export function MCPCustomForm({
 
         {/* Transport Type */}
         <div className="grid grid-cols-1 gap-1">
-          <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Tipo de Transporte</label>
+          <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Tipo de Transporte</label>
           <div className="flex gap-4 mt-1">
             <label className="flex items-center gap-2 text-xs text-foreground cursor-pointer select-none">
               <input
@@ -222,7 +222,7 @@ export function MCPCustomForm({
         {transport === "stdio" && (
           <div className="space-y-4 bg-background/30 p-4 rounded-xl border border-input/10">
             <div className="grid grid-cols-1 gap-1">
-              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Comando base</label>
+              <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Comando base</label>
               <input
                 type="text"
                 required={transport === "stdio"}
@@ -234,7 +234,7 @@ export function MCPCustomForm({
             </div>
 
             <div className="grid grid-cols-1 gap-1">
-              <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Argumentos (JSON Array)</label>
+              <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Argumentos (JSON Array)</label>
               <input
                 type="text"
                 required={transport === "stdio"}
@@ -244,9 +244,9 @@ export function MCPCustomForm({
                 className="w-full px-3 py-2 bg-background border border-input/40 rounded-lg text-foreground outline-none focus:border-primary text-xs font-mono"
               />
               {argsError && (
-                <span className="text-[10px] text-error font-medium mt-0.5">{argsError}</span>
+                <span className="text-xs text-error font-medium mt-0.5">{argsError}</span>
               )}
-              <span className="text-[9px] text-muted-foreground/60 mt-0.5">
+              <span className="text-xs text-muted-foreground mt-0.5">
                 Usa <code className="bg-background px-1 py-0.2 rounded border border-input/10 text-foreground font-mono">$WORKSPACE_DIR</code> para montar el directorio de archivos del usuario de forma aislada.
               </span>
             </div>
@@ -254,11 +254,11 @@ export function MCPCustomForm({
             {/* Env Variables */}
             <div className="space-y-2.5">
               <div className="flex items-center justify-between">
-                <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Variables de entorno</label>
+                <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Variables de entorno</label>
                 <button
                   type="button"
                   onClick={addEnvRow}
-                  className="text-[10px] text-primary font-bold hover:underline transition-all cursor-pointer"
+                  className="text-xs text-primary font-bold hover:underline transition-all cursor-pointer"
                 >
                   + Agregar Variable
                 </button>
@@ -305,7 +305,7 @@ export function MCPCustomForm({
         {/* HTTP Inputs */}
         {transport === "http" && (
           <div className="bg-background/30 p-4 rounded-xl border border-input/10 grid grid-cols-1 gap-1">
-            <label className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">URL del Servidor SSE/HTTP</label>
+            <label className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">URL del Servidor SSE/HTTP</label>
             <input
               type="url"
               required={transport === "http"}
@@ -342,7 +342,7 @@ export function MCPCustomForm({
               {testResult.tools.length > 0 ? (
                 <div className="flex flex-wrap gap-1 mt-1">
                   {testResult.tools.map(t => (
-                    <span key={t} className="bg-success/15 border border-success/25 px-2 py-0.5 rounded text-[10px]">
+                    <span key={t} className="bg-success/15 border border-success/25 px-2 py-0.5 rounded text-xs">
                       {t}
                     </span>
                   ))}

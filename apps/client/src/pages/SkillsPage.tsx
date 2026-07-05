@@ -147,7 +147,7 @@ export function SkillsPage() {
                   )}
                 </button>
               </div>
-              <div className="text-[10px] text-muted-foreground select-none font-medium px-0.5">
+              <div className="text-xs text-muted-foreground select-none font-medium px-0.5">
                 {skills.length} {l.skillCount}{skills.length !== 1 ? "s" : ""} loaded
               </div>
             </div>
@@ -170,7 +170,7 @@ export function SkillsPage() {
                       {s.name}
                     </span>
                     <span
-                      className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
+                      className={`text-xs px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
                         s.scope === "project"
                           ? "bg-primary/10 text-primary"
                           : "bg-highlight/10 text-highlight"
@@ -254,7 +254,7 @@ export function SkillsPage() {
             ) : (
               <div className="flex-1 flex flex-col items-center justify-center text-center p-6">
                 <svg
-                  className="w-12 h-12 text-muted-foreground/30 mb-3"
+                  className="w-12 h-12 text-muted-foreground mb-3"
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"

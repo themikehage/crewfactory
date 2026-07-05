@@ -97,7 +97,7 @@ const l = useLiterals(u);
       <div className="flex items-center justify-between pb-4 border-b border-input/60">
         <div>
           <h3 className="text-sm font-semibold text-foreground">Benchmark de Eficiencia (A vs B)</h3>
-          <p className="text-[10px] text-muted-foreground/60 mt-0.5">
+          <p className="text-xs text-muted-foreground mt-0.5">
             Mide y compara el rendimiento del canal multi-agente frente a una ejecución single-agent (baseline).
           </p>
         </div>
@@ -136,7 +136,7 @@ const l = useLiterals(u);
           </div>
           <div className="space-y-1">
             <p className="text-xs font-semibold text-foreground">Ejecutando pruebas del benchmark...</p>
-            <p className="text-[10px] text-muted-foreground/60">
+            <p className="text-xs text-muted-foreground">
               Corriendo Conditions A (Baseline) y B (Canal) sobre los briefs del dataset de prueba. Esto tomará unos momentos.
             </p>
           </div>
@@ -146,7 +146,7 @@ const l = useLiterals(u);
       {report ? (
         <div className="p-5 bg-card border border-input rounded-2xl shadow-sm text-xs leading-relaxed overflow-x-auto relative">
           {running && (
-            <div className="absolute top-3 right-3 flex items-center gap-1.5 text-[10px] text-primary font-semibold bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
+            <div className="absolute top-3 right-3 flex items-center gap-1.5 text-xs text-primary font-semibold bg-primary/10 border border-primary/20 px-2.5 py-1 rounded-full">
               <div className="w-2 h-2 border-2 border-primary border-t-transparent rounded-full animate-spin" />
               <span>Actualizando reporte en vivo...</span>
             </div>
@@ -161,7 +161,7 @@ const l = useLiterals(u);
             </div>
             <div className="space-y-1">
               <p className="text-xs font-semibold text-foreground">Sin Reportes Disponibles</p>
-              <p className="text-[10px] text-muted-foreground/60 leading-relaxed">
+              <p className="text-xs text-muted-foreground leading-relaxed">
                 Haz clic en el botón superior para correr las pruebas. Evaluaremos la precisión de fichas estimadas, tiempo transcurrido y tokens de contexto utilizados.
               </p>
             </div>

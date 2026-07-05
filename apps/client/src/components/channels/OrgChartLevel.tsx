@@ -23,10 +23,10 @@ const label = LEVEL_LABELS[role] ?? role;
   return (
     <div className="w-full">
       <div className="flex items-center gap-2 mb-2 px-1">
-        <h4 className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest">
+        <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
           {label}
         </h4>
-        <span className="text-[9px] text-muted-foreground/50 bg-card-hover/50 px-1.5 py-0.5 rounded-full">
+        <span className="text-xs text-muted-foreground bg-card-hover/50 px-1.5 py-0.5 rounded-full">
           {members.length}
         </span>
       </div>

@@ -28,7 +28,7 @@ export function FindResult({ text }: Props) {
   const files = text.trim().split("\n").filter(Boolean);
 
   if (files.length === 0) {
-    return <p className="text-muted-foreground/50 text-xs italic">No files matched</p>;
+    return <p className="text-muted-foreground text-xs italic">No files matched</p>;
   }
 
   return (

@@ -18,7 +18,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
     <div className="my-1.5">
       <button
         onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-[11px] text-muted-foreground/50 hover:text-muted-foreground transition-colors cursor-pointer select-none"
+        className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer select-none"
       >
         <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
           <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
@@ -29,7 +29,7 @@ function ThinkingBlock({ thinking }: { thinking: string }) {
         </svg>
       </button>
       {open && (
-        <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground/60 font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+        <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
           {thinking}
         </div>
       )}
@@ -73,7 +73,7 @@ export function ChannelMessageList({
           </div>
           <div className="text-center">
             <p className="font-medium text-foreground text-sm">No messages in this channel session</p>
-            <p className="text-xs text-muted-foreground/60 mt-1">Send a message below to trigger multi-agent collaboration</p>
+            <p className="text-xs text-muted-foreground mt-1">Send a message below to trigger multi-agent collaboration</p>
           </div>
         </div>
       )}
@@ -95,7 +95,7 @@ export function ChannelMessageList({
           >
           <div className="flex items-center gap-2 mb-1 px-1">
             {msg.role === "agent" && (
-              <div className="w-4 h-4 rounded-full bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-[9px] font-bold text-purple-400">
+              <div className="w-4 h-4 rounded-full bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-xs font-bold text-purple-400">
                 A
               </div>
             )}
@@ -103,11 +103,11 @@ export function ChannelMessageList({
               {msg.role === "user" ? "You" : msg.agentName || msg.agentId || "Agent"}
             </span>
             {msg.role === "agent" && (
-              <span className="text-[9px] bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1.5 py-0.2 rounded font-medium tracking-wide">
+              <span className="text-xs bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1.5 py-0.2 rounded font-medium tracking-wide">
                 AGENT
               </span>
             )}
-            <span className="text-[10px] text-muted-foreground/50">
+            <span className="text-xs text-muted-foreground">
               {new Date(msg.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           </div>
@@ -140,13 +140,13 @@ export function ChannelMessageList({
       {activeStreamList.map((stream) => (
         <div key={stream.agentId} className="flex flex-col items-start">
           <div className="flex items-center gap-2 mb-1 px-1">
-            <div className="w-4 h-4 rounded-full bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-[9px] font-bold text-blue-400">
+            <div className="w-4 h-4 rounded-full bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-xs font-bold text-blue-400">
               A
             </div>
             <span className="text-xs font-semibold text-foreground">
               {stream.agentName || stream.agentId}
             </span>
-            <span className="text-[10px] bg-blue-400/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5">
+            <span className="text-xs bg-blue-400/10 text-blue-400 border border-blue-400/20 px-2 py-0.5 rounded-full font-medium flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse" />
               STREAMING
             </span>
@@ -169,7 +169,7 @@ export function ChannelMessageList({
               <RichMarkdown content={stream.text} />
             ) : (
               !stream.thinking && !stream.toolCalls && (
-                <div className="flex items-center gap-2 h-6 text-muted-foreground/60 italic text-xs">
+                <div className="flex items-center gap-2 h-6 text-muted-foreground italic text-xs">
                   <span>Generating response...</span>
                   <div className="flex gap-1 items-center">
                     {[0, 1, 2].map((i) => (
