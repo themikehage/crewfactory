@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { wsClient } from "@/lib/ws-client";
+import { resolveImageUrl, AuthenticatedImage } from "@/components/chat/ImageGrid";
 
 interface Props {
   args: {
@@ -9,15 +10,32 @@ interface Props {
     aspectRatio?: string;
   };
   sessionId: string | null;
+  activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }
 
-export function MediaCard({ args, sessionId }: Props) {
+export function MediaCard({
+  args,
+  sessionId,
+  activeRepoName,
+  activeAgentId,
+  activeChannelId,
+}: Props) {
   const { mediaPath, title = "Multimedia", prompt, aspectRatio = "16:9" } = args || {};
   const [hasError, setHasError] = useState(false);
 
   useEffect(() => {
     setHasError(false);
   }, [mediaPath]);
+
+  const resolvedSrc = resolveImageUrl(
+    mediaPath,
+    sessionId,
+    activeRepoName,
+    activeAgentId,
+    activeChannelId
+  );
 
   const getAspectClass = () => {
     switch (aspectRatio) {
@@ -43,16 +61,6 @@ export function MediaCard({ args, sessionId }: Props) {
     });
   };
 
-  // Convert absolute local paths (e.g. C:\workspace\...) to safe preview paths if needed
-  const getSafeSrc = () => {
-    if (!mediaPath) return "";
-    // Si ya es una URL web o un base64, usarlo directamente
-    if (mediaPath.startsWith("http") || mediaPath.startsWith("data:")) return mediaPath;
-    
-    // De lo contrario, mapearlo al endpoint del preview del server
-    return `/api/assets/uploads?path=${encodeURIComponent(mediaPath)}`;
-  };
-
   return (
     <div className="w-full max-w-sm rounded-xl border border-input/40 bg-card/40 overflow-hidden font-sans shadow-md my-3 transition-colors">
       {/* Visual Container */}
@@ -62,8 +70,8 @@ export function MediaCard({ args, sessionId }: Props) {
             [Media Asset: {title}]
           </span>
         ) : (
-          <img
-            src={getSafeSrc()}
+          <AuthenticatedImage
+            src={resolvedSrc}
             alt={title}
             className="w-full h-full object-cover"
             onError={() => setHasError(true)}

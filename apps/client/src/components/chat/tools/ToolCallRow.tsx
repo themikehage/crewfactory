@@ -245,12 +245,18 @@ function ToolBody({
   result,
   toolCallId,
   sessionId,
+  activeRepoName,
+  activeAgentId,
+  activeChannelId,
 }: {
   toolName: string;
   args: Record<string, unknown>;
   result: ToolResultData | null;
   toolCallId?: string;
   sessionId?: string | null;
+  activeRepoName?: string | null;
+  activeAgentId?: string | null;
+  activeChannelId?: string | null;
 }) {
   const text = result?.content.find(b => b.type === "text")?.text ?? "";
 
@@ -285,6 +291,9 @@ function ToolBody({
         <MediaCard
           args={args as any}
           sessionId={sessionId || null}
+          activeRepoName={activeRepoName}
+          activeAgentId={activeAgentId}
+          activeChannelId={activeChannelId}
         />
       );
     case "request_form_input":
@@ -416,6 +425,9 @@ export function ToolCallRow({
             result={result}
             toolCallId={toolCallId}
             sessionId={_sessionId}
+            activeRepoName={_activeRepoName}
+            activeAgentId={_activeAgentId}
+            activeChannelId={_activeChannelId}
           />
         </div>
       )}

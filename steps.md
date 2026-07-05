@@ -506,3 +506,4 @@ crear un plan de despliegue facil en vps
 - [x] 56.8 Desbloquear el loop de ejecución del backend notificando errores de carga por WebSocket (`action: "error"`) y retornando estados fallidos al agente en `configure_agent_card`
 - [x] 56.9 Refactorizar `MediaCard` para renderizar de forma declarativa el estado de error de la imagen, evitando la manipulación directa del DOM y el duplicado de textos residuales en la UI
 - [x] 56.10 Reemplazar fallbacks de strings vacíos `""` en los atributos `src` de `WorkspaceFileEditor` y `PreviewPanel` por `undefined` para evitar advertencias en consola
+- [x] 56.11 Corregir resolución y autorización de imágenes en `MediaCard` importando y utilizando `resolveImageUrl` y `AuthenticatedImage` con los parámetros del contexto de workspace
