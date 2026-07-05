@@ -500,3 +500,5 @@ crear un plan de despliegue facil en vps
 - [x] 56.2 Modificar `routes/sessions.ts` para mantener activas todas las herramientas interactivas UI al actualizar los permisos
 - [x] 56.3 Modificar `ws/handler.ts` para mantener activas todas las herramientas interactivas UI al recibir un prompt
 - [x] 56.4 Validar la compilación exitosa del servidor
+- [x] 56.5 Proteger desestructuraciones de argumentos en tarjetas UI interactivas (DynamicFormCard, DiffApplyCard, ApprovalForm, AgentConfigCard) contra valores indefinidos o nulos para prevenir crasheos de React durante el streaming
+- [x] 56.6 Validar la compilación exitosa del cliente

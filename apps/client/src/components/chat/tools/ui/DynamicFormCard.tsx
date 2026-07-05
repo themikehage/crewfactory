@@ -28,7 +28,7 @@ export function DynamicFormCard({ toolCallId, args, result, sessionId }: Props) 
   const [formData, setFormData] = useState<Record<string, string>>({});
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  const { title, description, fields } = args;
+  const { title = "Formulario", description, fields = [] } = args || {};
 
   const resolvedStatus = result?.content?.[0]?.text; // "submitted" | "cancelled"
   const isResolved = !!resolvedStatus;

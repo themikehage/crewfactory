@@ -24,13 +24,13 @@ export function ApprovalForm({ toolCallId, args, result, sessionId }: Props) {
   const [localAction, setLocalAction] = useState<"confirm" | "cancel" | null>(null);
 
   const {
-    title,
-    description,
+    title = "Aprobación",
+    description = "",
     severity = "warning",
     confirmLabel = "Confirmar",
     cancelLabel = "Cancelar",
     details,
-  } = args;
+  } = args || {};
 
   // Si ya hay un resultado de la herramienta, leemos el resultado
   const resolvedStatus = result?.content?.[0]?.text; // "confirmed" | "cancelled"

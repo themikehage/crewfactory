@@ -35,7 +35,7 @@ export function AgentConfigCard({ toolCallId, args, result, sessionId }: Props) 
   const [selectedModel, setSelectedModel] = useState("");
   const [systemPrompt, setSystemPrompt] = useState("");
 
-  const { targetAgentId } = args;
+  const { targetAgentId = "" } = args || {};
   const resolvedStatus = result?.content?.[0]?.text; // "configured" | "cancelled"
   const isResolved = !!resolvedStatus;
 

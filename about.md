@@ -97,6 +97,7 @@
 - **Inline Rich Charts:** The `render_chart` tool allows agents to display responsive line, bar, pie, and area charts using Recharts, integrated with Tailwind CSS v4 dark tokens.
 - **Natural Session Persistency:** Interactive components are mapped natively as standard agent tool calls/results, meaning they survive server reboots and restore their state upon session reopening.
 - **Robust Multi-File Creation:** The `propose_code_change` tool recursively creates parent directories if they do not exist before writing proposed content, preventing ENOENT failures on new directories.
+- **Streaming Fault-Tolerance:** UI card components (`DynamicFormCard`, `DiffApplyCard`, `ApprovalForm`, `AgentConfigCard`) feature defensive object destructuring and default parameters, preventing React runtime crashes when arguments are streamed partially or are undefined.
 
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente
