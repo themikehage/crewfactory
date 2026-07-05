@@ -330,9 +330,10 @@ export class ExperimentRunner {
             }
             if (tokensIn === 0 && tokensOut === 0 && entry.server.session.messages) {
               for (const m of entry.server.session.messages) {
-                if (m.usage) {
-                  tokensIn += m.usage.input || 0;
-                  tokensOut += m.usage.output || 0;
+                const anyM = m as any;
+                if (anyM.usage) {
+                  tokensIn += anyM.usage.input || 0;
+                  tokensOut += anyM.usage.output || 0;
                 }
               }
             }
@@ -593,14 +594,13 @@ export class ExperimentRunner {
                 tokensIn += stats.tokens.input || 0;
                 tokensOut += stats.tokens.output || 0;
               }
-              if (stats && stats.tokens && stats.tokens.input === 0 && stats.tokens.output === 0 && entry.server.session.messages) {
                 for (const m of entry.server.session.messages) {
-                  if (m.usage) {
-                    tokensIn += m.usage.input || 0;
-                    tokensOut += m.usage.output || 0;
+                  const anyM = m as any;
+                  if (anyM.usage) {
+                    tokensIn += anyM.usage.input || 0;
+                    tokensOut += anyM.usage.output || 0;
                   }
                 }
-              }
             }
           } catch (err) {
             console.error(`[ExperimentRunner] Fallback stats lookup failed for agent ${regId}:`, err);

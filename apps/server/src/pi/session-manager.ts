@@ -17,6 +17,7 @@ import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-ski
 import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
 import { registerQwenProvider } from "./qwen-provider";
+import { mcpRegistry } from "./mcp-registry";
 import { createUiTools } from "./ui-tools";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
@@ -316,7 +317,7 @@ class PiSessionManager {
       }
     }
     const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
-    const mcpToolNames = mcpTools.map((t) => t.name);
+    const mcpToolNames = mcpTools.map((t: any) => t.name);
 
     const appendPrompts = [
       `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
@@ -341,7 +342,7 @@ class PiSessionManager {
       appendPrompts.push(
         `\n\nModel Context Protocol (MCP) Tools Available:\n` +
         `You have the following custom MCP tools registered and active:\n` +
-        `${mcpToolNames.map(name => `- ${name}`).join("\n")}\n` +
+        `${mcpToolNames.map((name: string) => `- ${name}`).join("\n")}\n` +
         `Use these tools when the task requires interacting with external databases, APIs, searching the web, or product integrations (like Slack, Linear, Jira, Google Drive). Do not assume you need to use bash if a specific MCP tool is more suitable.\n`
       );
     }

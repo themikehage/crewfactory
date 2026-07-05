@@ -13,6 +13,7 @@ import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
 import { createUiTools } from "../pi/ui-tools";
+import { ensureWorkspaceSubdirs } from "../pi/session-manager";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
