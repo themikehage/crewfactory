@@ -149,7 +149,7 @@ export class AgentSession {
 
     const agentContext = {
       systemPrompt,
-      messages: sessionContext.messages as AgentMessage[],
+      messages: sessionContext.messages.slice(0, -1) as AgentMessage[],
       tools: this.activeTools,
     };
 

@@ -107,39 +107,52 @@ export function createCustomMessage<T>(
   };
 }
 
-export function convertToLlm(msg: any): Message[] {
-  if (msg.role === "user" || msg.role === "assistant" || msg.role === "system") {
-    return [msg];
+export function convertToLlm(messages: any[]): Message[] {
+  if (!Array.isArray(messages)) {
+    return [];
   }
-  if (msg.role === "bashExecution") {
-    if (msg.excludeFromContext) return [];
-    return [{
-      role: "user",
-      content: [{ type: "text", text: bashExecutionToText(msg) }],
-      timestamp: msg.timestamp,
-    }];
-  }
-  if (msg.role === "branchSummary") {
-    return [{
-      role: "user",
-      content: [{ type: "text", text: `${BRANCH_SUMMARY_PREFIX}${msg.summary}${BRANCH_SUMMARY_SUFFIX}` }],
-      timestamp: msg.timestamp,
-    }];
-  }
-  if (msg.role === "compactionSummary") {
-    return [{
-      role: "user",
-      content: [{ type: "text", text: `${COMPACTION_SUMMARY_PREFIX}${msg.summary}${COMPACTION_SUMMARY_SUFFIX}` }],
-      timestamp: msg.timestamp,
-    }];
-  }
-  if (msg.role === "custom") {
-    const content = typeof msg.content === "string" ? [{ type: "text", text: msg.content }] : msg.content;
-    return [{
-      role: "user",
-      content,
-      timestamp: msg.timestamp,
-    }];
-  }
-  return [];
+  return messages
+    .map((m): Message | undefined => {
+      switch (m.role) {
+        case "bashExecution":
+          if (m.excludeFromContext) {
+            return undefined;
+          }
+          return {
+            role: "user",
+            content: [{ type: "text", text: bashExecutionToText(m) }],
+            timestamp: m.timestamp,
+          } as any;
+        case "custom": {
+          const content = typeof m.content === "string" ? [{ type: "text" as const, text: m.content }] : m.content;
+          return {
+            role: "user",
+            content,
+            timestamp: m.timestamp,
+          } as any;
+        }
+        case "branchSummary":
+          return {
+            role: "user",
+            content: [{ type: "text" as const, text: BRANCH_SUMMARY_PREFIX + m.summary + BRANCH_SUMMARY_SUFFIX }],
+            timestamp: m.timestamp,
+          } as any;
+        case "compactionSummary":
+          return {
+            role: "user",
+            content: [
+              { type: "text" as const, text: COMPACTION_SUMMARY_PREFIX + m.summary + COMPACTION_SUMMARY_SUFFIX },
+            ],
+            timestamp: m.timestamp,
+          } as any;
+        case "user":
+        case "assistant":
+        case "toolResult":
+        case "system":
+          return m;
+        default:
+          return undefined;
+      }
+    })
+    .filter((m): m is Message => m !== undefined);
 }
