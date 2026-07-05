@@ -1,5 +1,3 @@
-import { join, isAbsolute, dirname } from "path";
-import { writeFileSync, mkdirSync } from "fs";
 import { uiApprovalRegistry } from "./ui-approval-registry";
 
 export function createUiTools(workspaceDir: string) {
@@ -28,95 +26,34 @@ export function createUiTools(workspaceDir: string) {
     }
   };
 
-  const proposeCodeChangeTool = {
-    name: "propose_code_change",
-    description: "Propose modifications or creations of files to the user with a visual diff before applying them.",
+  const askQuestionTool = {
+    name: "ask_question",
+    description: "Ask the user a multiple-choice question, allowing single or multi-selection, and/or a custom text write-in response.",
     parameters: {
       type: "object",
       properties: {
-        path: { type: "string", description: "The relative or absolute path of the file to modify or create." },
-        description: { type: "string", description: "Explanation of what changes are being proposed." },
-        originalContent: { type: "string", description: "The current content of the file. Leave empty if creating a new file." },
-        proposedContent: { type: "string", description: "The proposed content of the file." }
-      },
-      required: ["path", "proposedContent"]
-    },
-    execute: async (toolCallId: string, args: any) => {
-      const result = await uiApprovalRegistry.register(toolCallId);
-      if (result.action === "confirm") {
-        const fileTarget = isAbsolute(args.path) ? args.path : join(workspaceDir, args.path);
-        try {
-          mkdirSync(dirname(fileTarget), { recursive: true });
-          writeFileSync(fileTarget, args.proposedContent, "utf-8");
-          return {
-            content: [{ type: "text", text: "applied" }],
-            details: { status: "applied", path: args.path }
-          };
-        } catch (err: any) {
-          return {
-            content: [{ type: "text", text: `failed_to_apply: ${err.message}` }],
-            details: { status: "error", error: err.message }
-          };
-        }
-      }
-      return {
-        content: [{ type: "text", text: "discarded" }],
-        details: { status: "discarded" }
-      };
-    }
-  };
-
-  const renderMediaCardTool = {
-    name: "render_media_card",
-    description: "Render a premium media card in the chat to present generated images, mockups, or UI visuals to the user.",
-    parameters: {
-      type: "object",
-      properties: {
-        mediaPath: { type: "string", description: "The path or URL of the generated image/asset." },
-        title: { type: "string", description: "Title of the card/asset." },
-        prompt: { type: "string", description: "The prompt used to generate the image." },
-        aspectRatio: { type: "string", description: "Optional aspect ratio (e.g. '16:9', '1:1', '4:3')." }
-      },
-      required: ["mediaPath", "title"]
-    },
-    execute: async (toolCallId: string, args: any) => {
-      return {
-        content: [{ type: "text", text: `Media "${args.title}" rendered.` }],
-        details: { status: "rendered" }
-      };
-    }
-  };
-
-  const requestFormInputTool = {
-    name: "request_form_input",
-    description: "Request the user to fill out a structured form (e.g., configurations, keys, or credentials) dynamically in the chat.",
-    parameters: {
-      type: "object",
-      properties: {
-        title: { type: "string", description: "Title of the input request card." },
-        description: { type: "string", description: "Brief instructions of what the form is for." },
-        fields: {
+        question: { type: "string", description: "The main question to ask the user." },
+        isMultiSelect: { type: "boolean", description: "If true, the user can select multiple options using checkboxes. Defaults to false." },
+        options: {
           type: "array",
-          items: {
-            type: "object",
-            properties: {
-              name: { type: "string", description: "Unique programmatic key of the input field." },
-              label: { type: "string", description: "User-facing label for the input." },
-              type: { type: "string", enum: ["text", "password", "number", "select"], default: "text" },
-              required: { type: "boolean", default: true },
-              options: { type: "array", items: { type: "string" }, description: "Required if type is select." }
-            },
-            required: ["name", "label"]
-          }
-        }
+          items: { type: "string" },
+          description: "List of predefined options for the user. Must have at least 2 options."
+        },
+        placeholder: { type: "string", description: "Optional placeholder text for the custom/write-in input field." },
+        allowCustom: { type: "boolean", description: "If true, show a custom text area for the user to write their own answer. Defaults to true.", default: true }
       },
-      required: ["title", "fields"]
+      required: ["question", "options"]
     },
     execute: async (toolCallId: string, args: any) => {
       const result = await uiApprovalRegistry.register(toolCallId);
-      if (result.action === "submit") {
+      if (result.action === "submit" && result.payload) {
+        const selectedStr = result.payload.selectedOptions?.join(", ") || "";
+        const customStr = result.payload.customAnswer || "";
+        let summary = "";
+        if (selectedStr) summary += `Selected: ${selectedStr}`;
+        if (customStr) summary += (summary ? " | " : "") + `Custom answer: ${customStr}`;
         return {
-          content: [{ type: "text", text: "submitted" }],
+          content: [{ type: "text", text: summary || "Answer submitted" }],
           details: { status: "submitted", payload: result.payload }
         };
       }
@@ -127,33 +64,31 @@ export function createUiTools(workspaceDir: string) {
     }
   };
 
-  const configureAgentCardTool = {
-    name: "configure_agent_card",
-    description: "Display an interactive panel to let the user review and override settings for a specific agent.",
+  const renderImagesTool = {
+    name: "render_images",
+    description: "Render a grid of images/drawings inside the chat stream using local paths, URLs, or base64 data.",
     parameters: {
       type: "object",
       properties: {
-        targetAgentId: { type: "string", description: "The unique ID of the agent to configure." }
+        images: {
+          type: "array",
+          description: "Array of images to display.",
+          items: {
+            type: "object",
+            properties: {
+              url: { type: "string", description: "The local workspace path, base64 data, or web URL of the image." },
+              title: { type: "string", description: "Optional title or caption for the image." }
+            },
+            required: ["url"]
+          }
+        }
       },
-      required: ["targetAgentId"]
+      required: ["images"]
     },
     execute: async (toolCallId: string, args: any) => {
-      const result = await uiApprovalRegistry.register(toolCallId);
-      if (result.action === "confirm" && result.payload) {
-        return {
-          content: [{ type: "text", text: "configured" }],
-          details: { status: "configured", settings: result.payload }
-        };
-      }
-      if (result.action === "error" || result.payload?.error) {
-        return {
-          content: [{ type: "text", text: `failed: ${result.payload?.error || "unknown error"}` }],
-          details: { status: "error", error: result.payload?.error }
-        };
-      }
       return {
-        content: [{ type: "text", text: "cancelled" }],
-        details: { status: "cancelled" }
+        content: [{ type: "text", text: `Rendered ${args.images?.length || 0} images.` }],
+        details: { status: "rendered" }
       };
     }
   };
@@ -196,10 +131,8 @@ export function createUiTools(workspaceDir: string) {
 
   return [
     requestApprovalTool,
-    proposeCodeChangeTool,
-    renderMediaCardTool,
-    requestFormInputTool,
-    configureAgentCardTool,
+    askQuestionTool,
+    renderImagesTool,
     renderChartTool
   ];
 }

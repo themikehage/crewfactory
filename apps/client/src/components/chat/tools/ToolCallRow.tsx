@@ -8,10 +8,8 @@ import { GrepResult } from "./GrepResult";
 import { BashResult } from "./BashResult";
 import { ApprovalForm } from "./ApprovalForm";
 import { ChartView } from "./ChartView";
-import { DiffApplyCard } from "./ui/DiffApplyCard";
-import { MediaCard } from "./ui/MediaCard";
-import { DynamicFormCard } from "./ui/DynamicFormCard";
-import { AgentConfigCard } from "./ui/AgentConfigCard";
+import { AskQuestionForm } from "./AskQuestionForm";
+import { ImageGrid } from "../ImageGrid";
 
 export interface ToolContentBlock {
   type: string;
@@ -121,39 +119,21 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
-  propose_code_change: {
-    label: "código",
-    colorClass: "text-primary",
+  ask_question: {
+    label: "pregunta",
+    colorClass: "text-warning",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.033 1.413L10.414 6.38a1 1 0 01-1.414 0L7.086 4.466a1 1 0 01.033-1.413 1 1 0 011.413-.033L10 4.586l1.503-1.503a1 1 0 011.413.033zM5.793 6.793L3 9.586V13h3.414l2.793-2.793-2.828-2.828-2.793 2.793-2.828-2.828L5.793 6.793z" clipRule="evenodd" />
+        <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zm-1 9a1 1 0 100-2 1 1 0 000 2z" clipRule="evenodd" />
       </svg>
     ),
   },
-  render_media_card: {
-    label: "media",
+  render_images: {
+    label: "imágenes",
     colorClass: "text-accent",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
-      </svg>
-    ),
-  },
-  request_form_input: {
-    label: "formulario",
-    colorClass: "text-warning",
-    icon: (
-      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
-      </svg>
-    ),
-  },
-  configure_agent_card: {
-    label: "agente",
-    colorClass: "text-accent",
-    icon: (
-      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
-        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.53 1.53 0 01-2.28 1c-1.37-.83-2.94.73-2.1 2.1a1.53 1.53 0 01-1 2.28c-1.56.38-1.56 2.6 0 2.98a1.53 1.53 0 011 2.28c-.83 1.37.73 2.94 2.1 2.1a1.53 1.53 0 012.28 1c.38 1.56 2.6 1.56 2.98 0a1.53 1.53 0 012.28-1c1.37.83 2.94-.73 2.1-2.1a1.53 1.53 0 011-2.28c1.56-.38 1.56-2.6 0-2.98a1.53 1.53 0 01-1-2.28c.83-1.37-.73-2.94-2.1-2.1a1.53 1.53 0 01-2.28-1zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
       </svg>
     ),
   },
@@ -190,10 +170,8 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
       return cmd.length > 55 ? cmd.slice(0, 55) + "…" : cmd;
     }
     case "request_approval": return (args.title as string) || "Petición de aprobación";
-    case "propose_code_change": return (args.path as string) || "Cambio de código";
-    case "render_media_card": return (args.title as string) || "Multimedia";
-    case "request_form_input": return (args.title as string) || "Formulario";
-    case "configure_agent_card": return "Configuración de agente";
+    case "ask_question": return (args.question as string) || "Pregunta al usuario";
+    case "render_images": return Array.isArray(args.images) ? `${args.images.length} imágenes` : "Imágenes";
     case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
     default: return JSON.stringify(args).slice(0, 50);
   }
@@ -230,10 +208,8 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
     }
     case "bash": return "done";
     case "request_approval": return text || "esperando...";
-    case "propose_code_change": return text || "esperando...";
-    case "render_media_card": return "renderizado";
-    case "request_form_input": return text || "esperando...";
-    case "configure_agent_card": return text || "esperando...";
+    case "ask_question": return text || "esperando...";
+    case "render_images": return "renderizado";
     case "render_chart": return "renderizado";
     default: return "done";
   }
@@ -277,41 +253,23 @@ function ToolBody({
           sessionId={sessionId || null}
         />
       );
-    case "propose_code_change":
+    case "ask_question":
       return (
-        <DiffApplyCard
+        <AskQuestionForm
           toolCallId={toolCallId || ""}
           args={args as any}
           result={result as any}
           sessionId={sessionId || null}
         />
       );
-    case "render_media_card":
+    case "render_images":
       return (
-        <MediaCard
-          args={args as any}
+        <ImageGrid
+          images={(args.images as any) || []}
           sessionId={sessionId || null}
           activeRepoName={activeRepoName}
           activeAgentId={activeAgentId}
           activeChannelId={activeChannelId}
-        />
-      );
-    case "request_form_input":
-      return (
-        <DynamicFormCard
-          toolCallId={toolCallId || ""}
-          args={args as any}
-          result={result as any}
-          sessionId={sessionId || null}
-        />
-      );
-    case "configure_agent_card":
-      return (
-        <AgentConfigCard
-          toolCallId={toolCallId || ""}
-          args={args as any}
-          result={result as any}
-          sessionId={sessionId || null}
         />
       );
     case "render_chart":
@@ -346,10 +304,8 @@ export function ToolCallRow({
     toolName === "edit" ||
     toolName === "bash" ||
     toolName === "request_approval" ||
-    toolName === "propose_code_change" ||
-    toolName === "render_media_card" ||
-    toolName === "request_form_input" ||
-    toolName === "configure_agent_card" ||
+    toolName === "ask_question" ||
+    toolName === "render_images" ||
     toolName === "render_chart"
   );
 
@@ -359,7 +315,7 @@ export function ToolCallRow({
     icon: <span className="w-3 h-3 rounded-full bg-text-secondary/30" />,
   };
 
-  const isInteractive = ["request_approval", "propose_code_change", "render_media_card", "request_form_input", "configure_agent_card", "render_chart"].includes(toolName);
+  const isInteractive = ["request_approval", "ask_question", "render_images", "render_chart"].includes(toolName);
   const running = result === null;
   const hasError = result?.isError ?? false;
   const argSummary = getArgSummary(toolName, args);

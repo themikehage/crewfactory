@@ -332,10 +332,8 @@ class PiSessionManager {
       `You have native interactive UI tools. Prefer using them over custom scripts or general output formats when suitable:\n` +
       `- render_chart: Use this tool to display bar, line, area, or pie charts to visualize quantitative data, metrics, or analytical trends. Avoid writing Python/matplotlib scripts or generating image files for charts if they can be represented using this tool.\n` +
       `- request_approval: Before executing any critical, destructive, or potentially dangerous actions (such as running build/deploy scripts, deleting files, or executing system commands via bash), you MUST call this tool to request explicit user confirmation.\n` +
-      `- propose_code_change: When proposing modifications or creations of files, call this tool to present a visual diff to the user for confirmation instead of writing directly to the filesystem or outputting block patches.\n` +
-      `- render_media_card: When generating images, mockups, or UI visuals, use this tool to render them in the chat. It provides quick actions (regenerate, variations) for the user.\n` +
-      `- request_form_input: Use this tool to request credentials, configurations, keys, or any structured inputs from the user securely.\n` +
-      `- configure_agent_card: When showing configuration options for another agent, call this tool to let the user review and override settings dynamically.\n`
+      `- ask_question: When you need to ask the user a question to clarify requirements, solicit design feedback, or resolve choices, call this tool to present a clean single/multi-choice form or custom text field.\n` +
+      `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n`
     ];
 
     if (mcpToolNames.length > 0) {
@@ -413,10 +411,8 @@ class PiSessionManager {
       ...systemTools,
       "bash",
       "request_approval",
-      "propose_code_change",
-      "render_media_card",
-      "request_form_input",
-      "configure_agent_card",
+      "ask_question",
+      "render_images",
       "render_chart",
       ...mcpToolNames
     ]);
@@ -425,10 +421,8 @@ class PiSessionManager {
       ...activeTools,
       ...mcpToolNames,
       "request_approval",
-      "propose_code_change",
-      "render_media_card",
-      "request_form_input",
-      "configure_agent_card",
+      "ask_question",
+      "render_images",
       "render_chart"
     ]))
       .filter(tName => definedToolNames.has(tName));

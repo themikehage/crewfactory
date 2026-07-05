@@ -303,10 +303,8 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             ...tools,
             ...mcpActive,
             "request_approval",
-            "propose_code_change",
-            "render_media_card",
-            "request_form_input",
-            "configure_agent_card",
+            "ask_question",
+            "render_images",
             "render_chart",
           ])
         )
