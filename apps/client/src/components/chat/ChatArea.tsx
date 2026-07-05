@@ -66,6 +66,7 @@ const l = useLiterals(u);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sandboxTools, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
+  const [serialTools, setSerialTools] = useState<string[]>(["request_approval", "ask_question"]);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
@@ -205,6 +206,7 @@ const l = useLiterals(u);
         if (res.ok) {
           const data = await res.json();
           setSandboxTools(data.tools ?? ALL_TOOL_NAMES);
+          setSerialTools(data.serialTools ?? ["request_approval", "ask_question"]);
         }
       } catch {}
     };
@@ -517,6 +519,7 @@ const l = useLiterals(u);
               activeRepoName={activeRepoName}
               activeAgentId={activeAgent?.id}
               activeChannelId={activeChannel?.id}
+              serialTools={serialTools}
             />
             <div ref={messagesEndRef} />
           </div>

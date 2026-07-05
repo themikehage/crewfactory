@@ -410,20 +410,12 @@ class PiSessionManager {
     const definedToolNames = new Set([
       ...systemTools,
       "bash",
-      "request_approval",
-      "ask_question",
-      "render_images",
-      "render_chart",
       ...mcpToolNames
     ]);
 
     const combinedTools = Array.from(new Set([
       ...activeTools,
-      ...mcpToolNames,
-      "request_approval",
-      "ask_question",
-      "render_images",
-      "render_chart"
+      ...mcpToolNames
     ]))
       .filter(tName => definedToolNames.has(tName));
 

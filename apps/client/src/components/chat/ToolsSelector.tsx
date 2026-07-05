@@ -11,6 +11,10 @@ export const ALL_TOOLS = [
   { id: "grep", name: "Grep Search", desc: "Find pattern matches within files" },
   { id: "find", name: "Find Files", desc: "Locate files in directory structure" },
   { id: "ls", name: "Directory List", desc: "List directory contents" },
+  { id: "request_approval", name: "Request Approval", desc: "Require explicit authorization for critical actions" },
+  { id: "ask_question", name: "Ask Question", desc: "Ask single/multi-choice or custom text questions" },
+  { id: "render_images", name: "Render Images", desc: "Display a responsive grid of generated drawings/images" },
+  { id: "render_chart", name: "Render Charts", desc: "Visualize metrics via line/bar/pie/area charts" },
 ];
 
 interface Props {

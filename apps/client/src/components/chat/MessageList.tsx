@@ -68,6 +68,7 @@ interface Props {
   activeRepoName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  serialTools?: string[];
 }
 
 type RenderGroup =
@@ -284,6 +285,7 @@ function AgentTurn({
   activeRepoName,
   activeAgentId = null,
   activeChannelId = null,
+  serialTools = ["request_approval", "ask_question"],
 }: {
   messages: Message[];
   sessionId: string | null;
@@ -291,6 +293,7 @@ function AgentTurn({
   activeRepoName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  serialTools?: string[];
 }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
@@ -301,6 +304,21 @@ function AgentTurn({
 
   const assistantMessages = messages.filter(m => m.role === "assistant");
   const lastAssistant = assistantMessages[assistantMessages.length - 1];
+
+  // Encontrar todas las herramientas de flujo interactivo/serie pendientes de respuesta en este turno
+  const pendingInteractiveIds: string[] = [];
+  for (const msg of assistantMessages) {
+    const blocks = Array.isArray(msg.content) ? msg.content : [];
+    for (const block of blocks) {
+      if (block.type === "toolCall" && block.name && block.id) {
+        const isInteractive = serialTools.includes(block.name);
+        const hasResult = toolResultMap.has(block.id);
+        if (isInteractive && !hasResult) {
+          pendingInteractiveIds.push(block.id);
+        }
+      }
+    }
+  }
 
   return (
     <div className="flex flex-col gap-2">
@@ -349,6 +367,10 @@ function AgentTurn({
                       }
                     : null;
 
+                  const isPending = pendingInteractiveIds.includes(block.id);
+                  const isFirstPending = pendingInteractiveIds[0] === block.id;
+                  const disabled = isPending && !isFirstPending;
+
                   return (
                     <ToolCallRow
                       key={i}
@@ -360,6 +382,8 @@ function AgentTurn({
                       activeRepoName={activeRepoName}
                       activeAgentId={activeAgentId}
                       activeChannelId={activeChannelId}
+                      disabled={disabled}
+                      serialTools={serialTools}
                     />
                   );
                 }
@@ -514,6 +538,7 @@ export const MessageList: FC<Props> = ({
   activeRepoName,
   activeAgentId = null,
   activeChannelId = null,
+  serialTools,
 }) => {
   if (messages.length === 0) {
     return (
@@ -556,6 +581,7 @@ export const MessageList: FC<Props> = ({
                 activeRepoName={activeRepoName}
                 activeAgentId={activeAgentId}
                 activeChannelId={activeChannelId}
+                serialTools={serialTools}
               />
             )}
           </motion.div>

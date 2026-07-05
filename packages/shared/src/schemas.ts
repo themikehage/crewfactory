@@ -36,7 +36,10 @@ export const ModelSettingsSchema = z.object({
   thinkingLevel: z.enum(["off", "minimal", "low", "medium", "high", "xhigh"]),
 });
 
-export const AVAILABLE_TOOLS = ["read", "write", "edit", "bash", "grep", "find", "ls"] as const;
+export const AVAILABLE_TOOLS = [
+  "read", "write", "edit", "bash", "grep", "find", "ls",
+  "request_approval", "ask_question", "render_images", "render_chart"
+] as const;
 export type ToolName = typeof AVAILABLE_TOOLS[number];
 
 export const ToolPermissionsSchema = z.object({
@@ -183,6 +186,7 @@ export const AgentDefinitionSchema = z.object({
   model: z.string().optional(),
   skills: z.array(z.string()).optional(),
   port: z.number().int().min(1024).max(65535).optional(),
+  serialTools: z.array(z.string()).optional(),
 });
 export type AgentDefinition = z.infer<typeof AgentDefinitionSchema>;
 

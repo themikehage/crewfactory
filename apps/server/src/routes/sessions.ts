@@ -17,6 +17,7 @@ import {
   broadcastTaskUpdate
 } from "../pi/task-runner";
 import { broadcastToSession } from "../ws/handler";
+import { agentRegistry } from "../agents";
 
 const STORAGE_KEY = "crewfactory-sessions";
 
@@ -620,11 +621,21 @@ sessionsRouter.get("/:id/tools", async (c) => {
   const { username } = getAuthPayload(c);
 
   if (sessionId.startsWith("exec_")) {
-    return c.json({ tools: [] });
+    return c.json({ tools: [], serialTools: ["request_approval", "ask_question"] });
   }
 
   const tools = piSessionManager.getSessionTools(username, sessionId);
-  return c.json({ tools });
+  const metadata = piSessionManager.getSessionMetadata(username, sessionId) || {};
+  let serialTools = ["request_approval", "ask_question"];
+
+  if (metadata.agentId) {
+    const agentEntry = agentRegistry.get(metadata.agentId, username);
+    if (agentEntry?.server?.definition?.serialTools) {
+      serialTools = agentEntry.server.definition.serialTools;
+    }
+  }
+
+  return c.json({ tools, serialTools });
 });
 
 sessionsRouter.get("/:id/tasks", async (c) => {

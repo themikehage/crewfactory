@@ -38,6 +38,8 @@ interface Props {
   activeRepoName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  disabled?: boolean;
+  serialTools?: string[];
 }
 
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
@@ -299,14 +301,20 @@ export function ToolCallRow({
   activeRepoName: _activeRepoName,
   activeAgentId: _activeAgentId = null,
   activeChannelId: _activeChannelId = null,
+  disabled = false,
+  serialTools = ["request_approval", "ask_question"],
 }: Props) {
+  const isInteractive = serialTools.includes(toolName);
+
   const [expanded, setExpanded] = useState(
-    toolName === "edit" ||
-    toolName === "bash" ||
-    toolName === "request_approval" ||
-    toolName === "ask_question" ||
-    toolName === "render_images" ||
-    toolName === "render_chart"
+    !disabled && (
+      toolName === "edit" ||
+      toolName === "bash" ||
+      toolName === "request_approval" ||
+      toolName === "ask_question" ||
+      toolName === "render_images" ||
+      toolName === "render_chart"
+    )
   );
 
   const meta = TOOL_META[toolName] ?? {
@@ -315,19 +323,19 @@ export function ToolCallRow({
     icon: <span className="w-3 h-3 rounded-full bg-text-secondary/30" />,
   };
 
-  const isInteractive = ["request_approval", "ask_question", "render_images", "render_chart"].includes(toolName);
   const running = result === null;
   const hasError = result?.isError ?? false;
   const argSummary = getArgSummary(toolName, args);
   const resultSummary = result ? getResultSummary(toolName, result) : "";
 
   return (
-    <div className={`my-1.5 rounded-lg border overflow-hidden transition-colors ${
+    <div className={`my-1.5 rounded-lg border overflow-hidden transition-all ${
+      disabled ? "border-input/30 bg-card/25 opacity-60 select-none pointer-events-none" :
       hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
     }`}>
       <button
-        onClick={() => !running && setExpanded(!expanded)}
-        disabled={running && isInteractive}
+        onClick={() => !disabled && !running && setExpanded(!expanded)}
+        disabled={disabled || (running && isInteractive)}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-card-hover/40 transition-colors text-left cursor-pointer disabled:cursor-default"
       >
         <span className={`flex-shrink-0 ${meta.colorClass}`}>{meta.icon}</span>
@@ -342,10 +350,17 @@ export function ToolCallRow({
 
         <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
           {running ? (
-            <span className="flex items-center gap-1.5 text-[10px] text-warning/70">
-              <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-              {isInteractive ? "pendiente" : "running"}
-            </span>
+            disabled ? (
+              <span className="flex items-center gap-1.5 text-[10px] text-muted-foreground/50">
+                <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/20 animate-pulse" />
+                esperando respuesta anterior...
+              </span>
+            ) : (
+              <span className="flex items-center gap-1.5 text-[10px] text-warning/70">
+                <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                {isInteractive ? "pendiente" : "running"}
+              </span>
+            )
           ) : hasError ? (
             <span className="flex items-center gap-1.5 text-[10px] text-destructive">
               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
@@ -362,7 +377,7 @@ export function ToolCallRow({
             </span>
           )}
 
-          {!running && (
+          {!running && !disabled && (
             <svg
               width="11" height="11" viewBox="0 0 20 20" fill="currentColor"
               className={`text-muted-foreground/40 transition-transform ${expanded ? "rotate-90" : ""}`}
@@ -373,7 +388,7 @@ export function ToolCallRow({
         </div>
       </button>
 
-      {expanded && (result || isInteractive) && (
+      {expanded && !disabled && (result || isInteractive) && (
         <div className="px-3 pb-3 pt-1 border-t border-input/40">
           <ToolBody
             toolName={toolName}

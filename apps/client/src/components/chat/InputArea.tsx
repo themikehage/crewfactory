@@ -3,7 +3,10 @@ import { ModelSelector } from "./ModelSelector";
 import { ToolsSelector } from "./ToolsSelector";
 import { SkillsSelector, type SkillInfo } from "./SkillsSelector";
 
-const DEFAULT_TOOLS = ["read", "write", "edit", "bash", "grep", "find", "ls"];
+const DEFAULT_TOOLS = [
+  "read", "write", "edit", "bash", "grep", "find", "ls",
+  "request_approval", "ask_question", "render_images", "render_chart"
+];
 
 export interface MentionTarget {
   id: string;

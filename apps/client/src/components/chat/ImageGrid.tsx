@@ -1,4 +1,4 @@
-import { useCallback, useState, useEffect } from "react";
+import { useCallback, useState, useEffect, useRef } from "react";
 
 interface ImageItem {
   url: string;
@@ -63,13 +63,35 @@ interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageEleme
   src: string;
 }
 
-export function AuthenticatedImage({ src, ...props }: AuthenticatedImageProps) {
+export function AuthenticatedImage({ src, alt, className, ...props }: AuthenticatedImageProps) {
   const [blobUrl, setBlobUrl] = useState<string>("");
+  const [inView, setInView] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    if (!src) return;
+    const el = containerRef.current;
+    if (!el) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          observer.disconnect();
+        }
+      },
+      { rootMargin: "200px" }
+    );
+
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || !src) return;
     if (!src.startsWith("/api/")) {
       setBlobUrl(src);
+      setLoading(false);
       return;
     }
 
@@ -87,9 +109,11 @@ export function AuthenticatedImage({ src, ...props }: AuthenticatedImageProps) {
         if (active) {
           url = URL.createObjectURL(blob);
           setBlobUrl(url);
+          setLoading(false);
         }
       } catch (err) {
         console.error("Failed to load image:", err);
+        if (active) setLoading(false);
       }
     };
 
@@ -99,11 +123,23 @@ export function AuthenticatedImage({ src, ...props }: AuthenticatedImageProps) {
       active = false;
       if (url) URL.revokeObjectURL(url);
     };
-  }, [src]);
+  }, [inView, src]);
 
-  if (!blobUrl) return null;
-
-  return <img src={blobUrl} {...props} />;
+  return (
+    <div ref={containerRef} className="w-full h-full">
+      {loading ? (
+        <div className="w-full h-full flex items-center justify-center bg-card animate-pulse">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground/30">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+            <circle cx="8.5" cy="8.5" r="1.5" />
+            <polyline points="21 15 16 10 5 21" />
+          </svg>
+        </div>
+      ) : (
+        <img src={blobUrl} alt={alt} className={className} {...props} />
+      )}
+    </div>
+  );
 }
 
 export function ImageGrid({
