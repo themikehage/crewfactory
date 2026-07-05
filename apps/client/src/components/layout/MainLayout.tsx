@@ -3,9 +3,11 @@ import { SessionPopover } from "@/components/sidebar/SessionPopover";
 import { Logo } from "@/components/ui/Logo";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
+import { Plus } from "lucide-react";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { ExperimentPopover } from "@/components/sidebar/ExperimentPopover";
+import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";
 
@@ -51,6 +53,7 @@ export function MainLayout({
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
   const [experimentPopoverOpen, setExperimentPopoverOpen] = useState(false);
+  const [quickCreating, setQuickCreating] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
 
   useEffect(() => {
@@ -101,6 +104,30 @@ export function MainLayout({
     onNavigate(getSessionPath(id));
     setSidebarOpen(false);
   }, [onNavigate, getSessionPath]);
+
+  const handleQuickCreate = useCallback(async () => {
+    setQuickCreating(true);
+    try {
+      const res = await apiFetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: "Nueva sesion",
+          repoName: activeRepoId || undefined,
+          agentId: activeAgent?.id || undefined,
+          channelId: activeChannel?.id || undefined,
+        }),
+      });
+      if (!res.ok) return;
+      const session = await res.json();
+      onNavigate(getSessionPath(session.id));
+      setSidebarOpen(false);
+    } catch {
+      // silently ignore
+    } finally {
+      setQuickCreating(false);
+    }
+  }, [onNavigate, getSessionPath, activeRepoId, activeAgent, activeChannel]);
 
   const sessionId = route.page === "chat" ? route.sessionId : null;
 
@@ -303,7 +330,7 @@ export function MainLayout({
                       <path d="M4.5 3h15" />
                       <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
                     </svg>
-                    Laboratorio
+                    {l.tabHistory}
                   </span>
                 ) : (
                   contextTabs.map((tab) => {
@@ -356,6 +383,18 @@ export function MainLayout({
                   </>
                 ) : (
                   <>
+                    <button
+                      onClick={handleQuickCreate}
+                      disabled={quickCreating}
+                      className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10 disabled:opacity-50"
+                      title="Nueva sesion"
+                    >
+                      {quickCreating ? (
+                        <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                      ) : (
+                        <Plus size={14} />
+                      )}
+                    </button>
                     <button
                       onClick={() => setSessionPopoverOpen((p) => !p)}
                       className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"

@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { Trash2 } from "lucide-react";
 import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
 import type { SessionStatus } from "@/hooks/useSessionStatusWs";
 import { apiFetch } from "@/lib/api";
@@ -138,6 +139,7 @@ export function SessionPopover({
       const updated = [{ ...session, status: "active" as SessionStatus }, ...sessions];
       setSessions(updated);
       onNewSession(session.id);
+      onClose();
     } catch {
       // silently ignore
     } finally {
@@ -307,12 +309,10 @@ export function SessionPopover({
                     <button
                       onClick={(e) => handleDeleteClick(e, s.id)}
                       className="absolute right-2 top-1/2 -translate-y-1/2
-                                 text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-card-hover opacity-0 group-hover:opacity-100 cursor-pointer"
+                                 text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-card-hover cursor-pointer"
                       title={l.deleteSession}
                     >
-                      <svg width="10" height="10" viewBox="0 0 14 14" fill="currentColor">
-                        <path d="M4 4l6 6M10 4l-6 6" stroke="currentColor" strokeWidth="1.5" fill="none" />
-                      </svg>
+                      <Trash2 size={14} />
                     </button>
                   )}
                 </div>
