@@ -495,3 +495,8 @@ crear un plan de despliegue facil en vps
 - [x] 55.7 Pass correct toolCallId props to ToolCallRow in MessageList and ChannelMessageList
 - [x] 55.8 Compile monorepo successfully with zero TypeScript check errors
 
+## Phase 56: Fix UI Interactive Tools & Directory Auto-Creation
+- [x] 56.1 Modificar `ui-tools.ts` para crear directorios recursivamente antes de escribir archivos en `propose_code_change`
+- [x] 56.2 Modificar `routes/sessions.ts` para mantener activas todas las herramientas interactivas UI al actualizar los permisos
+- [x] 56.3 Modificar `ws/handler.ts` para mantener activas todas las herramientas interactivas UI al recibir un prompt
+- [x] 56.4 Validar la compilación exitosa del servidor

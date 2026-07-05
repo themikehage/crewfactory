@@ -1,5 +1,5 @@
-import { join, isAbsolute } from "path";
-import { writeFileSync } from "fs";
+import { join, isAbsolute, dirname } from "path";
+import { writeFileSync, mkdirSync } from "fs";
 import { uiApprovalRegistry } from "./ui-approval-registry";
 
 export function createUiTools(workspaceDir: string) {
@@ -46,6 +46,7 @@ export function createUiTools(workspaceDir: string) {
       if (result.action === "confirm") {
         const fileTarget = isAbsolute(args.path) ? args.path : join(workspaceDir, args.path);
         try {
+          mkdirSync(dirname(fileTarget), { recursive: true });
           writeFileSync(fileTarget, args.proposedContent, "utf-8");
           return {
             content: [{ type: "text", text: "applied" }],

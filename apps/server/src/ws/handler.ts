@@ -297,7 +297,20 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     if (tools && Array.isArray(tools)) {
       const currentActive = session.getActiveToolNames();
       const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
-      session.setActiveToolsByName(Array.from(new Set([...tools, ...mcpActive, "request_approval", "render_chart"])));
+      session.setActiveToolsByName(
+        Array.from(
+          new Set([
+            ...tools,
+            ...mcpActive,
+            "request_approval",
+            "propose_code_change",
+            "render_media_card",
+            "request_form_input",
+            "configure_agent_card",
+            "render_chart",
+          ])
+        )
+      );
     }
 
     if (session.isStreaming) {
