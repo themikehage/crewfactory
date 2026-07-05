@@ -27,6 +27,12 @@ interface ChannelItem {
   maxChainDepth?: number;
 }
 
+interface ExperimentItem {
+  id: string;
+  name: string;
+  status: string;
+}
+
 interface Props {
   activeRepoName: string | null;
   activeAgent: { id: string; name: string } | null;
@@ -36,6 +42,7 @@ interface Props {
   onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
+  selectedExpId?: string | null;
 }
 
 export function SessionSidebar({
@@ -47,19 +54,23 @@ export function SessionSidebar({
   onSelectRepo,
   onSelectAgent,
   onSelectChannel,
+  selectedExpId = null,
 }: Props) {
   const l = useLiterals(u);
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [channels, setChannels] = useState<ChannelItem[]>([]);
+  const [experiments, setExperiments] = useState<ExperimentItem[]>([]);
 
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [loadingChannels, setLoadingChannels] = useState(true);
+  const [loadingExperiments, setLoadingExperiments] = useState(true);
 
   const [isOpenRepos, setIsOpenRepos] = useState(true);
   const [isOpenAgents, setIsOpenAgents] = useState(true);
   const [isOpenChannels, setIsOpenChannels] = useState(true);
+  const [isOpenExperiments, setIsOpenExperiments] = useState(true);
 
   const fetchRepos = useCallback(async () => {
     try {
@@ -103,11 +114,26 @@ export function SessionSidebar({
     }
   }, []);
 
+  const fetchExperiments = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/experiments");
+      if (res.ok) {
+        const data = await res.json();
+        setExperiments(data.experiments || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch experiments:", err);
+    } finally {
+      setLoadingExperiments(false);
+    }
+  }, []);
+
   useEffect(() => {
     fetchRepos();
     fetchAgents();
     fetchChannels();
-  }, [fetchRepos, fetchAgents, fetchChannels]);
+    fetchExperiments();
+  }, [fetchRepos, fetchAgents, fetchChannels, fetchExperiments]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -119,15 +145,25 @@ export function SessionSidebar({
         fetchAgents();
       } else if (type === "channel") {
         fetchChannels();
+      } else if (type === "experiment") {
+        fetchExperiments();
       } else {
         fetchRepos();
         fetchAgents();
         fetchChannels();
+        fetchExperiments();
       }
     };
     window.addEventListener("entity-updated", handleUpdate);
     return () => window.removeEventListener("entity-updated", handleUpdate);
-  }, [fetchRepos, fetchAgents, fetchChannels]);
+  }, [fetchRepos, fetchAgents, fetchChannels, fetchExperiments]);
+
+  const handleSelectExperimentClick = useCallback(
+    (expId: string) => {
+      if (onNavigate) onNavigate(`/laboratory/${expId}`);
+    },
+    [onNavigate]
+  );
 
   const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
   const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
@@ -165,17 +201,6 @@ export function SessionSidebar({
 
   const adminItems = useMemo(
     () => [
-      {
-        id: "laboratory",
-        label: l.navLaboratory,
-        path: "/laboratory",
-        icon: (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M4.5 3h15" />
-            <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
-          </svg>
-        ),
-      },
       {
         id: "skills",
         label: l.navSkills,
@@ -452,6 +477,79 @@ export function SessionSidebar({
                     >
                       <span className="font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center">#</span>
                       <span className="truncate">{channel.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Experiments Accordion */}
+        <div className="flex flex-col">
+          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+            <button
+              onClick={() => setIsOpenExperiments((prev) => !prev)}
+              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left font-semibold"
+            >
+              <svg
+                width="12"
+                height="12"
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className={`transform transition-transform ${isOpenExperiments ? "rotate-90" : ""}`}
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{l.sectionExperiments || "Experimentos"} ({experiments.length})</span>
+            </button>
+            <button
+              onClick={() => onNavigate && onNavigate("/laboratory")}
+              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
+              title={l.manageExperiments || "Gestionar Experimentos"}
+            >
+              <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+
+          {isOpenExperiments && (
+            <div className="px-2 mt-1 space-y-0.5">
+              {loadingExperiments ? (
+                <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
+              ) : experiments.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-3 py-1">{l.noExperiments || "Sin experimentos"}</div>
+              ) : (
+                experiments.map((exp) => {
+                  const isActive = currentPage === "laboratory" && selectedExpId === exp.id;
+                  return (
+                    <button
+                      key={exp.id}
+                      onClick={() => handleSelectExperimentClick(exp.id)}
+                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
+                        isActive
+                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
+                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
+                      }`}
+                    >
+                      <svg
+                        width="12"
+                        height="12"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2.5"
+                        className="flex-shrink-0 text-muted-foreground"
+                      >
+                        <path d="M4.5 3h15" />
+                        <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
+                      </svg>
+                      <span className="truncate">{exp.name}</span>
                     </button>
                   );
                 })

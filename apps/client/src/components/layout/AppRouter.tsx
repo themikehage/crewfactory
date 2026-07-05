@@ -56,9 +56,14 @@ export function AppRouter() {
 
   // --- Estados de Laboratorio Elevados ---
   const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [loadingExps, setLoadingExps] = useState(true);
   const [isLabEditorOpen, setIsLabEditorOpen] = useState(false);
   const [editingLabExpId, setEditingLabExpId] = useState<string | null>(null);
+
+  // Nuevos estados para controlar la ejecución y variantes de laboratorio
+  const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
+  const [runPromptValue, setRunPromptValue] = useState("");
+  const [runningExpId, setRunningExpId] = useState<string | null>(null);
+  const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader">("single");
 
   const fetchExperiments = useCallback(async () => {
     try {
@@ -69,10 +74,47 @@ export function AppRouter() {
       }
     } catch (e) {
       console.error("Failed to load experiments:", e);
-    } finally {
-      setLoadingExps(false);
     }
   }, []);
+
+  const handleStopRun = useCallback(async (expId: string) => {
+    try {
+      await apiFetch(`/api/experiments/${expId}/stop`, { method: "POST" });
+      fetchExperiments();
+    } catch (e) {
+      console.error("Failed to stop experiment:", e);
+    }
+  }, [fetchExperiments]);
+
+  const handleConfirmRun = useCallback(async () => {
+    if (!runningExpId) return;
+    setIsRunPromptModalOpen(false);
+
+    try {
+      // 1. Actualizar el prompt de la tarea específica en el experimento
+      const resPatch = await apiFetch(`/api/experiments/${runningExpId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ taskPrompt: runPromptValue })
+      });
+
+      if (!resPatch.ok) {
+        throw new Error("Failed to update prompt");
+      }
+
+      const dataPatch = await resPatch.json();
+      const updatedExp = dataPatch.experiment as Experiment;
+      setExperiments((prev) => prev.map((e) => (e.id === updatedExp.id ? updatedExp : e)));
+
+      // 2. Disparar ejecución
+      await apiFetch(`/api/experiments/${runningExpId}/run`, { method: "POST" });
+      fetchExperiments();
+    } catch (e) {
+      console.error("Failed to run experiment:", e);
+    } finally {
+      setRunningExpId(null);
+    }
+  }, [runningExpId, runPromptValue, fetchExperiments]);
 
   useEffect(() => {
     fetchExperiments();
@@ -235,16 +277,26 @@ export function AppRouter() {
       onSelectAgent={handleSelectAgent}
       onSelectChannel={handleSelectChannel}
       selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
-      onSelectExp={(id) => {
-        if (id) navigate(`/laboratory/${id}`);
-        else navigate("/laboratory");
-      }}
       experiments={experiments}
       onDeleteExperiment={handleDeleteExp}
-      onCreateExperiment={() => {
-        navigate("/laboratory");
+      activeVariantTab={activeVariantTab}
+      setActiveVariantTab={setActiveVariantTab}
+      onRunExperiment={(id) => {
+        const exp = experiments.find((e) => e.id === id);
+        if (exp) {
+          setRunningExpId(id);
+          setRunPromptValue(exp.taskPrompt);
+          setIsRunPromptModalOpen(true);
+        }
       }}
-      loadingExps={loadingExps}
+      onStopExperiment={handleStopRun}
+      onEditExperiment={(id) => {
+        const exp = experiments.find((e) => e.id === id);
+        if (exp) {
+          setEditingLabExpId(id);
+          setIsLabEditorOpen(true);
+        }
+      }}
     >
       {route.page === "projects" && (
         <DashboardPage onNavigate={navigate} onSelectRepo={handleSelectRepo} />
@@ -279,12 +331,18 @@ export function AppRouter() {
           }}
           experiments={experiments}
           setExperiments={setExperiments}
-          fetchExperiments={fetchExperiments}
           isEditorOpen={isLabEditorOpen}
           setIsEditorOpen={setIsLabEditorOpen}
           editingExpId={editingLabExpId}
           setEditingExpId={setEditingLabExpId}
-          handleDeleteExp={handleDeleteExp}
+          isRunPromptModalOpen={isRunPromptModalOpen}
+          setIsRunPromptModalOpen={setIsRunPromptModalOpen}
+          runPromptValue={runPromptValue}
+          setRunPromptValue={setRunPromptValue}
+          setRunningExpId={setRunningExpId}
+          handleConfirmRun={handleConfirmRun}
+          activeVariantTab={activeVariantTab}
+          setActiveVariantTab={setActiveVariantTab}
         />
       )}
       {route.page === "mcps" && (

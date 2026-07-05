@@ -287,6 +287,16 @@ export class ExperimentRunner {
         }
       ]);
 
+      // Initialize session and save metadata to disk
+      await piSessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
+      piSessionManager.saveSessionMetadata(username, sessionId, {
+        name: `${exp.name} - Baseline`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        channelId: channelId,
+        isExecution: true
+      });
+
       // 2. Dispatch prompt
       await channelOrchestrator.dispatchUserMessage(username, channelId, exp.taskPrompt, sessionId);
 
@@ -343,15 +353,7 @@ export class ExperimentRunner {
         }
       }
 
-      // Destroy Hono sessions matching channelId just in case
-      try {
-        const sessions = await piSessionManager.listSessions(username);
-        for (const s of sessions) {
-          if (s.channelId === channelId) {
-            await piSessionManager.destroySession(username, s.id);
-          }
-        }
-      } catch {}
+
 
       // 6. Stop agent
       try { await agentRegistry.stop(regId, false); } catch {}
@@ -536,6 +538,16 @@ export class ExperimentRunner {
       // Add members
       channelStore.updateMembers(username, channelId, members as any);
 
+      // Initialize session and save metadata to disk
+      await piSessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
+      piSessionManager.saveSessionMetadata(username, sessionId, {
+        name: `${exp.name} - ${variantKey === "multiNoLeader" ? "Horizontal" : "Jerárquico"}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        channelId: channelId,
+        isExecution: true
+      });
+
       // 3. Dispatch user message task prompt
       await channelOrchestrator.dispatchUserMessage(username, channelId, exp.taskPrompt, sessionId);
 
@@ -608,15 +620,7 @@ export class ExperimentRunner {
         }
       }
 
-      // Destroy Hono sessions matching channelId just in case
-      try {
-        const sessions = await piSessionManager.listSessions(username);
-        for (const s of sessions) {
-          if (s.channelId === channelId) {
-            await piSessionManager.destroySession(username, s.id);
-          }
-        }
-      } catch {}
+
 
       // 7. Stop agents
       for (const regId of registeredIds) {

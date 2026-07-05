@@ -17,12 +17,19 @@ interface Props {
   setSelectedExpId: (id: string | null) => void;
   experiments: Experiment[];
   setExperiments: React.Dispatch<React.SetStateAction<Experiment[]>>;
-  fetchExperiments: () => Promise<void>;
   isEditorOpen: boolean;
   setIsEditorOpen: (open: boolean) => void;
   editingExpId: string | null;
   setEditingExpId: (id: string | null) => void;
-  handleDeleteExp: (id: string) => Promise<void>;
+  
+  isRunPromptModalOpen: boolean;
+  setIsRunPromptModalOpen: (open: boolean) => void;
+  runPromptValue: string;
+  setRunPromptValue: (val: string) => void;
+  setRunningExpId: (id: string | null) => void;
+  handleConfirmRun: () => Promise<void>;
+  activeVariantTab: "single" | "multiNoLeader" | "multiWithLeader";
+  setActiveVariantTab: (tab: "single" | "multiNoLeader" | "multiWithLeader") => void;
 }
 
 interface GeneratedTeam {
@@ -36,9 +43,10 @@ interface VariantViewerProps {
   activeSessionId: string | null;
   status: string; // "pending" | "running" | "completed" | "failed"
   result: any;
+  criteria?: string[];
 }
 
-function VariantViewer({ experimentId, variantKey, activeSessionId, status, result }: VariantViewerProps) {
+function VariantViewer({ experimentId, variantKey, activeSessionId, status, result, criteria }: VariantViewerProps) {
   const l = useLiterals(u);
   const channelId = `lab_${experimentId}_${variantKey}`;
   const targetChannelId = activeSessionId ? channelId : null;
@@ -87,6 +95,24 @@ function VariantViewer({ experimentId, variantKey, activeSessionId, status, resu
       {/* Panel de Telemetría (30%) */}
       <div className="p-5 flex flex-col bg-card/10 min-h-0 overflow-y-auto text-left justify-between">
         <div className="space-y-6">
+          {criteria && criteria.length > 0 && (
+            <div>
+              <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-2">
+                Rúbrica de Evaluación
+              </h4>
+              <div className="flex flex-wrap gap-1.5">
+                {criteria.map((c, i) => (
+                  <span
+                    key={i}
+                    className="text-xs px-2.5 py-1 bg-background border border-input rounded-lg text-muted-foreground font-semibold"
+                  >
+                    {c}
+                  </span>
+                ))}
+              </div>
+            </div>
+          )}
+
           <div>
             <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider block mb-2">
               Telemetría y Estado
@@ -217,12 +243,18 @@ export function LaboratoryPage({
   setSelectedExpId,
   experiments,
   setExperiments,
-  fetchExperiments,
   isEditorOpen,
   setIsEditorOpen,
   editingExpId,
-  setEditingExpId,
-  handleDeleteExp,
+  setEditingExpId: _setEditingExpId,
+  isRunPromptModalOpen,
+  setIsRunPromptModalOpen,
+  runPromptValue,
+  setRunPromptValue,
+  setRunningExpId,
+  handleConfirmRun,
+  activeVariantTab,
+  setActiveVariantTab,
 }: Props) {
   const l = useLiterals(u);
   // Model Selector State (for AI Generator)
@@ -243,18 +275,22 @@ export function LaboratoryPage({
   const [newCriterion, setNewCriterion] = useState("");
   const [editorVariants, setEditorVariants] = useState<any | null>(null);
 
-  // Dynamic Run Prompt Modal State
-  const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
-  const [runPromptValue, setRunPromptValue] = useState("");
-  const [runningExpId, setRunningExpId] = useState<string | null>(null);
-
-  // Active Variant Tab
-  const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader">("single");
-
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastAutoSwitchedVariantRef = useRef<"single" | "multiNoLeader" | "multiWithLeader" | null>(null);
 
   const activeExp = experiments.find((e) => e.id === selectedExpId) || null;
+
+  useEffect(() => {
+    if (isEditorOpen && editingExpId) {
+      const exp = experiments.find((e) => e.id === editingExpId);
+      if (exp) {
+        setEditorName(exp.name);
+        setEditorPrompt(exp.taskPrompt);
+        setEditorCriteria(exp.judge?.criteria || ["Calidad", "Eficiencia"]);
+        setEditorVariants(null);
+      }
+    }
+  }, [isEditorOpen, editingExpId, experiments]);
 
   // Load user default model
   useEffect(() => {
@@ -410,45 +446,6 @@ export function LaboratoryPage({
     }
   };
 
-  const handleConfirmRun = async () => {
-    if (!runningExpId) return;
-    setIsRunPromptModalOpen(false);
-
-    try {
-      // 1. Actualizar el prompt de la tarea específica en el experimento
-      const resPatch = await apiFetch(`/api/experiments/${runningExpId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskPrompt: runPromptValue })
-      });
-
-      if (!resPatch.ok) {
-        throw new Error("{l.updatePromptError}");
-      }
-
-      const dataPatch = await resPatch.json();
-      const updatedExp = dataPatch.experiment as Experiment;
-      setExperiments((prev) => prev.map((e) => (e.id === updatedExp.id ? updatedExp : e)));
-
-      // 2. Disparar ejecución
-      await apiFetch(`/api/experiments/${runningExpId}/run`, { method: "POST" });
-      fetchExperiments();
-    } catch (e) {
-      console.error("{l.runExperimentError}", e);
-    } finally {
-      setRunningExpId(null);
-    }
-  };
-
-  const handleStopRun = async (expId: string) => {
-    try {
-      await apiFetch(`/api/experiments/${expId}/stop`, { method: "POST" });
-      fetchExperiments();
-    } catch (e) {
-      console.error("{l.stopExperimentError}", e);
-    }
-  };
-
   const handleSaveExperiment = async () => {
     if (!editorName.trim() || !editorPrompt.trim()) return;
 
@@ -457,8 +454,7 @@ export function LaboratoryPage({
       name: editorName,
       taskPrompt: editorPrompt,
       criteria: editorCriteria,
-      autoEvaluate: true,
-      variants: editorVariants || undefined
+      variants: editorVariants,
     };
 
     try {
@@ -485,15 +481,6 @@ export function LaboratoryPage({
     } catch (e) {
       console.error("{l.saveExperimentError}", e);
     }
-  };
-
-  const openEditModal = (exp: Experiment) => {
-    setEditingExpId(exp.id);
-    setEditorName(exp.name);
-    setEditorPrompt(exp.taskPrompt);
-    setEditorCriteria(exp.judge?.criteria || ["Calidad", "{l.efficiency}"]);
-    setEditorVariants(null); // mantendrá las variantes existentes en base de datos
-    setIsEditorOpen(true);
   };
 
   const handleSaveExperimentDirect = async () => {
@@ -1220,103 +1207,6 @@ export function LaboratoryPage({
                   </div>
                   <p className="text-xs text-muted-foreground leading-relaxed max-w-2xl">{activeExp.taskPrompt}</p>
                 </div>
-
-                <div className="flex gap-2 flex-shrink-0">
-                  {activeExp.status !== "running" ? (
-                    <>
-                      <button
-                        onClick={() => openEditModal(activeExp)}
-                        className="px-3 py-1.5 bg-background hover:bg-background/85 border border-input text-foreground rounded-xl text-xs font-bold transition-all cursor-pointer"
-                      >
-                        Editar
-                      </button>
-                      <button
-                        onClick={() => handleDeleteExp(activeExp.id)}
-                        className="px-3 py-1.5 bg-background hover:bg-destructive/10 border border-input hover:border-error/30 text-destructive rounded-xl text-xs font-bold transition-all cursor-pointer"
-                      >
-                        Eliminar
-                      </button>
-                      <button
-                        onClick={() => {
-                          setRunningExpId(activeExp.id);
-                          setRunPromptValue(activeExp.taskPrompt);
-                          setIsRunPromptModalOpen(true);
-                        }}
-                        className="px-4 py-1.5 bg-primary text-background hover:bg-primary/90 rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
-                      >
-                        <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                          <path d="M8 5v14l11-7z" />
-                        </svg>
-                        Ejecutar
-                      </button>
-                    </>
-                  ) : (
-                    <button
-                      onClick={() => handleStopRun(activeExp.id)}
-                      className="px-4 py-1.5 bg-destructive hover:bg-destructive/90 text-white rounded-xl text-xs font-bold transition-all shadow flex items-center gap-1.5 cursor-pointer"
-                    >
-                      <svg className="w-3.5 h-3.5" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                      </svg>
-                      Detener Corrida
-                    </button>
-                  )}
-                </div>
-              </div>
-
-              {/* Rúbrica y Criterios */}
-              {activeExp.judge?.criteria && (
-                <div className="bg-card border border-input rounded-2xl p-5 flex-shrink-0">
-                  <h3 className="text-xs font-bold text-foreground uppercase tracking-wider mb-2.5">
-                    Rúbrica de Evaluación
-                  </h3>
-                  <div className="flex flex-wrap gap-2">
-                    {activeExp.judge.criteria.map((c, i) => (
-                      <span
-                        key={i}
-                        className="text-xs px-3 py-1 bg-background border border-input rounded-xl text-muted-foreground"
-                      >
-                        {c}
-                      </span>
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Selector de Pestañas de Variante */}
-              <div className="flex border-b border-input/40 gap-1 flex-shrink-0 mt-2">
-                {(["single", "multiNoLeader", "multiWithLeader"] as const).map((vKey) => {
-                  const label =
-                    vKey === "single"
-                      ? "Baseline (Un Agente)"
-                      : vKey === "multiNoLeader"
-                      ? "Colaboración Horizontal"
-                      : "Colaboración Jerárquica";
-                  const isActive = activeVariantTab === vKey;
-                  const runData = activeExp.variants?.[vKey];
-                  const hasResult = !!runData?.result;
-                  const isRunning = activeExp.status === "running" && runData?.activeSessionId && !hasResult;
-
-                  return (
-                    <button
-                      key={vKey}
-                      onClick={() => setActiveVariantTab(vKey)}
-                      className={`px-4 py-2.5 text-xs font-semibold border-b-2 -mb-[1px] transition-all flex items-center gap-1.5 cursor-pointer ${
-                        isActive
-                          ? "text-primary border-primary font-bold"
-                          : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                      }`}
-                    >
-                      {label}
-                      {isRunning && (
-                        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                      )}
-                      {hasResult && (
-                        <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
-                      )}
-                    </button>
-                  );
-                })}
               </div>
 
               {/* Visor de la Variante Activa */}
@@ -1333,6 +1223,7 @@ export function LaboratoryPage({
                       : (activeExp.variants[activeVariantTab]?.result?.status || "pending")
                   }
                   result={activeExp.variants[activeVariantTab]?.result || null}
+                  criteria={activeExp.judge?.criteria}
                 />
               </div>
             </motion.div>

@@ -6,7 +6,6 @@ import type { ReactNode } from "react";
 import { Plus } from "lucide-react";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
-import { ExperimentPopover } from "@/components/sidebar/ExperimentPopover";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";
@@ -24,11 +23,13 @@ interface Props {
   children: ReactNode;
   // Propiedades para Laboratorio
   selectedExpId?: string | null;
-  onSelectExp?: (id: string | null) => void;
   experiments?: any[];
   onDeleteExperiment?: (id: string) => void;
-  onCreateExperiment?: () => void;
-  loadingExps?: boolean;
+  activeVariantTab?: "single" | "multiNoLeader" | "multiWithLeader";
+  setActiveVariantTab?: (tab: "single" | "multiNoLeader" | "multiWithLeader") => void;
+  onRunExperiment?: (id: string) => void;
+  onStopExperiment?: (id: string) => void;
+  onEditExperiment?: (id: string) => void;
 }
 
 export function MainLayout({
@@ -43,16 +44,18 @@ export function MainLayout({
   onSelectChannel,
   children,
   selectedExpId = null,
-  onSelectExp,
   experiments = [],
   onDeleteExperiment,
-  onCreateExperiment,
-  loadingExps = false,
+  activeVariantTab = "single",
+  setActiveVariantTab,
+  onRunExperiment,
+  onStopExperiment,
+  onEditExperiment,
 }: Props) {
   const l = useLiterals(u);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
-  const [experimentPopoverOpen, setExperimentPopoverOpen] = useState(false);
+  const [actionsOpen, setActionsOpen] = useState(false);
   const [quickCreating, setQuickCreating] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
 
@@ -318,6 +321,7 @@ export function MainLayout({
             onSelectRepo={onSelectRepo}
             onSelectAgent={onSelectAgent}
             onSelectChannel={onSelectChannel}
+            selectedExpId={selectedExpId}
           />
         </aside>
         <main className="flex-1 min-w-0 flex flex-col h-full bg-background">
@@ -325,13 +329,48 @@ export function MainLayout({
             <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
               <div className="flex gap-1">
                 {route.page === "laboratory" ? (
-                  <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                      <path d="M4.5 3h15" />
-                      <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
-                    </svg>
-                    {l.tabHistory}
-                  </span>
+                  selectedExpId ? (
+                    ((["single", "multiNoLeader", "multiWithLeader"] as const).map((vKey) => {
+                      const label =
+                        vKey === "single"
+                          ? "Baseline (Un Agente)"
+                          : vKey === "multiNoLeader"
+                          ? "Colaboración Horizontal"
+                          : "Colaboración Jerárquica";
+                      const isActive = activeVariantTab === vKey;
+                      const activeExp = experiments.find((e) => e.id === selectedExpId);
+                      const runData = activeExp?.variants?.[vKey];
+                      const hasResult = !!runData?.result;
+                      const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
+
+                      return (
+                        <button
+                          key={vKey}
+                          onClick={() => setActiveVariantTab?.(vKey)}
+                          className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                            isActive
+                              ? "text-primary border-primary font-semibold"
+                              : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                          }`}
+                        >
+                          {label}
+                          {isRunning && (
+                            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                          )}
+                          {hasResult && (
+                            <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
+                          )}
+                        </button>
+                      );
+                    }))
+                  ) : (
+                    <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                      </svg>
+                      Generador IA
+                    </span>
+                  )
                 ) : (
                   contextTabs.map((tab) => {
                     const isActive = route.page === tab.id;
@@ -358,29 +397,86 @@ export function MainLayout({
               {/* Botón de sesiones o experimentos pegado a la derecha en la barra de pestañas */}
               <div className="relative py-1 flex items-center gap-2">
                 {route.page === "laboratory" ? (
-                  <>
-                    <button
-                      onClick={() => setExperimentPopoverOpen((p) => !p)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
-                      title="Ver experimentos"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M4.5 3h15" />
-                        <path d="M6 3v6l6 9h-3.5a1 1 0 0 0 0 2h11a1 1 0 0 0 0-2H16l-6-9V3" />
-                      </svg>
-                      <span>Experimentos</span>
-                    </button>
-                    <ExperimentPopover
-                      isOpen={experimentPopoverOpen}
-                      onClose={() => setExperimentPopoverOpen(false)}
-                      experiments={experiments}
-                      selectedExpId={selectedExpId}
-                      onSelectExp={onSelectExp || (() => {})}
-                      onCreateExperiment={onCreateExperiment || (() => {})}
-                      onDeleteExperiment={onDeleteExperiment || (() => {})}
-                      loading={loadingExps}
-                    />
-                  </>
+                  selectedExpId ? (
+                    <>
+                      <button
+                        onClick={() => setActionsOpen((p) => !p)}
+                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
+                        title="Opciones del Experimento"
+                      >
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                          <circle cx="12" cy="12" r="1.5" />
+                          <circle cx="12" cy="5" r="1.5" />
+                          <circle cx="12" cy="19" r="1.5" />
+                        </svg>
+                        <span>Opciones</span>
+                      </button>
+                      
+                      {actionsOpen && (
+                        <>
+                          <div className="fixed inset-0 z-45 bg-transparent" onClick={() => setActionsOpen(false)} />
+                          <div className="absolute right-0 top-full mt-2 w-40 bg-card border border-input rounded-xl shadow-2xl flex flex-col z-50 py-1 animate-scale-in text-left">
+                            {/* Run/Stop */}
+                            {experiments.find((e) => e.id === selectedExpId)?.status === "running" ? (
+                              <button
+                                onClick={() => {
+                                  setActionsOpen(false);
+                                  onStopExperiment?.(selectedExpId);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                </svg>
+                                Detener
+                              </button>
+                            ) : (
+                              <button
+                                onClick={() => {
+                                  setActionsOpen(false);
+                                  onRunExperiment?.(selectedExpId);
+                                }}
+                                className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                              >
+                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" className="text-primary">
+                                  <path d="M8 5v14l11-7z" />
+                                </svg>
+                                Ejecutar
+                              </button>
+                            )}
+                            
+                            {/* Edit */}
+                            <button
+                              onClick={() => {
+                                  setActionsOpen(false);
+                                  onEditExperiment?.(selectedExpId);
+                                }}
+                              className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                            >
+                              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-blue-400">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                              </svg>
+                              Editar
+                            </button>
+                            
+                            {/* Delete */}
+                            <button
+                              onClick={() => {
+                                  setActionsOpen(false);
+                                  onDeleteExperiment?.(selectedExpId);
+                                }}
+                              className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                            >
+                              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                              Eliminar
+                            </button>
+                          </div>
+                        </>
+                      )}
+                    </>
+                  ) : null
                 ) : (
                   <>
                     <button

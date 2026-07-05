@@ -392,6 +392,18 @@ experimentsRouter.delete("/:id", async (c) => {
     } catch {}
   }
 
+  // Cascading delete: destroy all saved sessions associated with these channels
+  try {
+    const sessions = await piSessionManager.listSessions(username);
+    for (const s of sessions) {
+      if (s.channelId && s.channelId.startsWith(`lab_${id}_`)) {
+        await piSessionManager.destroySession(username, s.id);
+      }
+    }
+  } catch (err) {
+    console.error(`[Experiments Router] Failed cascading session deletion for experiment ${id}:`, err);
+  }
+
   await ExperimentStore.deleteExperiment(username, id);
   return c.json({ success: true });
 });
