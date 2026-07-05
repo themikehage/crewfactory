@@ -58,7 +58,23 @@ export class AgentSession {
         description: toolDef.description,
         parameters: toolDef.parameters || toolDef.schema || {},
         execute: async (toolCallId, params, signal) => {
-          return toolDef.execute(params, { signal, toolCallId });
+          const res = await toolDef.execute(params, { signal, toolCallId });
+          if (res && typeof res === "object" && "content" in res && Array.isArray(res.content)) {
+            return res;
+          }
+          if (typeof res === "string") {
+            return {
+              content: [{ type: "text", text: res }],
+              details: { output: res },
+            };
+          }
+          const outputText = res && typeof res === "object" && "output" in res
+            ? String(res.output)
+            : JSON.stringify(res);
+          return {
+            content: [{ type: "text", text: outputText }],
+            details: res,
+          };
         },
       };
       this.allToolsMap.set(toolDef.name, wrappedTool);
