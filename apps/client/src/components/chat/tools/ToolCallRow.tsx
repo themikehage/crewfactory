@@ -8,6 +8,10 @@ import { GrepResult } from "./GrepResult";
 import { BashResult } from "./BashResult";
 import { ApprovalForm } from "./ApprovalForm";
 import { ChartView } from "./ChartView";
+import { DiffApplyCard } from "./ui/DiffApplyCard";
+import { MediaCard } from "./ui/MediaCard";
+import { DynamicFormCard } from "./ui/DynamicFormCard";
+import { AgentConfigCard } from "./ui/AgentConfigCard";
 
 export interface ToolContentBlock {
   type: string;
@@ -117,6 +121,42 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  propose_code_change: {
+    label: "código",
+    colorClass: "text-primary",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M12.316 3.051a1 1 0 01.033 1.413L10.414 6.38a1 1 0 01-1.414 0L7.086 4.466a1 1 0 01.033-1.413 1 1 0 011.413-.033L10 4.586l1.503-1.503a1 1 0 011.413.033zM5.793 6.793L3 9.586V13h3.414l2.793-2.793-2.828-2.828-2.793 2.793-2.828-2.828L5.793 6.793z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  render_media_card: {
+    label: "media",
+    colorClass: "text-accent",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  request_form_input: {
+    label: "formulario",
+    colorClass: "text-warning",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M4 4a2 2 0 012-2h4.586A2 2 0 0112 2.586L15.414 6A2 2 0 0116 7.414V16a2 2 0 01-2 2H6a2 2 0 01-2-2V4zm2 6a1 1 0 011-1h6a1 1 0 110 2H7a1 1 0 01-1-1zm1 3a1 1 0 100 2h6a1 1 0 100-2H7z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  configure_agent_card: {
+    label: "agente",
+    colorClass: "text-accent",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.53 1.53 0 01-2.28 1c-1.37-.83-2.94.73-2.1 2.1a1.53 1.53 0 01-1 2.28c-1.56.38-1.56 2.6 0 2.98a1.53 1.53 0 011 2.28c-.83 1.37.73 2.94 2.1 2.1a1.53 1.53 0 012.28 1c.38 1.56 2.6 1.56 2.98 0a1.53 1.53 0 012.28-1c1.37.83 2.94-.73 2.1-2.1a1.53 1.53 0 011-2.28c1.56-.38 1.56-2.6 0-2.98a1.53 1.53 0 01-1-2.28c.83-1.37-.73-2.94-2.1-2.1a1.53 1.53 0 01-2.28-1zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
   render_chart: {
     label: "gráfico",
     colorClass: "text-accent",
@@ -150,6 +190,10 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
       return cmd.length > 55 ? cmd.slice(0, 55) + "…" : cmd;
     }
     case "request_approval": return (args.title as string) || "Petición de aprobación";
+    case "propose_code_change": return (args.path as string) || "Cambio de código";
+    case "render_media_card": return (args.title as string) || "Multimedia";
+    case "request_form_input": return (args.title as string) || "Formulario";
+    case "configure_agent_card": return "Configuración de agente";
     case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
     default: return JSON.stringify(args).slice(0, 50);
   }
@@ -186,6 +230,10 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
     }
     case "bash": return "done";
     case "request_approval": return text || "esperando...";
+    case "propose_code_change": return text || "esperando...";
+    case "render_media_card": return "renderizado";
+    case "request_form_input": return text || "esperando...";
+    case "configure_agent_card": return text || "esperando...";
     case "render_chart": return "renderizado";
     default: return "done";
   }
@@ -223,6 +271,40 @@ function ToolBody({
           sessionId={sessionId || null}
         />
       );
+    case "propose_code_change":
+      return (
+        <DiffApplyCard
+          toolCallId={toolCallId || ""}
+          args={args as any}
+          result={result as any}
+          sessionId={sessionId || null}
+        />
+      );
+    case "render_media_card":
+      return (
+        <MediaCard
+          args={args as any}
+          sessionId={sessionId || null}
+        />
+      );
+    case "request_form_input":
+      return (
+        <DynamicFormCard
+          toolCallId={toolCallId || ""}
+          args={args as any}
+          result={result as any}
+          sessionId={sessionId || null}
+        />
+      );
+    case "configure_agent_card":
+      return (
+        <AgentConfigCard
+          toolCallId={toolCallId || ""}
+          args={args as any}
+          result={result as any}
+          sessionId={sessionId || null}
+        />
+      );
     case "render_chart":
       return (
         <ChartView
@@ -252,7 +334,14 @@ export function ToolCallRow({
   activeChannelId: _activeChannelId = null,
 }: Props) {
   const [expanded, setExpanded] = useState(
-    toolName === "edit" || toolName === "bash" || toolName === "request_approval" || toolName === "render_chart"
+    toolName === "edit" ||
+    toolName === "bash" ||
+    toolName === "request_approval" ||
+    toolName === "propose_code_change" ||
+    toolName === "render_media_card" ||
+    toolName === "request_form_input" ||
+    toolName === "configure_agent_card" ||
+    toolName === "render_chart"
   );
 
   const meta = TOOL_META[toolName] ?? {
@@ -261,6 +350,7 @@ export function ToolCallRow({
     icon: <span className="w-3 h-3 rounded-full bg-text-secondary/30" />,
   };
 
+  const isInteractive = ["request_approval", "propose_code_change", "render_media_card", "request_form_input", "configure_agent_card", "render_chart"].includes(toolName);
   const running = result === null;
   const hasError = result?.isError ?? false;
   const argSummary = getArgSummary(toolName, args);
@@ -272,7 +362,7 @@ export function ToolCallRow({
     }`}>
       <button
         onClick={() => !running && setExpanded(!expanded)}
-        disabled={running && toolName !== "request_approval"}
+        disabled={running && isInteractive}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-card-hover/40 transition-colors text-left cursor-pointer disabled:cursor-default"
       >
         <span className={`flex-shrink-0 ${meta.colorClass}`}>{meta.icon}</span>
@@ -289,7 +379,7 @@ export function ToolCallRow({
           {running ? (
             <span className="flex items-center gap-1.5 text-[10px] text-warning/70">
               <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-              {toolName === "request_approval" ? "pendiente" : "running"}
+              {isInteractive ? "pendiente" : "running"}
             </span>
           ) : hasError ? (
             <span className="flex items-center gap-1.5 text-[10px] text-destructive">
@@ -318,7 +408,7 @@ export function ToolCallRow({
         </div>
       </button>
 
-      {expanded && (result || toolName === "request_approval" || toolName === "render_chart") && (
+      {expanded && (result || isInteractive) && (
         <div className="px-3 pb-3 pt-1 border-t border-input/40">
           <ToolBody
             toolName={toolName}

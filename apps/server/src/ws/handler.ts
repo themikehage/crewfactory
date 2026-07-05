@@ -427,8 +427,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   if (data.type === "ui_action") {
     const componentId = data.componentId as string;
     const action = data.action as string;
+    const payload = data.payload as Record<string, any> | undefined;
     if (componentId && action) {
-      const resolved = uiApprovalRegistry.resolve(componentId, action);
+      const resolved = uiApprovalRegistry.resolve(componentId, { action, payload });
       if (resolved) {
         safeSend(ws, JSON.stringify({ type: "ui_action_acknowledged", componentId }));
       } else {

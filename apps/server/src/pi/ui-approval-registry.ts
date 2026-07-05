@@ -1,21 +1,29 @@
+type PendingApprovalValue = {
+  action: string;
+  payload?: Record<string, any>;
+};
+
 type PendingApproval = {
-  resolve: (value: string) => void;
+  resolve: (value: PendingApprovalValue) => void;
   reject: (reason: any) => void;
 };
 
 class UiApprovalRegistry {
   private pending = new Map<string, PendingApproval>();
 
-  register(toolCallId: string): Promise<string> {
-    return new Promise<string>((resolve, reject) => {
+  register(toolCallId: string): Promise<PendingApprovalValue> {
+    return new Promise<PendingApprovalValue>((resolve, reject) => {
       this.pending.set(toolCallId, { resolve, reject });
     });
   }
 
-  resolve(toolCallId: string, result: string): boolean {
+  resolve(toolCallId: string, result: string | PendingApprovalValue): boolean {
     const entry = this.pending.get(toolCallId);
     if (entry) {
-      entry.resolve(result);
+      const resolvedValue: PendingApprovalValue = typeof result === "string"
+        ? { action: result }
+        : result;
+      entry.resolve(resolvedValue);
       this.pending.delete(toolCallId);
       return true;
     }

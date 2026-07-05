@@ -12,8 +12,7 @@ import { join, resolve } from "node:path";
 import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
-import { ensureWorkspaceSubdirs } from "../pi/session-manager";
-import { uiTools } from "../pi/ui-tools";
+import { createUiTools } from "../pi/ui-tools";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -62,7 +61,11 @@ export async function createAgentServer(definition: AgentDefinition, username: s
       `\n\nInteractive UI Components (AG-UI Protocol):\n` +
       `You have native interactive UI tools. Prefer using them over custom scripts or general output formats when suitable:\n` +
       `- render_chart: Use this tool to display bar, line, area, or pie charts to visualize quantitative data, metrics, or analytical trends. Avoid writing Python/matplotlib scripts or generating image files for charts if they can be represented using this tool.\n` +
-      `- request_approval: Before executing any critical, destructive, or potentially dangerous actions (such as running build/deploy scripts, deleting files, or executing system commands via bash), you MUST call this tool to request explicit user confirmation.\n`
+      `- request_approval: Before executing any critical, destructive, or potentially dangerous actions (such as running build/deploy scripts, deleting files, or executing system commands via bash), you MUST call this tool to request explicit user confirmation.\n` +
+      `- propose_code_change: When proposing modifications or creations of files, call this tool to present a visual diff to the user for confirmation instead of writing directly to the filesystem or outputting block patches.\n` +
+      `- render_media_card: When generating images, mockups, or UI visuals, use this tool to render them in the chat. It provides quick actions (regenerate, variations) for the user.\n` +
+      `- request_form_input: Use this tool to request credentials, configurations, keys, or any structured inputs from the user securely.\n` +
+      `- configure_agent_card: When showing configuration options for another agent, call this tool to let the user review and override settings dynamically.\n`
     ],
   });
   await resourceLoader.reload();
@@ -84,17 +87,24 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
   const customBashTool = createBashToolDefinition(workspaceDir);
 
+  const uiTools = createUiTools(workspaceDir);
   const { session } = await createAgentSession({
     cwd: workspaceDir,
     sessionManager,
     authStorage,
     modelRegistry,
     resourceLoader,
+    customTools: [customBashTool as any, ...uiTools as any],
   });
   
   session.setActiveToolsByName([
     "read", "write", "edit", "bash", "grep", "find", "ls",
-    "request_approval", "render_chart"
+    "request_approval",
+    "propose_code_change",
+    "render_media_card",
+    "request_form_input",
+    "configure_agent_card",
+    "render_chart"
   ]);
 
   const available = modelRegistry.getAvailable();
