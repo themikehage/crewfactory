@@ -401,7 +401,7 @@ function AgentTurn({
                   {msg.usage && (
                     <>
                       <span>• tokens: <span className="text-muted-foreground">{msg.usage.totalTokens ?? (msg.usage.input + msg.usage.output)}</span></span>
-                      {msg.usage.cost?.total !== undefined && (
+                      {typeof msg.usage.cost?.total === "number" && (
                         <span>• cost: <span className="text-muted-foreground">${msg.usage.cost.total.toFixed(6)}</span></span>
                       )}
                     </>

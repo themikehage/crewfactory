@@ -197,8 +197,20 @@ export class AgentSession {
           if (evt.type === "agent_start") {
             this.emit({ type: "agent_start" });
           } else if (evt.type === "agent_end") {
-            // Persistir los mensajes de salida al finalizar el loop
+            // Persistir los mensajes de salida al finalizar el loop y sanitizar costos
             for (const msg of evt.messages) {
+              if (msg.role === "assistant" && msg.usage) {
+                if (!msg.usage.cost) {
+                  msg.usage.cost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
+                } else {
+                  const cost = msg.usage.cost;
+                  cost.input = cost.input ?? 0;
+                  cost.output = cost.output ?? 0;
+                  cost.cacheRead = cost.cacheRead ?? 0;
+                  cost.cacheWrite = cost.cacheWrite ?? 0;
+                  cost.total = cost.total ?? 0;
+                }
+              }
               if (msg.role === "assistant" || msg.role === "toolResult") {
                 this.sessionManager.appendMessage(msg);
               }
