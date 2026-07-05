@@ -96,7 +96,7 @@
 
 ### AG-UI Protocol & Interactive Agent Components
 - **Generative UI Pipeline:** Bridges agent-to-frontend execution via custom tool call interceptions, enabling rich components to render directly in the message stream.
-- **Interactive Approvals:** The `request_approval` tool suspends agent backend execution on critical tasks, rendering a warning card with custom buttons ("Confirmar" / "Cancelar") and markdown tech details. Settled reactively via WebSocket `ui_action`.
+- **Interactive Approvals:** The `request_approval` tool suspends agent backend execution on critical tasks, rendering a warning card with a premium animated layout (custom buttons, severity indicators, pulsing active dot, and fluid Framer Motion transitions) and markdown tech details. Settled reactively via WebSocket `ui_action`.
 - **Inline Rich Charts:** The `render_chart` tool allows agents to display responsive line, bar, pie, and area charts using Recharts, integrated with Tailwind CSS v4 dark tokens.
 - **Natural Session Persistency:** Interactive components are mapped natively as standard agent tool calls/results, meaning they survive server reboots and restore their state upon session reopening.
 - **Robust Multi-File Creation:** The `propose_code_change` tool recursively creates parent directories if they do not exist before writing proposed content, preventing ENOENT failures on new directories.
