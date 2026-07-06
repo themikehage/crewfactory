@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./EnvVarsTab.literals";
+import { Button } from "@/components/ui/Button";
 
 interface EnvVar {
   key: string;
@@ -203,17 +204,16 @@ const l = useLiterals(u);
             {isDevView ? "{l.standardView}" : "{l.developerView}"}
           </button>
           {!isDevView && (
-            <button
+            <Button
               onClick={() => {
                 setIsAddingEnv(true);
                 setNewEnvKey("");
                 setNewEnvVal("");
                 setEnvError("");
               }}
-              className="text-xs bg-primary text-background font-semibold px-3 py-1.5 rounded-lg hover:opacity-90 transition-opacity flex-shrink-0 cursor-pointer"
             >
               Add Variable
-            </button>
+            </Button>
           )}
         </div>
       </div>
@@ -261,24 +261,16 @@ const l = useLiterals(u);
             </div>
           </div>
           <div className="flex justify-end gap-2">
-            <button
-              onClick={() => {
-                setIsDevView(false);
-                setIsRevealed(false);
-                setEnvError("");
-              }}
-              className="px-4 py-2 text-xs text-muted-foreground hover:text-foreground font-semibold transition-colors cursor-pointer"
-            >
+            <Button variant="ghost" onClick={() => {
+              setIsDevView(false);
+              setIsRevealed(false);
+              setEnvError("");
+            }}>
               Cancel
-            </button>
-            <button
-              onClick={handleSaveBulkEnv}
-              disabled={savingEnv}
-              className="px-4 py-2 text-xs bg-primary text-background font-semibold rounded-lg
-                         hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
-            >
+            </Button>
+            <Button onClick={handleSaveBulkEnv} disabled={savingEnv}>
               {savingEnv ? "Saving..." : "{l.saveChanges}"}
-            </button>
+            </Button>
           </div>
         </div>
       ) : envVars.length === 0 ? (
@@ -347,20 +339,15 @@ const l = useLiterals(u);
             </div>
             {envError && <p className="text-destructive text-xs">{envError}</p>}
             <div className="flex gap-2 justify-end">
-              <button
-                onClick={() => setIsAddingEnv(false)}
-                className="px-3 py-2 text-sm text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-              >
+              <Button variant="ghost" onClick={() => setIsAddingEnv(false)}>
                 Cancel
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleSaveEnvVar}
                 disabled={savingEnv || !newEnvKey.trim() || !newEnvVal.trim()}
-                className="px-4 py-2 text-sm bg-primary text-background font-semibold rounded-lg
-                           hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
               >
                 {savingEnv ? "Saving..." : "Save"}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

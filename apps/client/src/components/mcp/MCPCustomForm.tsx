@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import type { McpServerConfig } from "shared";
+import { Button } from "@/components/ui/Button";
 
 interface MCPCustomFormProps {
   initialConfig?: McpServerConfig | null;
@@ -361,33 +362,28 @@ export function MCPCustomForm({
 
       {/* Action Buttons */}
       <div className="flex items-center justify-between pt-4 border-t border-input/10">
-        <button
+        <Button
+          variant="outline"
           type="button"
           onClick={handleTest}
           disabled={testing || (!name.trim()) || (transport === "stdio" && !!argsError) || (transport === "http" && !url.trim())}
-          className="py-1.5 px-3.5 bg-background border border-input hover:bg-card-hover/20 text-foreground font-semibold rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed flex items-center gap-2"
         >
           {testing && (
-            <span className="w-3 h-3 border-2 border-foreground border-t-transparent rounded-full animate-spin inline-block" />
+            <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin inline-block" />
           )}
           Probar Conexión
-        </button>
+        </Button>
 
         <div className="flex items-center gap-3">
-          <button
-            type="button"
-            onClick={onCancel}
-            className="py-1.5 px-3.5 bg-background border border-input hover:bg-card-hover/20 text-muted-foreground hover:text-foreground font-semibold rounded-lg text-xs transition-colors cursor-pointer"
-          >
+          <Button variant="ghost" type="button" onClick={onCancel}>
             Cancelar
-          </button>
-          <button
+          </Button>
+          <Button
             type="submit"
             disabled={(!name.trim()) || (transport === "stdio" && !!argsError) || (transport === "http" && !url.trim())}
-            className="py-1.5 px-4 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-lg text-xs transition-colors cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
           >
             {initialConfig ? "Guardar Cambios" : "Agregar Servidor"}
-          </button>
+          </Button>
         </div>
       </div>
     </form>

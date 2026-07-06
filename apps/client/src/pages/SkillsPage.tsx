@@ -4,6 +4,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/contexts/ToastContext";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SkillsPage.literals";
+import { Button } from "@/components/ui/Button";
 
 interface SkillInfo {
   name: string;
@@ -101,12 +102,9 @@ export function SkillsPage() {
           <div className="max-w-md w-full p-4 bg-card border border-input rounded-lg text-center">
             <p className="text-destructive text-sm font-semibold mb-2">{l.errorTitle}</p>
             <p className="text-muted-foreground text-xs mb-4">{error}</p>
-            <button
-              onClick={fetchSkills}
-              className="px-4 py-2 bg-primary text-background font-semibold rounded-lg hover:opacity-90 transition-opacity text-xs cursor-pointer"
-            >
+            <Button onClick={fetchSkills} size="sm">
               Retry
-            </button>
+            </Button>
           </div>
         </div>
       ) : loading ? (

@@ -2,6 +2,7 @@ import { useState, type FormEvent } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLiterals } from "@/lib";
 import { literals as loginLiterals } from "./LoginPage.literals";
+import { Button } from "@/components/ui/Button";
 
 export function LoginPage() {
   const l = useLiterals(loginLiterals);
@@ -58,14 +59,14 @@ export function LoginPage() {
           {error && (
             <p className="text-destructive text-sm text-center">{error}</p>
           )}
-          <button
+          <Button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-primary text-background font-semibold rounded-lg
-                       hover:opacity-90 disabled:opacity-50 transition-opacity"
+            size="lg"
+            className="w-full"
           >
             {loading ? l.signingIn : l.signIn}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

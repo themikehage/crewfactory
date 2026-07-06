@@ -3,6 +3,7 @@ import type { PreviewState } from "shared";
 import { useAuth } from "@/contexts/AuthContext";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./PreviewPanel.literals";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   activeRepoName: string | null;
@@ -248,16 +249,12 @@ const l = useLiterals(u);
           {statusBadge()}
           {repoName && (
             <>
-              <button
-                onClick={handleBuildNow}
-                disabled={isBuilding}
-                className="px-2 py-1 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer flex items-center gap-1"
-              >
+              <Button size="xs" onClick={handleBuildNow} disabled={isBuilding}>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
                   <polygon points="2,0 10,5 2,10" />
                 </svg>
                 Build Now
-              </button>
+              </Button>
               <button
                 onClick={handleOpenConfig}
                 className="p-1 text-muted-foreground hover:text-foreground hover:bg-card-hover/50 rounded transition-colors cursor-pointer"
@@ -376,21 +373,15 @@ const l = useLiterals(u);
             </p>
             {repoName && (
               <div className="flex gap-2 mt-1">
-                <button
-                  onClick={handleOpenConfig}
-                  className="px-3 py-1.5 text-xs font-medium bg-card-hover text-foreground rounded-md hover:bg-card-hover/70 transition-colors cursor-pointer"
-                >
+                <Button variant="outline" size="xs" onClick={handleOpenConfig}>
                   Configure
-                </button>
-                <button
-                  onClick={handleBuildNow}
-                  className="px-3 py-1.5 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors cursor-pointer flex items-center gap-1"
-                >
+                </Button>
+                <Button size="xs" onClick={handleBuildNow}>
                   <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
                     <polygon points="2,0 10,5 2,10" />
                   </svg>
                   Build Now
-                </button>
+                </Button>
               </div>
             )}
           </div>
@@ -523,19 +514,12 @@ const l = useLiterals(u);
             </div>
 
             <div className="border-t border-input p-4 flex gap-2">
-              <button
-                onClick={() => setConfigOpen(false)}
-                className="flex-1 px-3 py-2 text-xs font-medium bg-card-hover text-foreground rounded-md hover:bg-card-hover/70 transition-colors cursor-pointer"
-              >
+              <Button variant="outline" className="flex-1" onClick={() => setConfigOpen(false)}>
                 Cancel
-              </button>
-              <button
-                onClick={handleSaveConfig}
-                disabled={saving}
-                className="flex-1 px-3 py-2 text-xs font-medium bg-primary text-black rounded-md hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
-              >
+              </Button>
+              <Button className="flex-1" onClick={handleSaveConfig} disabled={saving}>
                 {saving ? "Saving..." : "Save"}
-              </button>
+              </Button>
             </div>
           </div>
         </>

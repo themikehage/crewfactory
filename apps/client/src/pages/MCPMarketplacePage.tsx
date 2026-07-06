@@ -6,6 +6,7 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/contexts/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import type { McpServerConfig, McpCatalogItem } from "shared";
+import { Button } from "@/components/ui/Button";
 
 export function MCPMarketplacePage() {
   const { addToast } = useToast();
@@ -316,19 +317,16 @@ export function MCPMarketplacePage() {
           </button>
         </div>
         {activeTab === "custom" && !isFormOpen && (
-          <button
-            onClick={() => {
-              setEditingServer(null);
-              setIsFormOpen(true);
-            }}
-            className="py-1.5 px-3 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-lg text-xs transition-colors flex items-center gap-1.5 cursor-pointer"
-          >
+          <Button onClick={() => {
+            setEditingServer(null);
+            setIsFormOpen(true);
+          }}>
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
               <line x1="12" y1="5" x2="12" y2="19" />
               <line x1="5" y1="12" x2="19" y2="12" />
             </svg>
             Agregar Servidor Custom
-          </button>
+          </Button>
         )}
       </div>
 
@@ -467,15 +465,14 @@ export function MCPMarketplacePage() {
                         Crea integraciones MCP locales ejecutando scripts de node/python, o apunta a microservicios externos compatibles con el protocolo.
                       </p>
                     </div>
-                    <button
+                    <Button
                       onClick={() => {
                         setEditingServer(null);
                         setIsFormOpen(true);
                       }}
-                      className="py-1.5 px-4 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-lg text-xs transition-colors cursor-pointer"
                     >
                       Agregar Servidor Custom
-                    </button>
+                    </Button>
                   </div>
                 ) : (
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

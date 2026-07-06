@@ -2,9 +2,12 @@ import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgents } from "@/hooks/useAgents";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { DEFAULT_AVATARS, DEFAULT_AVATAR_PREFIX, isDefaultAvatar } from "@/lib/defaultAvatars";
 import type { AgentDefinition, AgentInfo } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./AgentsPage.literals";
+import { Button } from "@/components/ui/Button";
 
 const STATUS_COLORS: Record<string, string> = {
   starting: "text-warning bg-warning/10 border-warning/30",
@@ -53,19 +56,12 @@ function AgentCard({
   agent: AgentInfo;
   onDelete: (id: string) => void;
   onEdit: (agent: AgentInfo) => void;
-  onChat: (agent: { id: string; name: string }) => void;
+  onChat: (agent: { id: string; name: string; avatarUrl?: string }) => void;
   onExecutions: (agent: { id: string; name: string }) => void;
 }) {
   const l = useLiterals(u);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-
-  const initials = agent.name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   const executeDelete = async () => {
     setDeleting(true);
@@ -90,20 +86,14 @@ function AgentCard({
       transition={{ duration: 0.2 }}
       className="bg-card border border-input rounded-xl p-4 flex flex-col gap-3 hover:border-primary/20 transition-colors"
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="flex items-center gap-2 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-            {agent.avatarUrl ? (
-              <img src={agent.avatarUrl} alt={agent.name} className="w-full h-full object-cover" />
-            ) : (
-              <span className="text-xs font-bold text-primary">{initials}</span>
-            )}
+        <div className="flex items-start justify-between gap-2">
+          <div className="flex items-center gap-2 min-w-0">
+            <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="md" />
+            <div className="min-w-0">
+              <p className="font-medium text-foreground text-sm truncate">{agent.name}</p>
+              <p className="text-muted-foreground text-xs font-mono truncate">{agent.id}</p>
+            </div>
           </div>
-          <div className="min-w-0">
-            <p className="font-medium text-foreground text-sm truncate">{agent.name}</p>
-            <p className="text-muted-foreground text-xs font-mono truncate">{agent.id}</p>
-          </div>
-        </div>
         <span
           className={`text-xs font-medium px-2 py-0.5 rounded-full border flex-shrink-0 ${
             STATUS_COLORS[agent.status] ?? STATUS_COLORS.stopped
@@ -132,7 +122,7 @@ function AgentCard({
 
       <div className="flex items-center gap-2 mt-1">
         <button
-          onClick={() => onChat({ id: agent.id, name: agent.name })}
+          onClick={() => onChat({ id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl })}
           disabled={agent.status === "stopped" || agent.status === "error"}
           className="flex-1 py-1.5 px-2 text-[11px] font-medium bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
         >
@@ -192,6 +182,7 @@ function RegisterModal({
   const [error, setError] = useState<string | null>(null);
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const [selectedDefaultAvatar, setSelectedDefaultAvatar] = useState<string | null>(null);
 
   useEffect(() => {
     if (agent) {
@@ -206,7 +197,11 @@ function RegisterModal({
             if (data.definition) {
               setForm(data.definition);
               setSkillsInput(data.definition.skills?.join(", ") || "");
-              setAvatarPreview(data.definition.avatarUrl || null);
+              const avUrl = data.definition.avatarUrl || null;
+              setAvatarPreview(avUrl);
+              if (isDefaultAvatar(avUrl)) {
+                setSelectedDefaultAvatar(avUrl!.slice(DEFAULT_AVATAR_PREFIX.length));
+              }
             }
           }
         } catch (err) {
@@ -220,6 +215,7 @@ function RegisterModal({
   const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setAvatarFile(file);
+    setSelectedDefaultAvatar(null);
     if (file) {
       setAvatarPreview(URL.createObjectURL(file));
     } else if (agent?.avatarUrl) {
@@ -227,6 +223,18 @@ function RegisterModal({
     } else {
       setAvatarPreview(null);
     }
+  };
+
+  const handleSelectDefaultAvatar = (avatarId: string) => {
+    setSelectedDefaultAvatar(avatarId);
+    setAvatarFile(null);
+    setAvatarPreview(DEFAULT_AVATAR_PREFIX + avatarId);
+  };
+
+  const handleClearAvatar = () => {
+    setSelectedDefaultAvatar(null);
+    setAvatarFile(null);
+    setAvatarPreview(null);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -245,11 +253,19 @@ function RegisterModal({
           : undefined,
         model: form.model?.trim() || undefined,
         port: form.port || undefined,
+        avatarUrl: selectedDefaultAvatar
+          ? DEFAULT_AVATAR_PREFIX + selectedDefaultAvatar
+          : avatarPreview && !avatarPreview.startsWith("blob:") && !isDefaultAvatar(avatarPreview)
+            ? avatarPreview
+            : undefined,
       };
       const result = await onSubmit(def);
       const agentId = agent?.id || (result as AgentInfo)?.id;
       if (avatarFile && agentId && onUploadAvatar) {
         await onUploadAvatar(agentId, avatarFile);
+      }
+      if (!avatarFile && !selectedDefaultAvatar && avatarPreview === null && agent?.id && onDeleteAvatar) {
+        await onDeleteAvatar(agent.id);
       }
       onClose();
     } catch (err: any) {
@@ -292,41 +308,58 @@ function RegisterModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
-          {agent && (
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                {avatarPreview ? (
-                  <img src={avatarPreview} alt="Avatar" className="w-full h-full object-cover" />
-                ) : (
-                  <span className="text-xs font-bold text-primary">{agent.name.slice(0, 2).toUpperCase()}</span>
+          <div className="flex items-center gap-3">
+            <AgentAvatar
+              name={form.name || agent?.name || "Agent"}
+              avatarUrl={avatarPreview}
+              size="lg"
+            />
+            <div className="flex-1">
+              <label className="text-xs font-medium text-muted-foreground block mb-1">Avatar</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={handleAvatarChange}
+                  className="text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-card-hover file:text-foreground hover:file:bg-card-hover/80 file:cursor-pointer"
+                />
+                {avatarPreview && (
+                  <button
+                    type="button"
+                    onClick={handleClearAvatar}
+                    className="text-xs text-destructive hover:underline"
+                  >
+                    Remove
+                  </button>
                 )}
               </div>
-              <div className="flex-1">
-                <label className="text-xs font-medium text-muted-foreground block mb-1">Avatar</label>
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={handleAvatarChange}
-                    className="text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-card-hover file:text-foreground hover:file:bg-card-hover/80 file:cursor-pointer"
-                  />
-                  {agent.avatarUrl && onDeleteAvatar && (
-                    <button
-                      type="button"
-                      onClick={async () => {
-                        await onDeleteAvatar(agent.id);
-                        setAvatarPreview(null);
-                        setAvatarFile(null);
-                      }}
-                      className="text-xs text-destructive hover:underline"
-                    >
-                      Remove
-                    </button>
-                  )}
-                </div>
-              </div>
             </div>
-          )}
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-2">Default Avatars</label>
+            <div className="grid grid-cols-8 gap-1.5">
+              {DEFAULT_AVATARS.map((av) => {
+                const AvComp = av.component;
+                const isSelected = selectedDefaultAvatar === av.id;
+                return (
+                  <button
+                    key={av.id}
+                    type="button"
+                    onClick={() => handleSelectDefaultAvatar(av.id)}
+                    className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
+                      isSelected
+                        ? "border-primary scale-110"
+                        : "border-transparent hover:border-primary/40"
+                    }`}
+                    title={av.label}
+                  >
+                    <AvComp width={32} height={32} viewBox="0 0 40 40" />
+                  </button>
+                );
+              })}
+            </div>
+          </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground block mb-1">{l.idField}</label>
@@ -422,20 +455,12 @@ function RegisterModal({
           )}
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 text-sm font-medium text-muted-foreground border border-input rounded-lg hover:bg-card-hover transition-colors"
-            >
+            <Button variant="outline" type="button" onClick={onClose} className="flex-1">
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting}
-              className="flex-1 py-2 text-sm font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={submitting} className="flex-1">
               {submitting ? l.saving : agent ? l.saveChanges : l.registerAgent}
-            </button>
+            </Button>
           </div>
         </form>
       </motion.div>
@@ -444,7 +469,7 @@ function RegisterModal({
 }
 
 interface AgentsPageProps {
-  onSelectAgent?: (agent: { id: string; name: string }) => void;
+  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string }) => void;
 }
 
 export function AgentsPage({ onSelectAgent }: AgentsPageProps) {

@@ -1,5 +1,6 @@
 import { type FC } from "react";
 import { Modal } from "./Modal";
+import { Button } from "./Button";
 
 interface Props {
   open: boolean;
@@ -36,32 +37,20 @@ export const ConfirmModal: FC<Props> = ({
       }
       footer={
         <>
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={loading}
-            className="px-4 py-2 border border-input rounded-lg text-xs font-semibold hover:bg-card-hover text-foreground transition-colors cursor-pointer disabled:opacity-50"
-          >
+          <Button variant="outline" onClick={onClose} disabled={loading}>
             {cancelLabel}
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
+            variant={destructive ? "destructive" : "solid"}
             onClick={onConfirm}
             disabled={loading}
-            className={`px-4 py-2 rounded-lg text-xs font-semibold transition-opacity cursor-pointer disabled:opacity-50 ${
-              destructive
-                ? "bg-destructive text-foreground hover:opacity-90"
-                : "bg-primary text-background hover:opacity-90"
-            }`}
           >
             {loading ? (
-              <span className="flex items-center gap-2">
-                <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
-              </span>
+              <span className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
             ) : (
               confirmLabel
             )}
-          </button>
+          </Button>
         </>
       }
     />

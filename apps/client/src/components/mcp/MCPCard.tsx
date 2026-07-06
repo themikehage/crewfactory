@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { McpServerConfig } from "shared";
+import { Button } from "@/components/ui/Button";
 
 interface MCPCardProps {
   server: McpServerConfig;
@@ -152,14 +153,11 @@ export function MCPCard({
 
       {/* Footer Actions */}
       <div className="p-4 bg-background/30 border-t border-input/10 flex items-center justify-between gap-2.5">
-        {!server.installed ? (
-          <button
-            onClick={onInstall}
-            className="w-full py-1.5 px-3 bg-primary hover:bg-primary/95 text-primary-foreground font-semibold rounded-lg text-xs transition-colors cursor-pointer text-center"
-          >
-            Instalar
-          </button>
-        ) : (
+      {!server.installed ? (
+        <Button onClick={onInstall} className="w-full">
+          Instalar
+        </Button>
+      ) : (
           <>
             {/* Toggle Enable State */}
             <div className="flex items-center gap-2 select-none">
@@ -180,30 +178,18 @@ export function MCPCard({
               {server.enabled && (
                 <>
                   {onTest && (
-                    <button
-                      onClick={onTest}
-                      className="px-2.5 py-1 bg-primary/10 hover:bg-primary/20 text-primary font-semibold rounded-md text-xs border border-primary/20 transition-colors cursor-pointer"
-                      title="Validar herramientas en caliente (ping JSON-RPC)"
-                    >
+                    <Button variant="outline" size="xs" onClick={onTest} title="Validar herramientas en caliente (ping JSON-RPC)">
                       Validar
-                    </button>
+                    </Button>
                   )}
                   {server.status === "connected" ? (
-                    <button
-                      onClick={onDisconnect}
-                      className="px-2.5 py-1 bg-muted/20 hover:bg-muted/30 text-muted-foreground font-medium rounded-md text-xs transition-colors cursor-pointer"
-                      title="Desconectar"
-                    >
+                    <Button variant="ghost" size="xs" onClick={onDisconnect} title="Desconectar">
                       Desconectar
-                    </button>
+                    </Button>
                   ) : (
-                    <button
-                      onClick={onConnect}
-                      className="px-2.5 py-1 bg-accent/10 hover:bg-accent/25 text-accent font-semibold rounded-md text-xs border border-success/20 transition-colors cursor-pointer"
-                      title="Conectar"
-                    >
+                    <Button variant="outline" size="xs" onClick={onConnect} title="Conectar">
                       Conectar
-                    </button>
+                    </Button>
                   )}
                 </>
               )}

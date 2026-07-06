@@ -6,6 +6,7 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "@/pages/LaboratoryPage.literals";
 import type { AgentDefinition, CreateChannel } from "shared";
 import type { Experiment } from "@/types/laboratory";
+import { Button } from "@/components/ui/Button";
 
 interface GeneratedTeam {
   agents: AgentDefinition[];
@@ -450,20 +451,19 @@ export function IaGenerator({ onExperimentCreated }: IaGeneratorProps) {
                 onChange={setSelectedModel}
               />
             </div>
-            <button
+            <Button
               onClick={handleGenerateTeam}
               disabled={generating || !generatorPrompt.trim()}
-              className="w-full sm:w-auto px-4 py-2 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center justify-center gap-2 cursor-pointer"
             >
               {generating ? (
                 <>
-                  <div className="w-3.5 h-3.5 border-2 border-bg border-t-transparent rounded-full animate-spin" />
+                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   <span>Generando...</span>
                 </>
               ) : (
                 <span>Generar con IA</span>
               )}
-            </button>
+            </Button>
           </div>
         </div>
       </div>
@@ -478,27 +478,22 @@ export function IaGenerator({ onExperimentCreated }: IaGeneratorProps) {
           <div className="flex justify-between items-center">
             <h2 className="text-sm font-bold text-foreground tracking-wide uppercase">Propuesta Generada (Editable)</h2>
             <div className="flex gap-2">
-              <button
-                onClick={handleSaveExperimentDirect}
-                disabled={editableTeam.agents.length < 3}
-                className="px-4 py-1.5 bg-card hover:bg-card-hover border border-input text-foreground disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all cursor-pointer"
-              >
+              <Button variant="outline" onClick={handleSaveExperimentDirect} disabled={editableTeam.agents.length < 3}>
                 Crear Experimento
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={handleInstantiateTeam}
                 disabled={instantiating || editableTeam.agents.length < 3}
-                className="px-4 py-1.5 bg-primary text-background hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl text-xs font-bold transition-all shadow flex items-center gap-2 cursor-pointer"
               >
                 {instantiating ? (
                   <>
-                    <div className="w-3.5 h-3.5 border-2 border-bg border-t-transparent rounded-full animate-spin" />
+                    <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
                     <span>Instanciando...</span>
                   </>
                 ) : (
                   <span>Instanciar Equipo Completo</span>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
 

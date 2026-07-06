@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useToast } from "@/contexts/ToastContext";
 import { useLiterals } from "@/lib";
 import { literals as dashboardLiterals } from "./DashboardPage.literals";
+import { Button } from "@/components/ui/Button";
 
 interface RepoItem {
   id?: string;
@@ -321,25 +322,17 @@ export function DashboardPage({ onSelectRepo }: Props) {
               )}
 
               <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowModal(false);
-                    setRepoName("");
-                    setCloneUrl("");
-                    setSubmitError(null);
-                  }}
-                  className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
-                >
+                <Button variant="outline" onClick={() => {
+                  setShowModal(false);
+                  setRepoName("");
+                  setCloneUrl("");
+                  setSubmitError(null);
+                }}>
                   {l.cancel}
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-2 bg-primary hover:opacity-90 disabled:opacity-50 text-background rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
-                >
+                </Button>
+                <Button type="submit" disabled={submitting}>
                   {submitting ? "{l.creating}" : "{l.createProject}"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -365,22 +358,15 @@ export function DashboardPage({ onSelectRepo }: Props) {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setRenameRepo(null);
-                    setNewName("");
-                  }}
-                  className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
-                >
+                <Button variant="outline" onClick={() => {
+                  setRenameRepo(null);
+                  setNewName("");
+                }}>
 {l.cancel}
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-primary hover:opacity-90 text-background rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
-                >
+                </Button>
+                <Button type="submit">
                   {l.save}
-                </button>
+                </Button>
               </div>
             </form>
           </div>
@@ -410,23 +396,19 @@ export function DashboardPage({ onSelectRepo }: Props) {
               </div>
 
               <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setDeleteRepo(null);
-                    setConfirmDeleteName("");
-                  }}
-                  className="px-4 py-2 border border-input rounded-lg text-sm hover:bg-card-hover text-foreground transition-colors cursor-pointer"
-                >
+                <Button variant="outline" onClick={() => {
+                  setDeleteRepo(null);
+                  setConfirmDeleteName("");
+                }}>
 {l.cancel}
-                </button>
-                <button
+                </Button>
+                <Button
+                  variant="destructive"
                   type="submit"
                   disabled={confirmDeleteName !== deleteRepo.name || deleting}
-                  className="px-4 py-2 bg-destructive hover:opacity-90 disabled:opacity-30 disabled:cursor-not-allowed text-foreground rounded-lg text-sm font-semibold transition-opacity cursor-pointer"
                 >
                   {deleting ? "{l.deleting}" : "{l.deleteAnyway}"}
-                </button>
+                </Button>
               </div>
             </form>
           </div>

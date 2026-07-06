@@ -11,6 +11,7 @@ import { ChartView } from "./ChartView";
 import { AskQuestionForm } from "./AskQuestionForm";
 import { ImageGrid } from "../ImageGrid";
 import { HtmlPreview } from "../HtmlPreview";
+import { ShareFileCard } from "./ShareFileCard";
 
 export interface ToolContentBlock {
   type: string;
@@ -159,6 +160,15 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  refresh_ui: {
+    label: "refrescar",
+    colorClass: "text-primary",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
+        <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
 };
 
 function getArgSummary(toolName: string, args: Record<string, unknown>): string {
@@ -186,6 +196,7 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
     case "render_images": return Array.isArray(args.images) ? `${args.images.length} imágenes` : "Imágenes";
     case "render_html": return (args.title as string) || "HTML document";
     case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
+    case "refresh_ui": return `UI refresh: ${String(args.entityType)}`;
     default: return JSON.stringify(args).slice(0, 50);
   }
 }
@@ -225,6 +236,8 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
     case "render_images": return "renderizado";
     case "render_html": return "renderizado";
     case "render_chart": return "renderizado";
+    case "share_file": return "compartido";
+    case "refresh_ui": return "refrescado";
     default: return "done";
   }
 }
@@ -302,6 +315,24 @@ function ToolBody({
           config={args.config as any}
         />
       );
+    case "share_file":
+      return (
+        <ShareFileCard
+          filePath={(args.filePath as string) || ""}
+          title={args.title as string | undefined}
+          sessionId={sessionId || null}
+          activeRepoName={activeRepoName}
+          activeAgentId={activeAgentId}
+          activeChannelId={activeChannelId}
+        />
+      );
+    case "refresh_ui":
+      return (
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-bg border border-primary/30 text-primary-foreground text-xs font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span>Secciones del espacio de trabajo refrescadas: {String(args.entityType)}</span>
+        </div>
+      );
     default:
       return (
         <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
@@ -333,7 +364,8 @@ export function ToolCallRow({
       toolName === "ask_question" ||
       toolName === "render_images" ||
       toolName === "render_html" ||
-      toolName === "render_chart"
+      toolName === "render_chart" ||
+      toolName === "share_file"
     )
   );
 

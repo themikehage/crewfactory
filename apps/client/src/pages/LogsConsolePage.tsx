@@ -3,6 +3,7 @@ import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./LogsConsolePage.literals";
 import type { GlobalLogEvent } from "shared";
+import { Button } from "@/components/ui/Button";
 
 interface SessionItem {
   id: string;
@@ -479,12 +480,9 @@ export function LogsConsolePage({
                       </div>
 
                       {/* Botón de abrir chat */}
-                      <button
-                        onClick={() => handleOpenSession(session)}
-                        className="py-1 px-3 text-xs font-semibold bg-primary text-background hover:opacity-90 rounded-lg transition-opacity cursor-pointer shadow-sm shrink-0"
-                      >
+                      <Button size="sm" onClick={() => handleOpenSession(session)}>
                         Abrir Chat
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 );

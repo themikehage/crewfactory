@@ -7,6 +7,7 @@ import { ChannelContextModal } from "@/components/channels/ChannelContextModal";
 import type { Channel, ChannelMember, AgentInfo, AddMember, UpdateMember, CreateChannel, ChannelContextItem } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChannelsPage.literals";
+import { Button } from "@/components/ui/Button";
 
 function CreateChannelModal({
   onClose,
@@ -87,20 +88,12 @@ function CreateChannelModal({
           )}
 
           <div className="flex gap-2 pt-1">
-            <button
-              type="button"
-              onClick={onClose}
-              className="flex-1 py-2 text-sm font-medium text-muted-foreground border border-input rounded-lg hover:bg-card-hover transition-colors"
-            >
+            <Button variant="outline" type="button" onClick={onClose} className="flex-1">
               Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={submitting || !name.trim()}
-              className="flex-1 py-2 text-sm font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50"
-            >
+            </Button>
+            <Button type="submit" disabled={submitting || !name.trim()} className="flex-1">
               {submitting ? l.creating : l.createChannel}
-            </button>
+            </Button>
           </div>
         </form>
       </motion.div>
