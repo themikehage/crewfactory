@@ -51,17 +51,7 @@ export const MCP_CATALOG: McpCatalogItem[] = [
     homepage: "https://github.com/modelcontextprotocol/servers",
     isHttp: false,
   },
-  {
-    id: "puppeteer",
-    name: "Puppeteer Browser",
-    description: "Navegación web autónoma, capturas de pantalla y extracción de texto de páginas web",
-    category: "Web & Browser",
-    icon: "🌐",
-    command: "bunx",
-    args: ["@modelcontextprotocol/server-puppeteer"],
-    homepage: "https://github.com/modelcontextprotocol/servers",
-    isHttp: false,
-  },
+
   {
     id: "memory",
     name: "Memory Graph",
@@ -178,20 +168,7 @@ export const MCP_CATALOG: McpCatalogItem[] = [
     homepage: "https://github.com/modelcontextprotocol/servers",
     isHttp: false,
   },
-  {
-    id: "figma",
-    name: "Figma",
-    description: "Inspección de archivos de diseño, comentarios, nodos e imágenes en Figma",
-    category: "Productivity",
-    icon: "🎨",
-    command: "bunx",
-    args: ["@modelcontextprotocol/server-figma"],
-    env: {
-      FIGMA_PERSONAL_ACCESS_TOKEN: "",
-    },
-    homepage: "https://github.com/modelcontextprotocol/servers",
-    isHttp: false,
-  },
+
 ];
 
 export class McpRegistry {
