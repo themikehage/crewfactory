@@ -211,7 +211,7 @@ const l = useLiterals(u);
                               <line x1="12" y1="16" x2="12" y2="12"></line>
                               <line x1="12" y1="8" x2="12.01" y2="8"></line>
                             </svg>
-                            Info
+                            {l.infoBtn}
                           </button>
                           <button
                             onClick={() => handleRefreshModels(p.id)}
@@ -225,7 +225,7 @@ const l = useLiterals(u);
                                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.57-8.38l5.67-5.67"></path>
                               </svg>
                             )}
-                            Sincronizar
+                            {l.syncBtn}
                           </button>
                           <button
                             onClick={() => handleRemoveKey(p.id)}
@@ -313,10 +313,10 @@ const l = useLiterals(u);
 
             <div className="space-y-1 pr-8">
               <h3 className="text-foreground font-semibold text-lg">
-                Modelos de {infoProvider.name}
+                {l.modalTitle.replace("{provider}", infoProvider.name)}
               </h3>
               <p className="text-muted-foreground text-xs">
-                Catálogo de modelos disponibles y capacidades de ejecución configuradas en CrewFactory.
+                {l.modalSubtitle}
               </p>
             </div>
 
@@ -324,10 +324,10 @@ const l = useLiterals(u);
               <table className="w-full text-left border-collapse text-xs">
                 <thead>
                   <tr className="border-b border-card-hover bg-card text-muted-foreground font-medium">
-                    <th className="p-3">Nombre</th>
-                    <th className="p-3">ID</th>
-                    <th className="p-3 text-center">Contexto</th>
-                    <th className="p-3 text-center">Capacidades</th>
+                    <th className="p-3">{l.thName}</th>
+                    <th className="p-3">{l.thId}</th>
+                    <th className="p-3 text-center">{l.thContext}</th>
+                    <th className="p-3 text-center">{l.thCapabilities}</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-card-hover">
@@ -367,7 +367,7 @@ const l = useLiterals(u);
                 onClick={() => setInfoProvider(null)}
                 className="px-4 py-2 text-sm bg-primary text-background font-semibold rounded-lg hover:opacity-90 transition-opacity cursor-pointer"
               >
-                Cerrar
+                {l.closeBtn}
               </button>
             </div>
           </div>
