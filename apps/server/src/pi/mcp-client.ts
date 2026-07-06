@@ -53,7 +53,7 @@ export class McpClient {
         protocolVersion: "2024-11-05",
         capabilities: {},
         clientInfo: { name: "crewfactory-mcp-client", version: "1.0.0" },
-      });
+      }, 30000);
 
       this.notify("notifications/initialized");
       console.log(`[MCP Stdio] Started server: ${this.name}`);
@@ -95,7 +95,7 @@ export class McpClient {
         protocolVersion: "2024-11-05",
         capabilities: {},
         clientInfo: { name: "crewfactory-mcp-client", version: "1.0.0" },
-      });
+      }, 30000);
 
       this.notify("notifications/initialized");
       console.log(`[MCP HTTP] Connected to server: ${this.name}`);
@@ -232,7 +232,7 @@ export class McpClient {
     }
   }
 
-  async request(method: string, params: any = {}, timeoutMs = 5000): Promise<any> {
+  async request(method: string, params: any = {}, timeoutMs = 15000): Promise<any> {
     const id = this.nextId++;
     const payload = JSON.stringify({ jsonrpc: "2.0", id, method, params });
 

@@ -16,7 +16,7 @@ Este plan describe la solución para optimizar el arranque en frío del servidor
 3. **Mantenimiento del Contexto en el System Prompt:**
    Para que el System Prompt del agente liste las herramientas MCP correctas desde el primer instante sin tener que esperar a que conecten los servidores, se leen los nombres de herramientas desde la caché local en `mcp-servers.json` (que guarda las herramientas que funcionaron en la última ejecución exitosa).
 4. **Control de Tiempos de Espera (Timeouts) en MCP:**
-   Se mantiene el mecanismo de timeout (5 segundos) en `McpClient.request` mediante `Promise.race` para evitar que un subproceso MCP roto o lento cuelgue la cola de tareas en segundo plano.
+   Se implementa un mecanismo de timeout en `McpClient.request` mediante `Promise.race` con un valor por defecto de 15 segundos para peticiones generales, y un valor extendido de 30 segundos para la solicitud de `initialize` durante el arranque. Esto evita que un subproceso MCP roto o lento cuelgue la cola de tareas en segundo plano, pero otorga tiempo suficiente a `bunx` para realizar descargas en frío.
 5. **Sincronización de Rutas HTTP con Carga de Sesiones:**
    Las rutas críticas (`/messages`, `/context`, `/tools`, `/model`, `/navigate`) en `sessions.ts` continúan utilizando `await piSessionManager.getOrCreateSession(...)`. Dado que la creación del objeto de sesión ahora es instantánea (no bloqueada por la red de MCP), el cliente recibe su historial de mensajes de inmediato sin incurrir en timeouts ni condiciones de carrera.
 
