@@ -134,9 +134,9 @@ Actions: ninguna (render-only, no blocking)
 
 | Archivo | Cambio |
 |---|---|
-| `apps/server/src/pi/ui-protocol.ts` | **NUEVO** — tipos, validación Zod, serialización AG-UI |
+| `apps/server/src/core/ui-protocol.ts` | **NUEVO** — tipos, validación Zod, serialización AG-UI |
 | `apps/server/src/ws/handler.ts` | Manejar `ui_action` entrante, reenviar `ui_component` saliente |
-| `apps/server/src/pi/session-manager.ts` | Pasar `ui_action` al agente como mensaje de sistema+usuario |
+| `apps/server/src/core/session-manager.ts` | Pasar `ui_action` al agente como mensaje de sistema+usuario |
 | `apps/client/src/hooks/useWebSocket.ts` | Tipar nuevos eventos `ui_component`, `ui_action` |
 | `apps/client/src/components/chat/MessageList.tsx` | Detectar `componentId` en mensajes, renderizar inline |
 | `apps/client/src/components/chat/UiComponent.tsx` | **NUEVO** — renderer de componentes AG-UI |

@@ -1,12 +1,12 @@
 import { Hono } from "hono";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 
 export const modelsRouter = new Hono();
 
 modelsRouter.get("/", authMiddleware, (c) => {
   const { username } = getAuthPayload(c);
-  const { modelRegistry } = piSessionManager.getUserContext(username);
+  const { modelRegistry } = sessionManager.getUserContext(username);
 
   const available = modelRegistry.getAvailable();
 

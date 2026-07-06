@@ -1,4 +1,4 @@
-import { piSessionManager } from "../pi/session-manager.js";
+import { sessionManager } from "../core/session-manager.js";
 import { eventBroker } from "../lib/event-broker.js";
 import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
 import { join } from "node:path";
@@ -118,11 +118,11 @@ export async function runBaselineAndCompare(
   let baselineError: string | undefined;
 
   const sessionId = `baseline_${runId}`;
-  const session = await piSessionManager.getOrCreateSession(username, sessionId);
+  const session = await sessionManager.getOrCreateSession(username, sessionId);
 
   try {
     if (baselineModelId) {
-      const { modelRegistry } = piSessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.getUserContext(username);
       const available = modelRegistry.getAvailable();
       const found = available.find(
         (m: any) => m.id === baselineModelId || `${m.provider}/${m.id}` === baselineModelId
@@ -175,7 +175,7 @@ export async function runBaselineAndCompare(
   const baselineTokensOut = baselineStats ? baselineStats.tokens.output : 0;
 
   try {
-    await piSessionManager.destroySession(username, sessionId);
+    await sessionManager.destroySession(username, sessionId);
   } catch {}
 
   const channelStats = channelSessionId ? await getChannelSessionStats(username, channelId, channelSessionId) : null;

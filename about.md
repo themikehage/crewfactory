@@ -26,7 +26,7 @@
 
 ### Multimedia Support (Images & Documents)
 - **Hybrid Input Strategy**:
-  - **Images**: converted to base64 on client and sent inline via WebSocket using the pi SDK's native vision parameters (`images?: ImageContent[]`). Image grid in chat supports click-to-expand modal with fullscreen overlay, Escape to close, and authenticated image loading.
+  - **Images**: converted to base64 on client and sent inline via WebSocket using the vendored agent runtime's native vision parameters (`images?: ImageContent[]`). Image grid in chat supports click-to-expand modal with fullscreen overlay, Escape to close, and authenticated image loading.
   - **Documents (PDF, Office, etc.)**: uploaded via Multipart HTTP POST directly to the workspace storage folder (`assets/uploads`), auto-appending workspace paths to the prompt so agents can read them.
 - **Visual Preview Templates (Premium UI)**:
   - **PDFs**: rendered inline via authenticated iframe viewers with "Open in New Tab" controls.

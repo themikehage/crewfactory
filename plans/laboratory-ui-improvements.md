@@ -210,7 +210,7 @@ El unico cambio necesario: `ChannelMessageList` espera `messages: ChannelMessage
 |---------|--------|
 | `apps/server/src/laboratory/agent-generator.ts` | Nuevos metodos `analyzeTaskStream()` y `generateStanceBriefingsStream()` con streaming SSE |
 | `apps/server/src/routes/experiments.ts` | Nuevos endpoints SSE `/analyze/stream` y `/generate-briefings/stream`; reemplazar `fallbackModel` hardcodeado por `modelRegistry.getAvailable()` |
-| `apps/server/src/pi/session-manager.ts` | Exponer helper `getUserDefaultModel(username)` para consultar el modelo del agente global |
+| `apps/server/src/core/session-manager.ts` | Exponer helper `getUserDefaultModel(username)` para consultar el modelo del agente global |
 
 ### Client
 

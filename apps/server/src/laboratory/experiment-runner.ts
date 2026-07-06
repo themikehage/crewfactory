@@ -3,7 +3,7 @@ import { calculateVariantScores } from "./scoring";
 import { LabJudge } from "./judge";
 import { type LabExperiment, type VariantRunResult } from "shared";
 import { channelOrchestrator, channelStore } from "../channels";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";
 import { broadcastToUser } from "../ws/handler";
 import { waitChannelIdle } from "../benchmark/harness";
@@ -252,7 +252,7 @@ export class ExperimentRunner {
       }
 
       // Resolve model: if not configured, fallback to first configured model
-      const { modelRegistry } = piSessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.getUserContext(username);
       const configuredModels = modelRegistry.getAvailable();
       let resolvedModel = ag.model;
       const foundModel = configuredModels.find(m => m.id === ag.model || `${m.provider}/${m.id}` === ag.model);
@@ -292,8 +292,8 @@ export class ExperimentRunner {
       ]);
 
       // Initialize session and save metadata to disk
-      await piSessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
-      piSessionManager.saveSessionMetadata(username, sessionId, {
+      await sessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
+      sessionManager.saveSessionMetadata(username, sessionId, {
         name: `${exp.name} - Baseline`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -431,7 +431,7 @@ export class ExperimentRunner {
 
     // 1. Temporary register agents
     const registeredIds: string[] = [];
-    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const { modelRegistry } = sessionManager.getUserContext(username);
     const configuredModels = modelRegistry.getAvailable();
 
     let rawOutput = "";
@@ -543,8 +543,8 @@ export class ExperimentRunner {
       channelStore.updateMembers(username, channelId, members as any);
 
       // Initialize session and save metadata to disk
-      await piSessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
-      piSessionManager.saveSessionMetadata(username, sessionId, {
+      await sessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
+      sessionManager.saveSessionMetadata(username, sessionId, {
         name: `${exp.name} - ${variantKey === "multiNoLeader" ? "Horizontal" : "Jerárquico"}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

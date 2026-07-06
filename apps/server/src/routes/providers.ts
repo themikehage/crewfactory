@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { SetApiKeySchema } from "shared";
 
 export const providersRouter = new Hono();
@@ -9,7 +9,7 @@ export const providersRouter = new Hono();
 providersRouter.use("/*", authMiddleware);
 
 function buildAuthStatus(
-  authStorage: ReturnType<typeof piSessionManager.getUserContext>["authStorage"],
+  authStorage: ReturnType<typeof sessionManager.getUserContext>["authStorage"],
   provider: string
 ) {
   const base = authStorage.getAuthStatus(provider);
@@ -19,7 +19,7 @@ function buildAuthStatus(
 providersRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
   const { authStorage, modelRegistry } =
-    piSessionManager.getUserContext(username);
+    sessionManager.getUserContext(username);
 
   const models = modelRegistry.getAll();
   const providersMap = new Map<
@@ -60,7 +60,7 @@ providersRouter.get("/", (c) => {
 providersRouter.get("/:id/models", (c) => {
   const providerId = c.req.param("id");
   const { username } = getAuthPayload(c);
-  const { modelRegistry } = piSessionManager.getUserContext(username);
+  const { modelRegistry } = sessionManager.getUserContext(username);
 
   const models = modelRegistry.getAll().filter(
     (m) => (m.provider as string) === providerId
@@ -87,7 +87,7 @@ providersRouter.post(
     const { apiKey } = c.req.valid("json");
     const { username } = getAuthPayload(c);
     const { authStorage, modelRegistry } =
-      piSessionManager.getUserContext(username);
+      sessionManager.getUserContext(username);
 
     authStorage.set(providerId, { type: "api_key", key: apiKey });
     modelRegistry.refresh();
@@ -101,7 +101,7 @@ providersRouter.delete("/:id/key", (c) => {
   const providerId = c.req.param("id");
   const { username } = getAuthPayload(c);
   const { authStorage, modelRegistry } =
-    piSessionManager.getUserContext(username);
+    sessionManager.getUserContext(username);
 
     authStorage.remove(providerId);
     modelRegistry.refresh();
@@ -113,7 +113,7 @@ providersRouter.delete("/:id/key", (c) => {
 providersRouter.post("/:id/refresh", async (c) => {
   const providerId = c.req.param("id");
   const { username } = getAuthPayload(c);
-  const { modelRegistry } = piSessionManager.getUserContext(username);
+  const { modelRegistry } = sessionManager.getUserContext(username);
 
   try {
     await modelRegistry.refreshProviderModels(providerId);

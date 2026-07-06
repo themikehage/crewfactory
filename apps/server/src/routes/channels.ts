@@ -5,7 +5,7 @@ import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { channelStore, channelOrchestrator, TaskLedger } from "../channels";
 import { agentRegistry } from "../agents";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { runBenchmarkSuite } from "../benchmark/harness";
 import { runOptimizationStep } from "../benchmark/optimizer";
 import { runBaselineAndCompare, listBenchmarkRuns, getBenchmarkRun, saveJudgeResult } from "../benchmark/baseline-runner";
@@ -75,10 +75,10 @@ channelsRouter.delete("/:id", async (c) => {
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   // Cascading delete: destroy all chat sessions associated with this channel
-  const sessions = await piSessionManager.listSessions(username).catch(() => []);
+  const sessions = await sessionManager.listSessions(username).catch(() => []);
   for (const s of sessions) {
     if (s.channelId === id) {
-      await piSessionManager.destroySession(username, s.id).catch((err) =>
+      await sessionManager.destroySession(username, s.id).catch((err) =>
         console.error(`[ChannelsRoute] Failed to destroy session ${s.id}:`, err)
       );
     }

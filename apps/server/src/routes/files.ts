@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { resolve, normalize, sep, join, basename, dirname } from "node:path";
 import { existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, rmSync, renameSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 
 export const filesRouter = new Hono();
 
@@ -327,10 +327,10 @@ filesRouter.delete("/workspace-repos/:id", async (c) => {
     }
 
     // Cascading delete: destroy all active chat sessions associated with this repository
-    const sessions = await piSessionManager.listSessions(username);
+    const sessions = await sessionManager.listSessions(username);
     for (const s of sessions) {
       if (s.repoName === id) {
-        await piSessionManager.destroySession(username, s.id);
+        await sessionManager.destroySession(username, s.id);
       }
     }
 

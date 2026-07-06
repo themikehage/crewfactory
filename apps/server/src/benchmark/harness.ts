@@ -1,6 +1,6 @@
 import type { Channel, ChannelMessage } from "shared";
 import { channelOrchestrator, channelStore } from "../channels/index.js";
-import { piSessionManager } from "../pi/session-manager.js";
+import { sessionManager } from "../core/session-manager.js";
 import { computeGlobalScore } from "./scoring.js";
 import { writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
@@ -55,9 +55,9 @@ export async function runConditionA(
   const startTime = Date.now();
   const sessionId = `bench_a_${crypto.randomUUID()}`;
 
-  const session = await piSessionManager.getOrCreateSession(username, sessionId);
+  const session = await sessionManager.getOrCreateSession(username, sessionId);
   if (modelId) {
-    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const { modelRegistry } = sessionManager.getUserContext(username);
     const available = modelRegistry.getAvailable();
     const found = available.find(
       (m) => m.id === modelId || `${m.provider}/${m.id}` === modelId
@@ -99,7 +99,7 @@ ACUERDO ALCANZADO: [scope del proyecto, estimación en fichas, duración en día
   const costEstimate = tokensTotal * 0.000002; // general proxy price
 
   // Clean up baseline session
-  await piSessionManager.destroySession(username, sessionId);
+  await sessionManager.destroySession(username, sessionId);
 
   // Compute metrics
   const { globalScore, metricScores } = await computeGlobalScore(username, rubric, rawOutput, goldAnswer, modelId);
@@ -180,10 +180,10 @@ export async function runConditionB(
 
   // Clean up benchmark sessions to prevent workspace clutter just in case
   try {
-    const sessions = await piSessionManager.listSessions(username);
+    const sessions = await sessionManager.listSessions(username);
     for (const s of sessions) {
       if (s.channelId === channelId) {
-        await piSessionManager.destroySession(username, s.id);
+        await sessionManager.destroySession(username, s.id);
       }
     }
   } catch {}

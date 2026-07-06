@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import { zValidator } from "@hono/zod-validator";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { SetEnvVarSchema } from "shared";
 
 export const envRouter = new Hono();
@@ -11,7 +11,7 @@ envRouter.use("/*", authMiddleware);
 
 envRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
-  const userEnv = piSessionManager.getUserEnv(username);
+  const userEnv = sessionManager.getUserEnv(username);
   const reveal = c.req.query("reveal") === "true";
 
   const envList = Object.entries(userEnv).map(([key, value]) => ({
@@ -29,7 +29,7 @@ envRouter.post(
     const { key, value } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    piSessionManager.setUserEnv(username, key.trim(), value);
+    sessionManager.setUserEnv(username, key.trim(), value);
 
     return c.json({ success: true, key, value: "••••••••" });
   }
@@ -49,7 +49,7 @@ envRouter.put(
   (c) => {
     const { variables } = c.req.valid("json");
     const { username } = getAuthPayload(c);
-    const current = piSessionManager.getUserEnv(username);
+    const current = sessionManager.getUserEnv(username);
     const updated: Record<string, string> = {};
 
     for (const [key, value] of Object.entries(variables)) {
@@ -63,7 +63,7 @@ envRouter.put(
       }
     }
 
-    piSessionManager.setUserEnvMap(username, updated);
+    sessionManager.setUserEnvMap(username, updated);
 
     const envList = Object.entries(updated).map(([k]) => ({
       key: k,
@@ -78,7 +78,7 @@ envRouter.delete("/:key", (c) => {
   const key = c.req.param("key");
   const { username } = getAuthPayload(c);
 
-  piSessionManager.deleteUserEnv(username, key);
+  sessionManager.deleteUserEnv(username, key);
 
   return c.json({ success: true });
 });

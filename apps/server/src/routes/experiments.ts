@@ -5,7 +5,7 @@ import { ExperimentStore } from "../laboratory/experiment-store";
 import { ExperimentRunner } from "../laboratory/experiment-runner";
 import { LabJudge } from "../laboratory/judge";
 import { calculateVariantScores } from "../laboratory/scoring";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { type LabStance, type LabAgent, type LabExperiment } from "shared";
 import { agentRegistry } from "../agents";
 import { channelStore } from "../channels";
@@ -27,7 +27,7 @@ experimentsRouter.get("/", async (c) => {
 experimentsRouter.get("/default-model", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
-  const model = piSessionManager.getUserDefaultModel(username);
+  const model = sessionManager.getUserDefaultModel(username);
   return c.json({ model });
 });
 
@@ -45,17 +45,17 @@ experimentsRouter.post("/generate", async (c) => {
   const { prompt, model } = await c.req.json();
   if (!prompt) return c.json({ error: "Prompt is required" }, 400);
 
-  const userDefaultModel = piSessionManager.getUserDefaultModel(username);
+  const userDefaultModel = sessionManager.getUserDefaultModel(username);
   const selectedModel = model || userDefaultModel || "anthropic/claude-3-5-sonnet";
 
   const tempSessionId = `generate_${crypto.randomUUID()}`;
   console.log(`[Experiments /generate] Running AI generator on tempSessionId=${tempSessionId} with model=${selectedModel}`);
 
   try {
-    const session = await piSessionManager.getOrCreateSession(username, tempSessionId);
+    const session = await sessionManager.getOrCreateSession(username, tempSessionId);
 
     // Resolve model in modelRegistry
-    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const { modelRegistry } = sessionManager.getUserContext(username);
     let resolvedModel: any = null;
     if (selectedModel.includes("/")) {
       const [providerId, modelId] = selectedModel.split("/");
@@ -144,7 +144,7 @@ No explanations, code blocks, or markdown fences. Just the raw JSON.`;
     console.error("[Experiments /generate] Generation failed:", e);
     return c.json({ error: String(e) }, 500);
   } finally {
-    await piSessionManager.destroySession(username, tempSessionId);
+    await sessionManager.destroySession(username, tempSessionId);
   }
 });
 
@@ -229,7 +229,7 @@ experimentsRouter.post("/", async (c) => {
   const id = crypto.randomUUID();
   let experiment: LabExperiment;
 
-  const userDefaultModel = piSessionManager.getUserDefaultModel(username);
+  const userDefaultModel = sessionManager.getUserDefaultModel(username);
   const fallbackModel = userDefaultModel || "anthropic/claude-3-5-sonnet";
 
   if (blueprintId) {
@@ -463,10 +463,10 @@ experimentsRouter.delete("/:id", async (c) => {
 
   // Cascading delete: destroy all saved sessions associated with these channels
   try {
-    const sessions = await piSessionManager.listSessions(username);
+    const sessions = await sessionManager.listSessions(username);
     for (const s of sessions) {
       if (s.channelId && s.channelId.startsWith(`lab_${id}_`)) {
-        await piSessionManager.destroySession(username, s.id);
+        await sessionManager.destroySession(username, s.id);
       }
     }
   } catch (err) {

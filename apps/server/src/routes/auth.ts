@@ -4,12 +4,12 @@ import jwt from "jsonwebtoken";
 import bcrypt from "bcryptjs";
 import { LoginSchema, ChangePasswordSchema } from "shared";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 
 export const authRouter = new Hono();
 
 function resolveHashB64(username: string): string {
-  const fileHash = piSessionManager.getUserPasswordHash(username);
+  const fileHash = sessionManager.getUserPasswordHash(username);
   return fileHash ?? process.env.AUTH_PASSWORD_HASH!;
 }
 
@@ -49,7 +49,7 @@ authRouter.post("/password", authMiddleware, zValidator("json", ChangePasswordSc
 
   const newHash = await bcrypt.hash(newPassword, 10);
   const newHashB64 = Buffer.from(newHash).toString("base64");
-  piSessionManager.setUserPasswordHash(username, newHashB64);
+  sessionManager.setUserPasswordHash(username, newHashB64);
 
   const token = jwt.sign(
     { username },

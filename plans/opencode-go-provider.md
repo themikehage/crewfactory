@@ -25,7 +25,7 @@ Basado en el catálogo oficial de OpenCode Go:
 
 ## Archivos a Crear / Modificar
 
-### 1. `apps/server/src/pi/opencode-go-provider.ts` (NUEVO)
+### 1. `apps/server/src/core/opencode-go-provider.ts` (NUEVO)
 
 Definición y registro del proveedor `opencode-go` con:
 - `baseUrl`: `"https://opencode.ai/zen/go/v1"`
@@ -33,7 +33,7 @@ Definición y registro del proveedor `opencode-go` con:
 - `api`: `"openai-completions"` (compatible con el formato OpenAI nativo).
 - Lista de modelos con sus configuraciones de contexto, tokens y compatibilidad.
 
-### 2. `apps/server/src/pi/session-manager.ts`
+### 2. `apps/server/src/core/session-manager.ts`
 
 Importar y ejecutar `registerOpenCodeGoProvider(modelRegistry)` dentro de la función `getUserContext()` después de refrescar el registro de modelos.
 

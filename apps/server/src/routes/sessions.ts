@@ -5,7 +5,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from 
 import { join } from "node:path";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema } from "shared";
 import {
   loadTasksState,
@@ -15,7 +15,7 @@ import {
   pauseTaskRunner,
   resetTasks,
   broadcastTaskUpdate
-} from "../pi/task-runner";
+} from "../core/task-runner";
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
 
@@ -27,7 +27,7 @@ sessionsRouter.use("/*", authMiddleware);
 
 sessionsRouter.get("/", async (c) => {
   const { username } = getAuthPayload(c);
-  const sessions = await piSessionManager.listSessions(username);
+  const sessions = await sessionManager.listSessions(username);
   return c.json({ sessions });
 });
 
@@ -49,11 +49,11 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
   };
 
   // Start session load asynchronously in the background to avoid blocking API response
-  piSessionManager.getOrCreateSession(username, sessionId, repoName, agentId, channelId).catch(err => {
+  sessionManager.getOrCreateSession(username, sessionId, repoName, agentId, channelId).catch(err => {
     console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
   });
 
-  piSessionManager.saveSessionMetadata(username, sessionId, {
+  sessionManager.saveSessionMetadata(username, sessionId, {
     name,
     createdAt: now,
     updatedAt: now,
@@ -70,8 +70,8 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   const { message } = c.req.valid("json");
   const { username } = getAuthPayload(c);
 
-  const session = await piSessionManager.getOrCreateSession(username, sessionId);
-  const metadata = piSessionManager.getSessionMetadata(username, sessionId) || {};
+  const session = await sessionManager.getOrCreateSession(username, sessionId);
+  const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
   const repoName = metadata.repoName;
 
   const execId = crypto.randomUUID();
@@ -81,7 +81,7 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   const startTime = Date.now();
 
   if (repoName) {
-    const userDir = piSessionManager.ensureUserDir(username);
+    const userDir = sessionManager.ensureUserDir(username);
     const repoExecsDir = join(userDir, "repos", repoName, "executions");
     if (!existsSync(repoExecsDir)) mkdirSync(repoExecsDir, { recursive: true });
     execDir = join(repoExecsDir, execId);
@@ -151,8 +151,8 @@ sessionsRouter.post(
     const { message } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    const session = await piSessionManager.getOrCreateSession(username, sessionId);
-    const metadata = piSessionManager.getSessionMetadata(username, sessionId) || {};
+    const session = await sessionManager.getOrCreateSession(username, sessionId);
+    const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
     const repoName = metadata.repoName;
 
     const execId = crypto.randomUUID();
@@ -162,7 +162,7 @@ sessionsRouter.post(
     const startTime = Date.now();
 
     if (repoName) {
-      const userDir = piSessionManager.ensureUserDir(username);
+      const userDir = sessionManager.ensureUserDir(username);
       const repoExecsDir = join(userDir, "repos", repoName, "executions");
       if (!existsSync(repoExecsDir)) mkdirSync(repoExecsDir, { recursive: true });
       execDir = join(repoExecsDir, execId);
@@ -236,7 +236,7 @@ sessionsRouter.get("/repos/:repoName/executions", async (c) => {
   const { username } = getAuthPayload(c);
   const repoName = c.req.param("repoName");
   
-  const userDir = piSessionManager.ensureUserDir(username);
+  const userDir = sessionManager.ensureUserDir(username);
   const execsDir = join(userDir, "repos", repoName, "executions");
   if (!existsSync(execsDir)) return c.json({ executions: [] });
 
@@ -259,7 +259,7 @@ sessionsRouter.get("/repos/:repoName/executions/:execId", async (c) => {
   const repoName = c.req.param("repoName");
   const execId = c.req.param("execId");
 
-  const userDir = piSessionManager.ensureUserDir(username);
+  const userDir = sessionManager.ensureUserDir(username);
   const execDir = join(userDir, "repos", repoName, "executions", execId);
   if (!existsSync(execDir)) return c.json({ error: "Execution not found" }, 404);
 
@@ -377,7 +377,7 @@ sessionsRouter.get("/:id/messages", async (c) => {
     return c.json({ messages: [] });
   }
 
-  const session = await piSessionManager.getOrCreateSession(username, sessionId);
+  const session = await sessionManager.getOrCreateSession(username, sessionId);
   if (!session) {
     return c.json({ messages: [] });
   }
@@ -420,7 +420,7 @@ sessionsRouter.post(
     const { targetId } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const session = await sessionManager.getOrCreateSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
@@ -442,7 +442,7 @@ sessionsRouter.post("/:id/abort", async (c) => {
     return c.json({ success: true });
   }
 
-  const session = piSessionManager.getSession(username, sessionId);
+  const session = sessionManager.getSession(username, sessionId);
   if (!session) {
     return c.json({ error: "Session not found" }, 404);
   }
@@ -460,7 +460,7 @@ sessionsRouter.delete("/:id", async (c) => {
     return c.json({ error: "Cannot delete API executions from UI" }, 400);
   }
 
-  await piSessionManager.destroySession(username, sessionId);
+  await sessionManager.destroySession(username, sessionId);
 
   return c.json({ success: true });
 });
@@ -474,7 +474,7 @@ sessionsRouter.patch("/:id", zValidator("json", z.object({ name: z.string().min(
     return c.json({ error: "Cannot rename API executions" }, 400);
   }
 
-  piSessionManager.saveSessionMetadata(username, sessionId, { name });
+  sessionManager.saveSessionMetadata(username, sessionId, { name });
 
   return c.json({ success: true });
 });
@@ -491,14 +491,14 @@ sessionsRouter.post(
       return c.json({ error: "Cannot modify model settings for execution logs" }, 400);
     }
 
-    const { modelRegistry } = piSessionManager.getUserContext(username);
+    const { modelRegistry } = sessionManager.getUserContext(username);
 
     const model = modelRegistry.find(provider, modelId);
     if (!model) {
       return c.json({ error: "Model not found" }, 404);
     }
 
-    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const session = await sessionManager.getOrCreateSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
@@ -528,7 +528,7 @@ sessionsRouter.get("/:id/context", async (c) => {
     return c.json({ contextUsage: null, sessionStats: null });
   }
 
-  const session = await piSessionManager.getOrCreateSession(username, sessionId);
+  const session = await sessionManager.getOrCreateSession(username, sessionId);
   if (!session) {
     return c.json({ contextUsage: null, sessionStats: null });
   }
@@ -550,7 +550,7 @@ sessionsRouter.get("/:id/skills", async (c) => {
   }
 
   try {
-    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const session = await sessionManager.getOrCreateSession(username, sessionId);
     await session.resourceLoader.reload();
     const { skills, diagnostics } = session.resourceLoader.getSkills();
 
@@ -591,7 +591,7 @@ sessionsRouter.post(
       return c.json({ error: "Cannot modify tool permissions for execution logs" }, 400);
     }
 
-    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const session = await sessionManager.getOrCreateSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
@@ -611,7 +611,7 @@ sessionsRouter.post(
         ])
       )
     );
-    piSessionManager.persistSessionTools(username, sessionId, tools);
+    sessionManager.persistSessionTools(username, sessionId, tools);
 
     return c.json({ success: true, tools });
   }
@@ -625,8 +625,8 @@ sessionsRouter.get("/:id/tools", async (c) => {
     return c.json({ tools: [], serialTools: ["request_approval", "ask_question"] });
   }
 
-  const tools = piSessionManager.getSessionTools(username, sessionId);
-  const metadata = piSessionManager.getSessionMetadata(username, sessionId) || {};
+  const tools = sessionManager.getSessionTools(username, sessionId);
+  const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
   let serialTools = ["request_approval", "ask_question"];
 
   if (metadata.agentId) {

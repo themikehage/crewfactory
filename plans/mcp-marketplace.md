@@ -12,7 +12,7 @@ CrewFactory necesita:
 
 ## Estado Actual
 
-CrewFactory NO tiene ningun soporte MCP. El pi SDK (v0.79.9) no incluye MCP
+CrewFactory NO tiene ningun soporte MCP. El vendored agent runtime (v0.79.9) no incluye MCP
 (y declara explicitamente "No MCP" como decision de diseno). El unico MCP
 existente es el tool interno del agente `pi` (`mcp` gateway), que NO esta
 expuesto via la SDK publica.
@@ -62,7 +62,7 @@ Esto significa que hay que construir todo desde cero.
 
 ### Backend
 
-#### `apps/server/src/pi/mcp-types.ts` (NUEVO)
+#### `apps/server/src/core/mcp-types.ts` (NUEVO)
 Tipos compartidos:
 
 ```typescript
@@ -107,7 +107,7 @@ interface MCPServerCatalog {
 }
 ```
 
-#### `apps/server/src/pi/mcp-manager.ts` (NUEVO)
+#### `apps/server/src/core/mcp-manager.ts` (NUEVO)
 
 Singleton que maneja el ciclo de vida de conexiones MCP:
 
@@ -154,7 +154,7 @@ interface MCPConnection {
 }
 ```
 
-#### `apps/server/src/pi/mcp-registry.ts` (NUEVO)
+#### `apps/server/src/core/mcp-registry.ts` (NUEVO)
 
 Catalogo oficial de MCPs populares:
 
@@ -267,7 +267,7 @@ POST   /api/mcp/catalog/:id/install  → Instalar desde catalogo
 GET    /api/mcp/status           → Estado de todas las conexiones
 ```
 
-#### `apps/server/src/pi/session-manager.ts` (MODIFICACION)
+#### `apps/server/src/core/session-manager.ts` (MODIFICACION)
 
 Al crear una sesion (`getOrCreateSession`), despues de crear el `AgentSession`:
 
@@ -346,7 +346,7 @@ Agregar ruta `/mcps` → `MCPMarketplacePage`.
 
 Cuando un MCP esta conectado y habilitado:
 1. El `MCPSessionManager` descubre sus tools via `client.listTools()`
-2. Convierte cada tool MCP a un `ToolDefinition` del pi SDK
+2. Convierte cada tool MCP a un `ToolDefinition` del vendored agent runtime
 3. Las registra en la sesion del agente via `createAgentSession({ customTools: [...] })`
 4. Cuando el LLM llama a un tool MCP, se enruta via MCP client al server
 
@@ -439,4 +439,4 @@ Cuando un MCP esta conectado y habilitado:
 - [MCPFind - Catalogo global](https://mcpfind.org)
 - [Windsurf MCP Integration](https://docs.windsurf.com/plugins/cascade/mcp)
 - [Pi SDK Extensions (para referencia de custom tools)](../../node_modules/@earendil-works/pi-coding-agent/docs/extensions.md)
-- Ejemplo de custom tool en pi SDK: `examples/extensions/provider-payload.ts`
+- Ejemplo de custom tool en vendored agent runtime: `examples/extensions/provider-payload.ts`

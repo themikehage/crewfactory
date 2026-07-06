@@ -1,4 +1,4 @@
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { z } from "zod";
 
 const OutputEvaluationSchema = z.object({
@@ -33,7 +33,7 @@ export class LabJudge {
     multiWithLeader: { scores: Record<string, number>; globalScore: number; reasoning: string };
   }> {
     const sessionId = `judge_${crypto.randomUUID()}`;
-    const session = await piSessionManager.getOrCreateSession(username, sessionId);
+    const session = await sessionManager.getOrCreateSession(username, sessionId);
 
     // 1. Double-Blind Shuffling
     const keys = ["single", "multiNoLeader", "multiWithLeader"] as const;
@@ -196,7 +196,7 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
         multiWithLeader: { scores: fallbackScores, globalScore: 70, reasoning: "Evaluation failed due to parse error." },
       };
     } finally {
-      await piSessionManager.destroySession(username, sessionId);
+      await sessionManager.destroySession(username, sessionId);
     }
   }
 }

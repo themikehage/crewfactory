@@ -3,7 +3,7 @@ import {
   createAgentSession,
   AuthStorage,
   ModelRegistry,
-  SessionManager,
+  SessionManager as VendoredSessionManager,
   DefaultResourceLoader,
   createBashToolDefinition,
   type AgentSession,
@@ -132,7 +132,7 @@ type SessionListItem = {
   isExecution?: boolean;
 };
 
-class PiSessionManager {
+class SessionManager {
   private sessions = new Map<string, UserSessionEntry>();
   private pendingSessions = new Map<string, Promise<AgentSession>>();
   private users = new Map<string, UserContext>();
@@ -364,15 +364,15 @@ class PiSessionManager {
       .sort()
       .reverse();
 
-    let sessionManager: SessionManager;
+    let sessionManager: VendoredSessionManager;
     if (jsonlFiles.length > 0) {
-      sessionManager = SessionManager.open(
+      sessionManager = VendoredSessionManager.open(
         join(sessionDir, jsonlFiles[0]),
         sessionDir,
         sessionDir
       );
     } else {
-      sessionManager = SessionManager.create(sessionDir, sessionDir);
+      sessionManager = VendoredSessionManager.create(sessionDir, sessionDir);
     }
 
     const customBashTool = createBashToolDefinition(workspaceDir, {
@@ -680,7 +680,7 @@ class PiSessionManager {
           }
           if (status === "active" || status === "sleeping") {
             try {
-              const { isTaskRunnerActive } = await import("../pi/task-runner");
+              const { isTaskRunnerActive } = await import("./task-runner");
               if (isTaskRunnerActive(sessionId)) {
                 status = "task-running";
               }
@@ -890,4 +890,4 @@ class PiSessionManager {
   }
 }
 
-export const piSessionManager = new PiSessionManager();
+export const sessionManager = new SessionManager();

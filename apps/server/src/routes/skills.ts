@@ -2,7 +2,7 @@ import { Hono } from "hono";
 import { loadSkills } from "../ai/load-skills";
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { getResolvedSkillPaths } from "../pi/session-manager";
+import { getResolvedSkillPaths } from "../core/session-manager";
 import { join } from "node:path";
 
 export const skillsRouter = new Hono();
@@ -50,7 +50,7 @@ skillsRouter.get("/", async (c) => {
 skillsRouter.post("/reset", async (c) => {
   const { username } = getAuthPayload(c);
   try {
-    const { DEFAULT_FACTORY_SKILLS } = await import("../pi/default-factory-skills");
+    const { DEFAULT_FACTORY_SKILLS } = await import("../core/default-factory-skills");
     const userDir = `/tmp/crewfactory/${username}`;
     const workspaceDir = join(userDir, "workspace");
     const skillsBaseDir = join(workspaceDir, ".agents", "skills");

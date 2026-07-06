@@ -83,7 +83,7 @@ Activos existentes — el roadmap no los reemplaza, los expone.
 - `factory-observe` + `factory-quick-actions` skills existen; **`factory-delegate` falta en `DEFAULT_FACTORY_SKILLS`**.
 
 ### 3.4 Stack
-- 35+ providers vía pi SDK + Qwen Cloud nativo (`qwen-provider.ts`, 8 modelos Qwen 3.x vía DashScope).
+- 35+ providers vía vendored agent runtime + Qwen Cloud nativo (`qwen-provider.ts`, 8 modelos Qwen 3.x vía DashScope).
 - Bun + Hono + React 19 + TS estricto + Tailwind v4 — sophistication visible en code review.
 
 ### 3.5 La narrativa de AutoConsulting (caso demo)
@@ -325,9 +325,9 @@ Cada bloque es **opcional** — un canal simple no los tiene y se comporta como 
 - Integración con Alibaba Cloud: `oss-upload.ts` (Fase 6).
 
 **Archivos (resumen del plan existente, scoped):**
-- **NUEVO** `apps/server/src/pi/mcp-manager.ts`, `mcp-registry.ts`, `mcp-types.ts`.
+- **NUEVO** `apps/server/src/core/mcp-manager.ts`, `mcp-registry.ts`, `mcp-types.ts`.
 - **NUEVO** `apps/server/src/routes/mcp.ts` (REST mínimo).
-- **MOD** `apps/server/src/pi/session-manager.ts` — conectar enabled y registrar customTools.
+- **MOD** `apps/server/src/core/session-manager.ts` — conectar enabled y registrar customTools.
 - **MOD** `apps/server/src/index.ts` — montar router.
 - **NUEVO** `apps/client/src/pages/MCPSettings.tsx`.
 - **NEW dep** `@modelcontextprotocol/sdk`.

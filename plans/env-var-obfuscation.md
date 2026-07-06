@@ -138,7 +138,7 @@ private readAuthFile(username: string): AuthData {
 
 ### Capa 2: Filtrado de Output Bash
 
-**Archivo:** `apps/server/src/pi/bash-output-filter.ts` (nuevo)
+**Archivo:** `apps/server/src/core/bash-output-filter.ts` (nuevo)
 
 ```typescript
 export function filterSecretsFromOutput(
@@ -251,7 +251,7 @@ envRouter.get("/", authMiddleware, async (c) => {
 **Auditoría:**
 
 ```typescript
-// apps/server/src/pi/audit-log.ts
+// apps/server/src/core/audit-log.ts
 const AUDIT_DIR = "/tmp/crewfactory/_audit";
 
 export function auditLog(
@@ -290,11 +290,11 @@ export function auditLog(
 | Archivo | Cambio |
 |---|---|
 | `apps/server/src/lib/env-crypto.ts` | **NUEVO** — AES-256-GCM encrypt/decrypt |
-| `apps/server/src/pi/bash-output-filter.ts` | **NUEVO** — `filterSecretsFromOutput()` |
-| `apps/server/src/pi/audit-log.ts` | **NUEVO** — `auditLog()` helper |
-| `apps/server/src/pi/session-manager.ts` | `readEnvFile`/`writeEnvFile` con encrypt; integrar output filter en bash tool |
+| `apps/server/src/core/bash-output-filter.ts` | **NUEVO** — `filterSecretsFromOutput()` |
+| `apps/server/src/core/audit-log.ts` | **NUEVO** — `auditLog()` helper |
+| `apps/server/src/core/session-manager.ts` | `readEnvFile`/`writeEnvFile` con encrypt; integrar output filter en bash tool |
 | `apps/server/src/routes/env.ts` | Eliminar `?reveal=true`, añadir `GET /api/env/reveal/:key` |
-| `apps/server/src/pi/default-factory-skills.ts` | Actualizar `factory-env` skill para usar `/reveal/:key` |
+| `apps/server/src/core/default-factory-skills.ts` | Actualizar `factory-env` skill para usar `/reveal/:key` |
 | `apps/server/src/routes/providers.ts` | Cifrar `auth.json` con mismo esquema |
 | `apps/client/src/pages/SettingsPage.tsx` | Developer View: reemplazar "Reveal Secrets" bulk por reveal individual |
 

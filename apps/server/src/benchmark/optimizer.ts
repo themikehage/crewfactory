@@ -1,7 +1,7 @@
 import { agentRegistry } from "../agents/agent-registry.js";
 import { channelStore } from "../channels/index.js";
 import { runBenchmarkSuite } from "./harness.js";
-import { piSessionManager } from "../pi/session-manager.js";
+import { sessionManager } from "../core/session-manager.js";
 
 export interface OptimizationResult {
   iteration: number;
@@ -56,7 +56,7 @@ export async function runOptimizationStep(
 
   // Spawn an optimizer session
   const optimizerSessionId = `optimizer_${crypto.randomUUID()}`;
-  const session = await piSessionManager.getOrCreateSession(username, optimizerSessionId);
+  const session = await sessionManager.getOrCreateSession(username, optimizerSessionId);
 
   const optimizationPrompt = `
 You are a Prompt Optimizer Meta-Agent. Your task is to analyze the performance of a multi-agent team estimation channel and optimize the Lead Agent's system prompt to fix estimation errors and quality deviations.
@@ -97,7 +97,7 @@ Instructions for optimization:
     console.error("Prompt optimization request failed:", e);
     refinedPrompt = currentLeadPrompt;
   } finally {
-    await piSessionManager.destroySession(username, optimizerSessionId);
+    await sessionManager.destroySession(username, optimizerSessionId);
   }
 
   if (refinedPrompt && refinedPrompt !== currentLeadPrompt) {

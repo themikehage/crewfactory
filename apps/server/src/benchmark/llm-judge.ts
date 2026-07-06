@@ -1,4 +1,4 @@
-import { piSessionManager } from "../pi/session-manager.js";
+import { sessionManager } from "../core/session-manager.js";
 
 export interface JudgeResult {
   scores: {
@@ -52,11 +52,11 @@ export async function runJudge(
   modelId?: string
 ): Promise<{ channel: JudgeResult; baseline: JudgeResult }> {
   const sessionId = `judge_${crypto.randomUUID()}`;
-  const session = await piSessionManager.getOrCreateSession(username, sessionId);
+  const session = await sessionManager.getOrCreateSession(username, sessionId);
 
   try {
     if (modelId) {
-      const { modelRegistry } = piSessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.getUserContext(username);
       const available = modelRegistry.getAvailable();
       const found = available.find(
         (m: any) => m.id === modelId || `${m.provider}/${m.id}` === modelId
@@ -119,7 +119,7 @@ ${baselineOutput || "(no output)"}
 
     return { channel: channelResult, baseline: baselineResult };
   } finally {
-    try { await piSessionManager.destroySession(username, sessionId); } catch {}
+    try { await sessionManager.destroySession(username, sessionId); } catch {}
   }
 }
 

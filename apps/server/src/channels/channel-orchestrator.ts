@@ -1,6 +1,6 @@
 import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { parseMentions } from "./mention-parser";
 import type { Channel, ChannelMember, ChannelMessage } from "shared";
 import { eventBroker } from "../lib/event-broker";
@@ -493,7 +493,7 @@ class ChannelOrchestrator {
 
     // Ensure model is set
     if (!agentEntry.server.session.model) {
-      const { modelRegistry } = piSessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.getUserContext(username);
       modelRegistry.refresh();
       const available = modelRegistry.getAvailable();
       if (available.length > 0) {

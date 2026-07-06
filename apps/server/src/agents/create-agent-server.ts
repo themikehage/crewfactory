@@ -12,8 +12,8 @@ import { join, resolve } from "node:path";
 import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
-import { createUiTools } from "../pi/ui-tools";
-import { ensureWorkspaceSubdirs } from "../pi/session-manager";
+import { createUiTools } from "../core/ui-tools";
+import { ensureWorkspaceSubdirs } from "../core/session-manager";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -36,8 +36,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
   if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
 
-  const { piSessionManager, getResolvedSkillPaths } = await import("../pi/session-manager");
-  const { authStorage, modelRegistry } = piSessionManager.getUserContext(username);
+  const { sessionManager: coreSessionManager, getResolvedSkillPaths } = await import("../core/session-manager");
+  const { authStorage, modelRegistry } = coreSessionManager.getUserContext(username);
   modelRegistry.refresh();
 
   const additionalSkillPaths = [

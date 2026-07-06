@@ -180,7 +180,7 @@ export class SessionManagerWithMemory {
 | `apps/server/src/agents/types.ts` | Añadir `brain: NeuralBrain` a `AgentServer` |
 | `apps/server/src/agents/create-agent-server.ts` | Inicializar `NeuralBrain` por agente, integrar en resource loader, shutdown en stop() |
 | `apps/server/src/agents/agent-registry.ts` | Pasar `brain` en el lifecycle |
-| `apps/server/src/pi/session-manager.ts` | `SessionManagerWithMemory` para sesiones global/repo |
+| `apps/server/src/core/session-manager.ts` | `SessionManagerWithMemory` para sesiones global/repo |
 | `apps/server/src/channels/channel-orchestrator.ts` | `NeuralBrain` por canal, inyectar memorias en `buildAgentPrompt()` |
 | `apps/server/src/channel-store.ts` | Directorio `engram/` por canal |
 

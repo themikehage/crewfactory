@@ -10,7 +10,7 @@ Documented design choices and technical options requiring verification:
 
 > [IMPORTANT]
 > **MCP Client Architecture Choice (Native Custom Client vs. SDK Dependency)**
-> CrewFactory currently uses a lightweight custom Stdio JSON-RPC client (`McpClient` in [mcp-client.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/pi/mcp-client.ts)) which uses `Bun.spawn` to bypass heavy dependencies. 
+> CrewFactory currently uses a lightweight custom Stdio JSON-RPC client (`McpClient` in [mcp-client.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/mcp-client.ts)) which uses `Bun.spawn` to bypass heavy dependencies. 
 > - **We propose extending this native client** to support `http` (SSE + POST) transports natively instead of pulling the official `@modelcontextprotocol/sdk` package. Bun's native HTTP/fetch streaming APIs make this highly performant, lightweight, and zero-dependency.
 > - If you prefer using the official Anthropic SDK, please let us know. However, the custom implementation is less prone to dependency version mismatch issues with the Bun runtime.
 
@@ -56,7 +56,7 @@ We will define new schema validations to keep TypeScript safety strict across Ho
 
 We will upgrade the MCP connections engine to support HTTP endpoints, expand the registry, and expose marketplace API routes.
 
-#### [MODIFY] [mcp-client.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/pi/mcp-client.ts)
+#### [MODIFY] [mcp-client.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/mcp-client.ts)
 - Refactor `McpClient` to become a base class or implement an interface, separating Stdio execution and HTTP execution.
 - Create `McpHttpClient` subclass supporting MCP HTTP/SSE transport specification:
   - Initiate a Server-Sent Events (SSE) stream via `fetch` to read events from the remote server.
@@ -64,7 +64,7 @@ We will upgrade the MCP connections engine to support HTTP endpoints, expand the
   - Implement JSON-RPC 2.0 requests over HTTP POST payloads.
 - Handle timeouts, auto-reconnection on process crashes or network issues, and capture stderr logs for diagnostic outputs.
 
-#### [MODIFY] [mcp-registry.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/pi/mcp-registry.ts)
+#### [MODIFY] [mcp-registry.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/mcp-registry.ts)
 - Update default configurations to use the standardized directory paths.
 - Define a comprehensive `MCP_CATALOG` array (e.g., Filesystem, GitHub, PostgreSQL, Puppeteer, Memory Graph, Brave Search, Slack, Notion, Linear, Exa Search).
 - Refactor config storage: persist configured servers to `/tmp/crewfactory/{username}/mcp-servers.json` (separating user configurations cleanly).
@@ -83,7 +83,7 @@ We will upgrade the MCP connections engine to support HTTP endpoints, expand the
   - `GET /api/mcp/catalog` - Retrieve the official marketplace list.
   - `POST /api/mcp/catalog/:id/install` - Install a pre-configured server from the catalog.
 
-#### [MODIFY] [session-manager.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/pi/session-manager.ts)
+#### [MODIFY] [session-manager.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/session-manager.ts)
 - Ensure all enabled user MCP servers are connected asynchronously when starting/restoring an `AgentSession`.
 - Expose and register discovered MCP tools in the session custom tools stack, avoiding duplication.
 

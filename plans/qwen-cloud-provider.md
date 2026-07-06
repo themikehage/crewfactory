@@ -9,7 +9,7 @@ directamente desde el UI, sin tener que proxyar por otro lado.
 
 ## Enfoque Tecnico
 
-La API de Qwen Cloud es OpenAI-compatible (`/v1/chat/completions`). El pi SDK ya tiene
+La API de Qwen Cloud es OpenAI-compatible (`/v1/chat/completions`). El vendored agent runtime ya tiene
 `streamSimpleOpenAICompletions` que maneja ese formato. Solo necesitamos registrar el provider
 con los modelos correctos via `ModelRegistry.registerProvider()`.
 
@@ -35,14 +35,14 @@ los modelos principales (Julio 2026):
 
 ## Archivos a Modificar
 
-### 1. `apps/server/src/pi/qwen-provider.ts` (NUEVO)
+### 1. `apps/server/src/core/qwen-provider.ts` (NUEVO)
 
 Provider definition standalone con:
 - Models list con IDs, nombres, costos, context window
 - `streamSimple` que wrappea `streamSimpleOpenAICompletions` configurando la base URL correcta
 - Compat flags necesarias para Qwen (`cacheControlFormat: "none"`, etc.)
 
-### 2. `apps/server/src/pi/session-manager.ts`
+### 2. `apps/server/src/core/session-manager.ts`
 
 En `getUserContext()`, despues de `modelRegistry.refresh()`, llamar
 `registerQwenProvider(modelRegistry, authStorage)`.
@@ -52,7 +52,7 @@ En `getUserContext()`, despues de `modelRegistry.refresh()`, llamar
 registerQwenProvider(modelRegistry, authStorage);
 ```
 
-### 3. `apps/server/src/pi/session-manager.ts` — key injection
+### 3. `apps/server/src/core/session-manager.ts` — key injection
 
 El API key de DashScope se guarda via el UI como cualquier otro provider (en auth.json).
 El `AuthStorage` maneja el key management. Cuando se registra el provider con
@@ -72,7 +72,7 @@ El selector de modelos ya soporta nested dropdown por provider.
 
 ## Detalles Tecnicos de `streamSimple`
 
-El pi SDK tiene los built-in providers registrados globalmente. Cuando hacemos:
+El vendored agent runtime tiene los built-in providers registrados globalmente. Cuando hacemos:
 
 ```typescript
 modelRegistry.registerProvider("qwen", {
@@ -107,8 +107,8 @@ compat: {
 
 1. **Investigar**: confirmar modelos activos y capacidades de Qwen Cloud (tool calling,
    streaming format, razonamiento).
-2. **Crear** `apps/server/src/pi/qwen-provider.ts` con la definicion del provider.
-3. **Modificar** `apps/server/src/pi/session-manager.ts` para registrar el provider.
+2. **Crear** `apps/server/src/core/qwen-provider.ts` con la definicion del provider.
+3. **Modificar** `apps/server/src/core/session-manager.ts` para registrar el provider.
 4. **Test**: iniciar servidor, verificar que Qwen aparece en `GET /api/providers`.
 5. **Test**: configurar API key via UI, seleccionar modelo, enviar mensaje.
 6. **Test**: verificar streaming, tool calls, abort.

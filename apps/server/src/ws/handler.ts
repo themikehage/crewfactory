@@ -1,12 +1,12 @@
 import jwt from "jsonwebtoken";
 import { existsSync, readFileSync } from "node:fs";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import type { AuthPayload } from "../middleware/auth";
 import type { WSContext, WSMessageReceive } from "hono/ws";
-import { setBuilding, setReady, setError, ensureWatcher } from "../pi/preview-watcher";
+import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-watcher";
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
-import { uiApprovalRegistry } from "../pi/ui-approval-registry";
+import { uiApprovalRegistry } from "../core/ui-approval-registry";
 
 function getRepoNameForSession(username: string, sessionId: string): string | undefined {
   const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
@@ -17,7 +17,7 @@ function getRepoNameForSession(username: string, sessionId: string): string | un
   }
 }
 
-interface PiWebSocket extends WSContext {
+interface AppWebSocket extends WSContext {
   wsId: string;
   user: AuthPayload;
 }
@@ -83,7 +83,7 @@ function safeSend(ws: { send: (data: string) => void }, data: string) {
 }
 
 async function subscribeWsToSession(
-  ws: PiWebSocket,
+  ws: AppWebSocket,
   user: AuthPayload,
   sessionId: string
 ): Promise<void> {
@@ -111,7 +111,7 @@ async function subscribeWsToSession(
   const existingUnsub = wsSubscriptions.get(ws.wsId);
   if (existingUnsub) existingUnsub();
 
-  const session = await piSessionManager.getOrCreateSession(user.username, sessionId);
+  const session = await sessionManager.getOrCreateSession(user.username, sessionId);
 
   const BUILD_REGEX = /\b(build|vite build|next build|nuxt build|astro build|bun run build|npm run build|pnpm run build|yarn build|tsc|webpack|parcel build|rollup -c)\b/;
   const sessionRepoName = getRepoNameForSession(user.username, sessionId);
@@ -181,13 +181,13 @@ async function subscribeWsToSession(
 }
 
 export function onOpen(_evt: Event, _ws: WSContext) {
-  const ws = _ws as unknown as PiWebSocket;
+  const ws = _ws as unknown as AppWebSocket;
   ws.wsId = String(++wsCounter);
   wsSocketMeta.set(ws.wsId, {});
 }
 
 export function onClose(_evt: any, _ws: WSContext) {
-  const ws = _ws as unknown as PiWebSocket;
+  const ws = _ws as unknown as AppWebSocket;
   const wsId = ws.wsId;
 
   const user = userMap.get(wsId);
@@ -228,7 +228,7 @@ export function onClose(_evt: any, _ws: WSContext) {
 }
 
 export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSContext) {
-  const ws = _ws as unknown as PiWebSocket;
+  const ws = _ws as unknown as AppWebSocket;
   let data: Record<string, unknown>;
 
   if (typeof evt.data !== "string") return;
@@ -292,7 +292,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       return;
     }
 
-    const session = await piSessionManager.getOrCreateSession(user.username, sessionId);
+    const session = await sessionManager.getOrCreateSession(user.username, sessionId);
 
     if (tools && Array.isArray(tools)) {
       const currentActive = session.getActiveToolNames();
@@ -321,7 +321,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       return;
     }
 
-    const { modelRegistry } = piSessionManager.getUserContext(user.username);
+    const { modelRegistry } = sessionManager.getUserContext(user.username);
     if (!session.model || !modelRegistry.hasConfiguredAuth(session.model)) {
       const available = modelRegistry.getAvailable();
       if (available.length > 0) {
@@ -352,7 +352,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   if (data.type === "steer") {
     const sessionId = data.sessionId as string;
     const message = data.message as string;
-    const session = piSessionManager.getSession(user.username, sessionId);
+    const session = sessionManager.getSession(user.username, sessionId);
     if (session) session.steer(message);
     return;
   }
@@ -360,14 +360,14 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   if (data.type === "follow_up") {
     const sessionId = data.sessionId as string;
     const message = data.message as string;
-    const session = piSessionManager.getSession(user.username, sessionId);
+    const session = sessionManager.getSession(user.username, sessionId);
     if (session) session.followUp(message);
     return;
   }
 
   if (data.type === "abort") {
     const sessionId = data.sessionId as string;
-    const session = piSessionManager.getSession(user.username, sessionId);
+    const session = sessionManager.getSession(user.username, sessionId);
     if (session) {
       await session.abort();
       safeSend(ws, JSON.stringify({ type: "aborted", sessionId }));
@@ -377,14 +377,14 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
   if (data.type === "compact") {
     const sessionId = data.sessionId as string;
-    const session = piSessionManager.getSession(user.username, sessionId);
+    const session = sessionManager.getSession(user.username, sessionId);
     if (session) await session.compact();
     return;
   }
 
   if (data.type === "get_context_usage") {
     const sessionId = data.sessionId as string;
-    const session = piSessionManager.getSession(user.username, sessionId);
+    const session = sessionManager.getSession(user.username, sessionId);
     if (session) {
       const contextUsage = session.getContextUsage();
       const sessionStats = session.getSessionStats();

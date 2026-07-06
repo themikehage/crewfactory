@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { join } from "node:path";
 import { authMiddleware } from "../middleware/auth.js";
 import { getUsername } from "../lib/auth-helpers.js";
-import { mcpRegistry, MCP_CATALOG } from "../pi/mcp-registry.js";
+import { mcpRegistry, MCP_CATALOG } from "../core/mcp-registry.js";
 import { McpServerConfigSchema, McpConfigSchema } from "shared";
 
 export const mcpRouter = new Hono();

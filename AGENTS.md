@@ -35,7 +35,7 @@ Whenever you (the AI agent) create, update, or delete a repository/project, agen
 - Always use localized literals via translation files (e.g. `.literals.ts`), never hardcode user-facing strings in JSX components
 
 ## Stack
-- **Backend:** Bun + Hono + Zod + @earendil-works/pi-coding-agent SDK
+- **Backend:** Bun + Hono + Zod + vendored agent runtime
 - **Frontend:** React 19 + Vite + TypeScript + Tailwind CSS v4 + Framer Motion
 - **Auth:** JWT + bcrypt (credentials in env vars, base64-encoded for Docker safety)
 - **Streaming:** WebSocket (Hono/Bun upgrade)

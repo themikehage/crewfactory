@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";
 import { rmSync, mkdirSync, existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
@@ -108,8 +108,8 @@ backupRouter.post("/import", async (c) => {
 
   try {
     // 1. Safe shutdown of active user sessions
-    await piSessionManager.destroyAllSessions(username);
-    piSessionManager.clearUserContext(username);
+    await sessionManager.destroyAllSessions(username);
+    sessionManager.clearUserContext(username);
 
     // 2. Stop programmatic agents for this user
     for (const info of agentRegistry.list(username)) {

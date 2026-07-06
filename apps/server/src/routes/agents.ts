@@ -5,7 +5,7 @@ import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { agentRegistry } from "../agents";
 import { AgentDefinitionSchema, UpdateAgentDefinitionSchema } from "shared";
-import { piSessionManager } from "../pi/session-manager";
+import { sessionManager } from "../core/session-manager";
 import { join } from "node:path";
 import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 
@@ -77,10 +77,10 @@ agentsRouter.delete("/:id", async (c) => {
   if (!entry) return c.json({ error: "Agent not found" }, 404);
 
   // Cascading delete: destroy all chat sessions associated with this agent
-  const sessions = await piSessionManager.listSessions(username).catch(() => []);
+  const sessions = await sessionManager.listSessions(username).catch(() => []);
   for (const s of sessions) {
     if (s.agentId === id) {
-      await piSessionManager.destroySession(username, s.id).catch((err) =>
+      await sessionManager.destroySession(username, s.id).catch((err) =>
         console.error(`[AgentsRoute] Failed to destroy session ${s.id}:`, err)
       );
     }

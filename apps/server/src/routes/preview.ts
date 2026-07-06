@@ -2,12 +2,12 @@ import { Hono } from "hono";
 import { resolve, normalize, sep, extname } from "node:path";
 import { existsSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
-import { getPreviewState } from "../pi/preview-watcher";
+import { getPreviewState } from "../core/preview-watcher";
 import {
   loadPreviewConfig,
   savePreviewConfig,
-} from "../pi/preview-config";
-import { runBuild, abortBuild } from "../pi/preview-builder";
+} from "../core/preview-config";
+import { runBuild, abortBuild } from "../core/preview-builder";
 
 export const previewRouter = new Hono();
 

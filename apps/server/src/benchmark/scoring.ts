@@ -1,5 +1,5 @@
 import type { ScoringMetric, ScoringRubric } from "shared";
-import { piSessionManager } from "../pi/session-manager.js";
+import { sessionManager } from "../core/session-manager.js";
 
 export function extractFichas(text: string): number | null {
   // Matches "62 fichas", "62 Fichas", "62  fichas", etc.
@@ -53,9 +53,9 @@ SCORE: [número del 0 al 100]
     try {
       // Call default configured model via pi session manager
       const judgeSessionId = `judge_${crypto.randomUUID()}`;
-      const session = await piSessionManager.getOrCreateSession(username, judgeSessionId);
+      const session = await sessionManager.getOrCreateSession(username, judgeSessionId);
       if (modelId) {
-        const { modelRegistry } = piSessionManager.getUserContext(username);
+        const { modelRegistry } = sessionManager.getUserContext(username);
         const available = modelRegistry.getAvailable();
         const found = available.find(
           (m) => m.id === modelId || `${m.provider}/${m.id}` === modelId
@@ -76,7 +76,7 @@ SCORE: [número del 0 al 100]
         }
       }
       // Clean up session afterward
-      await piSessionManager.destroySession(username, judgeSessionId);
+      await sessionManager.destroySession(username, judgeSessionId);
 
       const match = response.match(/SCORE:\s*(\d+)/i);
       if (match) {

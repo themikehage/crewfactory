@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-import { piSessionManager } from "./session-manager";
+import { sessionManager } from "./session-manager";
 import { broadcastToSession, broadcastToUser } from "../ws/handler";
 import type { Task, TaskRunnerState } from "shared";
 
@@ -76,9 +76,9 @@ export async function decomposeObjective(username: string, sessionId: string, ob
   broadcastTaskUpdate(sessionId, state);
   broadcastToUser(username, { type: "session_status", sessionId, status: "task-running" });
 
-  let session = piSessionManager.getSession(username, sessionId);
+  let session = sessionManager.getSession(username, sessionId);
   if (!session) {
-    session = await piSessionManager.getOrCreateSession(username, sessionId);
+    session = await sessionManager.getOrCreateSession(username, sessionId);
   }
 
   // Decompose asynchronously so REST endpoint returns quickly
@@ -178,7 +178,7 @@ export async function pauseTaskRunner(username: string, sessionId: string): Prom
   broadcastTaskUpdate(sessionId, state);
   broadcastToUser(username, { type: "session_status", sessionId, status: "active" });
 
-  const session = piSessionManager.getSession(username, sessionId);
+  const session = sessionManager.getSession(username, sessionId);
   if (session && session.isStreaming) {
     await session.abort();
   }
@@ -200,9 +200,9 @@ export function resetTasks(username: string, sessionId: string): void {
 }
 
 async function runTaskLoop(username: string, sessionId: string): Promise<void> {
-  let session = piSessionManager.getSession(username, sessionId);
+  let session = sessionManager.getSession(username, sessionId);
   if (!session) {
-    session = await piSessionManager.getOrCreateSession(username, sessionId);
+    session = await sessionManager.getOrCreateSession(username, sessionId);
   }
 
   while (true) {
@@ -228,7 +228,7 @@ async function runTaskLoop(username: string, sessionId: string): Promise<void> {
     broadcastTaskUpdate(sessionId, state);
 
     try {
-      const sessionInstance = piSessionManager.getSession(username, sessionId)!;
+      const sessionInstance = sessionManager.getSession(username, sessionId)!;
       await sessionInstance.prompt(nextTask.prompt);
 
       // Check state again for potential pauses during prompt execution
