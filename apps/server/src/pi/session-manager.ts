@@ -310,8 +310,15 @@ class PiSessionManager {
         }
       }
     }
-    const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
-    const mcpToolNames = mcpTools.map((t: any) => t.name);
+    const mcpConfig = mcpRegistry.loadConfig(username);
+    const cachedMcpToolNames: string[] = [];
+    for (const srv of Object.values(mcpConfig.mcpServers)) {
+      if (srv.enabled && Array.isArray(srv.tools)) {
+        for (const tName of srv.tools) {
+          cachedMcpToolNames.push(`mcp_${srv.id}_${tName}`);
+        }
+      }
+    }
 
     const appendPrompts = [
       `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
@@ -331,11 +338,11 @@ class PiSessionManager {
       `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n`
     ];
 
-    if (mcpToolNames.length > 0) {
+    if (cachedMcpToolNames.length > 0) {
       appendPrompts.push(
         `\n\nModel Context Protocol (MCP) Tools Available:\n` +
         `You have the following custom MCP tools registered and active:\n` +
-        `${mcpToolNames.map((name: string) => `- ${name}`).join("\n")}\n` +
+        `${cachedMcpToolNames.map((name: string) => `- ${name}`).join("\n")}\n` +
         `Use these tools when the task requires interacting with external databases, APIs, searching the web, or product integrations (like Slack, Linear, Jira, Google Drive). Do not assume you need to use bash if a specific MCP tool is more suitable.\n`
       );
     }
@@ -396,7 +403,7 @@ class PiSessionManager {
       authStorage,
       modelRegistry,
       resourceLoader,
-      customTools: [customBashTool as any, ...mcpTools, ...uiTools as any],
+      customTools: [customBashTool as any, ...uiTools as any],
     });
 
     const systemTools = this.getSessionTools(username, sessionId);
@@ -404,17 +411,34 @@ class PiSessionManager {
     
     const definedToolNames = new Set([
       ...systemTools,
-      "bash",
-      ...mcpToolNames
+      "bash"
     ]);
 
     const combinedTools = Array.from(new Set([
-      ...activeTools,
-      ...mcpToolNames
+      ...activeTools
     ]))
       .filter(tName => definedToolNames.has(tName));
 
     session.setActiveToolsByName(combinedTools);
+
+    // Load and inject MCP tools in the background asynchronously
+    (async () => {
+      try {
+        const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
+        if (mcpTools.length > 0) {
+          const sessionAny = session as any;
+          if (sessionAny._customTools) {
+            sessionAny._customTools.push(...mcpTools);
+            if (typeof sessionAny._refreshToolRegistry === "function") {
+              sessionAny._refreshToolRegistry();
+            }
+          }
+          console.log(`[MCP Dynamic Load] Successfully loaded ${mcpTools.length} tools for session ${sessionId}`);
+        }
+      } catch (err) {
+        console.error(`[MCP Dynamic Load] Failed to load MCP tools for session ${sessionId}:`, err);
+      }
+    })();
 
     // Subscribe to global logs forwarding
     const globalLogUnsub = session.subscribe((evt: any) => {

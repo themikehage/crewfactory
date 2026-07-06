@@ -9,15 +9,18 @@ Este plan describe la solución para optimizar el arranque en frío del servidor
 - **Interfaz Vacía:** Dado que las solicitudes HTTP se realizan en paralelo al montar el chat, el endpoint `/api/sessions/:id/messages` consultaba la memoria de forma no síncrona. Al estar la sesión aún en carga por el retraso de MCP, se retornaba una lista vacía de mensajes (`[]`), forzando al usuario a refrescar la página manualmente para ver sus mensajes reales.
 
 ## Enfoque Técnico
-1. **Cache de Dependencias de MCP:** 
-   Agregar `@modelcontextprotocol/server-filesystem` y `@modelcontextprotocol/server-memory` como dependencias explícitas en `apps/server/package.json`. Esto pre-descarga e instala los paquetes en local (en `node_modules`), permitiendo que `bunx` los ejecute instantáneamente sin acceso a la red.
-2. **Inicialización Paralela de MCP:**
-   Refactorizar `getSessionMcpTools` en `mcp-registry.ts` para conectar los clientes MCP usando `Promise.all` en lugar de una secuencia de bucle `for`, optimizando la inicialización paralela.
-3. **Control de Tiempos de Espera (Timeouts) en MCP:**
-   Añadir un parámetro y mecanismo de timeout (5 segundos) en `McpClient.request` mediante `Promise.race` para evitar que un proceso MCP bloqueado cuelgue de forma indefinida el inicio de la sesión del agente.
-4. **Sincronización de Rutas HTTP con Carga de Sesiones:**
-   Modificar las rutas críticas de `/api/sessions/:id/...` (`/messages`, `/context`, `/tools`, `/model`, `/navigate`) en `sessions.ts` para que utilicen `await piSessionManager.getOrCreateSession(...)` en lugar de `piSessionManager.getSession(...)`. De esta manera, si la sesión se está inicializando o está en proceso de carga desde el disco, la solicitud HTTP esperará a que termine y retornará los datos correctos en lugar de responder inmediatamente con arrays vacíos o fallas de 404.
+1. **Carga en Segundo Plano (Asíncrona y No Bloqueante):** 
+   En lugar de esperar a que los servidores MCP se conecten durante la creación de la sesión (`getOrCreateSession`), la sesión se crea inmediatamente con las herramientas básicas. Se inicia una promesa en segundo plano que conecta los servidores MCP.
+2. **Inyección Dinámica de Herramientas:**
+   Una vez que la promesa en segundo plano resuelve, las herramientas descubiertas se añaden directamente al array de `_customTools` del objeto `session` y se llama al método `_refreshToolRegistry()` de la SDK del agente para activarlas en caliente.
+3. **Mantenimiento del Contexto en el System Prompt:**
+   Para que el System Prompt del agente liste las herramientas MCP correctas desde el primer instante sin tener que esperar a que conecten los servidores, se leen los nombres de herramientas desde la caché local en `mcp-servers.json` (que guarda las herramientas que funcionaron en la última ejecución exitosa).
+4. **Control de Tiempos de Espera (Timeouts) en MCP:**
+   Se mantiene el mecanismo de timeout (5 segundos) en `McpClient.request` mediante `Promise.race` para evitar que un subproceso MCP roto o lento cuelgue la cola de tareas en segundo plano.
+5. **Sincronización de Rutas HTTP con Carga de Sesiones:**
+   Las rutas críticas (`/messages`, `/context`, `/tools`, `/model`, `/navigate`) en `sessions.ts` continúan utilizando `await piSessionManager.getOrCreateSession(...)`. Dado que la creación del objeto de sesión ahora es instantánea (no bloqueada por la red de MCP), el cliente recibe su historial de mensajes de inmediato sin incurrir en timeouts ni condiciones de carrera.
 
 ## Verificación
 - Verificación de compilación sin errores mediante `tsc --noEmit`.
+- Verificación de carga instantánea de sesión y posterior inyección asíncrona de herramientas.
 - Verificación manual abriendo sesiones tras reinicios en frío del servidor.
