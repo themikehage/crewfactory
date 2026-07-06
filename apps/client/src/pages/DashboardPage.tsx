@@ -13,10 +13,10 @@ interface RepoItem {
 
 interface Props {
   onNavigate?: (path: string) => void;
-  onSelectRepo: (repoId: string | null, repoName: string | null) => void;
+  onSelectProject: (projectId: string | null, projectName: string | null) => void;
 }
 
-export function DashboardPage({ onSelectRepo }: Props) {
+export function DashboardPage({ onSelectProject }: Props) {
   const l = useLiterals(dashboardLiterals);
   const { addToast } = useToast();
   const [repos, setRepos] = useState<RepoItem[]>([]);
@@ -25,7 +25,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
   // Modal states
   const [showModal, setShowModal] = useState(false);
-  const [repoName, setRepoName] = useState("");
+  const [projectName, setRepoName] = useState("");
   const [cloneUrl, setCloneUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -41,7 +41,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
     try {
       setLoading(true);
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/workspace-repos", {
+      const res = await fetch("/api/workspace-projects", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
@@ -74,7 +74,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
     const id = renameRepo.id || renameRepo.name;
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`/api/workspace-repos/${id}`, {
+      const res = await fetch(`/api/workspace-projects/${id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
@@ -87,7 +87,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
         throw new Error(err.error || "Failed to rename project");
       }
       await fetchRepos();
-      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
       setRenameRepo(null);
       setNewName("");
     } catch (err: unknown) {
@@ -104,7 +104,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
     const id = deleteRepo.id || deleteRepo.name;
     const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`/api/workspace-repos/${id}`, {
+      const res = await fetch(`/api/workspace-projects/${id}`, {
         method: "DELETE",
         headers: {
           Authorization: `Bearer ${token}`,
@@ -115,7 +115,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
         throw new Error(err.error || "Failed to delete project");
       }
       await fetchRepos();
-      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
       setDeleteRepo(null);
       setConfirmDeleteName("");
     } catch (err: unknown) {
@@ -128,21 +128,21 @@ export function DashboardPage({ onSelectRepo }: Props) {
 
   const handleCreateRepo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!repoName.trim()) return;
+    if (!projectName.trim()) return;
 
     setSubmitting(true);
     setSubmitError(null);
 
     try {
       const token = localStorage.getItem("token");
-      const res = await fetch("/api/workspace-repos", {
+      const res = await fetch("/api/workspace-projects", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
-          name: repoName.trim(),
+          name: projectName.trim(),
           cloneUrl: cloneUrl.trim() || undefined,
         }),
       });
@@ -153,7 +153,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
       }
 
       await fetchRepos();
-      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
       setShowModal(false);
       setRepoName("");
       setCloneUrl("");
@@ -177,7 +177,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
             </div>
             <div className="flex gap-2">
               <button
-                onClick={() => onSelectRepo(null, null)}
+                onClick={() => onSelectProject(null, null)}
                 className="text-xs bg-card-hover/20 text-muted-foreground hover:text-foreground border border-input/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
                 {l.workspaceGlobal}
@@ -227,7 +227,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   </div>
                   <div className="flex items-center gap-2 mt-4">
                     <button
-                      onClick={() => onSelectRepo(repo.id || repo.name, repo.name)}
+                      onClick={() => onSelectProject(repo.id || repo.name, repo.name)}
                       className="flex-1 py-1.5 bg-card-hover/20 hover:bg-primary hover:text-background text-foreground border border-input/30 rounded-lg text-xs font-semibold transition-all cursor-pointer flex items-center justify-center gap-1"
                     >
                       {l.open}
@@ -296,7 +296,7 @@ export function DashboardPage({ onSelectRepo }: Props) {
                   type="text"
                   required
                   placeholder={l.projectNamePlaceholder}
-                  value={repoName}
+                  value={projectName}
                   onChange={(e) => setRepoName(e.target.value)}
                   className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
                 />

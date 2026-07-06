@@ -8,11 +8,11 @@ import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
 
-function getRepoNameForSession(username: string, sessionId: string): string | undefined {
+function getProjectNameForSession(username: string, sessionId: string): string | undefined {
   const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
   if (existsSync(p)) {
     try {
-      return JSON.parse(readFileSync(p, "utf-8")).repoName;
+      return JSON.parse(readFileSync(p, "utf-8")).projectName;
     } catch {}
   }
 }
@@ -114,7 +114,7 @@ async function subscribeWsToSession(
   const session = await sessionManager.getOrCreateSession(user.username, sessionId);
 
   const BUILD_REGEX = /\b(build|vite build|next build|nuxt build|astro build|bun run build|npm run build|pnpm run build|yarn build|tsc|webpack|parcel build|rollup -c)\b/;
-  const sessionRepoName = getRepoNameForSession(user.username, sessionId);
+  const sessionProjectName = getProjectNameForSession(user.username, sessionId);
   let hadBuildInSession = false;
 
   const unsub = session.subscribe((agentEvent) => {
@@ -123,29 +123,29 @@ async function subscribeWsToSession(
     if (agentEvent.type === "tool_execution_start") {
       const ev = agentEvent as any;
       const cmd = ev.args?.command as string | undefined;
-      if (ev.toolName === "bash" && cmd && BUILD_REGEX.test(cmd) && sessionRepoName) {
+      if (ev.toolName === "bash" && cmd && BUILD_REGEX.test(cmd) && sessionProjectName) {
         hadBuildInSession = true;
-        setBuilding(user.username, sessionRepoName);
+        setBuilding(user.username, sessionProjectName);
       }
     }
 
     if (agentEvent.type === "tool_execution_end") {
       const ev = agentEvent as any;
-      if (ev.toolName === "bash" && sessionRepoName) {
+      if (ev.toolName === "bash" && sessionProjectName) {
         const cmd = ev.args?.command as string | undefined;
         if (ev.isError) {
           const resultStr = typeof ev.result === "string" ? ev.result : JSON.stringify(ev.result).slice(0, 500);
-          setError(user.username, sessionRepoName, resultStr || "Build failed");
+          setError(user.username, sessionProjectName, resultStr || "Build failed");
           hadBuildInSession = false;
         } else if (cmd && BUILD_REGEX.test(cmd)) {
           hadBuildInSession = false;
-          setReady(user.username, sessionRepoName);
+          setReady(user.username, sessionProjectName);
         }
       }
     }
 
-    if (agentEvent.type === "agent_end" && sessionRepoName && hadBuildInSession) {
-      ensureWatcher(user.username, sessionRepoName);
+    if (agentEvent.type === "agent_end" && sessionProjectName && hadBuildInSession) {
+      ensureWatcher(user.username, sessionProjectName);
       hadBuildInSession = false;
     }
 

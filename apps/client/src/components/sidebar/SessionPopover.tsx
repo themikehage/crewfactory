@@ -12,7 +12,7 @@ interface SessionItem {
   createdAt: string;
   messageCount: number;
   status?: SessionStatus;
-  repoName?: string;
+  projectName?: string;
   agentId?: string;
   channelId?: string;
 }
@@ -21,8 +21,8 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   activeSessionId: string | null;
-  activeRepoName: string | null;
-  activeRepoFriendlyName?: string | null;
+  activeProjectName: string | null;
+  activeProjectFriendlyName?: string | null;
   activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
   onSelectSession: (id: string) => void;
@@ -40,8 +40,8 @@ export function SessionPopover({
   isOpen,
   onClose,
   activeSessionId,
-  activeRepoName,
-  activeRepoFriendlyName = null,
+  activeProjectName,
+  activeProjectFriendlyName = null,
   activeAgent,
   activeChannel,
   onSelectSession,
@@ -105,10 +105,10 @@ export function SessionPopover({
 
       if (activeChannel) return s.channelId === activeChannel.id;
       if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-      if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
-      return !s.repoName && !s.agentId && !s.channelId;
+      if (activeProjectName) return s.projectName === activeProjectName && !s.agentId && !s.channelId;
+      return !s.projectName && !s.agentId && !s.channelId;
     });
-  }, [sessions, activeRepoName, activeAgent, activeChannel, showExecutions]);
+  }, [sessions, activeProjectName, activeAgent, activeChannel, showExecutions]);
 
   const createSession = useCallback(async () => {
     setCreating(true);
@@ -118,8 +118,8 @@ export function SessionPopover({
         ? `#${activeChannel.name} - Session ${sessionCount + 1}`
         : activeAgent
         ? `${activeAgent.name} - Session ${sessionCount + 1}`
-        : activeRepoFriendlyName
-        ? `${activeRepoFriendlyName} - Session ${sessionCount + 1}`
+        : activeProjectFriendlyName
+        ? `${activeProjectFriendlyName} - Session ${sessionCount + 1}`
         : `Global Session ${sessionCount + 1}`;
 
       const res = await apiFetch("/api/sessions", {
@@ -129,7 +129,7 @@ export function SessionPopover({
         },
         body: JSON.stringify({
           name: sessionName,
-          repoName: (activeAgent || activeChannel) ? undefined : (activeRepoName || undefined),
+          projectName: (activeAgent || activeChannel) ? undefined : (activeProjectName || undefined),
           agentId: (activeChannel) ? undefined : (activeAgent ? activeAgent.id : undefined),
           channelId: activeChannel ? activeChannel.id : undefined,
         }),
@@ -145,7 +145,7 @@ export function SessionPopover({
     } finally {
       setCreating(false);
     }
-  }, [filteredSessions.length, activeRepoName, activeAgent, activeChannel, onNewSession, sessions]);
+  }, [filteredSessions.length, activeProjectName, activeAgent, activeChannel, onNewSession, sessions]);
 
   const deleteSession = useCallback(
     async (id: string) => {
@@ -159,15 +159,15 @@ export function SessionPopover({
       const filteredRemaining = remaining.filter((s) => {
         if (activeChannel) return s.channelId === activeChannel.id;
         if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-        if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
-        return !s.repoName && !s.agentId && !s.channelId;
+        if (activeProjectName) return s.projectName === activeProjectName && !s.agentId && !s.channelId;
+        return !s.projectName && !s.agentId && !s.channelId;
       });
 
       if (activeSessionId === id) {
         onSelectSession(filteredRemaining[0]?.id ?? "");
       }
     },
-    [activeSessionId, onSelectSession, sessions, activeRepoName, activeAgent, activeChannel]
+    [activeSessionId, onSelectSession, sessions, activeProjectName, activeAgent, activeChannel]
   );
 
   const handleDeleteClick = useCallback((e: React.MouseEvent, id: string) => {
@@ -189,9 +189,9 @@ export function SessionPopover({
   const contextLabel = useMemo(() => {
     if (activeChannel) return `#${activeChannel.name}`;
     if (activeAgent) return activeAgent.name;
-    if (activeRepoFriendlyName) return activeRepoFriendlyName;
+    if (activeProjectFriendlyName) return activeProjectFriendlyName;
     return l.contextGlobal;
-  }, [activeChannel, activeAgent, activeRepoFriendlyName]);
+  }, [activeChannel, activeAgent, activeProjectFriendlyName]);
 
   if (!isOpen) return null;
 

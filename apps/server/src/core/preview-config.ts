@@ -35,22 +35,22 @@ const FRAMEWORK_PRESETS: Record<string, FrameworkPresetDef[]> = {
   ],
 };
 
-function configPath(username: string, repoName: string): string {
-  const base = `/tmp/crewfactory/${username}/repos/${repoName}/workspace`;
+function configPath(username: string, projectName: string): string {
+  const base = `/tmp/crewfactory/${username}/projects/${projectName}/workspace`;
   return resolve(base, ".preview.json");
 }
 
-function hasPackageJson(repoDir: string): boolean {
-  return existsSync(resolve(repoDir, "package.json"));
+function hasPackageJson(projectDir: string): boolean {
+  return existsSync(resolve(projectDir, "package.json"));
 }
 
-function hasFile(repoDir: string, file: string): boolean {
-  return existsSync(resolve(repoDir, file));
+function hasFile(projectDir: string, file: string): boolean {
+  return existsSync(resolve(projectDir, file));
 }
 
-function readPackageJson(repoDir: string): Record<string, any> | null {
+function readPackageJson(projectDir: string): Record<string, any> | null {
   try {
-    return JSON.parse(readFileSync(resolve(repoDir, "package.json"), "utf-8"));
+    return JSON.parse(readFileSync(resolve(projectDir, "package.json"), "utf-8"));
   } catch {
     return null;
   }
@@ -85,32 +85,32 @@ function detectFromScripts(scripts: Record<string, string>): FrameworkPresetDef 
   return null;
 }
 
-function detectFromConfigFiles(repoDir: string): FrameworkPresetDef | null {
-  if (hasFile(repoDir, "vite.config.js") || hasFile(repoDir, "vite.config.ts")) {
+function detectFromConfigFiles(projectDir: string): FrameworkPresetDef | null {
+  if (hasFile(projectDir, "vite.config.js") || hasFile(projectDir, "vite.config.ts")) {
     return FRAMEWORK_PRESETS["vite"][0];
   }
-  if (hasFile(repoDir, "next.config.js") || hasFile(repoDir, "next.config.mjs")) {
+  if (hasFile(projectDir, "next.config.js") || hasFile(projectDir, "next.config.mjs")) {
     return FRAMEWORK_PRESETS["next"][0];
   }
-  if (hasFile(repoDir, "nuxt.config.js") || hasFile(repoDir, "nuxt.config.ts")) {
+  if (hasFile(projectDir, "nuxt.config.js") || hasFile(projectDir, "nuxt.config.ts")) {
     return FRAMEWORK_PRESETS["nuxt"][0];
   }
-  if (hasFile(repoDir, "astro.config.mjs") || hasFile(repoDir, "astro.config.js")) {
+  if (hasFile(projectDir, "astro.config.mjs") || hasFile(projectDir, "astro.config.js")) {
     return FRAMEWORK_PRESETS["astro"][0];
   }
   return null;
 }
 
-function autoDetectFramework(username: string, repoName: string): PreviewConfig {
-  const repoDir = resolve(`/tmp/crewfactory/${username}/repos/${repoName}/workspace`);
+function autoDetectFramework(username: string, projectName: string): PreviewConfig {
+  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
 
-  if (!existsSync(repoDir)) {
+  if (!existsSync(projectDir)) {
     return { framework: "html", buildCommand: undefined, outputDir: undefined, autoDetected: true };
   }
 
   // 1. Check package.json dependencies and scripts
-  if (hasPackageJson(repoDir)) {
-    const pkg = readPackageJson(repoDir);
+  if (hasPackageJson(projectDir)) {
+    const pkg = readPackageJson(projectDir);
     if (pkg) {
       const allDeps = { ...pkg.dependencies, ...pkg.devDependencies };
       const fromDeps = detectFromDeps(allDeps);
@@ -126,21 +126,21 @@ function autoDetectFramework(username: string, repoName: string): PreviewConfig 
   }
 
   // 2. Check config files
-  const fromConfig = detectFromConfigFiles(repoDir);
+  const fromConfig = detectFromConfigFiles(projectDir);
   if (fromConfig) {
     return { framework: fromConfig.framework, buildCommand: fromConfig.buildCommand, outputDir: fromConfig.outputDir, autoDetected: true };
   }
 
   // 3. Check for index.html (static site fallback)
-  if (hasFile(repoDir, "index.html") || hasFile(repoDir, "src/index.html")) {
+  if (hasFile(projectDir, "index.html") || hasFile(projectDir, "src/index.html")) {
     return { framework: "html", buildCommand: undefined, outputDir: undefined, autoDetected: true };
   }
 
   return { framework: "auto", buildCommand: undefined, outputDir: "dist", autoDetected: true };
 }
 
-export function loadPreviewConfig(username: string, repoName: string): PreviewConfig {
-  const path = configPath(username, repoName);
+export function loadPreviewConfig(username: string, projectName: string): PreviewConfig {
+  const path = configPath(username, projectName);
   if (existsSync(path)) {
     try {
       const raw = JSON.parse(readFileSync(path, "utf-8"));
@@ -153,15 +153,15 @@ export function loadPreviewConfig(username: string, repoName: string): PreviewCo
     } catch {}
   }
 
-  return autoDetectFramework(username, repoName);
+  return autoDetectFramework(username, projectName);
 }
 
 export function savePreviewConfig(
   username: string,
-  repoName: string,
+  projectName: string,
   config: { framework?: string; buildCommand?: string; outputDir?: string }
 ): PreviewConfig {
-  const path = configPath(username, repoName);
+  const path = configPath(username, projectName);
   const dir = dirname(path);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
 
@@ -179,18 +179,18 @@ export function savePreviewConfig(
   };
 }
 
-export function getBuildOutputDir(config: PreviewConfig, username: string, repoName: string): string | null {
-  const repoDir = resolve(`/tmp/crewfactory/${username}/repos/${repoName}/workspace`);
+export function getBuildOutputDir(config: PreviewConfig, username: string, projectName: string): string | null {
+  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
   const dir = config.outputDir || "dist";
-  const candidate = resolve(repoDir, dir);
+  const candidate = resolve(projectDir, dir);
   if (existsSync(candidate)) return candidate;
   // If dir doesn't exist yet, still return the path — it will exist after build
   return candidate;
 }
 
-export function getBuildCommand(config: PreviewConfig, username: string, repoName: string): string | null {
-  const repoDir = resolve(`/tmp/crewfactory/${username}/repos/${repoName}/workspace`);
-  const pkg = readPackageJson(repoDir);
+export function getBuildCommand(config: PreviewConfig, username: string, projectName: string): string | null {
+  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+  const pkg = readPackageJson(projectDir);
 
   if (config.buildCommand) return config.buildCommand;
 
@@ -203,6 +203,6 @@ export function getBuildCommand(config: PreviewConfig, username: string, repoNam
   return null;
 }
 
-export function autoDetectConfig(username: string, repoName: string): PreviewConfig {
-  return autoDetectFramework(username, repoName);
+export function autoDetectConfig(username: string, projectName: string): PreviewConfig {
+  return autoDetectFramework(username, projectName);
 }

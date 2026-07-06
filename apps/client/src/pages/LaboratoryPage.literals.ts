@@ -24,6 +24,9 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     newAgent: "New Agent",
     collaborativeAgent: "Collaborative Agent",
     collaborativeAgentPrompt: "You are a collaborative agent in this channel. Answer concisely and help solve the task.",
+    generatorTitle: "Generate Your Crew with AI",
+    generatorSubtitle: "Enter a description and the AI will configure the corresponding Programmatic Agents and Channel.",
+    placeholderGenerator: "Example: I need a team of copywriters. I want a persuasive copy agent, a proofreader, and a coordinator...",
   },
   es: {
     experimentChat: "Conversacion del Experimento (Lectura)",
@@ -48,5 +51,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     newAgent: "Nuevo Agente",
     collaborativeAgent: "Agente Colaborador",
     collaborativeAgentPrompt: "Eres un agente colaborador en este canal. Responde de forma concisa y ayuda a resolver la tarea.",
+    generatorTitle: "Generá tu Equipo con IA",
+    generatorSubtitle: "Ingresá una descripción y la IA configurará los Agentes Programáticos y el Canal correspondiente.",
+    placeholderGenerator: "Ejemplo: Necesito un equipo de redactores publicitarios. Quiero un agente especialista en copy persuasivo, un corrector ortográfico y un coordinador que apruebe y decida.",
   },
 };

@@ -6,38 +6,38 @@ import type { PreviewConfig } from "shared";
 
 const activeBuilds = new Map<string, AbortController>();
 
-function buildKey(username: string, repoName: string): string {
-  return `${username}:${repoName}`;
+function buildKey(username: string, projectName: string): string {
+  return `${username}:${projectName}`;
 }
 
-export function isBuilding(username: string, repoName: string): boolean {
-  return activeBuilds.has(buildKey(username, repoName));
+export function isBuilding(username: string, projectName: string): boolean {
+  return activeBuilds.has(buildKey(username, projectName));
 }
 
 export async function runBuild(
   username: string,
-  repoName: string,
+  projectName: string,
   config: PreviewConfig
 ): Promise<{ success: boolean; exitCode: number | null }> {
-  const key = buildKey(username, repoName);
+  const key = buildKey(username, projectName);
 
   // Prevent concurrent builds
   if (activeBuilds.has(key)) {
     broadcastToUser(username, {
       type: "preview_build_log",
-      repoName,
+      projectName,
       line: "A build is already running. Please wait for it to complete.",
     });
     return { success: false, exitCode: null };
   }
 
-  const repoDir = resolve(`/tmp/crewfactory/${username}/repos/${repoName}/workspace`);
-  const command = getBuildCommand(config, username, repoName);
+  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+  const command = getBuildCommand(config, username, projectName);
 
   if (!command) {
     broadcastToUser(username, {
       type: "preview_build_log",
-      repoName,
+      projectName,
       line: "No build command configured. Set a build command in the preview settings.",
     });
     return { success: false, exitCode: null };
@@ -48,19 +48,19 @@ export async function runBuild(
 
   broadcastToUser(username, {
     type: "preview_status",
-    repoName,
+    projectName,
     status: "building",
   });
 
   broadcastToUser(username, {
     type: "preview_build_log",
-    repoName,
+    projectName,
     line: `$ ${command}`,
   });
 
   return new Promise((resolve_) => {
     const proc = spawn("bash", ["-c", command], {
-      cwd: repoDir,
+      cwd: projectDir,
       signal: abortController.signal,
       stdio: ["ignore", "pipe", "pipe"],
     });
@@ -70,7 +70,7 @@ export async function runBuild(
       for (const line of lines) {
         broadcastToUser(username, {
           type: "preview_build_log",
-          repoName,
+          projectName,
           line: line.replace(/\r$/, ""),
         });
       }
@@ -86,7 +86,7 @@ export async function runBuild(
 
       broadcastToUser(username, {
         type: "preview_build_log",
-        repoName,
+        projectName,
         line: success
           ? `Build completed successfully (exit code 0)`
           : `Build failed (exit code ${exitCode})`,
@@ -94,7 +94,7 @@ export async function runBuild(
 
       broadcastToUser(username, {
         type: "preview_build_end",
-        repoName,
+        projectName,
         success,
         exitCode,
       });
@@ -102,13 +102,13 @@ export async function runBuild(
       if (success) {
         broadcastToUser(username, {
           type: "preview_status",
-          repoName,
+          projectName,
           status: "ready",
         });
       } else {
         broadcastToUser(username, {
           type: "preview_status",
-          repoName,
+          projectName,
           status: "error",
           error: `Build failed with exit code ${exitCode}`,
         });
@@ -122,20 +122,20 @@ export async function runBuild(
 
       broadcastToUser(username, {
         type: "preview_build_log",
-        repoName,
+        projectName,
         line: `Failed to start build: ${err.message}`,
       });
 
       broadcastToUser(username, {
         type: "preview_build_end",
-        repoName,
+        projectName,
         success: false,
         exitCode: -1,
       });
 
       broadcastToUser(username, {
         type: "preview_status",
-        repoName,
+        projectName,
         status: "error",
         error: err.message,
       });
@@ -145,8 +145,8 @@ export async function runBuild(
   });
 }
 
-export function abortBuild(username: string, repoName: string) {
-  const key = buildKey(username, repoName);
+export function abortBuild(username: string, projectName: string) {
+  const key = buildKey(username, projectName);
   const controller = activeBuilds.get(key);
   if (controller) {
     controller.abort();
@@ -154,13 +154,13 @@ export function abortBuild(username: string, repoName: string) {
 
     broadcastToUser(username, {
       type: "preview_build_log",
-      repoName,
+      projectName,
       line: "Build cancelled.",
     });
 
     broadcastToUser(username, {
       type: "preview_status",
-      repoName,
+      projectName,
       status: "idle",
     });
   }

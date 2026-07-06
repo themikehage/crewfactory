@@ -1,12 +1,12 @@
 import { useState, useEffect, useCallback } from "react";
 
 export type Route =
-  | { page: "chat"; sessionId: string | null; repoName?: string | null; agentId?: string | null; channelId?: string | null }
+  | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
   | { page: "projects" }
   | { page: "settings" }
   | { page: "skills" }
-  | { page: "workspace"; repoName?: string | null; agentId?: string | null; channelId?: string | null }
-  | { page: "preview"; repoName?: string | null }
+  | { page: "workspace"; projectName?: string | null; agentId?: string | null; channelId?: string | null }
+  | { page: "preview"; projectName?: string | null }
   | { page: "agents" }
   | { page: "channels" }
   | { page: "channel"; channelId: string }
@@ -17,24 +17,24 @@ export type Route =
 function parseRoute(): Route {
   const path = window.location.pathname;
 
-  // Formato: /repos/{repoName}/...
-  if (path.startsWith("/repos/")) {
-    const parts = path.slice("/repos/".length).split("/");
-    const repoName = parts[0];
+  // Formato: /projects/{projectName}/...
+  if (path.startsWith("/projects/")) {
+    const parts = path.slice("/projects/".length).split("/");
+    const projectName = parts[0];
     const subPage = parts[1];
 
     if (subPage === "session") {
       const sessionId = parts.slice(2).join("/");
-      return { page: "chat", sessionId: sessionId || null, repoName };
+      return { page: "chat", sessionId: sessionId || null, projectName };
     }
     if (subPage === "workspace") {
-      return { page: "workspace", repoName };
+      return { page: "workspace", projectName };
     }
     if (subPage === "preview") {
-      return { page: "preview", repoName };
+      return { page: "preview", projectName };
     }
     // Default
-    return { page: "chat", sessionId: null, repoName };
+    return { page: "chat", sessionId: null, projectName };
   }
 
   // Formato: /agents/{agentId}/...

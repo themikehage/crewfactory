@@ -8,6 +8,8 @@ import { AnimatePresence } from "framer-motion";
 import type { Task, TaskRunnerState } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChatArea.literals";
+import { useRouter } from "@/hooks/useRouter";
+import { WelcomeChatInput } from "./WelcomeChatInput";
 
 import { SubagentConsole } from "./tools/SubagentConsole";
 
@@ -59,18 +61,111 @@ interface Message {
 
 interface Props {
   sessionId: string | null;
-  activeRepoName: string | null;
+  activeProjectName: string | null;
   activeAgent?: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel?: { id: string; name: string } | null;
 }
 
-export function ChatArea({ sessionId, activeRepoName, activeAgent = null, activeChannel = null }: Props) {
-const l = useLiterals(u);
+export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeChannel = null }: Props) {
+  const l = useLiterals(u);
+  const { navigate } = useRouter();
   const [messages, setMessages] = useState<Message[]>([]);
+  const [loadingMessages, setLoadingMessages] = useState(true);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [sandboxTools, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
   const [serialTools, setSerialTools] = useState<string[]>(["request_approval", "ask_question"]);
+
+  const getSessionPath = useCallback((id: string) => {
+    if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
+    if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
+    if (activeProjectName) return `/projects/${activeProjectName}/session/${id}`;
+    return `/session/${id}`;
+  }, [activeChannel, activeAgent, activeProjectName]);
+
+  const createSessionAndSend = async (messageText: string) => {
+    const token = localStorage.getItem("token");
+    if (!token) return;
+
+    let sessionName = "Global Session";
+    if (activeChannel) sessionName = `#${activeChannel.name} - Session`;
+    else if (activeAgent) sessionName = `${activeAgent.name} - Session`;
+    else if (activeProjectName) sessionName = `${activeProjectName} - Session`;
+
+    try {
+      const createRes = await fetch("/api/sessions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          name: sessionName,
+          repoName: activeAgent || activeChannel ? undefined : activeProjectName || undefined,
+          agentId: activeChannel ? undefined : activeAgent ? activeAgent.id : undefined,
+          channelId: activeChannel ? activeChannel.id : undefined,
+        }),
+      });
+
+      if (createRes.ok) {
+        const session = await createRes.json();
+        const path = getSessionPath(session.id);
+        localStorage.setItem(`pending-prompt-${session.id}`, messageText);
+        navigate(path);
+      }
+    } catch (e) {
+      console.error("Failed to auto-create session for prompt:", e);
+    }
+  };
+
+  const getSuggestions = () => {
+    if (activeChannel) {
+      return [
+        {
+          label: l.pillListAgents || "List Agents",
+          promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles.",
+        },
+        {
+          label: l.pillStartLab || "Start Experiment",
+          promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory.",
+        }
+      ];
+    }
+    if (activeAgent) {
+      return [
+        {
+          label: l.pillAgentRole || "Describe Role",
+          promptText: l.pillAgentRolePrompt || "Explain your system prompt, context, and capabilities.",
+        }
+      ];
+    }
+    if (activeProjectName) {
+      return [
+        {
+          label: l.pillAnalyzeCode || "Analyze Workspace",
+          promptText: l.pillAnalyzeCodePrompt || "Analyze the current repository structure and describe its architecture.",
+        },
+        {
+          label: l.pillRunTests || "Run Tests",
+          promptText: l.pillRunTestsPrompt || "Run the project's test suite and report if any checks fail.",
+        }
+      ];
+    }
+    return [
+      {
+        label: l.pillCreateRepo || "Create Repo",
+        promptText: l.pillCreateRepoPrompt || "Help me create a new code repository.",
+      },
+      {
+        label: l.pillListAgents || "List Agents",
+        promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles.",
+      },
+      {
+        label: l.pillStartLab || "Start Experiment",
+        promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory.",
+      }
+    ];
+  };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [subagentDrawer, setSubagentDrawer] = useState<{ toolCallId: string; task: string; role?: string } | null>(null);
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
@@ -169,21 +264,29 @@ const l = useLiterals(u);
   const loadMessages = useCallback(async () => {
     if (!sessionId) {
       setMessages([]);
+      setLoadingMessages(false);
       return;
     }
-    const token = localStorage.getItem("token");
-    const res = await fetch(`/api/sessions/${sessionId}/messages`, {
-      headers: { Authorization: `Bearer ${token}` },
-    });
-    if (res.ok) {
-      const data = await res.json();
-      const msgs = data.messages ?? [];
-      setMessages(msgs);
-      if (msgs.length > 0) {
-        firstMessageSentRef.current = true;
+    setLoadingMessages(true);
+    try {
+      const token = localStorage.getItem("token");
+      const res = await fetch(`/api/sessions/${sessionId}/messages`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const msgs = data.messages ?? [];
+        setMessages(msgs);
+        if (msgs.length > 0) {
+          firstMessageSentRef.current = true;
+        }
+        isAtBottomRef.current = true;
+        scrollToBottom("instant");
       }
-      isAtBottomRef.current = true;
-      scrollToBottom("instant");
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setLoadingMessages(false);
     }
   }, [sessionId, scrollToBottom]);
 
@@ -196,6 +299,7 @@ const l = useLiterals(u);
   useEffect(() => {
     if (!sessionId) {
       setMessages([]);
+      setLoadingMessages(false);
       return;
     }
 
@@ -336,7 +440,6 @@ const l = useLiterals(u);
       unsubSubagent();
     };
   }, [sessionId, subscribe]);
-
   const handleSend = useCallback(
     (message: string, option?: "steer" | "follow_up", tools?: string[], images?: Array<{ type: "image"; data: string; mimeType: string }>) => {
       if (!message.trim() || !sessionId) return;
@@ -386,6 +489,18 @@ const l = useLiterals(u);
     },
     [sessionId, send, activeChannel]
   );
+
+  useEffect(() => {
+    if (!sessionId) return;
+    const pendingKey = `pending-prompt-${sessionId}`;
+    const pendingPrompt = localStorage.getItem(pendingKey);
+    if (pendingPrompt) {
+      localStorage.removeItem(pendingKey);
+      setTimeout(() => {
+        handleSend(pendingPrompt);
+      }, 500);
+    }
+  }, [sessionId, handleSend]);
 
   const handleAbort = useCallback(() => {
     send({ type: "abort", sessionId });
@@ -453,8 +568,17 @@ const l = useLiterals(u);
 
   if (!sessionId) {
     return (
-      <div className="h-full flex items-center justify-center text-muted-foreground">
-        <p>Select or create a session to start</p>
+      <div className="h-full flex flex-col items-center justify-center bg-bg relative">
+        <WelcomeChatInput
+          title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
+          sessionId={null}
+          onSend={(msg) => createSessionAndSend(msg)}
+          suggestions={getSuggestions()}
+          showModelSelector={true}
+          allowAttachments={false}
+          disabled={streaming}
+          loading={streaming}
+        />
       </div>
     );
   }
@@ -502,66 +626,88 @@ const l = useLiterals(u);
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}
-          className="flex-1 overflow-y-auto min-h-0"
+          className={`flex-1 overflow-y-auto min-h-0 ${loadingMessages || messages.length === 0 ? "flex flex-col justify-center animate-fade-in" : ""}`}
         >
-          <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4">
-            <MessageList
-              messages={messages}
-              onNavigate={handleNavigate}
-              sessionId={sessionId}
-              activeRepoName={activeRepoName}
-              activeAgentId={activeAgent?.id}
-              activeAgentName={activeAgent?.name}
-              activeAgentAvatarUrl={activeAgent?.avatarUrl}
-              activeChannelId={activeChannel?.id}
-              serialTools={serialTools}
-              onOpenSubagentConsole={(toolCallId: string, task: string, role?: string) => {
-                setSubagentDrawer({ toolCallId, task, role });
-              }}
-            />
-            <div ref={messagesEndRef} />
-          </div>
+          {loadingMessages ? (
+            <div className="flex flex-col items-center justify-center gap-3 py-12 text-text-secondary select-none">
+              <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs font-mono tracking-wider animate-pulse opacity-85">Cargando mensajes...</span>
+            </div>
+          ) : (
+            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4 w-full">
+              {messages.length === 0 ? (
+                <WelcomeChatInput
+                  title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
+                  sessionId={sessionId}
+                  onSend={(msg) => handleSend(msg)}
+                  suggestions={getSuggestions()}
+                  showModelSelector={true}
+                  allowAttachments={!activeChannel}
+                  disabled={streaming}
+                  loading={streaming}
+                />
+              ) : (
+                <>
+                  <MessageList
+                    messages={messages}
+                    onNavigate={handleNavigate}
+                    sessionId={sessionId}
+                    activeProjectName={activeProjectName}
+                    activeAgentId={activeAgent?.id}
+                    activeAgentName={activeAgent?.name}
+                    activeAgentAvatarUrl={activeAgent?.avatarUrl}
+                    activeChannelId={activeChannel?.id}
+                    serialTools={serialTools}
+                    onOpenSubagentConsole={(toolCallId: string, task: string, role?: string) => {
+                      setSubagentDrawer({ toolCallId, task, role });
+                    }}
+                  />
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
+          )}
         </div>
-        {!isReadOnlyExecution && (
+        {messages.length > 0 && !isReadOnlyExecution && (
           <ContextMeter
             contextUsage={contextData?.contextUsage ?? null}
             sessionStats={contextData?.sessionStats ?? null}
-            
-            
           />
         )}
-        {isReadOnlyExecution ? (
-          <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 flex-shrink-0 text-muted-foreground">
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-xs uppercase tracking-wider font-mono">
-              <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-              </svg>
-              {sessionId.includes("_channel_") ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
+        {messages.length > 0 && (
+          isReadOnlyExecution ? (
+            <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 flex-shrink-0 text-muted-foreground">
+              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-xs uppercase tracking-wider font-mono">
+                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                </svg>
+                {sessionId.includes("_channel_") ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
+              </div>
+              <p className="text-[11px] text-center max-w-md font-sans">
+                Esta conversación corresponde a una ejecución automática externa. Podés navegar el historial de mensajes y tool calls, pero no es interactiva.
+              </p>
             </div>
-            <p className="text-[11px] text-center max-w-md font-sans">
-              Esta conversación corresponde a una ejecución automática externa. Podés navegar el historial de mensajes y tool calls, pero no es interactiva.
-            </p>
-          </div>
-        ) : (
-          <InputArea
-            onSend={handleSend}
-            onAbort={handleAbort}
-            streaming={streaming}
-            sessionId={sessionId}
-            onToolsChange={setSandboxTools}
-            runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
-            activeRepoName={activeRepoName}
-            activeAgentId={activeAgent?.id}
-            activeChannelId={activeChannel?.id}
-          />
+          ) : (
+            <InputArea
+              onSend={handleSend}
+              onAbort={handleAbort}
+              streaming={streaming}
+              sessionId={sessionId}
+              onToolsChange={setSandboxTools}
+              runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
+              activeProjectName={activeProjectName}
+              activeAgentId={activeAgent?.id}
+              activeChannelId={activeChannel?.id}
+            />
+          )
         )}
       </div>
 
       <AnimatePresence>
         {rightDrawerOpen && (
           <RightDrawer
-            activeRepoName={activeRepoName}
+            activeProjectName={activeProjectName}
             tasksState={tasksState}
             onClose={() => setRightDrawerOpen(false)}
             onRun={handleRunTasks}

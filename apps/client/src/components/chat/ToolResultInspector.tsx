@@ -7,7 +7,7 @@ interface Props {
   args?: Record<string, unknown>;
   result: string | unknown;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
 }
 
 export type MediaType = "image" | "html" | "pdf" | "audio" | "video" | "office" | "other";
@@ -21,7 +21,7 @@ interface FileMarker {
 export function resolveFileUrl(
   rawUrl: string,
   sessionId: string | null,
-  activeRepoName?: string | null,
+  activeProjectName?: string | null,
   activeAgentId?: string | null,
   activeChannelId?: string | null
 ): string {
@@ -55,7 +55,7 @@ export function resolveFileUrl(
     cleanPath = cleanPath.substring("workspace/".length);
   }
   const params = new URLSearchParams();
-  if (activeRepoName) params.append("repo", activeRepoName);
+  if (activeProjectName) params.append("project", activeProjectName);
   if (activeAgentId) params.append("agentId", activeAgentId);
   if (activeChannelId) params.append("channelId", activeChannelId);
   params.append("raw", "true");
@@ -141,14 +141,14 @@ export function HtmlFileFetcher({
   url,
   title,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: {
   url: string;
   title: string;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }) {
@@ -156,7 +156,7 @@ export function HtmlFileFetcher({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const resolvedUrl = resolveFileUrl(url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+  const resolvedUrl = resolveFileUrl(url, sessionId, activeProjectName, activeAgentId, activeChannelId);
 
   useEffect(() => {
     let cancelled = false;
@@ -216,13 +216,13 @@ export function HtmlFileFetcher({
 function MediaRenderer({
   markers,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: {
   markers: FileMarker[];
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }) {
@@ -245,7 +245,7 @@ function MediaRenderer({
           url={m.url}
           title={m.title}
           sessionId={sessionId}
-          activeRepoName={activeRepoName}
+          activeProjectName={activeProjectName}
           activeAgentId={activeAgentId}
           activeChannelId={activeChannelId}
         />
@@ -255,14 +255,14 @@ function MediaRenderer({
         <ImageGrid
           images={imageMarkers.map((m) => ({ url: m.url, title: m.title }))}
           sessionId={sessionId}
-          activeRepoName={activeRepoName}
+          activeProjectName={activeProjectName}
           activeAgentId={activeAgentId}
           activeChannelId={activeChannelId}
         />
       )}
 
       {pdfMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-input overflow-hidden bg-card flex flex-col font-sans">
@@ -287,7 +287,7 @@ function MediaRenderer({
       })}
 
       {audioMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`audio-${i}`} className="w-full p-3 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -298,7 +298,7 @@ function MediaRenderer({
       })}
 
       {videoMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`video-${i}`} className="w-full p-2 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -309,7 +309,7 @@ function MediaRenderer({
       })}
 
       {officeMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
         const extension = m.url.split(".").pop() || "file";
@@ -343,7 +343,7 @@ interface Props {
   args?: Record<string, unknown>;
   result: string | unknown;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }
@@ -353,7 +353,7 @@ export function ToolResultInspector({
   args,
   result,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: Props) {
@@ -410,7 +410,7 @@ export function ToolResultInspector({
               <MediaRenderer
                 markers={markers}
                 sessionId={sessionId}
-                activeRepoName={activeRepoName}
+                activeProjectName={activeProjectName}
                 activeAgentId={activeAgentId}
                 activeChannelId={activeChannelId}
               />

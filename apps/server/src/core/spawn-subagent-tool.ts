@@ -110,9 +110,9 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       } else if (parentMeta.agentId) {
         parentEntityType = "agent";
         parentEntityId = parentMeta.agentId;
-      } else if (parentMeta.repoName) {
-        parentEntityType = "repo";
-        parentEntityId = parentMeta.repoName;
+      } else if (parentMeta.projectName) {
+        parentEntityType = "project";
+        parentEntityId = parentMeta.projectName;
       }
 
       // 1. Create a directory for the subagent session

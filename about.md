@@ -22,7 +22,7 @@
 - Context Window Meter with token usage bar and manual Compact button
 - **Streaming Reconnection & Session Persistence:** Resolves page refresh issues during active streaming (e.g., waiting for long-running tools). Real-time message synchronization updates the session's active messages on every append, while the WebSocket handler immediately pushes current streaming states (`agent_start`) and token context meters upon client reconnection, marking the last assistant message as active.
 - **Virtualized Execution Sessions:** API and CLI executions for Agents, Repositories, and Channels are virtualized as read-only sessions in the chat UI. Toggled via a switch in the session popover, showing historical log messages with distinct "API" / "CLI" badges and locking the chat input to prevent interactive steer inputs.
-- **Rutas Jerárquicas Estructuradas:** El router enruta de forma contextualizada las vistas en la URL (ej: `/repos/{repoName}/session/{sessionId}`, `/repos/{repoName}/workspace`, `/agents/{agentId}/...`). Al recargar la página se mantiene al 100% el estado del contexto de trabajo y las breadcrumbs dinámicas reflejan exactamente la jerarquía del usuario (`Proyectos / got / Files`).
+- **Rutas Jerárquicas Estructuradas:** El router enruta de forma contextualizada las vistas en la URL (ej: `/projects/{projectName}/session/{sessionId}`, `/projects/{projectName}/workspace`, `/agents/{agentId}/...`). Al recargar la página se mantiene al 100% el estado del contexto de trabajo y las breadcrumbs dinámicas reflejan exactamente la jerarquía del usuario (`Proyectos / got / Files`).
 - **Ubicación de Sesiones:** El popover de gestión de sesiones de chat fue movido de la cabecera global a la barra de navegación de pestañas (Chat, Files, Preview) pegado a la derecha, agrupando el control de las sesiones directamente al espacio donde pertenecen.
 
 ### Multimedia Support (Images & Documents)
@@ -68,18 +68,18 @@
 ### Workspace & Hybrid Agent Instantiation
 - Structured directory per user at `/tmp/crewfactory/{username}/`:
   - `workspace/` — User global workspace root (contains `.agents/skills/` for factory skills, `AGENTS.md` — the only entity with manager-level instructions, `assets/` for uploads/generated, and memories/ for short-term and session notes)
-  - `repos/{repoId}/workspace/` — Git repository workspace (contains `.agents/skills/`, `assets/`, `memories/` skeleton for repo context, identified by a unique UUID `repoId` to support renaming)
-  - `repos/{repoId}/project.json` — Repository metadata mapping the UUID to its friendly name and clone settings
+  - `projects/{projectId}/workspace/` — Git project workspace (contains `.agents/skills/`, `assets/`, `memories/` skeleton for project context, identified by a unique UUID `projectId` to support renaming)
+  - `projects/{projectId}/project.json` — Project metadata mapping the UUID to its friendly name and clone settings
   - `agents/{id}/workspace/` — Programmatic agent workspace with same subdirs skeleton but NO AGENTS.md or factory skill provisioning — they see global factory skills as read-only via `getResolvedSkillPaths(username)`
   - `channels/{id}/workspace/` — Multi-agent channel workspace, same structure as agents
   - `sessions/` — User chat sessions and metadata
   - `agents/{id}/sessions/` — Agent chat sessions
   - `channels/{id}/` — Channel definitions and message logs
-- **Global mode:** Agent CWD is the workspace root. Used for cross-repo tasks, admin, and skill authorship.
-- **Repo mode:** Agent CWD is `repos/{repoId}/workspace`. Sessions tagged with `repoId` in `metadata.json`.
+- **Global mode:** Agent CWD is the workspace root. Used for cross-project tasks, admin, and skill authorship.
+- **Project mode:** Agent CWD is `projects/{projectId}/workspace`. Sessions tagged with `projectId` in `metadata.json`.
 - **Agent/Channel mode:** Agent CWD is the entity's workspace. Global factory skills injected via `getResolvedSkillPaths()`.
 - `ensureWorkspaceSubdirs()` creates the common subdirectory skeleton for any entity workspace.
-- Dashboard view (initial screen) lets users list, create or clone Git repositories.
+- Dashboard view (initial screen) lets users list, create or clone Git projects.
 
 ### Tool Permissions
 - Per-session tool access control: toggle `read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`
@@ -109,16 +109,16 @@
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente
 - **Servidor dedicado de preview (Puerto 3001)**: corre un servidor de archivos estáticos independiente (`Bun.serve`) en el mismo contenedor/proceso para aislar por completo el render del frontend del framework Vite y Service Workers de CrewFactory.
-- **Aislamiento por Path (No auth en assets)**: las URLs tienen el formato `http://localhost:3001/:username/:repo/index.html`. El path provee aislamiento de datos y evita requerir tokens en sub-assets como JS/CSS/imágenes.
+- **Aislamiento por Path (No auth en assets)**: las URLs tienen el formato `http://localhost:3001/:username/:project/index.html`. El path provee aislamiento de datos y evita requerir tokens en sub-assets como JS/CSS/imágenes.
 - Sirve archivos estáticos desde el directorio de build (`dist/`, `build/`, `.output/` auto-detectados) con MIME correctas.
 - SPA routing con fallback a `index.html` para cualquier ruta no-asset
-- **HTML rewriting automático**: inyecta `<base href="/:username/:repo/">` + stripea el atributo `crossorigin` + reescribe paths absolutos (`src="/"`, `href="/"`, `fetch("/"`, `new URL("/"`) para compatibilidad total con Vite SPAs, React Router BrowserRouter, y frameworks como Next.js, Nuxt, Astro
+- **HTML rewriting automático**: inyecta `<base href="/:username/:project/">` + stripea el atributo `crossorigin` + reescribe paths absolutos (`src="/"`, `href="/"`, `fetch("/"`, `new URL("/"`) para compatibilidad total con Vite SPAs, React Router BrowserRouter, y frameworks como Next.js, Nuxt, Astro
 - **Build config determinista**: modal de configuración con framework preset (Auto/Vite/Next/Nuxt/Astro/HTML/Custom), build command y output directory editables
 - **Auto-detect de framework**: escanea `package.json` (deps, scripts) y archivos de configuración (`vite.config.ts`, `next.config.js`, etc.)
 - **Build trigger manual**: botón "Build Now" en toolbar, spawn `buildCommand` via `bash -c`, transmite logs en vivo por WS
 - **Logs de build en tiempo real**: panel colapsable con stdout/stderr stream, auto-scroll
-- **Build endpoint**: `POST /api/preview/build?repo=X` con abort (`POST /api/preview/build/abort`)
-- **Persistencia**: configuración guardada en `.preview.json` dentro del repo workspace
+- **Build endpoint**: `POST /api/preview/build?project=X` con abort (`POST /api/preview/build/abort`)
+- **Persistencia**: configuración guardada en `.preview.json` dentro del project workspace
 - Toolbar con estado de build (idle/building/ready/error), recargar, abrir en nueva pestaña (usando `noreferrer`)
 - Modos responsive: 375px, 768px, 1280px y Full
 - Detección automática de build via WebSocket: regex que cubre 10+ comandos
@@ -136,7 +136,7 @@
 ### Integrations Hub
 - Dynamic and fully customizable integrations catalog configured per user on the server
 - Automatic integration status detection linked with existing user-level environment variables
-- Repository-specific context variables linked dynamically to resources (GitHub repos, Coolify applications, Neon databases, Vercel projects)
+- Project-specific context variables linked dynamically to resources (GitHub repos, Coolify applications, Neon databases, Vercel projects)
 - Dynamic Quick Action buttons triggering custom workflows with variable replacements sent as chat prompts to the agent
 
 ### Dynamic Model Sourcing & Capabilities Matrix
@@ -206,11 +206,13 @@
 - **Safety Preflight & Warnings**: Shows warning modals on destructive overwrite imports, offering quick backup downloads and text verification inputs.
 
 ### Task Delegation & Meta-Agent Optimization Loop
-- **Unified CLI Delegation**: Command-line helper script `scripts/delegate.ts` executed via Bun. Lets the global meta-agent delegate prompt execution to programmatic agents (`--agent`), channels (`--channel`), or repository sessions (`--repo`) with live SSE streams rendered directly to stdout.
+- **Unified CLI Delegation**: Command-line helper script `scripts/delegate.ts` executed via Bun. Lets the global meta-agent delegate prompt execution to programmatic agents (`--agent`), channels (`--channel`), or project sessions (`--project`) with live SSE streams rendered directly to stdout.
 - **Active Observation API**: Endpoint `GET /api/agents/:id/observe` (SSE) providing live streaming of internal agent execution events (thoughts, text deltas, tool calls, errors).
-- **Execution Log Store**: Structured folder persistence under `/tmp/crewfactory/{username}/[agents|repos]/{id}/executions/{execId}/` saving prompt execution detail files (`prompt.json`, `messages.jsonl`, `tool-calls.json`, `errors.json`, `summary.json`) upon completion.
+- **Execution Log Store**: Structured folder persistence under `/tmp/crewfactory/{username}/[agents|projects]/{id}/executions/{execId}/` saving prompt execution detail files (`prompt.json`, `messages.jsonl`, `tool-calls.json`, `errors.json`, `summary.json`) upon completion.
 - **Continuous Optimization Loop**: Factory skills `factory-delegate`, `factory-observe`, and `factory-quick-actions` teaching the global director how to delegate tasks, inspect execution reports, detect repetitive sequences, and compile/register optimized Quick Actions.
+- **Global Session Management & Diagnostics**: Factory skill `factory-sessions` teaching the global director how to list, inspect, delete, and analyze session messages, error logs, and execution bottlenecks across repositories, channels, agents, and experiments using standard REST APIs.
 - **Rich Monitoring UI**: "Historial" (Executions) logs tab in `AgentsPage.tsx` with collapsable tool detail pre-blocks and real-time Observed status indicators in `ChatArea.tsx`.
+- **Minimalist Welcome Chat Input**: Unified, high-contrast text input component (`WelcomeChatInput`) configured for empty sessions, first-time prompt initializations (auto-creating sessions dynamically based on active contexts), and laboratory team generator view. Implements Dynamic greeting based on user local time/active locale, built-in model dropdown selectors, files attachments lists, and custom suggestions cards. Includes `loadingMessages` shimmer checks in `ChatArea` to eliminate layout transition flickering.
 
 ### Model Context Protocol (MCP) Marketplace & Gallery
 - **Single Source of Truth**: MCP configuration lives exclusively in the dedicated `/mcps` page. The Settings tab no longer duplicates MCP management; instead it provides a quick link to `/mcps`.
@@ -228,7 +230,7 @@
 |--------|------|-------------|
 | POST | /api/auth/login | Login, returns JWT |
 | GET | /api/auth/me | Current user info |
-| GET/POST/DELETE | /api/sessions | Session CRUD (supports optional `repoName`) |
+| GET/POST/DELETE | /api/sessions | Session CRUD (supports optional `projectName`) |
 | POST | /api/sessions/:id/prompt | Send prompt (REST) |
 | POST | /api/sessions/:id/model | Set active model |
 | GET | /api/sessions/:id/messages | Get session messages |
@@ -238,16 +240,16 @@
 | GET | /api/providers/:id/models | Models for a provider |
 | POST | /api/providers/:id/key | Set API key |
 | DELETE | /api/providers/:id/key | Remove API key |
-| GET | /api/preview/state | Get preview build state for a repo (`?repo=name`) |
-| GET | /api/preview/config | Get preview build config (`?repo=name`) |
+| GET | /api/preview/state | Get preview build state for a project (`?project=name`) |
+| GET | /api/preview/config | Get preview build config (`?project=name`) |
 | POST | /api/preview/config | Save preview build config (framework, buildCommand, outputDir) |
-| POST | /api/preview/build | Trigger build from config (`?repo=name`) |
-| POST | /api/preview/build/abort | Cancel running build (`?repo=name`) |
-| GET | /api/preview/{username}/{repoName}/* | Serve static files from repo build dir with SPA fallback (path-based isolation, no token) |
-| GET | /api/workspace-repos | List repos in workspace/repos/ |
-| POST | /api/workspace-repos | Create empty repo or clone from Git URL |
-| PATCH/DELETE | /api/workspace-repos/:id | Rename project name or delete project (and sessions) |
-| GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?repo=name`, `?agentId=id`, `?channelId=id` scoping) |
+| POST | /api/preview/build | Trigger build from config (`?project=name`) |
+| POST | /api/preview/build/abort | Cancel running build (`?project=name`) |
+| GET | /api/preview/{username}/{projectName}/* | Serve static files from project build dir with SPA fallback (path-based isolation, no token) |
+| GET | /api/workspace-projects | List projects in workspace/projects/ |
+| POST | /api/workspace-projects | Create empty project or clone from Git URL |
+| PATCH/DELETE | /api/workspace-projects/:id | Rename project name or delete project (and sessions) |
+| GET/PUT/POST/DELETE/PATCH | /api/workspace/* | Workspace file operations (supports `?project=name`, `?agentId=id`, `?channelId=id` scoping) |
 | GET | /api/sessions/:id/tools | Get active tool permissions for session |
 | POST | /api/sessions/:id/tools | Set and persist tool permissions for session |
 | GET | /api/sessions/:id/tasks | Get session task runner state |
@@ -258,14 +260,14 @@
 | POST | /api/sessions/:id/tasks/reset | Reset all steps to pending and clear logs |
 | GET | /api/integrations/templates | List all configured integration templates |
 | POST | /api/integrations/templates | Update or define new integrations and custom quick actions |
-| GET | /api/integrations/bindings/:repoName | Get repository linkages for active repository |
+| GET | /api/integrations/bindings/:projectName | Get project linkages for active project |
 | GET/POST/PATCH/DELETE | /api/agents | Agent registration, listing, updating (restarts server), and deletion (and sessions) |
 | GET | /api/agents/:id/observe | SSE event stream of agent actions, thoughts, and tools |
 | GET | /api/agents/:id/executions | List saved execution logs for the agent |
 | GET | /api/agents/:id/executions/:execId | Retrieve detail logs of a specific agent execution |
-| POST | /api/sessions/:id/prompt/stream | Stream prompts (SSE) for standard repository-scoped sessions |
-| GET | /api/sessions/repos/:repoName/executions | List saved execution logs for the repository |
-| GET | /api/sessions/repos/:repoName/executions/:execId | Retrieve detail logs of a specific repository execution |
+| POST | /api/sessions/:id/prompt/stream | Stream prompts (SSE) for standard project-scoped sessions |
+| GET | /api/sessions/projects/:projectName/executions | List saved execution logs for the project |
+| GET | /api/sessions/projects/:projectName/executions/:execId | Retrieve detail logs of a specific project execution |
 | GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), message dispatch (`/send`), benchmark suite (`/benchmark`), and prompt optimization (`/optimize`) |
 | GET/POST | /api/mcp | Retrieve and update the full Model Context Protocol (MCP) server configuration settings |
 | GET | /api/mcp/catalog | Retrieve the official marketplace pre-curated collection of servers |
@@ -294,9 +296,9 @@ packages/shared/  Shared Zod schemas and types
 
 ### Key Server Modules
 - `ai/` — Vendored and decoupled core agent runtime, including ModelRegistry, SessionManager (persistence), DefaultResourceLoader, AuthStorage, BashTool, and loadSkills.
-- `pi/session-manager.ts` — Singleton managing local AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `repoName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
+- `pi/session-manager.ts` — Singleton managing local AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `projectName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
 - `pi/task-runner.ts` — Task runner queue storage and supervisor background loop execution.
-- `routes/files.ts` — Workspace file CRUD API with `?repo=name` scoping and `/workspace-repos` endpoints for repo management.
+- `routes/files.ts` — Workspace file CRUD API with `?project=name` scoping and `/workspace-projects` endpoints for project management.
 - `routes/preview.ts` — Preview file serving, config CRUD (`/config`), and build trigger/abort (`/build`)
 - `pi/preview-config.ts` — Auto-detect framework from `package.json`/config files, load/save `.preview.json`
 - `pi/preview-builder.ts` — Spawn build via `bash -c`, stream stdout/stderr logs via WS, abort support
@@ -323,7 +325,7 @@ packages/shared/  Shared Zod schemas and types
 - `preview-server.ts` — Standalone static file server on port 3001 with path-based isolation for project preview (no auth tokens in URLs)
 
 ### Key Client Modules
-- `pages/DashboardPage.tsx` — Initial view: lists repos, creates/clones Git projects, accesses global workspace.
+- `pages/DashboardPage.tsx` — Initial view: lists projects, creates/clones Git projects, accesses global workspace.
 - `pages/AgentsPage.tsx` — Management dashboard for programmatic agents.
 - `pages/ChannelsPage.tsx` — Management dashboard for multi-agent channels with card actions.
 - `pages/MCPMarketplacePage.tsx` — Main MCP Marketplace page with tabbed views (Gallery catalog and Custom configurations).
@@ -344,10 +346,10 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection. Features reactive validation to automatically resolve fallback models in both frontend (`localStorage`) and backend session states when a selected provider key is disconnected.
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/settings/ProvidersTab.tsx` — Tab view managing API credentials. Features an interactive **Sincronizar** action for dynamic model fetching and an **Info** action displaying a premium capability matrix modal.
-- `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
+- `components/layout/AppRouter.tsx` — Context-aware router supporting Project, Agent, and Channel active modes.
 - `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and a right-side SessionDrawer trigger button.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
-- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos (Repos), Agentes, and Canales, and administration links. Active highlight is suppressed when the current page is not a session view (Laboratory, Settings, Agents, Channels, etc.).
+- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos, Agentes, and Canales, and administration links. Active highlight is suppressed when the current page is not a session view (Laboratory, Settings, Agents, Channels, etc.).
 - `components/sidebar/SessionDrawer.tsx` — Sliding right drawer containing session history list, message counts, session statuses, creation, and deletion controls.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).

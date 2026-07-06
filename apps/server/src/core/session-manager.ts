@@ -63,7 +63,7 @@ export function ensureWorkspaceSubdirs(workspaceDir: string): void {
     join(workspaceDir, ".agents", "skills"),
     join(workspaceDir, "assets", "uploads"),
     join(workspaceDir, "assets", "generated"),
-    join(workspaceDir, "memories", "repos"),
+    join(workspaceDir, "memories", "projects"),
     join(workspaceDir, "memories", "sessions"),
   ];
   for (const dir of subdirs) {
@@ -79,7 +79,7 @@ export function ensureWorkspaceStructure(username: string): string {
   const skillsBaseDir = join(workspaceDir, ".agents", "skills");
 
   ensureWorkspaceSubdirs(workspaceDir);
-  mkdirSync(join(userDir, "repos"), { recursive: true });
+  mkdirSync(join(userDir, "projects"), { recursive: true });
 
   const agentsMdPath = join(workspaceDir, "AGENTS.md");
   if (!existsSync(agentsMdPath)) {
@@ -126,7 +126,7 @@ type SessionListItem = {
   updatedAt: string;
   messageCount: number;
   status?: "active" | "streaming" | "task-running" | "sleeping";
-  repoName?: string;
+  projectName?: string;
   agentId?: string;
   channelId?: string;
   isExecution?: boolean;
@@ -217,7 +217,7 @@ class SessionManager {
   async getOrCreateSession(
     username: string,
     sessionId: string,
-    repoName?: string,
+    projectName?: string,
     agentId?: string,
     channelId?: string
   ): Promise<AgentSession> {
@@ -238,29 +238,28 @@ class SessionManager {
           mkdirSync(sessionDir, { recursive: true });
         }
 
-    // Persistir metadatos de sesiÃ³n (guardar y leer metadata.json con repoName, agentId y channelId)
     const metadataPath = join(sessionDir, "metadata.json");
-    let resolvedRepoName = repoName;
+    let resolvedProjectName = projectName;
     let resolvedAgentId = agentId;
     let resolvedChannelId = channelId;
     let persistedTools: string[] | undefined;
 
-    if (repoName || agentId || channelId) {
+    if (projectName || agentId || channelId) {
       const existingMeta = existsSync(metadataPath)
         ? (() => { try { return JSON.parse(readFileSync(metadataPath, "utf-8")); } catch { return {}; } })()
         : {};
       const updatedMeta = { ...existingMeta };
-      if (repoName !== undefined) updatedMeta.repoName = repoName;
+      if (projectName !== undefined) updatedMeta.projectName = projectName;
       if (agentId !== undefined) updatedMeta.agentId = agentId;
       if (channelId !== undefined) updatedMeta.channelId = channelId;
       writeFileSync(metadataPath, JSON.stringify(updatedMeta, null, 2), "utf-8");
-      resolvedRepoName = updatedMeta.repoName;
+      resolvedProjectName = updatedMeta.projectName;
       resolvedAgentId = updatedMeta.agentId;
       resolvedChannelId = updatedMeta.channelId;
     } else if (existsSync(metadataPath)) {
       try {
         const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
-        resolvedRepoName = metadata.repoName;
+        resolvedProjectName = metadata.projectName;
         resolvedAgentId = metadata.agentId;
         resolvedChannelId = metadata.channelId;
         persistedTools = Array.isArray(metadata.tools) ? metadata.tools : undefined;
@@ -279,8 +278,8 @@ class SessionManager {
       workspaceDir = join(userDir, "channels", resolvedChannelId, "workspace");
     } else if (resolvedAgentId) {
       workspaceDir = join(userDir, "agents", resolvedAgentId, "workspace");
-    } else if (resolvedRepoName) {
-      workspaceDir = resolve(userDir, "repos", resolvedRepoName, "workspace");
+    } else if (resolvedProjectName) {
+      workspaceDir = resolve(userDir, "projects", resolvedProjectName, "workspace");
     }
 
     if (!existsSync(workspaceDir)) {
@@ -288,7 +287,7 @@ class SessionManager {
     }
 
     // Crear subestructura completa para workspaces no-globales (skills, assets, memorias)
-    if (resolvedChannelId || resolvedAgentId || resolvedRepoName) {
+    if (resolvedChannelId || resolvedAgentId || resolvedProjectName) {
       ensureWorkspaceSubdirs(workspaceDir);
     }
 
@@ -724,7 +723,7 @@ class SessionManager {
             updatedAt: (metadata.updatedAt as string) || new Date(0).toISOString(),
             messageCount,
             status,
-            repoName: metadata.repoName as string | undefined,
+            projectName: metadata.projectName as string | undefined,
             agentId: metadata.agentId as string | undefined,
             channelId: metadata.channelId as string | undefined,
           };
@@ -765,14 +764,14 @@ class SessionManager {
         console.error("Failed to list virtual agent sessions:", e);
       }
 
-      // 2. Ejecuciones de Repositorios (Proyectos)
+      // 2. Ejecuciones de Proyectos
       try {
-        const reposDir = join(userDir, "repos");
-        if (existsSync(reposDir)) {
-          const repoFolders = readdirSync(reposDir, { withFileTypes: true });
-          for (const entry of repoFolders) {
+        const projectsDir = join(userDir, "projects");
+        if (existsSync(projectsDir)) {
+          const projectFolders = readdirSync(projectsDir, { withFileTypes: true });
+          for (const entry of projectFolders) {
             if (entry.isDirectory()) {
-              const execsDir = join(reposDir, entry.name, "executions");
+              const execsDir = join(projectsDir, entry.name, "executions");
               if (existsSync(execsDir)) {
                 const execFolders = readdirSync(execsDir);
                 for (const f of execFolders) {
@@ -781,13 +780,13 @@ class SessionManager {
                     if (existsSync(summaryPath)) {
                       const summary = JSON.parse(readFileSync(summaryPath, "utf-8"));
                       virtualSessions.push({
-                        id: `exec_repo_${entry.name}_${f}`,
+                        id: `exec_project_${entry.name}_${f}`,
                         name: `API: ${summary.prompt ? summary.prompt.slice(0, 30) + (summary.prompt.length > 30 ? "..." : "") : f}`,
                         createdAt: summary.createdAt || new Date().toISOString(),
                         updatedAt: summary.createdAt || new Date().toISOString(),
                         messageCount: 0,
                         status: "sleeping",
-                        repoName: entry.name,
+                        projectName: entry.name,
                         isExecution: true as any,
                       });
                     }
@@ -798,7 +797,7 @@ class SessionManager {
           }
         }
       } catch (e) {
-        console.error("Failed to list virtual repo sessions:", e);
+        console.error("Failed to list virtual project sessions:", e);
       }
 
       // 3. Ejecuciones de Canales (CLI)

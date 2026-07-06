@@ -1,3 +1,4 @@
+COMPLETED ✅
 # Pantalla de Chat Vacia (ChatGPT-Style)
 
 ## Motivacion

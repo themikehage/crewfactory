@@ -66,7 +66,7 @@ interface Props {
   messages: Message[];
   onNavigate?: (id: string) => void;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeAgentName?: string | null;
   activeAgentAvatarUrl?: string | null;
@@ -156,13 +156,13 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
 function AssistantTextBlock({
   text,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: {
   text: string;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }) {
@@ -186,7 +186,7 @@ function AssistantTextBlock({
             url={m.url}
             title={m.title}
             sessionId={sessionId}
-            activeRepoName={activeRepoName}
+            activeProjectName={activeProjectName}
             activeAgentId={activeAgentId}
             activeChannelId={activeChannelId}
           />
@@ -195,14 +195,14 @@ function AssistantTextBlock({
           <ImageGrid
             images={imageMarkers.map(m => ({ url: m.url, title: m.title }))}
             sessionId={sessionId}
-            activeRepoName={activeRepoName}
+            activeProjectName={activeProjectName}
             activeAgentId={activeAgentId}
             activeChannelId={activeChannelId}
           />
         )}
         
         {pdfMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-input overflow-hidden bg-card flex flex-col font-sans">
@@ -227,7 +227,7 @@ function AssistantTextBlock({
         })}
 
         {audioMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`audio-${i}`} className="w-full p-3 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -238,7 +238,7 @@ function AssistantTextBlock({
         })}
 
         {videoMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`video-${i}`} className="w-full p-2 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -249,7 +249,7 @@ function AssistantTextBlock({
         })}
 
         {officeMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
           const extension = m.url.split(".").pop() || "file";
@@ -286,7 +286,7 @@ function AgentTurn({
   messages,
   sessionId,
   onNavigate,
-  activeRepoName,
+  activeProjectName,
   activeAgentId,
   activeAgentName,
   activeAgentAvatarUrl,
@@ -297,7 +297,7 @@ function AgentTurn({
   messages: Message[];
   sessionId: string | null;
   onNavigate?: (id: string) => void;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeAgentName?: string | null;
   activeAgentAvatarUrl?: string | null;
@@ -356,7 +356,7 @@ function AgentTurn({
                       <AssistantTextBlock
                         text={block.text}
                         sessionId={sessionId}
-                        activeRepoName={activeRepoName}
+                        activeProjectName={activeProjectName}
                         activeAgentId={activeAgentId}
                         activeChannelId={activeChannelId}
                       />
@@ -388,7 +388,7 @@ function AgentTurn({
                       result={resultData}
                       sessionId={sessionId}
                       toolCallId={block.id}
-                      activeRepoName={activeRepoName}
+                      activeProjectName={activeProjectName}
                       activeAgentId={activeAgentId}
                       activeChannelId={activeChannelId}
                       disabled={disabled}
@@ -458,14 +458,14 @@ function UserBubble({
   msg,
   onNavigate,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: {
   msg: Message;
   onNavigate?: (id: string) => void;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }) {
@@ -500,7 +500,7 @@ function UserBubble({
             <ImageGrid
               images={images.map(img => ({ url: img.path, title: img.name }))}
               sessionId={sessionId}
-              activeRepoName={activeRepoName}
+              activeProjectName={activeProjectName}
               activeAgentId={activeAgentId}
               activeChannelId={activeChannelId}
             />
@@ -510,7 +510,7 @@ function UserBubble({
         {nonImages.length > 0 && (
           <div className="space-y-1.5 w-64">
             {nonImages.map((att, idx) => {
-              const resolved = resolveFileUrl(att.path, sessionId, activeRepoName, activeAgentId, activeChannelId);
+              const resolved = resolveFileUrl(att.path, sessionId, activeProjectName, activeAgentId, activeChannelId);
               const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
               return (
                 <div key={idx} className="flex items-center justify-between p-2.5 bg-card border border-input rounded-lg font-sans text-left w-full">
@@ -545,7 +545,7 @@ export const MessageList: FC<Props> = ({
   messages,
   onNavigate,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeAgentName = null,
   activeAgentAvatarUrl = null,
@@ -582,7 +582,7 @@ export const MessageList: FC<Props> = ({
                 msg={group.msg}
                 onNavigate={onNavigate}
                 sessionId={sessionId}
-                activeRepoName={activeRepoName}
+                activeProjectName={activeProjectName}
                 activeAgentId={activeAgentId}
                 activeChannelId={activeChannelId}
               />
@@ -591,7 +591,7 @@ export const MessageList: FC<Props> = ({
                 messages={group.messages}
                 sessionId={sessionId}
                 onNavigate={onNavigate}
-                activeRepoName={activeRepoName}
+                activeProjectName={activeProjectName}
                 activeAgentId={activeAgentId}
                 activeAgentName={activeAgentName}
                 activeAgentAvatarUrl={activeAgentAvatarUrl}

@@ -12,13 +12,13 @@ interface SessionItem {
   updatedAt: string;
   messageCount: number;
   status?: string;
-  repoName?: string;
+  projectName?: string;
   agentId?: string;
   channelId?: string;
 }
 
 interface LogsConsolePageProps {
-  onSelectRepo: (repoId: string | null, repoName: string | null) => void;
+  onSelectProject: (projectId: string | null, projectName: string | null) => void;
   onSelectAgent: (agent: { id: string; name: string } | null) => void;
   onSelectChannel: (channel: { id: string; name: string } | null) => void;
   onNavigate: (path: string) => void;
@@ -47,7 +47,7 @@ function groupConsecutiveDeltas(events: GlobalLogEvent[]): GlobalLogEvent[] {
 }
 
 export function LogsConsolePage({
-  onSelectRepo,
+  onSelectProject,
   onSelectAgent,
   onSelectChannel,
   onNavigate,
@@ -245,8 +245,8 @@ export function LogsConsolePage({
 
   const handleOpenSession = (s: SessionItem) => {
     // 1. Establecer el contexto
-    if (s.repoName) {
-      onSelectRepo(s.repoName, s.repoName);
+    if (s.projectName) {
+      onSelectProject(s.projectName, s.projectName);
     } else if (s.channelId) {
       const name = channelNamesMap.get(s.channelId) || s.channelId;
       onSelectChannel({ id: s.channelId, name });
@@ -254,7 +254,7 @@ export function LogsConsolePage({
       const name = agentNamesMap.get(s.agentId) || s.agentId;
       onSelectAgent({ id: s.agentId, name });
     } else {
-      onSelectRepo(null, null);
+      onSelectProject(null, null);
       onSelectAgent(null);
       onSelectChannel(null);
     }
@@ -418,8 +418,8 @@ export function LogsConsolePage({
                 let badgeText = "Global";
                 let badgeColor = "bg-text-secondary/10 text-muted-foreground border-text-secondary/20";
                 
-                if (session.repoName) {
-                  badgeText = `Proyecto: ${session.repoName}`;
+                if (session.projectName) {
+                  badgeText = `Proyecto: ${session.projectName}`;
                   badgeColor = "bg-blue-400/10 text-blue-400 border-blue-400/20";
                 } else if (session.channelId) {
                   const chName = channelNamesMap.get(session.channelId) || session.channelId;

@@ -44,7 +44,7 @@ interface Props {
   onToolsChange?: (tools: string[]) => void;
   runnerActive?: boolean;
   mentionTargets?: MentionTarget[];
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }
@@ -57,7 +57,7 @@ export function InputArea({
   onToolsChange,
   runnerActive = false,
   mentionTargets = [],
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: Props) {
@@ -305,7 +305,7 @@ export function InputArea({
         
         const token = localStorage.getItem("token");
         const params = new URLSearchParams();
-        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeProjectName) params.append("project", activeProjectName);
         if (activeAgentId) params.append("agentId", activeAgentId);
         if (activeChannelId) params.append("channelId", activeChannelId);
         const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
@@ -334,7 +334,7 @@ export function InputArea({
         
         const token = localStorage.getItem("token");
         const params = new URLSearchParams();
-        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeProjectName) params.append("project", activeProjectName);
         if (activeAgentId) params.append("agentId", activeAgentId);
         if (activeChannelId) params.append("channelId", activeChannelId);
         const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;

@@ -125,7 +125,7 @@ const l = useLiterals(u);
         .split(",")
         .map((v) => v.trim().toUpperCase())
         .filter(Boolean),
-      requiredRepoVars: newIntegrationRepoVars
+      requiredProjectVars: newIntegrationRepoVars
         .split(",")
         .map((v) => v.trim())
         .filter(Boolean),

@@ -36,24 +36,24 @@ interface ExperimentItem {
 }
 
 interface Props {
-  activeRepoName: string | null;
+  activeProjectName: string | null;
   activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
   currentPage?: string;
   onNavigate?: (path: string) => void;
-  onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
+  onSelectProject?: (projectId: string | null, projectName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   selectedExpId?: string | null;
 }
 
 export function SessionSidebar({
-  activeRepoName,
+  activeProjectName,
   activeAgent,
   activeChannel,
   currentPage = "chat",
   onNavigate,
-  onSelectRepo,
+  onSelectProject,
   onSelectAgent,
   onSelectChannel,
   selectedExpId = null,
@@ -76,7 +76,7 @@ export function SessionSidebar({
 
   const fetchRepos = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/workspace-repos");
+      const res = await apiFetch("/api/workspace-projects");
       if (res.ok) {
         const data = await res.json();
         setRepos(data.repos || []);
@@ -141,7 +141,7 @@ export function SessionSidebar({
     const handleUpdate = (e: Event) => {
       const customEvent = e as CustomEvent;
       const type = customEvent.detail?.type;
-      if (type === "repo") {
+      if (type === "project") {
         fetchRepos();
       } else if (type === "agent") {
         fetchAgents();
@@ -167,22 +167,22 @@ export function SessionSidebar({
     [onNavigate]
   );
 
-  const isGlobal = !activeChannel && !activeAgent && !activeRepoName;
+  const isGlobal = !activeChannel && !activeAgent && !activeProjectName;
   const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
 
   const handleGoFactory = useCallback(() => {
-    if (onSelectRepo) onSelectRepo(null, null);
+    if (onSelectProject) onSelectProject(null, null);
     if (onSelectAgent) onSelectAgent(null);
     if (onSelectChannel) onSelectChannel(null);
     if (onNavigate) onNavigate("/");
-  }, [onSelectRepo, onSelectAgent, onSelectChannel, onNavigate]);
+  }, [onSelectProject, onSelectAgent, onSelectChannel, onNavigate]);
 
   const handleSelectRepoClick = useCallback(
-    (repoId: string, repoName: string) => {
-      if (onSelectRepo) onSelectRepo(repoId, repoName);
+    (projectId: string, projectName: string) => {
+      if (onSelectProject) onSelectProject(projectId, projectName);
       if (onNavigate) onNavigate("/");
     },
-    [onSelectRepo, onNavigate]
+    [onSelectProject, onNavigate]
   );
 
   const handleSelectAgentClick = useCallback(
@@ -322,7 +322,7 @@ export function SessionSidebar({
                 <div className="text-xs text-muted-foreground px-3 py-1">{l.noProjects}</div>
               ) : (
                 repos.map((repo) => {
-                  const isActive = isSessionView && activeRepoName === repo.id && !activeAgent && !activeChannel;
+                  const isActive = isSessionView && activeProjectName === repo.id && !activeAgent && !activeChannel;
                   return (
                     <button
                       key={repo.id || repo.name}

@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { apiFetch } from "@/lib/api";
+import { WelcomeChatInput } from "@/components/chat/WelcomeChatInput";
 import { ModelSelector } from "@/components/chat/ModelSelector";
 import { motion } from "framer-motion";
 import { useLiterals } from "@/lib";
@@ -395,78 +396,46 @@ export function IaGenerator({ onExperimentCreated }: IaGeneratorProps) {
   return (
     <div className="space-y-6 max-w-5xl mx-auto w-full">
       {/* Card Header del Generador */}
-      <div className="bg-card border border-input rounded-2xl p-6 text-left">
-        <div className="flex items-center gap-2 mb-2">
-          <span className="p-2 bg-primary/10 rounded-xl">
-            <svg className="w-5 h-5 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth="2"
-                d="M13 10V3L4 14h7v7l9-11h-7z"
-              />
-            </svg>
-          </span>
-          <div>
-            <h1 className="text-lg font-bold">Generá tu Equipo con IA</h1>
-            <p className="text-xs text-muted-foreground">
-              Ingresá una descripción y la IA configurará los Agentes Programáticos y el Canal correspondiente.
-            </p>
-          </div>
+      {/* Visualizer del Generador con WelcomeChatInput */}
+      <WelcomeChatInput
+        title={l.generatorTitle || "Generá tu Equipo con IA"}
+        placeholder={l.placeholderGenerator || "Ingresá una descripción de tu tripulación..."}
+        sessionId={null}
+        value={generatorPrompt}
+        onChange={setGeneratorPrompt}
+        selectedModel={selectedModel}
+        onModelChange={setSelectedModel}
+        onSend={() => handleGenerateTeam()}
+        suggestions={[
+          {
+            label: "Consensus Debate",
+            promptText: "Crea un equipo de debate balanceado con posturas opuestas para analizar problemas éticos en IA."
+          },
+          {
+            label: "Lead-Role Moderation",
+            promptText: "Crea un canal estructurado con un Moderador Lead, un Experto Técnico y un Diseñador UX para construir una SPA."
+          }
+        ]}
+        showModelSelector={true}
+        allowAttachments={false}
+        disabled={generating}
+        loading={generating}
+      />
+
+      {genError && (
+        <div className="mt-4 max-w-2xl mx-auto w-full p-3 bg-destructive/10 border border-error/20 text-destructive rounded-xl text-xs flex items-center justify-center gap-2">
+          <span className="font-bold">Error:</span> {genError}
         </div>
+      )}
 
-        <div className="mt-4 space-y-4">
-          <textarea
-            value={generatorPrompt}
-            onChange={(e) => setGeneratorPrompt(e.target.value)}
-            placeholder="Ejemplo: Necesito un equipo de redactores publicitarios. Quiero un agente especialista en copy persuasivo, un corrector ortográfico y un coordinador que apruebe y decida."
-            rows={4}
-            className="w-full bg-background border border-input rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary transition-colors font-body text-foreground"
-          />
-
-          {genError && (
-            <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-xl text-xs flex items-center gap-2">
-              <span className="font-bold">Error:</span> {genError}
-            </div>
-          )}
-
-          {instantiationSuccess && (
-            <div className="p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs flex items-center gap-2">
-              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-              </svg>
-              <span>¡Equipo instanciado y cargado con éxito en el workspace!</span>
-            </div>
-          )}
-
-          {/* Selector de Modelo al lado del botón de generar */}
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 mt-4 bg-background/40 p-3 rounded-xl border border-input/50">
-            <div className="flex items-center gap-2.5">
-              <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider font-mono">
-                Modelo Generador:
-              </span>
-              <ModelSelector
-                sessionId="laboratory"
-                value={selectedModel}
-                onChange={setSelectedModel}
-              />
-            </div>
-            <Button
-              onClick={handleGenerateTeam}
-              disabled={generating || !generatorPrompt.trim()}
-            >
-              {generating ? (
-                <>
-                  <div className="w-3.5 h-3.5 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                  <span>Generando...</span>
-                </>
-              ) : (
-                <span>Generar con IA</span>
-              )}
-            </Button>
-          </div>
+      {instantiationSuccess && (
+        <div className="mt-4 max-w-2xl mx-auto w-full p-3 bg-primary/10 border border-primary/20 text-primary rounded-xl text-xs flex items-center justify-center gap-2">
+          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+          </svg>
+          <span>¡Equipo instanciado y cargado con éxito en el workspace!</span>
         </div>
-      </div>
+      )}
 
       {/* Resultado del Generador (Editable) */}
       {editableTeam && (
@@ -804,7 +773,7 @@ export function IaGenerator({ onExperimentCreated }: IaGeneratorProps) {
                         <ModelSelector
                           sessionId={null}
                           value={ag.model || "anthropic/claude-3-5-sonnet"}
-                          onChange={(modelId) => handleUpdateAgentField(ag.id, "model", modelId)}
+                          onChange={(modelId: string) => handleUpdateAgentField(ag.id, "model", modelId)}
                         />
                       </div>
                     </div>

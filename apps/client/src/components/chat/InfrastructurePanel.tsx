@@ -2,11 +2,11 @@ import { useState, useEffect, useCallback } from "react";
 import type { IntegrationTemplate } from "shared";
 
 interface Props {
-  activeRepoName: string | null;
+  activeProjectName: string | null;
   onSendPrompt: (prompt: string) => void;
 }
 
-export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
+export function InfrastructurePanel({ activeProjectName, onSendPrompt }: Props) {
   const [templates, setTemplates] = useState<IntegrationTemplate[]>([]);
   const [globalEnv, setGlobalEnv] = useState<Array<{ key: string; value: string }>>([]);
   const [bindings, setBindings] = useState<Record<string, string>>({});
@@ -17,7 +17,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
   const token = localStorage.getItem("token");
 
   const fetchData = useCallback(async () => {
-    if (!activeRepoName) return;
+    if (!activeProjectName) return;
     setLoading(true);
     setError("");
     try {
@@ -28,7 +28,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
         fetch("/api/env", {
           headers: { Authorization: `Bearer ${token}` },
         }),
-        fetch(`/api/integrations/bindings/${activeRepoName}`, {
+        fetch(`/api/integrations/bindings/${activeProjectName}`, {
           headers: { Authorization: `Bearer ${token}` },
         }),
       ]);
@@ -49,18 +49,18 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [activeRepoName, token]);
+  }, [activeProjectName, token]);
 
   useEffect(() => {
     fetchData();
   }, [fetchData]);
 
   const handleSaveBindings = async () => {
-    if (!activeRepoName) return;
+    if (!activeProjectName) return;
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/integrations/bindings/${activeRepoName}`, {
+      const res = await fetch(`/api/integrations/bindings/${activeProjectName}`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -89,7 +89,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
     onSendPrompt(expanded);
   };
 
-  if (!activeRepoName) {
+  if (!activeProjectName) {
     return (
       <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-muted-foreground">
         <p className="text-xs leading-relaxed">
@@ -129,7 +129,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
         ) : (
           <div className="space-y-5">
             {connectedIntegrations.map((integration) => {
-              const hasRepoVars = integration.requiredRepoVars.length > 0;
+              const hasRepoVars = integration.requiredProjectVars.length > 0;
               return (
                 <div key={integration.id} className="bg-background/40 border border-input/30 rounded-lg p-3.5 space-y-3">
                   <div className="flex items-center justify-between border-b border-input/20 pb-2">
@@ -145,7 +145,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
                         Repository Bindings
                       </span>
                       <div className="space-y-2.5">
-                        {integration.requiredRepoVars.map((repoVar) => (
+                        {integration.requiredProjectVars.map((repoVar) => (
                           <div key={repoVar} className="space-y-1">
                             <label className="text-xs text-muted-foreground font-mono block">
                               {repoVar}
@@ -206,7 +206,7 @@ export function InfrastructurePanel({ activeRepoName, onSendPrompt }: Props) {
         )}
       </div>
 
-      {connectedIntegrations.some((t) => t.requiredRepoVars.length > 0) && (
+      {connectedIntegrations.some((t) => t.requiredProjectVars.length > 0) && (
         <div className="p-3 border-t border-input bg-background/20 flex justify-end flex-shrink-0">
           <button
             onClick={handleSaveBindings}

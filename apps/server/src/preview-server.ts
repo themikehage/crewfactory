@@ -40,13 +40,13 @@ function isAsset(filePath: string): boolean {
 
 const BUILD_DIRS = ["dist", "build", ".output"] as const;
 
-function resolveBuildDir(username: string, repo: string): string {
-  const repoDir = resolve(`/tmp/crewfactory/${username}/repos/${repo}/workspace`);
+function resolveBuildDir(username: string, project: string): string {
+  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${project}/workspace`);
   for (const dir of BUILD_DIRS) {
-    const candidate = resolve(repoDir, dir);
+    const candidate = resolve(projectDir, dir);
     if (existsSync(candidate)) return candidate;
   }
-  return resolve(repoDir, "dist");
+  return resolve(projectDir, "dist");
 }
 
 /**
@@ -55,8 +55,8 @@ function resolveBuildDir(username: string, repo: string): string {
  * 2. Strips `crossorigin` attribute (not needed when preview server is origin-isolated)
  * 3. Rewrites absolute paths (/assets/...) to the scoped preview path
  */
-function rewriteHtml(html: string, username: string, repo: string): string {
-  const prefix = `/${encodeURIComponent(username)}/${encodeURIComponent(repo)}/`;
+function rewriteHtml(html: string, username: string, project: string): string {
+  const prefix = `/${encodeURIComponent(username)}/${encodeURIComponent(project)}/`;
 
   let result = html.replace(
     /<head[^>]*>/i,
@@ -115,14 +115,14 @@ export async function handleRequest(req: Request): Promise<Response> {
   }
 
   const username = decodeURIComponent(parts[0]);
-  const repo = decodeURIComponent(parts[1]);
+  const project = decodeURIComponent(parts[1]);
   const filePath = parts.slice(2).join("/") || "index.html";
 
-  if (username.includes("..") || repo.includes("..") || filePath.includes("..")) {
+  if (username.includes("..") || project.includes("..") || filePath.includes("..")) {
     return new Response("Bad Request", { status: 400 });
   }
 
-  const buildDir = resolveBuildDir(username, repo);
+  const buildDir = resolveBuildDir(username, project);
   const normalized = normalize(filePath);
   const fullPath = resolve(buildDir, normalized);
 
@@ -135,7 +135,7 @@ export async function handleRequest(req: Request): Promise<Response> {
     if (await file.exists()) {
       const mime = lookupMime(fullPath);
       if (mime.startsWith("text/html")) {
-        const rewritten = rewriteHtml(await file.text(), username, repo);
+        const rewritten = rewriteHtml(await file.text(), username, project);
         return new Response(rewritten, { headers: htmlHeaders(mime) });
       }
       return new Response(await file.arrayBuffer(), { headers: assetHeaders(mime) });
@@ -147,7 +147,7 @@ export async function handleRequest(req: Request): Promise<Response> {
     if (existsSync(indexPath)) {
       const file = Bun.file(indexPath);
       if (await file.exists()) {
-        const rewritten = rewriteHtml(await file.text(), username, repo);
+        const rewritten = rewriteHtml(await file.text(), username, project);
         return new Response(rewritten, {
           headers: htmlHeaders("text/html; charset=utf-8"),
         });

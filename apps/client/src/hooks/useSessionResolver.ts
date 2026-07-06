@@ -3,8 +3,8 @@ import { apiFetch } from "@/lib/api";
 
 interface UseSessionResolverParams {
   sessionId: string | null;
-  activeRepoName: string | null;
-  activeRepoFriendlyName?: string | null;
+  activeProjectName: string | null;
+  activeProjectFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
   currentPage: string;
@@ -13,8 +13,8 @@ interface UseSessionResolverParams {
 
 export function useSessionResolver({
   sessionId,
-  activeRepoName,
-  activeRepoFriendlyName = null,
+  activeProjectName,
+  activeProjectFriendlyName = null,
   activeAgent,
   activeChannel,
   currentPage,
@@ -37,20 +37,20 @@ export function useSessionResolver({
         const all = data.sessions ?? [];
 
         const filtered = all.filter((s: {
-          repoName?: string;
+          projectName?: string;
           agentId?: string;
           channelId?: string;
         }) => {
           if (activeChannel) return s.channelId === activeChannel.id;
           if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-          if (activeRepoName) return s.repoName === activeRepoName && !s.agentId && !s.channelId;
-          return !s.repoName && !s.agentId && !s.channelId;
+          if (activeProjectName) return s.projectName === activeProjectName && !s.agentId && !s.channelId;
+          return !s.projectName && !s.agentId && !s.channelId;
         });
 
         const getSessionPath = (id: string) => {
           if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
           if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
-          if (activeRepoName) return `/repos/${activeRepoName}/session/${id}`;
+          if (activeProjectName) return `/projects/${activeProjectName}/session/${id}`;
           return `/session/${id}`;
         };
 
@@ -64,8 +64,8 @@ export function useSessionResolver({
           ? `#${activeChannel.name} - Session ${sessionCount + 1}`
           : activeAgent
           ? `${activeAgent.name} - Session ${sessionCount + 1}`
-          : activeRepoFriendlyName
-          ? `${activeRepoFriendlyName} - Session ${sessionCount + 1}`
+          : activeProjectFriendlyName
+          ? `${activeProjectFriendlyName} - Session ${sessionCount + 1}`
           : `Global Session ${sessionCount + 1}`;
 
         const createRes = await apiFetch("/api/sessions", {
@@ -73,7 +73,7 @@ export function useSessionResolver({
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             name: sessionName,
-            repoName: activeAgent || activeChannel ? undefined : activeRepoName || undefined,
+            projectName: activeAgent || activeChannel ? undefined : activeProjectName || undefined,
             agentId: activeChannel ? undefined : activeAgent ? activeAgent.id : undefined,
             channelId: activeChannel ? activeChannel.id : undefined,
           }),
@@ -89,6 +89,6 @@ export function useSessionResolver({
     };
 
     resolve();
-  }, [sessionId, activeRepoName, activeAgent?.id, activeChannel?.id, currentPage, onNavigate]);
+  }, [sessionId, activeProjectName, activeAgent?.id, activeChannel?.id, currentPage, onNavigate]);
 }
 

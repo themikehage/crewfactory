@@ -13,11 +13,11 @@ import { literals as u } from "./MainLayout.literals";
 interface Props {
   route: Route;
   onNavigate: (path: string) => void;
-  activeRepoName: string | null;
-  activeRepoId?: string | null;
+  activeProjectName: string | null;
+  activeProjectId?: string | null;
   activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
-  onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
+  onSelectProject?: (projectId: string | null, projectName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   children: ReactNode;
@@ -36,11 +36,11 @@ interface Props {
 export function MainLayout({
   route,
   onNavigate,
-  activeRepoName,
-  activeRepoId = null,
+  activeProjectName,
+  activeProjectId = null,
   activeAgent,
   activeChannel = null,
-  onSelectRepo,
+  onSelectProject,
   onSelectAgent,
   onSelectChannel,
   children,
@@ -88,9 +88,9 @@ export function MainLayout({
   const getSessionPath = useCallback((id: string) => {
     if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
     if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
-    if (activeRepoId) return `/repos/${activeRepoId}/session/${id}`;
+    if (activeProjectId) return `/projects/${activeProjectId}/session/${id}`;
     return `/session/${id}`;
-  }, [activeChannel?.id, activeAgent?.id, activeRepoId]);
+  }, [activeChannel?.id, activeAgent?.id, activeProjectId]);
 
   const handleSelectSession = useCallback((id: string) => {
     if (id) {
@@ -99,11 +99,11 @@ export function MainLayout({
       let basePath = "";
       if (activeChannel) basePath = `/channels/${activeChannel.id}/chat`;
       else if (activeAgent) basePath = `/agents/${activeAgent.id}/chat`;
-      else if (activeRepoId) basePath = `/repos/${activeRepoId}/chat`;
+      else if (activeProjectId) basePath = `/projects/${activeProjectId}/chat`;
       onNavigate(basePath || "/");
     }
     setSidebarOpen(false);
-  }, [onNavigate, getSessionPath, activeChannel?.id, activeAgent?.id, activeRepoId]);
+  }, [onNavigate, getSessionPath, activeChannel?.id, activeAgent?.id, activeProjectId]);
 
   const handleNewSession = useCallback((id: string) => {
     onNavigate(getSessionPath(id));
@@ -118,7 +118,7 @@ export function MainLayout({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: "Nueva sesion",
-          repoName: activeRepoId || undefined,
+          projectName: activeProjectId || undefined,
           agentId: activeAgent?.id || undefined,
           channelId: activeChannel?.id || undefined,
         }),
@@ -132,14 +132,14 @@ export function MainLayout({
     } finally {
       setQuickCreating(false);
     }
-  }, [onNavigate, getSessionPath, activeRepoId, activeAgent, activeChannel]);
+  }, [onNavigate, getSessionPath, activeProjectId, activeAgent, activeChannel]);
 
   const sessionId = route.page === "chat" ? route.sessionId : null;
 
   useSessionResolver({
     sessionId,
-    activeRepoName: activeRepoId,
-    activeRepoFriendlyName: activeRepoName,
+    activeProjectName: activeProjectId,
+    activeProjectFriendlyName: activeProjectName,
     activeAgent,
     activeChannel,
     currentPage: route.page,
@@ -152,7 +152,7 @@ export function MainLayout({
     let basePath = "";
     if (activeChannel) basePath = `/channels/${activeChannel.id}`;
     else if (activeAgent) basePath = `/agents/${activeAgent.id}`;
-    else if (activeRepoId) basePath = `/repos/${activeRepoId}`;
+    else if (activeProjectId) basePath = `/projects/${activeProjectId}`;
 
     const list = [
       {
@@ -177,7 +177,7 @@ export function MainLayout({
       }
     ];
 
-    if (activeRepoName || activeRepoId) {
+    if (activeProjectName || activeProjectId) {
       list.push({
         id: "preview",
         label: l.tabPreview,
@@ -191,20 +191,20 @@ export function MainLayout({
     }
 
     return list;
-  }, [sessionId, activeRepoId, activeRepoName, activeAgent, activeChannel]);
+  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeChannel]);
 
   const renderBreadcrumbs = () => {
     let items: { label: string; path?: string }[] = [];
 
-    const currentRepo = activeRepoId;
-    const currentRepoFriendly = activeRepoName || activeRepoId;
+    const currentProject = activeProjectId;
+    const currentProjectFriendly = activeProjectName || activeProjectId;
     const currentAgent = activeAgent;
     const currentChannel = activeChannel;
 
-    if (currentRepo) {
+    if (currentProject) {
       items = [
         { label: l.breadProyectos, path: "/projects" },
-        { label: currentRepoFriendly || currentRepo, path: `/repos/${currentRepo}/chat` }
+        { label: currentProjectFriendly || currentProject, path: `/projects/${currentProject}/chat` }
       ];
     } else if (currentAgent) {
       items = [
@@ -284,7 +284,7 @@ export function MainLayout({
       <header className="h-10 sm:h-12 border-b border-border px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-card/30">
         <div className="flex items-center gap-1.5 sm:gap-2">
           <button
-            onClick={() => onSelectRepo ? onSelectRepo(null, null) : onNavigate("/")}
+            onClick={() => onSelectProject ? onSelectProject(null, null) : onNavigate("/")}
             className="p-1 text-muted-foreground hover:text-foreground rounded cursor-pointer flex-shrink-0"
             title="Inicio"
           >
@@ -315,12 +315,12 @@ export function MainLayout({
           } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-border bg-background transition-transform duration-200`}
         >
           <SessionSidebar
-            activeRepoName={activeRepoId}
+            activeProjectName={activeProjectId}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
             currentPage={route.page}
             onNavigate={onNavigate}
-            onSelectRepo={onSelectRepo}
+            onSelectProject={onSelectProject}
             onSelectAgent={onSelectAgent}
             onSelectChannel={onSelectChannel}
             selectedExpId={selectedExpId}
@@ -543,8 +543,8 @@ export function MainLayout({
                       isOpen={sessionPopoverOpen}
                       onClose={() => setSessionPopoverOpen(false)}
                       activeSessionId={sessionId}
-                      activeRepoName={activeRepoId}
-                      activeRepoFriendlyName={activeRepoName}
+                      activeProjectName={activeProjectId}
+                      activeProjectFriendlyName={activeProjectName}
                       activeAgent={activeAgent}
                       activeChannel={activeChannel}
                       onSelectSession={handleSelectSession}

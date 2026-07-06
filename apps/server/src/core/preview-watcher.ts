@@ -13,17 +13,17 @@ interface WatcherEntry {
 
 const watchers = new Map<string, WatcherEntry>();
 
-function watcherKey(username: string, repoName: string): string {
-  return `${username}:${repoName}`;
+function watcherKey(username: string, projectName: string): string {
+  return `${username}:${projectName}`;
 }
 
-function resolveBuildDir(username: string, repoName: string): string | null {
-  const config = loadPreviewConfig(username, repoName);
-  return getBuildOutputDir(config, username, repoName);
+function resolveBuildDir(username: string, projectName: string): string | null {
+  const config = loadPreviewConfig(username, projectName);
+  return getBuildOutputDir(config, username, projectName);
 }
 
-function readPreviewState(username: string, repoName: string): PreviewState {
-  const buildDir = resolveBuildDir(username, repoName);
+function readPreviewState(username: string, projectName: string): PreviewState {
+  const buildDir = resolveBuildDir(username, projectName);
   const distExists = buildDir !== null;
   const indexPath = buildDir ? resolve(buildDir, "index.html") : "";
   const indexHtmlExists = distExists && existsSync(indexPath);
@@ -35,10 +35,10 @@ function readPreviewState(username: string, repoName: string): PreviewState {
     } catch {}
   }
 
-  const config = loadPreviewConfig(username, repoName);
+  const config = loadPreviewConfig(username, projectName);
 
   return {
-    repoName,
+    projectName,
     status: indexHtmlExists ? "ready" : "idle",
     distExists,
     indexHtmlExists,
@@ -47,11 +47,11 @@ function readPreviewState(username: string, repoName: string): PreviewState {
   };
 }
 
-function notifyStatus(username: string, repoName: string, status: PreviewStatus, error?: string) {
-  const state = readPreviewState(username, repoName);
+function notifyStatus(username: string, projectName: string, status: PreviewStatus, error?: string) {
+  const state = readPreviewState(username, projectName);
   broadcastToUser(username, {
     type: "preview_status",
-    repoName,
+    projectName,
     status,
     distExists: state.distExists,
     indexHtmlExists: state.indexHtmlExists,
@@ -60,25 +60,25 @@ function notifyStatus(username: string, repoName: string, status: PreviewStatus,
   });
 }
 
-function debouncedNotify(username: string, repoName: string) {
-  const key = watcherKey(username, repoName);
+function debouncedNotify(username: string, projectName: string) {
+  const key = watcherKey(username, projectName);
   const entry = watchers.get(key);
   if (!entry) return;
 
   if (entry.timer) clearTimeout(entry.timer);
   entry.timer = setTimeout(() => {
-    notifyStatus(username, repoName, "ready");
+    notifyStatus(username, projectName, "ready");
   }, 300);
 }
 
-function startPollingFallback(username: string, repoName: string) {
-  const key = watcherKey(username, repoName);
+function startPollingFallback(username: string, projectName: string) {
+  const key = watcherKey(username, projectName);
   const entry = watchers.get(key);
   if (!entry) return;
 
   let lastMtime = Date.now();
-  const indexPath = resolveBuildDir(username, repoName)
-    ? resolve(resolveBuildDir(username, repoName)!, "index.html")
+  const indexPath = resolveBuildDir(username, projectName)
+    ? resolve(resolveBuildDir(username, projectName)!, "index.html")
     : "";
 
   entry.pollTimer = setInterval(() => {
@@ -87,20 +87,20 @@ function startPollingFallback(username: string, repoName: string) {
         const mtime = statSync(indexPath).mtimeMs;
         if (mtime > lastMtime) {
           lastMtime = mtime;
-          notifyStatus(username, repoName, "ready");
+          notifyStatus(username, projectName, "ready");
         }
       } else {
-        notifyStatus(username, repoName, "idle");
+        notifyStatus(username, projectName, "idle");
       }
     } catch {}
   }, 2000);
 }
 
-export function ensureWatcher(username: string, repoName: string) {
-  const key = watcherKey(username, repoName);
+export function ensureWatcher(username: string, projectName: string) {
+  const key = watcherKey(username, projectName);
   if (watchers.has(key)) return;
 
-  const buildDir = resolveBuildDir(username, repoName);
+  const buildDir = resolveBuildDir(username, projectName);
   const entry: WatcherEntry = { watcher: null, timer: null, pollTimer: null };
   watchers.set(key, entry);
 
@@ -119,18 +119,18 @@ export function ensureWatcher(username: string, repoName: string) {
         name.endsWith(".json") ||
         name === "index.html"
       ) {
-        debouncedNotify(username, repoName);
+        debouncedNotify(username, projectName);
       }
     });
     entry.watcher = w;
   } catch {
     // fs.watch failed (Docker overlay etc.), polling fallback handles it
-    startPollingFallback(username, repoName);
+    startPollingFallback(username, projectName);
   }
 }
 
-export function removeWatcher(username: string, repoName: string) {
-  const key = watcherKey(username, repoName);
+export function removeWatcher(username: string, projectName: string) {
+  const key = watcherKey(username, projectName);
   const entry = watchers.get(key);
   if (entry) {
     if (entry.timer) clearTimeout(entry.timer);
@@ -142,20 +142,20 @@ export function removeWatcher(username: string, repoName: string) {
   }
 }
 
-export function getPreviewState(username: string, repoName: string): PreviewState {
-  return readPreviewState(username, repoName);
+export function getPreviewState(username: string, projectName: string): PreviewState {
+  return readPreviewState(username, projectName);
 }
 
-export function setBuilding(username: string, repoName: string) {
-  notifyStatus(username, repoName, "building");
+export function setBuilding(username: string, projectName: string) {
+  notifyStatus(username, projectName, "building");
 }
 
-export function setReady(username: string, repoName: string) {
-  removeWatcher(username, repoName);
-  ensureWatcher(username, repoName);
-  notifyStatus(username, repoName, "ready");
+export function setReady(username: string, projectName: string) {
+  removeWatcher(username, projectName);
+  ensureWatcher(username, projectName);
+  notifyStatus(username, projectName, "ready");
 }
 
-export function setError(username: string, repoName: string, error: string) {
-  notifyStatus(username, repoName, "error", error);
+export function setError(username: string, projectName: string, error: string) {
+  notifyStatus(username, projectName, "error", error);
 }

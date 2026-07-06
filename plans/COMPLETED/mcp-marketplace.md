@@ -1,3 +1,4 @@
+COMPLETED ✅
 # MCP Marketplace & Gallery para CrewFactory
 
 ## Motivacion

@@ -18,14 +18,14 @@ export const SessionSchema = z.object({
   updatedAt: z.string(),
   messageCount: z.number(),
   status: SessionStatusSchema.optional(),
-  repoName: z.string().optional(),
+  projectName: z.string().optional(),
   agentId: z.string().optional(),
   channelId: z.string().optional(),
 });
 
 export const CreateSessionSchema = z.object({
   name: z.string().min(1).max(100),
-  repoName: z.string().optional(),
+  projectName: z.string().optional(),
   agentId: z.string().optional(),
   channelId: z.string().optional(),
 });
@@ -92,7 +92,7 @@ export const IntegrationTemplateSchema = z.object({
   name: z.string(),
   description: z.string().optional(),
   requiredEnvVars: z.array(z.string()),
-  requiredRepoVars: z.array(z.string()),
+  requiredProjectVars: z.array(z.string()),
   actions: z.array(QuickActionSchema),
 });
 export type IntegrationTemplate = z.infer<typeof IntegrationTemplateSchema>;
@@ -102,8 +102,8 @@ export const SaveTemplatesSchema = z.object({
 });
 export type SaveTemplates = z.infer<typeof SaveTemplatesSchema>;
 
-export const RepoBindingsSchema = z.record(z.string(), z.record(z.string(), z.string()));
-export type RepoBindings = z.infer<typeof RepoBindingsSchema>;
+export const ProjectBindingsSchema = z.record(z.string(), z.record(z.string(), z.string()));
+export type ProjectBindings = z.infer<typeof ProjectBindingsSchema>;
 
 export const ChangePasswordSchema = z.object({
   currentPassword: z.string().min(8),
@@ -126,7 +126,7 @@ export const PreviewStatusSchema = z.enum(["idle", "building", "ready", "error"]
 export type PreviewStatus = z.infer<typeof PreviewStatusSchema>;
 
 export const PreviewStateSchema = z.object({
-  repoName: z.string(),
+  projectName: z.string(),
   status: PreviewStatusSchema,
   distExists: z.boolean(),
   indexHtmlExists: z.boolean(),
@@ -145,7 +145,7 @@ export type SavePreviewConfig = z.infer<typeof SavePreviewConfigSchema>;
 
 export const BuildEventSchema = z.object({
   type: z.enum(["preview_status", "preview_error"]),
-  repoName: z.string(),
+  projectName: z.string(),
   status: PreviewStatusSchema.optional(),
   error: z.string().optional(),
   lastBuildAt: z.number().optional(),

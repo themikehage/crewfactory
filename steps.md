@@ -589,3 +589,17 @@ crear un plan de despliegue facil en vps
 - [x] 65.3 Modificar `apps/server/src/routes/sessions.ts` para marcar el último mensaje del asistente como `isStreaming: true` si la sesión está en streaming
 - [x] 65.4 Verificar compilación exitosa libre de errores sintácticos de servidor y cliente
 
+## Phase 66: Factory Sessions Skill
+- [x] 66.1 Register `factory-sessions` in `DEFAULT_FACTORY_SKILLS` (`apps/server/src/core/default-factory-skills.ts`)
+- [x] 66.2 Verify skill is provisioned and written correctly under `workspace/.agents/skills/factory-sessions/SKILL.md`
+- [x] 66.3 Verify `/api/skills` list returns the new skill with content
+- [x] 66.4 Update `about.md` and `steps.md` to document the new capability
+
+## Phase 67: Minimalist Welcome Chat Input
+- [x] 67.1 Create reusable `WelcomeChatInput` component with dynamic locale-aware time-based greetings
+- [x] 67.2 Add Spanish and English translations in `WelcomeChatInput.literals.ts`
+- [x] 67.3 Integrate component in `ChatArea.tsx` for empty session states and auto-routing creation redirect
+- [x] 67.4 Add `loadingMessages` state in `ChatArea.tsx` to eliminate flickering states
+- [x] 67.5 Integrate component in `IaGenerator.tsx` for laboratory team configuration generator
+- [x] 67.6 Adjust input visual contrast to `bg-[#1a1a1a]` and remove layout border box wrapper in laboratory
+- [x] 67.7 Verify compilation bundle exitoso in client React framework

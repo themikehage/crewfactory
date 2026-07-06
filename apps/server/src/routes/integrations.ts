@@ -12,7 +12,7 @@ const DEFAULT_TEMPLATES = [
     name: "GitHub",
     description: "Manage repository code, create pull requests, check issues, and automate git workflows.",
     requiredEnvVars: ["GITHUB_TOKEN"],
-    requiredRepoVars: ["githubRepo"],
+    requiredProjectVars: ["githubRepo"],
     actions: [
       {
         id: "github_create_pr",
@@ -33,7 +33,7 @@ const DEFAULT_TEMPLATES = [
     name: "Coolify",
     description: "Orchestrate container deployments, manage applications, and check logs on Coolify.",
     requiredEnvVars: ["COOLIFY_API_KEY", "COOLIFY_URL"],
-    requiredRepoVars: ["coolifyAppUuid"],
+    requiredProjectVars: ["coolifyAppUuid"],
     actions: [
       {
         id: "coolify_deploy",
@@ -54,7 +54,7 @@ const DEFAULT_TEMPLATES = [
     name: "Neon Postgres",
     description: "Provision databases, manage branches, and retrieve connection strings dynamically.",
     requiredEnvVars: ["NEON_API_KEY"],
-    requiredRepoVars: ["neonProject"],
+    requiredProjectVars: ["neonProject"],
     actions: [
       {
         id: "neon_create_branch",
@@ -75,7 +75,7 @@ const DEFAULT_TEMPLATES = [
     name: "Cloudflare Wrangler",
     description: "Manage Cloudflare Workers, KV, D1, and deploy websites using Wrangler CLI.",
     requiredEnvVars: ["CLOUDFLARE_API_TOKEN", "CLOUDFLARE_ACCOUNT_ID"],
-    requiredRepoVars: ["cloudflareProject"],
+    requiredProjectVars: ["cloudflareProject"],
     actions: [
       {
         id: "cloudflare_deploy",
@@ -90,7 +90,7 @@ const DEFAULT_TEMPLATES = [
     name: "Notion",
     description: "Sync tasks, document specs, and log work directly into Notion pages.",
     requiredEnvVars: ["NOTION_TOKEN"],
-    requiredRepoVars: ["notionPageId"],
+    requiredProjectVars: ["notionPageId"],
     actions: [
       {
         id: "notion_sync_tasks",
@@ -105,7 +105,7 @@ const DEFAULT_TEMPLATES = [
     name: "Vercel",
     description: "Deploy and host frontend web projects with Vite, React, or Next.js on Vercel.",
     requiredEnvVars: ["VERCEL_TOKEN"],
-    requiredRepoVars: ["vercelProjectId"],
+    requiredProjectVars: ["vercelProjectId"],
     actions: [
       {
         id: "vercel_deploy",
@@ -119,7 +119,7 @@ const DEFAULT_TEMPLATES = [
 
 interface IntegrationsFile {
   templates: typeof DEFAULT_TEMPLATES;
-  repoBindings: Record<string, Record<string, string>>;
+  projectBindings: Record<string, Record<string, string>>;
 }
 
 function getIntegrationsPath(username: string): string {
@@ -136,7 +136,7 @@ function loadIntegrations(username: string): IntegrationsFile {
   if (!existsSync(filePath)) {
     const data: IntegrationsFile = {
       templates: DEFAULT_TEMPLATES,
-      repoBindings: {}
+      projectBindings: {}
     };
     writeFileSync(filePath, JSON.stringify(data, null, 2), "utf-8");
     return data;
@@ -146,12 +146,12 @@ function loadIntegrations(username: string): IntegrationsFile {
     const content = JSON.parse(readFileSync(filePath, "utf-8"));
     return {
       templates: content.templates || DEFAULT_TEMPLATES,
-      repoBindings: content.repoBindings || {}
+      projectBindings: content.projectBindings || {}
     };
   } catch {
     return {
       templates: DEFAULT_TEMPLATES,
-      repoBindings: {}
+      projectBindings: {}
     };
   }
 }
@@ -186,26 +186,26 @@ integrationsRouter.post(
   }
 );
 
-integrationsRouter.get("/bindings/:repoName", (c) => {
-  const repoName = c.req.param("repoName");
+integrationsRouter.get("/bindings/:projectName", (c) => {
+  const projectName = c.req.param("projectName");
   const { username } = getAuthPayload(c);
   const data = loadIntegrations(username);
-  const bindings = data.repoBindings[repoName] || {};
+  const bindings = data.projectBindings[projectName] || {};
   return c.json({ bindings });
 });
 
 integrationsRouter.post(
-  "/bindings/:repoName",
+  "/bindings/:projectName",
   zValidator("json", z.record(z.string(), z.string())),
   (c) => {
-    const repoName = c.req.param("repoName");
+    const projectName = c.req.param("projectName");
     const { username } = getAuthPayload(c);
     const newBindings = c.req.valid("json");
 
     const data = loadIntegrations(username);
-    data.repoBindings[repoName] = newBindings;
+    data.projectBindings[projectName] = newBindings;
     saveIntegrations(username, data);
 
-    return c.json({ success: true, bindings: data.repoBindings[repoName] });
+    return c.json({ success: true, bindings: data.projectBindings[projectName] });
   }
 );

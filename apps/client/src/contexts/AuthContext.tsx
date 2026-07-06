@@ -41,7 +41,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
     localStorage.removeItem("token");
     localStorage.removeItem("user");
-    localStorage.removeItem("active-repo");
+    localStorage.removeItem("active-project");
     localStorage.removeItem("active-agent");
     localStorage.removeItem("active-channel");
     localStorage.removeItem("has-context");

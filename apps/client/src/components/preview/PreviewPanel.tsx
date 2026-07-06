@@ -6,7 +6,7 @@ import { literals as u } from "./PreviewPanel.literals";
 import { Button } from "@/components/ui/Button";
 
 interface Props {
-  activeRepoName: string | null;
+  activeProjectName: string | null;
 }
 
 const FRAMEWORK_LABELS: Record<string, string> = {
@@ -19,37 +19,37 @@ const FRAMEWORK_LABELS: Record<string, string> = {
   custom: "Custom",
 };
 
-function usePreviewStatus(repoName: string) {
+function usePreviewStatus(projectName: string) {
   const [state, setState] = useState<PreviewState | null>(null);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    if (!repoName) return;
+    if (!projectName) return;
     const t = localStorage.getItem("token") || "";
-    fetch(`/api/preview/state?repo=${encodeURIComponent(repoName)}`, {
+    fetch(`/api/preview/state?project=${encodeURIComponent(projectName)}`, {
       headers: { Authorization: `Bearer ${t}` },
     })
       .then((r) => r.json())
       .then((data) => setState(data))
       .catch(() => {});
-  }, [repoName]);
+  }, [projectName]);
 
   const fetchConfig = useCallback(async () => {
-    if (!repoName) return null;
+    if (!projectName) return null;
     const t = localStorage.getItem("token") || "";
     try {
-      const r = await fetch(`/api/preview/config?repo=${encodeURIComponent(repoName)}`, {
+      const r = await fetch(`/api/preview/config?project=${encodeURIComponent(projectName)}`, {
         headers: { Authorization: `Bearer ${t}` },
       });
       return await r.json();
     } catch {
       return null;
     }
-  }, [repoName]);
+  }, [projectName]);
 
   useEffect(() => {
-    if (!repoName) return;
+    if (!projectName) return;
 
     const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${wsProto}//${location.host}/ws`;
@@ -71,9 +71,9 @@ function usePreviewStatus(repoName: string) {
       sock.onmessage = (ev) => {
         try {
           const data = JSON.parse(ev.data);
-          if (data.type === "preview_status" && data.repoName === repoName) {
+          if (data.type === "preview_status" && data.projectName === projectName) {
             setState((prev) => ({
-              repoName: data.repoName,
+              projectName: data.projectName,
               status: data.status || prev?.status || "idle",
               distExists: data.distExists ?? prev?.distExists ?? false,
               indexHtmlExists: data.indexHtmlExists ?? prev?.indexHtmlExists ?? false,
@@ -82,7 +82,7 @@ function usePreviewStatus(repoName: string) {
               config: data.config || prev?.config,
             }));
           }
-          if (data.type === "preview_build_log" && data.repoName === repoName) {
+          if (data.type === "preview_build_log" && data.projectName === projectName) {
             setBuildLogs((prev) => [...prev, data.line]);
           }
         } catch {}
@@ -109,16 +109,16 @@ function usePreviewStatus(repoName: string) {
         wsRef.current = null;
       }
     };
-  }, [repoName]);
+  }, [projectName]);
 
   return { state, buildLogs, setBuildLogs, fetchConfig };
 }
 
-export function PreviewPanel({ activeRepoName }: Props) {
+export function PreviewPanel({ activeProjectName }: Props) {
 const l = useLiterals(u);
-  const repoName = activeRepoName || "";
+  const projectName = activeProjectName || "";
   const { user } = useAuth();
-  const { state: previewState, buildLogs, setBuildLogs, fetchConfig } = usePreviewStatus(repoName);
+  const { state: previewState, buildLogs, setBuildLogs, fetchConfig } = usePreviewStatus(projectName);
   const [buildKey, setBuildKey] = useState(0);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [configOpen, setConfigOpen] = useState(false);
@@ -145,8 +145,8 @@ const l = useLiterals(u);
     `${window.location.protocol}//${window.location.hostname}:3001`;
 
   const previewSrc =
-    repoName && user?.username
-      ? `${PREVIEW_BASE}/${encodeURIComponent(user.username)}/${encodeURIComponent(repoName)}/index.html`
+    projectName && user?.username
+      ? `${PREVIEW_BASE}/${encodeURIComponent(user.username)}/${encodeURIComponent(projectName)}/index.html`
       : null;
 
   const lastBuildAt = previewState?.lastBuildAt ?? null;
@@ -165,11 +165,11 @@ const l = useLiterals(u);
   }, [fetchConfig]);
 
   const handleSaveConfig = useCallback(async () => {
-    if (!repoName) return;
+    if (!projectName) return;
     setSaving(true);
     const t = localStorage.getItem("token") || "";
     try {
-      await fetch(`/api/preview/config?repo=${encodeURIComponent(repoName)}`, {
+      await fetch(`/api/preview/config?project=${encodeURIComponent(projectName)}`, {
         method: "POST",
         headers: {
           Authorization: `Bearer ${t}`,
@@ -182,20 +182,20 @@ const l = useLiterals(u);
     } finally {
       setSaving(false);
     }
-  }, [repoName, configForm, setBuildLogs]);
+  }, [projectName, configForm, setBuildLogs]);
 
   const handleBuildNow = useCallback(async () => {
-    if (!repoName) return;
+    if (!projectName) return;
     setBuildLogs([]);
     setLogOpen(true);
     const t = localStorage.getItem("token") || "";
     try {
-      await fetch(`/api/preview/build?repo=${encodeURIComponent(repoName)}`, {
+      await fetch(`/api/preview/build?project=${encodeURIComponent(projectName)}`, {
         method: "POST",
         headers: { Authorization: `Bearer ${t}` },
       });
     } catch {}
-  }, [repoName, setBuildLogs]);
+  }, [projectName, setBuildLogs]);
 
   const handleReload = useCallback(() => {
     setBuildKey((k) => k + 1);
@@ -247,7 +247,7 @@ const l = useLiterals(u);
       <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-border bg-card/60 flex-shrink-0">
         <div className="flex items-center gap-2">
           {statusBadge()}
-          {repoName && (
+          {projectName && (
             <>
               <Button size="xs" onClick={handleBuildNow} disabled={isBuilding}>
                 <svg width="10" height="10" viewBox="0 0 10 10" fill="currentColor">
@@ -349,7 +349,7 @@ const l = useLiterals(u);
 
       {/* Iframe container */}
       <div className="flex-1 flex items-start justify-center overflow-auto bg-muted p-2 sm:p-4 min-h-0">
-        {!repoName ||
+        {!projectName ||
         (previewState?.status === "idle" && !previewState?.distExists && buildLogs.length === 0) ? (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground gap-3">
             <svg
@@ -364,14 +364,14 @@ const l = useLiterals(u);
               <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
             </svg>
             <p className="text-sm font-medium">
-              {!repoName ? "Select a project to preview" : "No build output yet"}
+              {!projectName ? "Select a project to preview" : "No build output yet"}
             </p>
             <p className="text-xs text-center max-w-xs">
-              {repoName
+              {projectName
                 ? "Configure your build settings and click Build Now."
                 : "Select a project from the Projects page."}
             </p>
-            {repoName && (
+            {projectName && (
               <div className="flex gap-2 mt-1">
                 <Button variant="outline" size="xs" onClick={handleOpenConfig}>
                   Configure

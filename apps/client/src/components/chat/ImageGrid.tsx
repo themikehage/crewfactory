@@ -8,7 +8,7 @@ interface ImageItem {
 interface Props {
   images: ImageItem[];
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }
@@ -16,7 +16,7 @@ interface Props {
 export function resolveImageUrl(
   url: string,
   sessionId: string | null,
-  activeRepoName?: string | null,
+  activeProjectName?: string | null,
   activeAgentId?: string | null,
   activeChannelId?: string | null
 ): string {
@@ -52,7 +52,7 @@ export function resolveImageUrl(
     cleanPath = cleanPath.substring("workspace/".length);
   }
   const params = new URLSearchParams();
-  if (activeRepoName) params.append("repo", activeRepoName);
+  if (activeProjectName) params.append("project", activeProjectName);
   if (activeAgentId) params.append("agentId", activeAgentId);
   if (activeChannelId) params.append("channelId", activeChannelId);
   params.append("raw", "true");
@@ -145,7 +145,7 @@ export function AuthenticatedImage({ src, alt, className, ...props }: Authentica
 export function ImageGrid({
   images,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
 }: Props) {
@@ -218,10 +218,10 @@ export function ImageGrid({
 
   const downloadAll = useCallback(async () => {
     for (const img of images) {
-      const resolved = resolveImageUrl(img.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+      const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
       await downloadImage(resolved, img.title);
     }
-  }, [images, sessionId, activeRepoName, activeAgentId, activeChannelId, downloadImage]);
+  }, [images, sessionId, activeProjectName, activeAgentId, activeChannelId, downloadImage]);
 
   if (images.length === 0) return null;
 
@@ -248,7 +248,7 @@ export function ImageGrid({
       )}
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-w-full">
         {images.map((img, i) => {
-          const resolved = resolveImageUrl(img.url, sessionId, activeRepoName, activeAgentId, activeChannelId);
+          const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
           const isDownloading = downloading === resolved;
           return (
             <div

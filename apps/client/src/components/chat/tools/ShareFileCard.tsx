@@ -6,7 +6,7 @@ interface Props {
   filePath: string;
   title?: string;
   sessionId: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }
@@ -74,7 +74,7 @@ export function ShareFileCard({
   filePath,
   title,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId,
   activeChannelId,
 }: Props) {
@@ -87,7 +87,7 @@ export function ShareFileCard({
   const downloadUrl = resolveImageUrl(
     filePath,
     sessionId,
-    activeRepoName,
+    activeProjectName,
     activeAgentId,
     activeChannelId
   );

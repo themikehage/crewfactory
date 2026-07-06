@@ -32,7 +32,7 @@ sessionsRouter.get("/", async (c) => {
 });
 
 sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
-  const { name, repoName, agentId, channelId } = c.req.valid("json");
+  const { name, projectName, agentId, channelId } = c.req.valid("json");
   const { username } = getAuthPayload(c);
   const sessionId = crypto.randomUUID();
 
@@ -43,13 +43,12 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     createdAt: now,
     updatedAt: now,
     messageCount: 0,
-    repoName,
+    projectName,
     agentId,
     channelId,
   };
 
-  // Start session load asynchronously in the background to avoid blocking API response
-  sessionManager.getOrCreateSession(username, sessionId, repoName, agentId, channelId).catch(err => {
+  sessionManager.getOrCreateSession(username, sessionId, projectName, agentId, channelId).catch(err => {
     console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
   });
 
@@ -57,7 +56,7 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     name,
     createdAt: now,
     updatedAt: now,
-    repoName: repoName || null,
+    projectName: projectName || null,
     agentId: agentId || null,
     channelId: channelId || null,
   });
@@ -72,7 +71,7 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
 
   const session = await sessionManager.getOrCreateSession(username, sessionId);
   const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
-  const repoName = metadata.repoName;
+  const projectName = metadata.projectName;
 
   const execId = crypto.randomUUID();
   let execDir: string | null = null;
@@ -80,11 +79,11 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   const errors: string[] = [];
   const startTime = Date.now();
 
-  if (repoName) {
+  if (projectName) {
     const userDir = sessionManager.ensureUserDir(username);
-    const repoExecsDir = join(userDir, "repos", repoName, "executions");
-    if (!existsSync(repoExecsDir)) mkdirSync(repoExecsDir, { recursive: true });
-    execDir = join(repoExecsDir, execId);
+    const projectExecsDir = join(userDir, "projects", projectName, "executions");
+    if (!existsSync(projectExecsDir)) mkdirSync(projectExecsDir, { recursive: true });
+    execDir = join(projectExecsDir, execId);
     mkdirSync(execDir, { recursive: true });
 
     writeFileSync(join(execDir, "prompt.json"), JSON.stringify({ prompt: message, createdAt: new Date().toISOString() }, null, 2));
@@ -127,7 +126,7 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
           createdAt: new Date().toISOString(),
         }, null, 2));
       } catch (e) {
-        console.error(`[SessionsRoute] Failed to save execution log for repo ${repoName}:`, e);
+        console.error(`[SessionsRoute] Failed to save execution log for project ${projectName}:`, e);
       }
     }
   };
@@ -153,7 +152,7 @@ sessionsRouter.post(
 
     const session = await sessionManager.getOrCreateSession(username, sessionId);
     const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
-    const repoName = metadata.repoName;
+    const projectName = metadata.projectName;
 
     const execId = crypto.randomUUID();
     let execDir: string | null = null;
@@ -161,11 +160,11 @@ sessionsRouter.post(
     const errors: string[] = [];
     const startTime = Date.now();
 
-    if (repoName) {
+    if (projectName) {
       const userDir = sessionManager.ensureUserDir(username);
-      const repoExecsDir = join(userDir, "repos", repoName, "executions");
-      if (!existsSync(repoExecsDir)) mkdirSync(repoExecsDir, { recursive: true });
-      execDir = join(repoExecsDir, execId);
+      const projectExecsDir = join(userDir, "projects", projectName, "executions");
+      if (!existsSync(projectExecsDir)) mkdirSync(projectExecsDir, { recursive: true });
+      execDir = join(projectExecsDir, execId);
       mkdirSync(execDir, { recursive: true });
 
       writeFileSync(join(execDir, "prompt.json"), JSON.stringify({ prompt: message, createdAt: new Date().toISOString() }, null, 2));
@@ -208,7 +207,7 @@ sessionsRouter.post(
             createdAt: new Date().toISOString(),
           }, null, 2));
         } catch (e) {
-          console.error(`[SessionsRoute] Failed to save execution log for repo ${repoName}:`, e);
+          console.error(`[SessionsRoute] Failed to save execution log for project ${projectName}:`, e);
         }
       }
     };
@@ -232,12 +231,12 @@ sessionsRouter.post(
   }
 );
 
-sessionsRouter.get("/repos/:repoName/executions", async (c) => {
+sessionsRouter.get("/projects/:projectName/executions", async (c) => {
   const { username } = getAuthPayload(c);
-  const repoName = c.req.param("repoName");
+  const projectName = c.req.param("projectName");
   
   const userDir = sessionManager.ensureUserDir(username);
-  const execsDir = join(userDir, "repos", repoName, "executions");
+  const execsDir = join(userDir, "projects", projectName, "executions");
   if (!existsSync(execsDir)) return c.json({ executions: [] });
 
   const folders = readdirSync(execsDir);
@@ -254,13 +253,13 @@ sessionsRouter.get("/repos/:repoName/executions", async (c) => {
   return c.json({ executions });
 });
 
-sessionsRouter.get("/repos/:repoName/executions/:execId", async (c) => {
+sessionsRouter.get("/projects/:projectName/executions/:execId", async (c) => {
   const { username } = getAuthPayload(c);
-  const repoName = c.req.param("repoName");
+  const projectName = c.req.param("projectName");
   const execId = c.req.param("execId");
 
   const userDir = sessionManager.ensureUserDir(username);
-  const execDir = join(userDir, "repos", repoName, "executions", execId);
+  const execDir = join(userDir, "projects", projectName, "executions", execId);
   if (!existsSync(execDir)) return c.json({ error: "Execution not found" }, 404);
 
   try {
@@ -334,8 +333,8 @@ sessionsRouter.get("/:id/messages", async (c) => {
       } catch (err) {
         return c.json({ messages: [] });
       }
-    } else if (tipo === "repo") {
-      const messagesPath = join("/tmp/crewfactory", username, "repos", entidad, "executions", execId, "messages.jsonl");
+    } else if (tipo === "project") {
+      const messagesPath = join("/tmp/crewfactory", username, "projects", entidad, "executions", execId, "messages.jsonl");
       if (!existsSync(messagesPath)) {
         return c.json({ messages: [] });
       }

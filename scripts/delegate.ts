@@ -10,12 +10,12 @@ Usage: bun run scripts/delegate.ts [options]
 Options:
   --agent <id>       Delegate task to a programmatic agent by ID
   --channel <id>     Delegate task to a multi-agent collaboration channel by ID
-  --repo <name>      Delegate task to a repository-scoped session by repository name
+  --project <name>   Delegate task to a project-scoped session by project name
   --message <text>   The prompt or instruction message (Required)
 
 Examples:
   bun run scripts/delegate.ts --agent deploy-bot --message "Deploy project"
-  bun run scripts/delegate.ts --repo my-react-app --message "Run typecheck"
+  bun run scripts/delegate.ts --project my-react-app --message "Run typecheck"
   bun run scripts/delegate.ts --channel dev-room --message "Review code changes"
 `);
 }
@@ -23,7 +23,7 @@ Examples:
 async function main() {
   let agentId: string | null = null;
   let channelId: string | null = null;
-  let repoName: string | null = null;
+  let projectName: string | null = null;
   let message: string | null = null;
 
   for (let i = 2; i < process.argv.length; i++) {
@@ -32,8 +32,8 @@ async function main() {
       agentId = process.argv[++i];
     } else if (arg === "--channel" && i + 1 < process.argv.length) {
       channelId = process.argv[++i];
-    } else if (arg === "--repo" && i + 1 < process.argv.length) {
-      repoName = process.argv[++i];
+    } else if (arg === "--project" && i + 1 < process.argv.length) {
+      projectName = process.argv[++i];
     } else if (arg === "--message" && i + 1 < process.argv.length) {
       message = process.argv[++i];
     }
@@ -45,8 +45,8 @@ async function main() {
     process.exit(1);
   }
 
-  if (!agentId && !channelId && !repoName) {
-    console.error("Error: Must specify one target: --agent, --channel, or --repo.");
+  if (!agentId && !channelId && !projectName) {
+    console.error("Error: Must specify one target: --agent, --channel, or --project.");
     printUsage();
     process.exit(1);
   }
@@ -58,8 +58,8 @@ async function main() {
 
   if (agentId) {
     await delegateToAgent(agentId, message);
-  } else if (repoName) {
-    await delegateToRepo(repoName, message);
+  } else if (projectName) {
+    await delegateToProject(projectName, message);
   } else if (channelId) {
     await delegateToChannel(channelId, message);
   }
@@ -85,10 +85,9 @@ async function delegateToAgent(id: string, msg: string) {
   await streamResponse(response);
 }
 
-async function delegateToRepo(name: string, msg: string) {
-  console.log(`\n>>> Delegating task to repository: "${name}"`);
+async function delegateToProject(name: string, msg: string) {
+  console.log(`\n>>> Delegating task to project: "${name}"`);
 
-  // 1. Get or create a session for the repository
   const sessionsRes = await fetch(`${baseUrl}/api/sessions`, {
     headers: { "Authorization": `Bearer ${token}` }
   });
@@ -98,11 +97,11 @@ async function delegateToRepo(name: string, msg: string) {
   }
 
   const { sessions } = await sessionsRes.json();
-  let repoSession = sessions.find((s: any) => s.repoName === name);
-  let sessionId = repoSession?.id;
+  let projectSession = sessions.find((s: any) => s.projectName === name);
+  let sessionId = projectSession?.id;
 
   if (!sessionId) {
-    console.log(`Creating new session for repository "${name}"...`);
+    console.log(`Creating new session for project "${name}"...`);
     const createRes = await fetch(`${baseUrl}/api/sessions`, {
       method: "POST",
       headers: {
@@ -110,8 +109,8 @@ async function delegateToRepo(name: string, msg: string) {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        name: `CLI Repo Session - ${name}`,
-        repoName: name,
+        name: `CLI Project Session - ${name}`,
+        projectName: name,
       }),
     });
 
@@ -134,7 +133,7 @@ async function delegateToRepo(name: string, msg: string) {
   });
 
   if (!response.ok) {
-    console.error(`Failed to prompt repository session: ${response.status} - ${await response.text()}`);
+      console.error(`Failed to prompt project session: ${response.status} - ${await response.text()}`);
     process.exit(1);
   }
 

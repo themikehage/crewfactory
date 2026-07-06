@@ -7,7 +7,7 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "./RightDrawer.literals";
 
 interface Props {
-  activeRepoName: string | null;
+  activeProjectName: string | null;
   tasksState: TaskRunnerState;
   onClose: () => void;
   onRun: () => Promise<void>;
@@ -19,7 +19,7 @@ interface Props {
 }
 
 export function RightDrawer({
-  activeRepoName,
+  activeProjectName,
   tasksState,
   onClose,
   onRun,
@@ -89,7 +89,7 @@ const l = useLiterals(u);
           />
         ) : (
           <InfrastructurePanel
-            activeRepoName={activeRepoName}
+            activeProjectName={activeProjectName}
             onSendPrompt={onSendPrompt}
           />
         )}

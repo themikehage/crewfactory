@@ -16,12 +16,12 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 - `bun run build` - Build server (from apps/server)
 - `cd apps/client && bun run build` - Build client
 - `cd apps/client && bun run dev` - Dev server with hot reload
-- `bun scripts/refresh.ts --type <repo|agent|channel|skill|all>` - Trigger a frontend UI refresh after mutating entities from tools
+- `bun scripts/refresh.ts --type <project|agent|channel|skill|all>` - Trigger a frontend UI refresh after mutating entities from tools
 
 ## AI Agent UI Refresh Rule
-Whenever you (the AI agent) create, update, or delete a repository/project, agent, channel, or custom skill, you MUST execute the refresh script to notify the user's frontend. 
-- Example from root: `bun scripts/refresh.ts --type repo`
-- Example from inside a repo workspace subdirectory: `bun ../../scripts/refresh.ts --type agent`
+Whenever you (the AI agent) create, update, or delete a project, agent, channel, or custom skill, you MUST execute the refresh script to notify the user's frontend. 
+- Example from root: `bun scripts/refresh.ts --type project`
+- Example from inside a project workspace subdirectory: `bun ../../scripts/refresh.ts --type agent`
 
 ## Code Conventions
 - TypeScript strict mode, no `any` types
@@ -46,18 +46,18 @@ Whenever you (the AI agent) create, update, or delete a repository/project, agen
 Each user has an isolated workspace at `/tmp/crewfactory/{username}/workspace/`:
 ```
 workspace/
-  repos/           # Git repositories (each is an isolated agent context)
+  projects/        # Git projects (each is an isolated agent context)
   assets/
     uploads/       # User-uploaded files
     generated/     # Agent-generated outputs (images, diagrams)
   memories/
-    repos/         # Per-repo agent notes and context
+    projects/      # Per-project agent notes and context
     sessions/      # Short-term session memories
 ```
 
 ### Agent Instantiation Modes
-- **Global mode (root):** Agent CWD = `/workspace`. Used for cross-repo tasks, asset management, and memory administration.
-- **Repo mode:** Agent CWD = `/workspace/repos/{repoName}`. Used for focused, isolated development within a single repository. Sessions are bound to the repo via `metadata.json`.
+- **Global mode (root):** Agent CWD = `/workspace`. Used for cross-project tasks, asset management, and memory administration.
+- **Project mode:** Agent CWD = `/workspace/projects/{projectName}`. Used for focused, isolated development within a single project. Sessions are bound to the project via `metadata.json`.
 
 ## Design Tokens
 - Theme defined in `apps/client/src/index.css` via Tailwind CSS v4 `@theme`
@@ -68,7 +68,7 @@ workspace/
 ## Git Commit Style
 `type(scope): description`
 - Types: feat, fix, style, chore, refactor, docs
-- Scopes: auth, chat, ws, session, ui, deploy, project, workspace, dashboard, repo
+- Scopes: auth, chat, ws, session, ui, deploy, project, workspace, dashboard
 
 ### Considerations
 - WebSocket streaming requires no sticky sessions

@@ -25,12 +25,12 @@ export function AppRouter() {
   const { route, navigate } = useRouter();
 
   // Cargar el repo, agente o canal activo y el estado de contexto desde localStorage
-  const [activeRepoId, setActiveRepoId] = useState<string | null>(() => {
-    return localStorage.getItem("active-repo-id") || null;
+  const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
+    return localStorage.getItem("active-project-id") || null;
   });
 
-  const [activeRepoFriendlyName, setActiveRepoFriendlyName] = useState<string | null>(() => {
-    return localStorage.getItem("active-repo-name") || null;
+  const [activeProjectFriendlyName, setActiveProjectFriendlyName] = useState<string | null>(() => {
+    return localStorage.getItem("active-project-name") || null;
   });
 
   const [activeAgent, setActiveAgent] = useState<{ id: string; name: string; avatarUrl?: string } | null>(() => {
@@ -167,72 +167,72 @@ export function AppRouter() {
 
   // Sincronizar estado y localStorage con los parámetros de la URL
   useEffect(() => {
-    const routeRepo = "repoName" in route ? route.repoName : null;
+    const routeProject = "projectName" in route ? route.projectName : null;
     const routeAgent = "agentId" in route ? route.agentId : null;
     const routeChannel = "channelId" in route ? route.channelId : null;
 
-    if (routeRepo && routeRepo !== activeRepoId) {
-      localStorage.setItem("active-repo-id", routeRepo);
-      localStorage.setItem("active-repo-name", routeRepo);
+    if (routeProject && routeProject !== activeProjectId) {
+      localStorage.setItem("active-project-id", routeProject);
+      localStorage.setItem("active-project-name", routeProject);
       localStorage.removeItem("active-agent");
       localStorage.removeItem("active-channel");
       localStorage.setItem("has-context", "true");
-      setActiveRepoId(routeRepo);
-      setActiveRepoFriendlyName(routeRepo);
+      setActiveProjectId(routeProject);
+      setActiveProjectFriendlyName(routeProject);
       setActiveAgent(null);
       setActiveChannel(null);
       setHasContext(true);
     } else if (routeAgent && (!activeAgent || activeAgent.id !== routeAgent)) {
       const agentObj = { id: routeAgent, name: routeAgent };
       localStorage.setItem("active-agent", JSON.stringify(agentObj));
-      localStorage.removeItem("active-repo-id");
-      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-channel");
       localStorage.setItem("has-context", "true");
       setActiveAgent(agentObj);
-      setActiveRepoId(null);
-      setActiveRepoFriendlyName(null);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
       setActiveChannel(null);
       setHasContext(true);
     } else if (routeChannel && (!activeChannel || activeChannel.id !== routeChannel)) {
       const channelObj = { id: routeChannel, name: routeChannel };
       localStorage.setItem("active-channel", JSON.stringify(channelObj));
-      localStorage.removeItem("active-repo-id");
-      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-agent");
       localStorage.setItem("has-context", "true");
       setActiveChannel(channelObj);
-      setActiveRepoId(null);
-      setActiveRepoFriendlyName(null);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
       setActiveAgent(null);
       setHasContext(true);
     }
-  }, [route, activeRepoId, activeAgent, activeChannel]);
+  }, [route, activeProjectId, activeAgent, activeChannel]);
 
-  const handleSelectRepo = useCallback((repoId: string | null, repoName: string | null) => {
-    if (repoId === null) {
-      localStorage.removeItem("active-repo-id");
-      localStorage.removeItem("active-repo-name");
+  const handleSelectProject = useCallback((projectId: string | null, projectName: string | null) => {
+    if (projectId === null) {
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-agent");
       localStorage.removeItem("active-channel");
-      setActiveRepoId(null);
-      setActiveRepoFriendlyName(null);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
       setActiveAgent(null);
       setActiveChannel(null);
       setHasContext(false);
       navigate("/");
     } else {
-      localStorage.setItem("active-repo-id", repoId);
-      localStorage.setItem("active-repo-name", repoName || repoId);
+      localStorage.setItem("active-project-id", projectId);
+      localStorage.setItem("active-project-name", projectName || projectId);
       localStorage.removeItem("active-agent");
       localStorage.removeItem("active-channel");
       localStorage.setItem("has-context", "true");
-      setActiveRepoId(repoId);
-      setActiveRepoFriendlyName(repoName || repoId);
+      setActiveProjectId(projectId);
+      setActiveProjectFriendlyName(projectName || projectId);
       setActiveAgent(null);
       setActiveChannel(null);
       setHasContext(true);
-      navigate(`/repos/${repoId}/chat`);
+      navigate(`/projects/${projectId}/chat`);
     }
   }, [navigate]);
 
@@ -244,13 +244,13 @@ export function AppRouter() {
       navigate("/");
     } else {
       localStorage.setItem("active-agent", JSON.stringify(agent));
-      localStorage.removeItem("active-repo-id");
-      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-channel");
       localStorage.setItem("has-context", "true");
       setActiveAgent(agent);
-      setActiveRepoId(null);
-      setActiveRepoFriendlyName(null);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
       setActiveChannel(null);
       setHasContext(true);
       navigate(`/agents/${agent.id}/chat`);
@@ -265,13 +265,13 @@ export function AppRouter() {
       navigate("/");
     } else {
       localStorage.setItem("active-channel", JSON.stringify(channel));
-      localStorage.removeItem("active-repo-id");
-      localStorage.removeItem("active-repo-name");
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-agent");
       localStorage.setItem("has-context", "true");
       setActiveChannel(channel);
-      setActiveRepoId(null);
-      setActiveRepoFriendlyName(null);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
       setActiveAgent(null);
       setHasContext(true);
       navigate(`/channels/${channel.id}/chat`);
@@ -292,7 +292,7 @@ export function AppRouter() {
 
   // Si el usuario no tiene contexto, establecer modo global automáticamente
   if (!hasContext) {
-    // handleSelectRepo(null, null);
+    // handleSelectProject(null, null);
   }
 
   return (
@@ -300,11 +300,11 @@ export function AppRouter() {
       <MainLayout
         route={route}
         onNavigate={navigate}
-        activeRepoName={activeRepoFriendlyName}
-        activeRepoId={activeRepoId}
+        activeProjectName={activeProjectFriendlyName}
+        activeProjectId={activeProjectId}
         activeAgent={activeAgent}
         activeChannel={activeChannel}
-        onSelectRepo={handleSelectRepo}
+        onSelectProject={handleSelectProject}
         onSelectAgent={handleSelectAgent}
         onSelectChannel={handleSelectChannel}
         selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
@@ -331,7 +331,7 @@ export function AppRouter() {
         onJudgeExperiment={handleJudgeExp}
       >
       {route.page === "projects" && (
-        <DashboardPage onNavigate={navigate} onSelectRepo={handleSelectRepo} />
+        <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />
       )}
       {route.page === "settings" && (
         <SettingsPage />
@@ -347,7 +347,7 @@ export function AppRouter() {
       )}
       {route.page === "logs" && (
         <LogsConsolePage
-          onSelectRepo={handleSelectRepo}
+          onSelectProject={handleSelectProject}
           onSelectAgent={handleSelectAgent}
           onSelectChannel={handleSelectChannel}
           onNavigate={navigate}
@@ -385,8 +385,8 @@ export function AppRouter() {
       )}
       {route.page === "workspace" && (
         <WorkspacePanel
-          key={activeRepoId || activeAgent?.id || activeChannel?.id || "global"}
-          activeRepoName={activeRepoId}
+          key={activeProjectId || activeAgent?.id || activeChannel?.id || "global"}
+          activeProjectName={activeProjectId}
           activeAgentId={activeAgent?.id}
           activeChannelId={activeChannel?.id}
         />
@@ -400,15 +400,15 @@ export function AppRouter() {
           />
         ) : (
           <ChatArea
-            key={`${route.sessionId}-${activeRepoId}-${activeAgent?.id}`}
+            key={`${route.sessionId}-${activeProjectId}-${activeAgent?.id}`}
             sessionId={route.sessionId}
-            activeRepoName={activeRepoId}
+            activeProjectName={activeProjectId}
             activeAgent={activeAgent}
           />
         )
       )}
       {route.page === "preview" && (
-        <PreviewPanel activeRepoName={activeRepoId} />
+        <PreviewPanel activeProjectName={activeProjectId} />
       )}
       </MainLayout>
       <ConfirmModal

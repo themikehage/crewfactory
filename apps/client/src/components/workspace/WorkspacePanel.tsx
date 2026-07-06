@@ -5,12 +5,12 @@ import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import type { FileInfo } from "shared";
 
 interface Props {
-  activeRepoName: string | null;
+  activeProjectName: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }
 
-export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeChannelId = null }: Props) {
+export function WorkspacePanel({ activeProjectName, activeAgentId = null, activeChannelId = null }: Props) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -27,12 +27,12 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
   const getWorkspaceUrl = useCallback((path: string) => {
     const base = `/api/workspace/${path}`;
     const params = new URLSearchParams();
-    if (activeRepoName) params.append("repo", activeRepoName);
+    if (activeProjectName) params.append("project", activeProjectName);
     if (activeAgentId) params.append("agentId", activeAgentId);
     if (activeChannelId) params.append("channelId", activeChannelId);
     const query = params.toString();
     return query ? `${base}?${query}` : base;
-  }, [activeRepoName, activeAgentId, activeChannelId]);
+  }, [activeProjectName, activeAgentId, activeChannelId]);
 
   // Helper for auth headers
   const getHeaders = useCallback(() => {
@@ -417,7 +417,7 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
         <div className="flex-1 min-w-0 overflow-hidden flex flex-col bg-background h-full">
           <WorkspaceFileEditor
             file={selectedFile}
-            activeRepoName={activeRepoName}
+            activeProjectName={activeProjectName}
             activeAgentId={activeAgentId}
             activeChannelId={activeChannelId}
             onSave={handleSaveFile}

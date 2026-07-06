@@ -37,7 +37,7 @@ interface Props {
   result: ToolResultData | null;
   sessionId: string | null;
   toolCallId?: string;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
   disabled?: boolean;
@@ -266,7 +266,7 @@ function ToolBody({
   result,
   toolCallId,
   sessionId,
-  activeRepoName,
+  activeProjectName,
   activeAgentId,
   activeChannelId,
   onOpenSubagentConsole,
@@ -276,7 +276,7 @@ function ToolBody({
   result: ToolResultData | null;
   toolCallId?: string;
   sessionId?: string | null;
-  activeRepoName?: string | null;
+  activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
   onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
@@ -339,7 +339,7 @@ function ToolBody({
         <ImageGrid
           images={(args.images as any) || []}
           sessionId={sessionId || null}
-          activeRepoName={activeRepoName}
+          activeProjectName={activeProjectName}
           activeAgentId={activeAgentId}
           activeChannelId={activeChannelId}
         />
@@ -366,7 +366,7 @@ function ToolBody({
           filePath={(args.filePath as string) || ""}
           title={args.title as string | undefined}
           sessionId={sessionId || null}
-          activeRepoName={activeRepoName}
+          activeProjectName={activeProjectName}
           activeAgentId={activeAgentId}
           activeChannelId={activeChannelId}
         />
@@ -393,7 +393,7 @@ export function ToolCallRow({
   result,
   sessionId: _sessionId,
   toolCallId,
-  activeRepoName: _activeRepoName,
+  activeProjectName: _activeProjectName,
   activeAgentId: _activeAgentId = null,
   activeChannelId: _activeChannelId = null,
   disabled = false,
@@ -495,7 +495,7 @@ export function ToolCallRow({
             result={result}
             toolCallId={toolCallId}
             sessionId={_sessionId}
-            activeRepoName={_activeRepoName}
+            activeProjectName={_activeProjectName}
             activeAgentId={_activeAgentId}
             activeChannelId={_activeChannelId}
             onOpenSubagentConsole={onOpenSubagentConsole}

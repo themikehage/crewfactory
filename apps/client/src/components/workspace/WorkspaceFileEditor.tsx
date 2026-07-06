@@ -6,7 +6,7 @@ import { literals as u } from "./WorkspaceFileEditor.literals";
 
 interface Props {
   file: FileInfo | null;
-  activeRepoName: string | null;
+  activeProjectName: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
   onSave: (path: string, content: string) => Promise<void>;
@@ -49,7 +49,7 @@ function decodeBase64Unicode(str: string): string {
 
 export function WorkspaceFileEditor({
   file,
-  activeRepoName,
+  activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
   onSave,
@@ -149,7 +149,7 @@ const l = useLiterals(u);
       }
       try {
         const params = new URLSearchParams();
-        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeProjectName) params.append("project", activeProjectName);
         if (activeAgentId) params.append("agentId", activeAgentId);
         if (activeChannelId) params.append("channelId", activeChannelId);
         const contextQuery = params.toString() ? `&${params.toString()}` : "";
@@ -173,7 +173,7 @@ const l = useLiterals(u);
         URL.revokeObjectURL(url);
       }
     };
-  }, [file?.path, activeRepoName, activeAgentId, activeChannelId, isHtml, isImage, saveStatus]);
+  }, [file?.path, activeProjectName, activeAgentId, activeChannelId, isHtml, isImage, saveStatus]);
 
   if (!file) {
     return (
@@ -199,7 +199,7 @@ const l = useLiterals(u);
     } else {
       try {
         const params = new URLSearchParams();
-        if (activeRepoName) params.append("repo", activeRepoName);
+        if (activeProjectName) params.append("project", activeProjectName);
         if (activeAgentId) params.append("agentId", activeAgentId);
         if (activeChannelId) params.append("channelId", activeChannelId);
         const contextQuery = params.toString() ? `&${params.toString()}` : "";
@@ -218,7 +218,7 @@ const l = useLiterals(u);
     e.preventDefault();
     try {
       const params = new URLSearchParams();
-      if (activeRepoName) params.append("repo", activeRepoName);
+      if (activeProjectName) params.append("project", activeProjectName);
       if (activeAgentId) params.append("agentId", activeAgentId);
       if (activeChannelId) params.append("channelId", activeChannelId);
       const contextQuery = params.toString() ? `&${params.toString()}` : "";
