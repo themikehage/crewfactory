@@ -6,6 +6,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 ## Pendientes
 
 - [agent-channel-gallery.md](./agent-channel-gallery.md) — Galería comunitaria de plantillas de agentes y canales, con instalación en 1 clic, exportación, y curación vía PRs.
+- [agent-manager-tool.md](./agent-manager-tool.md) — Tool agent_manager para delegar tareas a agentes programáticos persistentes y supervisar su ejecución en tiempo real.
 - [chat-empty-state.md](./chat-empty-state.md) — Pantalla de bienvenida estilo ChatGPT con input centrado verticalmente cuando la sesion no tiene mensajes.
 - [chat-input-redesign.md](./chat-input-redesign.md) — Rediseño completo del input del chat: card flotante unificada, popovers inline, iconos, animaciones. Estilo ChatGPT/Claude.
 - [engram-agent-memory.md](./engram-agent-memory.md) — Memoria persistente para agentes vía `@engram-ai-memory/core` con SQLite, embeddings ONNX locales, decay Ebbinghaus y knowledge graph.

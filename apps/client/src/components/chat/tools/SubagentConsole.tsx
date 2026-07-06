@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
+import { RichMarkdown } from "../RichMarkdown";
 
 interface Props {
   parentId: string;
@@ -302,8 +303,8 @@ export function SubagentConsole({ parentId, toolCallId, task, subagentRole, onCl
                       </div>
                     )}
                     {outputText && (
-                      <div className="whitespace-pre-wrap break-all leading-normal text-text-primary">
-                        {outputText}
+                      <div className="leading-normal text-text-primary">
+                        <RichMarkdown content={outputText} />
                       </div>
                     )}
                   </div>
