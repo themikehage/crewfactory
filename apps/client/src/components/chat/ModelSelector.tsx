@@ -21,7 +21,8 @@ interface Props {
   onChange?: (modelId: string) => void;
 }
 
-const STORAGE_KEY = "pi-selected-model";
+const STORAGE_KEY = "crewfy-selected-model";
+const RECENT_MODELS_KEY = "crewfy-recent-models";
 
 function parseModelString(modelId: string): SelectedModel | null {
   const idx = modelId.indexOf("/");
@@ -38,10 +39,18 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
       return value ? parseModelString(value) : null;
     }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("pi-selected-model");
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;
+    }
+  });
+  const [recentModels, setRecentModels] = useState<SelectedModel[]>(() => {
+    try {
+      const raw = localStorage.getItem(RECENT_MODELS_KEY) ?? localStorage.getItem("pi-recent-models");
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
     }
   });
   const [open, setOpen] = useState(false);
@@ -177,6 +186,15 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
       setOpen(false);
       setActiveProvider(null);
 
+      setRecentModels((prev) => {
+        const filtered = prev.filter(
+          (rm) => !(rm.provider === provider && rm.modelId === modelId)
+        );
+        const updated = [newSelection, ...filtered].slice(0, 5);
+        localStorage.setItem(RECENT_MODELS_KEY, JSON.stringify(updated));
+        return updated;
+      });
+
       if (controlled) {
         onChange(`${provider}/${modelId}`);
         return;
@@ -188,6 +206,14 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
       await applyModelToSession(newSelection, sessionId);
     },
     [controlled, onChange, sessionId, applyModelToSession]
+  );
+
+  const isModelAvailable = useCallback(
+    (model: SelectedModel) => {
+      const p = providers.find((prov) => prov.id === model.provider);
+      return !!p?.models.some((m) => m.id === model.modelId);
+    },
+    [providers]
   );
 
   const currentProvider = activeProvider
@@ -253,6 +279,48 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
           ) : (
             <>
               <div className="max-h-56 overflow-y-auto">
+                {recentModels.length > 0 && (
+                  <div className="border-b border-input pb-1.5 mb-1.5">
+                    <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
+                      Recientes
+                    </div>
+                    {[...recentModels]
+                      .sort((a, b) => {
+                        const aAvailable = isModelAvailable(a);
+                        const bAvailable = isModelAvailable(b);
+                        if (aAvailable && !bAvailable) return -1;
+                        if (!aAvailable && bAvailable) return 1;
+                        return 0;
+                      })
+                      .map((rm) => {
+                        const isAvailable = isModelAvailable(rm);
+                        return (
+                          <button
+                            key={`${rm.provider}/${rm.modelId}`}
+                            disabled={!isAvailable}
+                            onClick={() => handleSelectModel(rm.provider, rm.modelId, rm.modelName)}
+                            className={`w-full flex items-center justify-between px-3 py-1.5 text-xs transition-colors ${
+                              isAvailable
+                                ? "text-foreground hover:bg-card-hover cursor-pointer"
+                                : "text-muted-foreground opacity-40 cursor-not-allowed"
+                            }`}
+                          >
+                            <div className="flex items-center gap-2 truncate min-w-0">
+                              <span
+                                className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                                  isAvailable ? "bg-primary" : "bg-card-hover"
+                                }`}
+                              />
+                              <span className="truncate">{rm.modelName}</span>
+                            </div>
+                            <span className="text-[10px] text-muted-foreground truncate ml-2">
+                              {providers.find((pr) => pr.id === rm.provider)?.name ?? rm.provider}
+                            </span>
+                          </button>
+                        );
+                      })}
+                  </div>
+                )}
                 {providers.map((p) => (
                   <button
                     key={p.id}
