@@ -6,18 +6,31 @@
     <meta name="theme-color" content="#121212" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Crew Factory" />
+    <meta name="apple-mobile-web-app-title" content="CrewFactory" />
     <link rel="apple-touch-icon" href="/icon-192.png" />
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
     <link rel="icon" type="image/png" href="/favicon.png" />
-    <title>Crew Factory</title>
-    <script type="module" crossorigin src="/assets/index-DnQDNwo6.js"></script>
-    <link rel="stylesheet" crossorigin href="/assets/index-DDujSaTZ.css">
+    <title>CrewFactory</title>
+    <script>
+      (function () {
+        const theme = localStorage.getItem("theme") || "system";
+        const isDark = theme === "dark" || (theme === "system" && window.matchMedia("(prefers-color-scheme: dark)").matches);
+        if (isDark) {
+          document.documentElement.classList.add("dark");
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#121212");
+        } else {
+          document.documentElement.classList.remove("dark");
+          document.querySelector('meta[name="theme-color"]')?.setAttribute("content", "#ffffff");
+        }
+      })();
+    </script>
+    <script type="module" crossorigin src="/assets/index-BdJdhcgY.js"></script>
+    <link rel="stylesheet" crossorigin href="/assets/index-CblmuZMm.css">
   <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
   <body>
-    <div id="root"></div>
+    <div id="root"></div>
   </body>
 </html>

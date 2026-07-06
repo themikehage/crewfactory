@@ -128,6 +128,6 @@ compat: {
 
 - [Qwen API Docs](https://help.aliyun.com/zh/model-studio/getting-started/models)
 - [DashScope API compatible-mode](https://help.aliyun.com/zh/model-studio/developer-reference/use-qwen-by-calling-api-based-on-openai-compatible-mode)
-- Codigo ejemplo de `streamSimpleOpenAICompletions` en `node_modules/@earendil-works/pi-ai/dist/providers/openai-completions.js`
-- Ejemplo de custom provider con Anthropic: `node_modules/@earendil-works/pi-coding-agent/examples/extensions/custom-provider-anthropic/index.ts`
-- Ejemplo de custom provider con GitLab Duo: `node_modules/@earendil-works/pi-coding-agent/examples/extensions/custom-provider-gitlab-duo/index.ts`
+- Codigo ejemplo de `streamSimpleOpenAICompletions` en `apps/server/src/ai/vendor/ai/src/api/openai-completions.ts`
+- Ejemplo de custom provider con Anthropic: `apps/server/src/ai/vendor/agent/examples/extensions/custom-provider-anthropic/index.ts`
+- Ejemplo de custom provider con GitLab Duo: `apps/server/src/ai/vendor/agent/examples/extensions/custom-provider-gitlab-duo/index.ts`

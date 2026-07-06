@@ -36,8 +36,8 @@ Esto significa que hay que construir todo desde cero.
 │  Servidor Hono                                       │
 │  ┌─────────────────────────────────────────────────┐ │
 │  │  routes/mcp.ts           ← REST endpoints       │ │
-│  │  pi/mcp-manager.ts       ← MCP connection pool  │ │
-│  │  pi/mcp-registry.ts      ← Catalogo de MCPs     │ │
+│  │  core/mcp-manager.ts       ← MCP connection pool  │ │
+│  │  core/mcp-registry.ts      ← Catalogo de MCPs     │ │
 │  └─────────────────────────────────────────────────┘ │
 └─────────────────────────────────────────────────────┘
          │ @modelcontextprotocol/sdk
@@ -438,5 +438,5 @@ Cuando un MCP esta conectado y habilitado:
 - [MCP Servers (oficial)](https://github.com/modelcontextprotocol/servers)
 - [MCPFind - Catalogo global](https://mcpfind.org)
 - [Windsurf MCP Integration](https://docs.windsurf.com/plugins/cascade/mcp)
-- [Pi SDK Extensions (para referencia de custom tools)](../../node_modules/@earendil-works/pi-coding-agent/docs/extensions.md)
+- [Vendored agent runtime extensions (para referencia de custom tools)](../../node_modules/@earendil-works/vendored agent runtime/docs/extensions.md)
 - Ejemplo de custom tool en vendored agent runtime: `examples/extensions/provider-payload.ts`

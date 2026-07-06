@@ -220,7 +220,7 @@ listSessions(username) {
 ### 🔵 Medios
 
 9. **Escrituras innecesarias de `channel.json` en cada mensaje** — Duplica I/O en el hot path.
-10. **`pi-selected-model` nunca se limpia al hacer logout** — Persistencia entre usuarios en el mismo navegador.
+10. **`crewfy-selected-model` nunca se limpia al hacer logout** — Persistencia entre usuarios en el mismo navegador.
 11. **`active-repo/agent/channel` sobreviven al logout** — Posible fuga de contexto entre sesiones de diferentes usuarios.
 12. **No hay rate limiting ni control de tamaño** — Un usuario puede crear N objetos sin restricción.
 13. **`metadata.json` sin lock** — Lectura-escritura no atómica.
@@ -240,5 +240,5 @@ listSessions(username) {
 4. **Migrar `listSessions()` y `getMessages()` a async I/O**: Usar `fs.promises` para no bloquear el event loop en listados.
 5. **Implementar rotación de `messages.jsonl`**: Por fecha o por tamaño (ej. 10MB por archivo, comprimir viejos).
 6. **Eliminar rewrite innecesario de `channel.json` en cada mensaje**: Actualizar solo en cambios estructurales (members, context, etc.), no en cada mensaje.
-7. **Limpiar localStorage keys sensibles en logout**: `pi-selected-model`, `active-repo`, `active-agent`, `active-channel`.
+7. **Limpiar localStorage keys sensibles en logout**: `crewfy-selected-model`, `active-repo`, `active-agent`, `active-channel`.
 8. **Reemplazar `username = "admin"` hardcodeado** con el username real del usuario que crea el agente.

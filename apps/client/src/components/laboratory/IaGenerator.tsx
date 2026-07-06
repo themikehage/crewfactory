@@ -44,7 +44,7 @@ export function IaGenerator({ onExperimentCreated }: IaGeneratorProps) {
 
   // Load user default model
   useEffect(() => {
-    const stored = localStorage.getItem("pi-selected-model");
+    const stored = localStorage.getItem("crewfy-selected-model");
     if (stored) {
       try {
         const parsed = JSON.parse(stored);

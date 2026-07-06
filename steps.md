@@ -2,7 +2,7 @@
 
 ## Phase 1: Research & Design
 - [x] 1.0 Brainstorming requirements
-- [x] 1.1 Research pi SDK integration
+- [x] 1.1 Research vendored agent runtime integration
 - [x] 1.2 Design system (palette, typography)
 - [x] 1.3 Architecture design (API, components, data flow)
 
@@ -14,7 +14,7 @@
 ## Phase 3: Project Setup
 - [x] 3.1 Initialize monorepo structure
 - [x] 3.2 Setup root package.json
-- [x] 3.3 Setup server (Hono + pi SDK)
+- [x] 3.3 Setup server (Hono + vendored agent runtime)
 - [x] 3.4 Setup client (React + Vite + Tailwind)
 - [x] 3.5 Setup shared package
 - [x] 3.6 Install dependencies
@@ -106,7 +106,7 @@
 ## Phase 14: Task Runner (Persistent Task Queue)
 - [x] 14.1 Shared schemas: Zod types for TaskStatus, RunnerStatus, Task, and TaskRunnerState
 - [x] 14.2 WebSocket tracking: track connected sockets by sessionId and broadcast helper
-- [x] 14.3 Server Task Runner loop & decomposition logic in `apps/server/src/pi/task-runner.ts`
+- [x] 14.3 Server Task Runner loop & decomposition logic in `apps/server/src/core/task-runner.ts`
 - [x] 14.4 REST endpoints `/api/sessions/:id/tasks` (GET, POST, /decompose, /run, /pause, /reset)
 - [x] 14.5 Client layout updates: disable message composition in `InputArea.tsx` during task runner execution
 - [x] 14.6 Client `TasksPanel.tsx` drawer rendering checklist, log code blocks, and controllers
@@ -214,14 +214,14 @@
 
 ## Phase 24: Agent Chat Unification in ChatArea
 - [x] 24.1 `packages/shared/src/schemas.ts` — Added `agentId?: string` to `CreateSessionSchema` and `SessionSchema`
-- [x] 24.2 `apps/server/src/pi/session-manager.ts` — Resolved agent context (`agentId`), workspace directory (`/tmp/pi-agents/{agentId}/workspace`), systemPrompt inheritance, and agent skill loading
+- [x] 24.2 `apps/server/src/core/session-manager.ts` — Resolved agent context (`agentId`), workspace directory (`/tmp/crewfactory-agents/{agentId}/workspace`), systemPrompt inheritance, and agent skill loading
 - [x] 24.3 `apps/server/src/routes/sessions.ts` — Supported `agentId` in `POST /api/sessions`
 - [x] 24.4 Client active context state — Updated `AppRouter.tsx`, `MainLayout.tsx`, and `SessionSidebar.tsx` for Agent context mode (`activeAgent`), displaying `Chat [Agent: AgentName]` in header and filtering sessions by agent
 - [x] 24.5 `apps/client/src/pages/AgentsPage.tsx` — Replaced simple `ChatModal` with direct context switch & redirection to the full `ChatArea`
 - [x] 24.6 Verification — TypeScript compilation passes clean (EXIT 0) for both server and client
 
 ## Phase 25: Channel Agent Fix and Rich UX Upgrade
-- [x] 25.1 `apps/server/src/agents/create-agent-server.ts` — Connected agent creation to user `authStorage` & `modelRegistry` (`piSessionManager.getUserContext("admin")`), providing access to configured API keys
+- [x] 25.1 `apps/server/src/agents/create-agent-server.ts` — Connected agent creation to user `authStorage` & `modelRegistry` (`sessionManager.getUserContext("admin")`), providing access to configured API keys
 - [x] 25.2 `apps/server/src/channels/channel-orchestrator.ts` — Added dynamic fallback model verification before prompting agents to prevent null model errors
 - [x] 25.3 `apps/client/src/components/channels/ChannelMessages.tsx` — Upgraded UI to support `RichMarkdown` formatting, syntax highlighting, agent badges, and real-time streaming deltas
 - [x] 25.4 `apps/client/src/pages/ChannelDetailPage.tsx` — Enhanced header, active agent counts, and responsive layout
@@ -229,7 +229,7 @@
 
 ## Phase 26: Unified Channel Sessions & Modal Member Management
 - [x] 26.1 `packages/shared/src/schemas.ts` — Added `channelId?: string` to `CreateSessionSchema` and `SessionSchema`
-- [x] 26.2 `apps/server/src/pi/session-manager.ts` & `routes/sessions.ts` — Supported `channelId` in `getOrCreateSession`, metadata persistence (`/tmp/pi-channels/{channelId}/workspace`), and `POST /api/sessions`
+- [x] 26.2 `apps/server/src/core/session-manager.ts` & `routes/sessions.ts` — Supported `channelId` in `getOrCreateSession`, metadata persistence (`/tmp/crewfactory-channels/{channelId}/workspace`), and `POST /api/sessions`
 - [x] 26.3 Client active context state — Updated `AppRouter.tsx`, `MainLayout.tsx`, and `SessionSidebar.tsx` for Channel context mode (`activeChannel`), displaying `Chat [Channel: #channelName]` in header and filtering sessions by channel
 - [x] 26.4 `apps/client/src/pages/ChannelsPage.tsx` — Updated channel cards to switch context to `activeChannel` and redirect to main `ChatArea`
 - [x] 26.5 `apps/client/src/components/channels/ChannelMembersModal.tsx` — Built floating modal for channel member management with explicit agent selection when `targeted` replyMode is chosen
@@ -518,7 +518,7 @@ crear un plan de despliegue facil en vps
 - [x] 57.7 Local ES module wrapper AgentSession in src/ai/agent-session
 - [x] 57.8 Barrel exports configuration in src/ai/index
 - [x] 57.9 Redirection of imports in all 5 server components and cleanup of getAgentDir
-- [x] 57.10 Dependency removal of @earendil-works/pi-coding-agent from package.json
+- [x] 57.10 Dependency removal of vendored agent runtime from package.json
 - [x] 57.11 Code verification, compatibility mapping, and static typecheck validation
 
 ## Phase 58: Judge Management UI — Scores por Criterio + Evaluación On-Demand
@@ -543,7 +543,7 @@ crear un plan de despliegue facil en vps
 
 ## Phase 60: Integración del Proveedor OpenCode Go
 - [x] 60.1 Diseñar plan en `plans/opencode-go-provider.md` y actualizar `plans/_index.md`
-- [x] 60.2 Crear `apps/server/src/pi/opencode-go-provider.ts` definiendo modelos y endpoints compatibles
+- [x] 60.2 Crear `apps/server/src/core/opencode-go-provider.ts` definiendo modelos y endpoints compatibles
 - [x] 60.3 Registrar el nuevo proveedor en `getUserContext` dentro de `session-manager.ts`
 - [x] 60.4 Validar compilación del servidor con `bun run build` exitosa
 - [x] 60.5 Documentar cambios en `about.md` y `steps.md`

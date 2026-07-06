@@ -39,7 +39,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
       return value ? parseModelString(value) : null;
     }
     try {
-      const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("pi-selected-model");
+      const raw = localStorage.getItem(STORAGE_KEY) ?? localStorage.getItem("crewfy-selected-model");
       return raw ? JSON.parse(raw) : null;
     } catch {
       return null;

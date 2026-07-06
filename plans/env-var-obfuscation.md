@@ -162,7 +162,7 @@ export function filterSecretsFromOutput(
 
 **Integración en `session-manager.ts`** (dentro del `spawnHook` o post-proceso del bash tool):
 
-El bash tool del pi-coding-agent SDK probablemente tiene un callback de output. Si no, podemos modificar el `spawnHook` o crear un wrapper:
+El bash tool del vendored agent runtime SDK probablemente tiene un callback de output. Si no, podemos modificar el `spawnHook` o crear un wrapper:
 
 ```typescript
 const customBashTool = createBashToolDefinition(workspaceDir, {
@@ -225,7 +225,7 @@ envRouter.get("/reveal/:key", authMiddleware, async (c) => {
   const { username } = getAuthPayload(c);
   const key = c.req.param("key");
 
-  const env = piSessionManager.getUserEnv(username);
+  const env = sessionManager.getUserEnv(username);
   if (!(key in env)) {
     return c.json({ error: "Variable not found" }, 404);
   }
@@ -239,7 +239,7 @@ envRouter.get("/reveal/:key", authMiddleware, async (c) => {
 // Mantener GET /api/env (sin ?reveal=true, siempre masked)
 envRouter.get("/", authMiddleware, async (c) => {
   const { username } = getAuthPayload(c);
-  const env = piSessionManager.getUserEnv(username);
+  const env = sessionManager.getUserEnv(username);
   const envList = Object.entries(env).map(([key]) => ({
     key,
     value: "••••••••",

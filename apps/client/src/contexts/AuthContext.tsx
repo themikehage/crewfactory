@@ -45,7 +45,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem("active-agent");
     localStorage.removeItem("active-channel");
     localStorage.removeItem("has-context");
-    localStorage.removeItem("pi-selected-model");
+    localStorage.removeItem("crewfy-selected-model");
   }, []);
 
   useEffect(() => {

@@ -1,6 +1,6 @@
 /**
  * Compatibility entrypoint — vendored, stripped to OpenAI-compatible providers only.
- * Replaces @earendil-works/pi-ai/compat for CrewFactory.
+ * Replaces the vendored ai compat module for CrewFactory.
  */
 
 import { openAICompletionsApi } from "./api/openai-completions.lazy.ts";

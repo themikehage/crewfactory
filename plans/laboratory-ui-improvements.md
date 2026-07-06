@@ -34,7 +34,7 @@ El modelo default `"anthropic/claude-3-5-sonnet"` esta hardcodeado en 4 lugares 
 | `LaboratoryPage.tsx` | 295 | Mismo default para el agente baseline Single |
 | `experiments.ts` | 65-66 | `fallbackModel = "anthropic/claude-3-5-sonnet"` — server-side para blueprints |
 
-El `ModelSelector` actual soporta modo controlado (prop `value` + `onChange`), y lee de `localStorage.getItem("pi-selected-model")` en modo no controlado. Pero en el wizard no se usa esa informacion — siempre arranca con el hardcode.
+El `ModelSelector` actual soporta modo controlado (prop `value` + `onChange`), y lee de `localStorage.getItem("crewfy-selected-model")` en modo no controlado. Pero en el wizard no se usa esa informacion — siempre arranca con el hardcode.
 
 Ademas, en el Step 3 (Briefings & Modelos), cada agente tiene su propio `ModelSelector` individual. No hay forma de cambiar el modelo de TODOS los agentes a la vez — el usuario tiene que ir uno por uno.
 
@@ -110,7 +110,7 @@ La vista de experimento en ejecucion (`LaboratoryPage.tsx:916-938`) renderiza 3 
 ### B. Selector de modelo default inteligente
 
 **Client-side:**
-1. Al entrar al wizard Step 3, leer el modelo actual del localStorage (`pi-selected-model`) y de `/api/models`
+1. Al entrar al wizard Step 3, leer el modelo actual del localStorage (`crewfy-selected-model`) y de `/api/models`
 2. Agregar UN `ModelSelector` global en la cabecera del Step 3 con label "Modelo por defecto para todos los agentes"
 3. Al cambiar este selector global, actualizar TODOS los agentes simultaneamente
 4. Los `ModelSelector` individuales por agente se mantienen para overrides finos
