@@ -166,6 +166,7 @@ function AssistantTextBlock({
   activeAgentId?: string | null;
   activeChannelId?: string | null;
 }) {
+  const [copied, setCopied] = useState(false);
   const htmlOutput = isHtml(text) ? text : null;
   const markers = extractFileMarkers(text);
   const imageMarkers = markers.filter(m => m.type === "image");
@@ -175,10 +176,40 @@ function AssistantTextBlock({
   const videoMarkers = markers.filter(m => m.type === "video");
   const officeMarkers = markers.filter(m => m.type === "office" || m.type === "other");
 
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error("Failed to copy:", err);
+    }
+  };
+
+  const copyButton = (
+    <button
+      onClick={handleCopy}
+      className="absolute top-2 right-2 p-1.5 rounded-md bg-card/80 hover:bg-card border border-border/50 hover:border-primary/30 text-text-secondary hover:text-text-primary transition-all opacity-0 group-hover:opacity-100 backdrop-blur-sm"
+      title={copied ? "Copiado!" : "Copiar mensaje"}
+    >
+      {copied ? (
+        <svg className="w-3.5 h-3.5 text-success" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+        </svg>
+      ) : (
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+        </svg>
+      )}
+    </button>
+  );
+
   if (htmlOutput || markers.length > 0) {
     const token = localStorage.getItem("token");
     return (
-      <div className="space-y-3">
+      <div className="relative group">
+        {copyButton}
+        <div className="space-y-3">
         {htmlOutput && <HtmlPreview html={htmlOutput} />}
         {htmlMarkers.map((m, i) => (
           <HtmlFileFetcher
@@ -276,10 +307,16 @@ function AssistantTextBlock({
         })}
 
         {!htmlOutput && <RichMarkdown content={text} />}
+        </div>
       </div>
     );
   }
-  return <RichMarkdown content={text} />;
+  return (
+    <div className="relative group">
+      {copyButton}
+      <RichMarkdown content={text} />
+    </div>
+  );
 }
 
 function AgentTurn({
