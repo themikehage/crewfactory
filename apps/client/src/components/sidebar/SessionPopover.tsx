@@ -277,7 +277,7 @@ export function SessionPopover({
                       onSelectSession(s.id);
                       onClose();
                     }}
-                    className={`w-full text-left px-2.5 py-2 rounded-lg text-xs transition-all cursor-pointer ${
+                    className={`w-full text-left px-2.5 py-2 pr-8 rounded-lg text-xs transition-all cursor-pointer ${
                       isActive
                         ? "bg-card-hover/80 text-foreground border border-input"
                         : "text-muted-foreground hover:bg-card-hover/40 hover:text-foreground border border-transparent"
