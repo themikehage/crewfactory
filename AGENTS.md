@@ -32,6 +32,7 @@ Whenever you (the AI agent) create, update, or delete a repository/project, agen
 - Functional components with hooks, no class components
 - Mobile-first responsive: 375px, 768px, 1280px breakpoints
 - No emojis in code, commits, or UI
+- Always use localized literals via translation files (e.g. `.literals.ts`), never hardcode user-facing strings in JSX components
 
 ## Stack
 - **Backend:** Bun + Hono + Zod + @earendil-works/pi-coding-agent SDK
@@ -62,7 +63,7 @@ workspace/
 - Theme defined in `apps/client/src/index.css` via Tailwind CSS v4 `@theme`
 - Palette: `bg=#121212`, `surface=#171717`, `surface-hover=#313131`, `accent=#4ade80` (green), `text-primary=#e2e8f0`, `text-secondary=#a2a2a2`, `success=#4ade80`, `error=#ca3214`, `warning=#fbbf24`
 - Typography: `display/body=Outfit`, `mono=JetBrains Mono` (Google Fonts, loaded in index.html)
-- **Always use Tailwind tokens** (`bg-bg`, `bg-surface`, `text-accent`, etc.). Never use raw hex values in component code.
+- **Always use Tailwind design system tokens** (`bg-bg`, `bg-surface`, `text-accent`, etc.). Never use raw hex values or hardcoded inline colors in component code.
 
 ## Git Commit Style
 `type(scope): description`
