@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgents } from "@/hooks/useAgents";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import type { AgentDefinition, AgentInfo } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./AgentsPage.literals";
@@ -57,6 +58,7 @@ function AgentCard({
 }) {
   const l = useLiterals(u);
   const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   const initials = agent.name
     .split(" ")
@@ -65,20 +67,18 @@ function AgentCard({
     .slice(0, 2)
     .toUpperCase();
 
-  const handleDelete = async () => {
-    if (
-      !window.confirm(
-        `${l.deleteConfirm_1}${agent.name}${l.deleteConfirm_2}`
-      )
-    ) {
-      return;
-    }
+  const executeDelete = async () => {
     setDeleting(true);
     try {
       await onDelete(agent.id);
     } finally {
       setDeleting(false);
+      setShowDeleteConfirm(false);
     }
+  };
+
+  const handleDelete = () => {
+    setShowDeleteConfirm(true);
   };
 
   return (
@@ -158,6 +158,16 @@ function AgentCard({
           {deleting ? l.deleting : l.delete}
         </button>
       </div>
+      <ConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => setShowDeleteConfirm(false)}
+        onConfirm={executeDelete}
+        title={l.deleteTitle ?? "Delete Agent"}
+        message={`${l.deleteConfirm_1}${agent.name}${l.deleteConfirm_2}`}
+        confirmLabel={l.delete ?? "Delete"}
+        destructive
+        loading={deleting}
+      />
     </motion.div>
   );
 }

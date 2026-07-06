@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { wsClient } from "@/lib/ws-client";
+import { useToast } from "@/contexts/ToastContext";
 
 interface Props {
   toolCallId: string;
@@ -25,6 +26,7 @@ interface Props {
 }
 
 export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) {
+  const { addToast } = useToast();
   const {
     question = "¿?",
     isMultiSelect = false,
@@ -65,7 +67,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
   const handleSubmit = () => {
     if (isResolved || submitting || !sessionId) return;
     if (selected.size === 0 && allowCustom && !customText.trim()) {
-      alert("Por favor selecciona al menos una opción o escribe una respuesta personalizada.");
+      addToast("warning", "Por favor selecciona al menos una opción o escribe una respuesta personalizada.");
       return;
     }
 

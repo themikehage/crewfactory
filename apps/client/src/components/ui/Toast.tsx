@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 export interface ToastMessage {
   id: string;
-  type: "success" | "error" | "info";
+  type: "success" | "error" | "info" | "warning";
   text: string;
 }
 
@@ -35,6 +35,8 @@ function ToastCard({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
       ? "bg-success/15 border-success/30 text-success-foreground"
       : toast.type === "error"
       ? "bg-error/15 border-error/30 text-error-foreground"
+      : toast.type === "warning"
+      ? "bg-warning/15 border-warning/30 text-warning"
       : "bg-card border-input/20 text-foreground";
 
   const icon =
@@ -47,6 +49,12 @@ function ToastCard({ toast, onClose }: { toast: ToastMessage; onClose: () => voi
         <circle cx="12" cy="12" r="10" />
         <line x1="12" y1="8" x2="12" y2="12" />
         <line x1="12" y1="16" x2="12.01" y2="16" />
+      </svg>
+    ) : toast.type === "warning" ? (
+      <svg className="w-4 h-4 text-warning" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+        <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
+        <line x1="12" y1="9" x2="12" y2="13" />
+        <line x1="12" y1="17" x2="12.01" y2="17" />
       </svg>
     ) : (
       <svg className="w-4 h-4 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">

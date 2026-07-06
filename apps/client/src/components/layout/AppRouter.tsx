@@ -1,5 +1,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LoginPage } from "@/pages/LoginPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { SkillsPage } from "@/pages/SkillsPage";
@@ -64,6 +65,10 @@ export function AppRouter() {
   const [runPromptValue, setRunPromptValue] = useState("");
   const [runningExpId, setRunningExpId] = useState<string | null>(null);
   const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader" | "compare">("single");
+
+  const [showDeleteExpConfirm, setShowDeleteExpConfirm] = useState(false);
+  const [pendingDeleteExpId, setPendingDeleteExpId] = useState<string | null>(null);
+  const [deletingExp, setDeletingExp] = useState(false);
 
   const fetchExperiments = useCallback(async () => {
     try {
@@ -135,20 +140,30 @@ export function AppRouter() {
     fetchExperiments();
   }, [fetchExperiments]);
 
-  const handleDeleteExp = useCallback(async (expId: string) => {
-    if (!window.confirm("¿Seguro que deseas eliminar este experimento de forma permanente?")) return;
+  const executeDeleteExp = useCallback(async () => {
+    if (!pendingDeleteExpId) return;
+    setDeletingExp(true);
     try {
-      const res = await apiFetch(`/api/experiments/${expId}`, { method: "DELETE" });
+      const res = await apiFetch(`/api/experiments/${pendingDeleteExpId}`, { method: "DELETE" });
       if (res.ok) {
-        setExperiments((prev) => prev.filter((e) => e.id !== expId));
-        if (route.page === "laboratory" && route.experimentId === expId) {
+        setExperiments((prev) => prev.filter((e) => e.id !== pendingDeleteExpId));
+        if (route.page === "laboratory" && route.experimentId === pendingDeleteExpId) {
           navigate("/laboratory");
         }
       }
     } catch (e) {
       console.error("Failed to delete experiment:", e);
+    } finally {
+      setDeletingExp(false);
+      setShowDeleteExpConfirm(false);
+      setPendingDeleteExpId(null);
     }
-  }, [route, navigate]);
+  }, [pendingDeleteExpId, route, navigate]);
+
+  const handleDeleteExp = useCallback((expId: string) => {
+    setPendingDeleteExpId(expId);
+    setShowDeleteExpConfirm(true);
+  }, []);
 
   // Sincronizar estado y localStorage con los parámetros de la URL
   useEffect(() => {
@@ -281,39 +296,40 @@ export function AppRouter() {
   }
 
   return (
-    <MainLayout
-      route={route}
-      onNavigate={navigate}
-      activeRepoName={activeRepoFriendlyName}
-      activeRepoId={activeRepoId}
-      activeAgent={activeAgent}
-      activeChannel={activeChannel}
-      onSelectRepo={handleSelectRepo}
-      onSelectAgent={handleSelectAgent}
-      onSelectChannel={handleSelectChannel}
-      selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
-      experiments={experiments}
-      onDeleteExperiment={handleDeleteExp}
-      activeVariantTab={activeVariantTab}
-      setActiveVariantTab={setActiveVariantTab}
-      onRunExperiment={(id) => {
-        const exp = experiments.find((e) => e.id === id);
-        if (exp) {
-          setRunningExpId(id);
-          setRunPromptValue(exp.taskPrompt);
-          setIsRunPromptModalOpen(true);
-        }
-      }}
-      onStopExperiment={handleStopRun}
-      onEditExperiment={(id) => {
-        const exp = experiments.find((e) => e.id === id);
-        if (exp) {
-          setEditingLabExpId(id);
-          setIsLabEditorOpen(true);
-        }
-      }}
-      onJudgeExperiment={handleJudgeExp}
-    >
+    <>
+      <MainLayout
+        route={route}
+        onNavigate={navigate}
+        activeRepoName={activeRepoFriendlyName}
+        activeRepoId={activeRepoId}
+        activeAgent={activeAgent}
+        activeChannel={activeChannel}
+        onSelectRepo={handleSelectRepo}
+        onSelectAgent={handleSelectAgent}
+        onSelectChannel={handleSelectChannel}
+        selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
+        experiments={experiments}
+        onDeleteExperiment={handleDeleteExp}
+        activeVariantTab={activeVariantTab}
+        setActiveVariantTab={setActiveVariantTab}
+        onRunExperiment={(id) => {
+          const exp = experiments.find((e) => e.id === id);
+          if (exp) {
+            setRunningExpId(id);
+            setRunPromptValue(exp.taskPrompt);
+            setIsRunPromptModalOpen(true);
+          }
+        }}
+        onStopExperiment={handleStopRun}
+        onEditExperiment={(id) => {
+          const exp = experiments.find((e) => e.id === id);
+          if (exp) {
+            setEditingLabExpId(id);
+            setIsLabEditorOpen(true);
+          }
+        }}
+        onJudgeExperiment={handleJudgeExp}
+      >
       {route.page === "projects" && (
         <DashboardPage onNavigate={navigate} onSelectRepo={handleSelectRepo} />
       )}
@@ -394,6 +410,20 @@ export function AppRouter() {
       {route.page === "preview" && (
         <PreviewPanel activeRepoName={activeRepoId} />
       )}
-    </MainLayout>
+      </MainLayout>
+      <ConfirmModal
+        open={showDeleteExpConfirm}
+        onClose={() => {
+          setShowDeleteExpConfirm(false);
+          setPendingDeleteExpId(null);
+        }}
+        onConfirm={executeDeleteExp}
+        title="Delete Experiment"
+        message="Are you sure you want to permanently delete this experiment?"
+        confirmLabel="Delete"
+        destructive
+        loading={deletingExp}
+      />
+    </>
   );
 }

@@ -2,39 +2,30 @@ import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
 import { MCPCard } from "@/components/mcp/MCPCard";
 import { MCPCustomForm } from "@/components/mcp/MCPCustomForm";
-import { ToastContainer, type ToastMessage } from "@/components/ui/Toast";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/contexts/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import type { McpServerConfig, McpCatalogItem } from "shared";
 
 export function MCPMarketplacePage() {
+  const { addToast } = useToast();
   const [activeTab, setActiveTab] = useState<"gallery" | "custom">("gallery");
   const [catalog, setCatalog] = useState<McpCatalogItem[]>([]);
   const [servers, setServers] = useState<McpServerConfig[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  // Category filter for gallery
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
 
-  // Custom Form state
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [editingServer, setEditingServer] = useState<McpServerConfig | null>(null);
 
-  // Installing loading state to prevent spam clicks
   const [installingId, setInstallingId] = useState<string | null>(null);
-  // Testing connection loading state
   const [testingId, setTestingId] = useState<string | null>(null);
 
-  // Toasts state
-  const [toasts, setToasts] = useState<ToastMessage[]>([]);
-
-  const addToast = (type: "success" | "error" | "info", text: string) => {
-    setToasts((prev) => [...prev, { id: crypto.randomUUID(), type, text }]);
-  };
-
-  const removeToast = (id: string) => {
-    setToasts((prev) => prev.filter((t) => t.id !== id));
-  };
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeleteServerId, setPendingDeleteServerId] = useState<string | null>(null);
+  const [deletingServer, setDeletingServer] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -186,27 +177,37 @@ export function MCPMarketplacePage() {
     }
   };
 
-  const handleDeleteServer = async (serverId: string) => {
-    if (!window.confirm("¿Seguro que deseas desinstalar o eliminar este servidor MCP?")) return;
-
+  const executeDeleteServer = async () => {
+    if (!pendingDeleteServerId) return;
+    setDeletingServer(true);
     try {
-      const res = await apiFetch(`/api/mcp/servers/${serverId}`, {
+      const res = await apiFetch(`/api/mcp/servers/${pendingDeleteServerId}`, {
         method: "DELETE",
       });
       if (!res.ok) throw new Error("Error al eliminar el servidor");
       
-      const srv = servers.find(s => s.id === serverId);
+      const srv = servers.find(s => s.id === pendingDeleteServerId);
       if (srv && srv.isBuiltin) {
         setServers((prev) =>
-          prev.map((s) => (s.id === serverId ? { ...s, installed: false, enabled: false, status: "disconnected" } : s))
+          prev.map((s) => (s.id === pendingDeleteServerId ? { ...s, installed: false, enabled: false, status: "disconnected" } : s))
         );
       } else {
-        setServers((prev) => prev.filter((s) => s.id !== serverId));
+        setServers((prev) => prev.filter((s) => s.id !== pendingDeleteServerId));
       }
-      addToast("success", `${srv?.name || serverId} desinstalado.`);
-    } catch (err: any) {
-      addToast("error", err.message || "Error al eliminar servidor");
+      addToast("success", `${srv?.name || pendingDeleteServerId} desinstalado.`);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addToast("error", msg || "Error al eliminar servidor");
+    } finally {
+      setDeletingServer(false);
+      setShowDeleteConfirm(false);
+      setPendingDeleteServerId(null);
     }
+  };
+
+  const handleDeleteServer = (serverId: string) => {
+    setPendingDeleteServerId(serverId);
+    setShowDeleteConfirm(true);
   };
 
   const handleTestConnection = async (config: McpServerConfig) => {
@@ -510,9 +511,19 @@ export function MCPMarketplacePage() {
           </AnimatePresence>
         )}
       </div>
-
-      {/* Floating Toast Notification Container */}
-      <ToastContainer toasts={toasts} onClose={removeToast} />
+      <ConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPendingDeleteServerId(null);
+        }}
+        onConfirm={executeDeleteServer}
+        title="Uninstall MCP Server"
+        message="Are you sure you want to uninstall or delete this MCP server?"
+        confirmLabel="Uninstall"
+        destructive
+        loading={deletingServer}
+      />
     </div>
   );
 }

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { WorkspaceFileTree } from "./WorkspaceFileTree";
 import { WorkspaceFileEditor } from "./WorkspaceFileEditor";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import type { FileInfo } from "shared";
 
 interface Props {
@@ -18,6 +19,9 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [addingRootType, setAddingRootType] = useState<"file" | "folder" | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [pendingDeletePath, setPendingDeletePath] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
 
   // Helper centralizado para construir las URLs con scoping de repositorio/agente/canal
   const getWorkspaceUrl = useCallback((path: string) => {
@@ -257,12 +261,12 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
     [getHeaders, selectedFile, loadWorkspace, getWorkspaceUrl]
   );
 
-  // Delete file or folder
-  const handleDelete = useCallback(
-    async (path: string) => {
-      if (!confirm(`Are you sure you want to delete this ${path.split("/").pop()}?`)) return;
+  const executeDelete = useCallback(
+    async () => {
+      if (!pendingDeletePath) return;
+      setDeleting(true);
       try {
-        const res = await fetch(getWorkspaceUrl(path), {
+        const res = await fetch(getWorkspaceUrl(pendingDeletePath), {
           method: "DELETE",
           headers: getHeaders(),
         });
@@ -270,16 +274,29 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to delete resource");
         }
-        const parentPath = path.includes("/") ? path.substring(0, path.lastIndexOf("/")) : "";
+        const parentPath = pendingDeletePath.includes("/") ? pendingDeletePath.substring(0, pendingDeletePath.lastIndexOf("/")) : "";
         await loadWorkspace(parentPath);
-        if (selectedFile?.path === path) {
+        if (selectedFile?.path === pendingDeletePath) {
           setSelectedFile(null);
         }
-      } catch (err: any) {
-        setError(err.message || "Delete failed");
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err);
+        setError(msg || "Delete failed");
+      } finally {
+        setDeleting(false);
+        setShowDeleteConfirm(false);
+        setPendingDeletePath(null);
       }
     },
-    [getHeaders, selectedFile, loadWorkspace, getWorkspaceUrl]
+    [pendingDeletePath, getHeaders, selectedFile, loadWorkspace, getWorkspaceUrl]
+  );
+
+  const handleDelete = useCallback(
+    (path: string) => {
+      setPendingDeletePath(path);
+      setShowDeleteConfirm(true);
+    },
+    []
   );
 
   // Filter files based on search query recursively or at root level
@@ -407,6 +424,19 @@ export function WorkspacePanel({ activeRepoName, activeAgentId = null, activeCha
           />
         </div>
       </div>
+      <ConfirmModal
+        open={showDeleteConfirm}
+        onClose={() => {
+          setShowDeleteConfirm(false);
+          setPendingDeletePath(null);
+        }}
+        onConfirm={executeDelete}
+        title="Delete"
+        message={`Are you sure you want to delete ${pendingDeletePath?.split("/").pop() ?? ""}?`}
+        confirmLabel="Delete"
+        destructive
+        loading={deleting}
+      />
     </div>
   );
 }

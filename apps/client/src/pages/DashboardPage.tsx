@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useToast } from "@/contexts/ToastContext";
 import { useLiterals } from "@/lib";
 import { literals as dashboardLiterals } from "./DashboardPage.literals";
 
@@ -16,6 +17,7 @@ interface Props {
 
 export function DashboardPage({ onSelectRepo }: Props) {
   const l = useLiterals(dashboardLiterals);
+  const { addToast } = useToast();
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,8 +89,9 @@ export function DashboardPage({ onSelectRepo }: Props) {
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
       setRenameRepo(null);
       setNewName("");
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addToast("error", msg);
     }
   };
 
@@ -114,8 +117,9 @@ export function DashboardPage({ onSelectRepo }: Props) {
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "repo" } }));
       setDeleteRepo(null);
       setConfirmDeleteName("");
-    } catch (err: any) {
-      alert(err.message);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addToast("error", msg);
     } finally {
       setDeleting(false);
     }

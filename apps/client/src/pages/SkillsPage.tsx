@@ -1,5 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
+import { useToast } from "@/contexts/ToastContext";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SkillsPage.literals";
 
@@ -14,6 +16,7 @@ interface SkillInfo {
 
 export function SkillsPage() {
   const l = useLiterals(u);
+  const { addToast } = useToast();
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -23,11 +26,10 @@ export function SkillsPage() {
 
   const token = localStorage.getItem("token");
   const [resetting, setResetting] = useState(false);
+  const [showResetConfirm, setShowResetConfirm] = useState(false);
 
-  const handleResetSkills = useCallback(async () => {
-    if (!window.confirm(l.resetConfirm)) {
-      return;
-    }
+  const executeReset = useCallback(async () => {
+    setShowResetConfirm(false);
     setResetting(true);
     try {
       const res = await fetch("/api/skills/reset", {
@@ -36,15 +38,19 @@ export function SkillsPage() {
       });
       if (!res.ok) throw new Error(l.loadError);
       
-      // Emitir evento para notificar al resto del sistema de la actualización
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "skill" } }));
-      alert(l.resetSuccess);
-    } catch (err: any) {
-      alert(l.resetErrorPrefix + err.message);
+      addToast("success", l.resetSuccess);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      addToast("error", l.resetErrorPrefix + msg);
     } finally {
       setResetting(false);
     }
-  }, [token]);
+  }, [token, addToast, l.loadError, l.resetSuccess, l.resetErrorPrefix]);
+
+  const handleResetSkills = useCallback(() => {
+    setShowResetConfirm(true);
+  }, []);
 
   const fetchSkills = useCallback(async () => {
     try {
@@ -272,6 +278,17 @@ export function SkillsPage() {
           </div>
         </div>
       )}
+      <ConfirmModal
+        open={showResetConfirm}
+        onClose={() => setShowResetConfirm(false)}
+        onConfirm={executeReset}
+        title={l.resetConfirmTitle ?? "Reset Skills"}
+        message={l.resetConfirm}
+        confirmLabel={l.resetConfirmButton ?? "Reset"}
+        cancelLabel={l.cancel ?? "Cancel"}
+        destructive
+        loading={resetting}
+      />
     </div>
   );
 }
