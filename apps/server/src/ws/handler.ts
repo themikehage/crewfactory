@@ -178,6 +178,22 @@ async function subscribeWsToSession(
   });
 
   wsSubscriptions.set(ws.wsId, unsub);
+
+  if (session.isStreaming) {
+    safeSend(ws, JSON.stringify({ type: "agent_start" }));
+    try {
+      const contextUsage = session.getContextUsage();
+      const sessionStats = session.getSessionStats();
+      if (contextUsage || sessionStats) {
+        safeSend(ws, JSON.stringify({
+          type: "context_usage",
+          sessionId,
+          contextUsage,
+          sessionStats,
+        }));
+      }
+    } catch {}
+  }
 }
 
 export function onOpen(_evt: Event, _ws: WSContext) {
@@ -309,6 +325,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "render_chart",
             "share_file",
             "refresh_ui",
+            "spawn_subagent",
           ])
         )
       );

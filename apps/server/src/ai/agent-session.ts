@@ -158,6 +158,7 @@ export class AgentSession {
 
     // Registrar en persistencia
     this.sessionManager.appendMessage(userMessage);
+    this.messages = this.sessionManager.buildSessionContext().messages;
 
     const sessionContext = this.sessionManager.buildSessionContext();
     const systemPrompt = [
@@ -215,7 +216,7 @@ export class AgentSession {
           if (evt.type === "agent_start") {
             this.emit({ type: "agent_start" });
           } else if (evt.type === "agent_end") {
-            // Persistir los mensajes de salida al finalizar el loop y sanitizar costos
+            // Sanitizar costos al finalizar el loop
             for (const msg of evt.messages) {
               if (msg.role === "assistant" && msg.usage) {
                 if (!msg.usage.cost) {
@@ -229,9 +230,6 @@ export class AgentSession {
                   cost.total = cost.total ?? 0;
                 }
               }
-              if (msg.role === "assistant" || msg.role === "toolResult") {
-                this.sessionManager.appendMessage(msg);
-              }
             }
             this.emit({ type: "agent_end", messages: evt.messages, willRetry: false });
           } else if (evt.type === "message_start") {
@@ -240,6 +238,10 @@ export class AgentSession {
               message: evt.message,
             });
           } else if (evt.type === "message_end") {
+            if (evt.message && (evt.message.role === "assistant" || evt.message.role === "toolResult")) {
+              this.sessionManager.appendMessage(evt.message);
+              this.messages = this.sessionManager.buildSessionContext().messages;
+            }
             this.emit({
               type: "message_end",
               message: evt.message,

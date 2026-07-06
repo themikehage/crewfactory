@@ -573,8 +573,19 @@ crear un plan de despliegue facil en vps
 - [x] 63.5 Integrar `refresh_ui` en `DEFAULT_TOOLS` de `InputArea.tsx` y `ALL_TOOLS` de `ToolsSelector.tsx` del frontend
 - [x] 63.6 Diseñar su visualización y componente de estado premium en `ToolCallRow.tsx`
 - [x] 63.7 Configurar caché de precaching máximo en PWA del cliente para bundles mayores a 2MB
-- [x] 63.8 Verificar builds exitosos libres de errores sintácticos o lints en cliente y servidor
+- [x] 63.8 Verificar builds exitosos libres de errores sintácticos o lints en cliente y servidor## Phase 64: Subagent Native Delegation (spawn_subagent tool)
+- [x] 64.1 Create spawn-subagent-tool.ts with persistent subagent session tracking and structured result envelope parsing
+- [x] 64.2 Chain AbortSignal from parent orchestrator session to subagent loop controllers
+- [x] 64.3 Update createUiTools signature to optionally accept subagentOptions and dynamically resolve spawn_subagent tool
+- [x] 64.4 Update session-manager.ts to inject subagent configuration and include spawn_subagent as an always-on session tool
+- [x] 64.5 Update create-agent-server.ts to register spawn_subagent on standalone programmatic agents
+- [x] 64.6 Update ws/handler.ts to append spawn_subagent to active tools override on prompt events
+- [x] 64.7 Add Orchestrator Gate instructions to AGENTS.md template and session appendPrompts
+- [x] 64.8 Verify server build completes successfully with zero type check errors
 
-
-
+## Phase 65: Streaming Reconnect & Messages Restore
+- [x] 65.1 Actualizar `apps/server/src/ai/agent-session.ts` para sincronizar `this.messages` en tiempo real al añadir mensajes
+- [x] 65.2 Modificar `apps/server/src/ws/handler.ts` para notificar estado `agent_start` y emitir contexto inicial al reconectar si la sesión está en streaming
+- [x] 65.3 Modificar `apps/server/src/routes/sessions.ts` para marcar el último mensaje del asistente como `isStreaming: true` si la sesión está en streaming
+- [x] 65.4 Verificar compilación exitosa libre de errores sintácticos de servidor y cliente
 

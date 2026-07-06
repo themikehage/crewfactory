@@ -396,16 +396,20 @@ sessionsRouter.get("/:id/messages", async (c) => {
     }
   }
 
-  const enrichedMessages = activeMessages.map((msg: any) => {
+  const enrichedMessages = activeMessages.map((msg: any, idx: number) => {
     const entry = allEntries.find((e: any) => e.type === "message" && e.message && (e.message.id === msg.id || e.id === msg.id));
     const parentId = entry ? entry.parentId : null;
     const siblings = childrenByParent.get(parentId) ?? [msg.id || entry?.id];
+
+    const isLast = idx === activeMessages.length - 1;
+    const isStreaming = isLast && session.isStreaming && msg.role === "assistant";
 
     return {
       ...msg,
       id: entry?.id || msg.id,
       parentId,
       siblings,
+      isStreaming: isStreaming ? true : msg.isStreaming,
     };
   });
 
@@ -743,4 +747,60 @@ sessionsRouter.post("/:id/tasks/reset", async (c) => {
     return c.json({ error: String(err) }, 500);
   }
 });
+
+sessionsRouter.get("/:parentId/subagents/:subagentId/messages", async (c) => {
+  const parentId = c.req.param("parentId");
+  const subagentId = c.req.param("subagentId");
+  const { username } = getAuthPayload(c);
+
+  const userDir = sessionManager.ensureUserDir(username);
+  const subFolder = `sub_${subagentId}`;
+  const subagentDir = join(userDir, "sessions", parentId, "subagents", subFolder);
+  const metadataPath = join(subagentDir, "metadata.json");
+
+  if (!existsSync(subagentDir)) {
+    return c.json({ error: "Subagent session not found" }, 404);
+  }
+
+  const jsonlFiles = readdirSync(subagentDir)
+    .filter((f) => f.endsWith(".jsonl"))
+    .sort()
+    .reverse();
+
+  let messages: any[] = [];
+  if (jsonlFiles.length > 0) {
+    try {
+      const content = readFileSync(join(subagentDir, jsonlFiles[0]), "utf-8");
+      messages = content.trim().split("\n")
+        .filter(Boolean)
+        .map((line) => JSON.parse(line));
+    } catch (e) {
+      console.error(`Failed to read subagent log:`, e);
+    }
+  }
+
+  let metadata = {};
+  if (existsSync(metadataPath)) {
+    try {
+      metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
+    } catch {}
+  }
+
+  return c.json({ messages, metadata });
+});
+
+sessionsRouter.post("/:parentId/subagents/:subagentId/abort", async (c) => {
+  const parentId = c.req.param("parentId");
+  const subagentId = c.req.param("subagentId");
+  const { username } = getAuthPayload(c);
+
+  const subSession = sessionManager.getSession(username, `sub_${subagentId}`);
+  if (subSession) {
+    await subSession.abort();
+    return c.json({ success: true });
+  }
+
+  return c.json({ success: true, message: "Subagent not running" });
+});
+
 
