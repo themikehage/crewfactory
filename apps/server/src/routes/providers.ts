@@ -109,3 +109,16 @@ providersRouter.delete("/:id/key", (c) => {
     const authStatus = buildAuthStatus(authStorage, providerId);
     return c.json({ success: true, authStatus });
 });
+
+providersRouter.post("/:id/refresh", async (c) => {
+  const providerId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  const { modelRegistry } = piSessionManager.getUserContext(username);
+
+  try {
+    await modelRegistry.refreshProviderModels(providerId);
+    return c.json({ success: true, models: modelRegistry.getAll().filter(m => (m.provider as string) === providerId) });
+  } catch (err: any) {
+    return c.json({ success: false, error: err.message || "Failed to refresh models" }, 500);
+  }
+});

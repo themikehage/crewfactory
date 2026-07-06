@@ -548,5 +548,14 @@ crear un plan de despliegue facil en vps
 - [x] 60.4 Validar compilación del servidor con `bun run build` exitosa
 - [x] 60.5 Documentar cambios en `about.md` y `steps.md`
 
+## Phase 61: Consulta Dinámica de Modelos (refreshModels) y Modal de Detalles
+- [x] 61.1 Extender `ProviderConfig` con `dynamic?: boolean` y agregar `refreshProviderModels` en `model-registry.ts`
+- [x] 61.2 Implementar ruta `POST /api/providers/:id/refresh` en `providers.ts`
+- [x] 61.3 Configurar `dynamic: true` en `qwen-provider.ts` y `opencode-go-provider.ts`
+- [x] 61.4 Implementar el botón "Sincronizar" en `ProvidersTab.tsx`
+- [x] 61.5 Diseñar y montar la modal flotante `ProviderModelsModal` con detalles técnicos en `ProvidersTab.tsx`
+- [x] 61.6 Corregir el bug de fallback del modelo seleccionado en `ModelSelector.tsx` agregando validación reactiva de disponibilidad
+- [x] 61.7 Verificar compilación exitosa (`tsc -b` limpio) en servidor y cliente
+
 
 

@@ -6,6 +6,7 @@ export function registerQwenProvider(registry: ModelRegistry) {
     baseUrl: "https://dashscope-intl.aliyuncs.com/compatible-mode/v1",
     apiKey: "$DASHSCOPE_API_KEY",
     api: "openai-completions",
+    dynamic: true,
     models: [
       {
         id: "qwen3.7-max",

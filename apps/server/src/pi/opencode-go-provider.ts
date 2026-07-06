@@ -6,6 +6,7 @@ export function registerOpenCodeGoProvider(registry: ModelRegistry) {
     baseUrl: "https://opencode.ai/zen/go/v1",
     apiKey: "$OPENCODE_API_KEY",
     api: "openai-completions",
+    dynamic: true,
     models: [
       {
         id: "deepseek-v4-pro",

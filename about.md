@@ -135,6 +135,11 @@
 - Repository-specific context variables linked dynamically to resources (GitHub repos, Coolify applications, Neon databases, Vercel projects)
 - Dynamic Quick Action buttons triggering custom workflows with variable replacements sent as chat prompts to the agent
 
+### Dynamic Model Sourcing & Capabilities Matrix
+- **Hot-Reloading Catalog**: Supports the `POST /api/providers/:id/refresh` endpoint to query dynamic models in real-time from endpoints (like OpenCode Go or Qwen) with credentials.
+- **AI Capability Inference**: Automatically evaluates returned model naming patterns (heuristics) to resolve and bind critical engine flags (`reasoning`, `multimodal` vision, context sizes) dynamically.
+- **Provider Info Modal**: Interactive details panel in Settings showing a comprehensive overview matrix of the model IDs, contexts, and capabilities (Text/Vision/Reasoning tags) for connected providers.
+
 ### Programmatic Agents & First-Class Context (`agentId`)
 - **Independent AI Workers**: Programmatic agents with isolated workspaces at `/tmp/crewfactory/{username}/agents/{agentId}/workspace` and persistent definitions (`definition.json`), fully isolated per user.
 - **Factory Architecture**: Factory function `createAgentServer` producing lightweight Hono servers per agent.
@@ -331,8 +336,9 @@ packages/shared/  Shared Zod schemas and types
 - `hooks/useWebSocket.ts` — Thin React wrapper over `wsClient`. Sends `session_subscribe` on connect and exposes `send`/`subscribe`.
 - `hooks/useSessionStatusWs.ts` — Pure hook subscribing to `session_status` events via `wsClient`. No module-level mutable state.
 - `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
-- `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection
+- `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection. Features reactive validation to automatically resolve fallback models in both frontend (`localStorage`) and backend session states when a selected provider key is disconnected.
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
+- `components/settings/ProvidersTab.tsx` — Tab view managing API credentials. Features an interactive **Sincronizar** action for dynamic model fetching and an **Info** action displaying a premium capability matrix modal.
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Repo, Agent, and Channel active modes.
 - `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and a right-side SessionDrawer trigger button.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
