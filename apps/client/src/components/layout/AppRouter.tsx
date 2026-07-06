@@ -33,7 +33,7 @@ export function AppRouter() {
     return localStorage.getItem("active-repo-name") || null;
   });
 
-  const [activeAgent, setActiveAgent] = useState<{ id: string; name: string } | null>(() => {
+  const [activeAgent, setActiveAgent] = useState<{ id: string; name: string; avatarUrl?: string } | null>(() => {
     try {
       const stored = localStorage.getItem("active-agent");
       return stored ? JSON.parse(stored) : null;
@@ -236,7 +236,7 @@ export function AppRouter() {
     }
   }, [navigate]);
 
-  const handleSelectAgent = useCallback((agent: { id: string; name: string } | null) => {
+  const handleSelectAgent = useCallback((agent: { id: string; name: string; avatarUrl?: string } | null) => {
     if (agent === null) {
       localStorage.removeItem("active-agent");
       setActiveAgent(null);

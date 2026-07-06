@@ -6,6 +6,7 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "./MessageList.literals";
 import { ToolCallRow, type ToolResultData } from "./tools/ToolCallRow";
 import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher, getFileType, type MediaType } from "./ToolResultInspector";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
 
@@ -63,10 +64,12 @@ interface Message {
 
 interface Props {
   messages: Message[];
-  onNavigate?: (targetId: string) => void;
+  onNavigate?: (id: string) => void;
   sessionId: string | null;
   activeRepoName?: string | null;
   activeAgentId?: string | null;
+  activeAgentName?: string | null;
+  activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
 }
@@ -284,6 +287,8 @@ function AgentTurn({
   onNavigate,
   activeRepoName,
   activeAgentId = null,
+  activeAgentName = null,
+  activeAgentAvatarUrl = null,
   activeChannelId = null,
   serialTools = ["request_approval", "ask_question"],
 }: {
@@ -292,6 +297,8 @@ function AgentTurn({
   onNavigate?: (id: string) => void;
   activeRepoName?: string | null;
   activeAgentId?: string | null;
+  activeAgentName?: string | null;
+  activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
 }) {
@@ -322,12 +329,11 @@ function AgentTurn({
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex-shrink-0 w-6 h-6 rounded-full bg-card border border-input flex items-center justify-center">
-        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
-          <path d="M4 17L10 11L4 5" />
-          <path d="M12 19H20" />
-        </svg>
-      </div>
+      <AgentAvatar
+        name={activeAgentName || "Agent"}
+        avatarUrl={activeAgentAvatarUrl}
+        size="sm"
+      />
 
       <div className="flex-1 min-w-0 space-y-0.5">
         {assistantMessages.map((msg, msgIdx) => {
@@ -537,6 +543,8 @@ export const MessageList: FC<Props> = ({
   sessionId,
   activeRepoName,
   activeAgentId = null,
+  activeAgentName = null,
+  activeAgentAvatarUrl = null,
   activeChannelId = null,
   serialTools,
 }) => {
@@ -580,6 +588,8 @@ export const MessageList: FC<Props> = ({
                 onNavigate={onNavigate}
                 activeRepoName={activeRepoName}
                 activeAgentId={activeAgentId}
+                activeAgentName={activeAgentName}
+                activeAgentAvatarUrl={activeAgentAvatarUrl}
                 activeChannelId={activeChannelId}
                 serialTools={serialTools}
               />

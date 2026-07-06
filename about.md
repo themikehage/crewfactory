@@ -101,6 +101,8 @@
 - **Natural Session Persistency:** Interactive components are mapped natively as standard agent tool calls/results, meaning they survive server reboots and restore their state upon session reopening.
 - **Robust Multi-File Creation:** The `propose_code_change` tool recursively creates parent directories if they do not exist before writing proposed content, preventing ENOENT failures on new directories.
 - **Streaming & API Fault-Tolerance:** UI card components (`DynamicFormCard`, `DiffApplyCard`, `ApprovalForm`, `AgentConfigCard`, `MediaCard`) feature defensive object destructuring and default parameters, preventing React runtime crashes when arguments are streamed partially or are undefined. Additionally, `AgentConfigCard` handles API failures gracefully without freezing, and `MediaCard` utilizes declarative React error states for image fallbacks to avoid DOM duplication or leaking partially resolved keys like `[Media Asset: undefined]` during streaming, integrating authenticated image fetching to securely load assets from protected workspace pathways.
+- **Reactive UI Refreshes:** The `refresh_ui` tool allows agents to notify the user's interface to dynamically reload specific sections or all sidebar lists (projects, agents, channels, experiments, and skills) in real-time immediately after modifying workspace resources.
+
 
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente

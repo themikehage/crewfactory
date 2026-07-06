@@ -15,10 +15,10 @@ interface Props {
   onNavigate: (path: string) => void;
   activeRepoName: string | null;
   activeRepoId?: string | null;
-  activeAgent: { id: string; name: string } | null;
+  activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
   onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
-  onSelectAgent?: (agent: { id: string; name: string } | null) => void;
+  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   children: ReactNode;
   // Propiedades para Laboratorio

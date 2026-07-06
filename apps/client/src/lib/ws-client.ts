@@ -97,26 +97,9 @@ class WsClient {
           return;
         }
 
-        if (data.type !== "llm_delta" && data.type !== "global_log") {
-          fetch("/api/client-log", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              level: "INFO",
-              message: `[WsClient] type=${data.type} requestId=${data.requestId || ""}`,
-            }),
-          }).catch(() => {});
-        }
-
         this.messageHandlers.get(data.type)?.forEach((h) => h(data));
         this.messageHandlers.get("*")?.forEach((h) => h(data));
-      } catch (e) {
-        fetch("/api/client-log", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ level: "ERROR", message: `[WsClient] Error handling message: ${e}` }),
-        }).catch(() => {});
-      }
+      } catch {}
     };
 
     ws.onclose = () => {

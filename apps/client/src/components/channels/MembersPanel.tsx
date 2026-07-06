@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { ChannelMember, AgentInfo, ReplyMode } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MembersPanel.literals";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
 
 interface Props {
   members: ChannelMember[];
@@ -58,7 +59,11 @@ const l = useLiterals(u);
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1.5">
               <div className="flex items-center gap-1.5 min-w-0">
-                <span className={`w-2 h-2 rounded-full ${m.role === "lead" ? "bg-primary" : m.role === "senior" ? "bg-purple-400" : "bg-text-secondary"}`} />
+                <AgentAvatar
+                  name={name}
+                  avatarUrl={info?.avatarUrl}
+                  size="xs"
+                />
                 <p className="font-medium text-foreground text-xs truncate">{name}</p>
               </div>
               <span className={`px-1.5 py-0.5 rounded text-xs font-semibold border tracking-wider uppercase flex-shrink-0 ${badgeStyle}`}>

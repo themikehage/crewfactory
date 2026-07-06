@@ -10,7 +10,13 @@
     "adm-zip": "^0.5.18",
     "bcryptjs": "^2.4",
     "hono": "^4",
+    "ignore": "^7.0.5",
     "jsonwebtoken": "^9",
+    "openai": "^6.45.0",
+    "partial-json": "^0.1.7",
+    "shared": "workspace:*",
+    "typebox": "^1.3.4",
+    "yaml": "^2.9.0",
     "zod": "^3"
   },
   "devDependencies": {

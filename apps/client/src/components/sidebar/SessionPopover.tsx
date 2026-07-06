@@ -23,7 +23,7 @@ interface Props {
   activeSessionId: string | null;
   activeRepoName: string | null;
   activeRepoFriendlyName?: string | null;
-  activeAgent: { id: string; name: string } | null;
+  activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
   onSelectSession: (id: string) => void;
   onNewSession: (id: string) => void;

@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import type { AgentInfo, AddMember, ReplyMode, ChannelRole } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./AddMemberModal.literals";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
 
 interface Props {
   availableAgents: AgentInfo[];
@@ -79,17 +80,24 @@ const l = useLiterals(u);
             <>
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1.5">Select Agent</label>
-                <select
-                  value={selectedAgentId}
-                  onChange={(e) => setSelectedAgentId(e.target.value)}
-                  className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50"
-                >
+                <div className="space-y-1 max-h-40 overflow-y-auto bg-background p-2 rounded-lg border border-input">
                   {candidates.map((a) => (
-                    <option key={a.id} value={a.id}>
-                      {a.name} ({a.role})
-                    </option>
+                    <button
+                      key={a.id}
+                      type="button"
+                      onClick={() => setSelectedAgentId(a.id)}
+                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors cursor-pointer ${
+                        selectedAgentId === a.id
+                          ? "bg-primary/15 border border-primary/30 text-foreground"
+                          : "border border-transparent text-muted-foreground hover:bg-card-hover hover:text-foreground"
+                      }`}
+                    >
+                      <AgentAvatar name={a.name} avatarUrl={a.avatarUrl} size="xs" />
+                      <span className="truncate">{a.name}</span>
+                      <span className="text-muted-foreground ml-auto flex-shrink-0">({a.role})</span>
+                    </button>
                   ))}
-                </select>
+                </div>
               </div>
 
               <div>
@@ -144,6 +152,7 @@ const l = useLiterals(u);
                           onChange={() => toggleTarget(a.id)}
                           className="rounded border-input text-primary focus:ring-primary/50"
                         />
+                        <AgentAvatar name={a.name} avatarUrl={a.avatarUrl} size="xs" />
                         <span>{a.name} ({a.role})</span>
                       </label>
                     ))}

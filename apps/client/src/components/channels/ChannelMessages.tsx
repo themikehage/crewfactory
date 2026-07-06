@@ -2,13 +2,15 @@ import { useEffect, useRef } from "react";
 import type { ChannelMessage } from "shared";
 import type { StreamingAgentState } from "@/hooks/useChannel";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
 
 interface Props {
   messages: ChannelMessage[];
   streamingAgents: Record<string, StreamingAgentState>;
+  agentAvatarMap?: Record<string, string | undefined>;
 }
 
-export function ChannelMessages({ messages, streamingAgents }: Props) {
+export function ChannelMessages({ messages, streamingAgents, agentAvatarMap = {} }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,9 +40,11 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
         >
           <div className="flex items-center gap-2 mb-1 px-1">
             {msg.role === "agent" && (
-              <div className="w-4 h-4 rounded-full bg-purple-400/20 border border-purple-400/40 flex items-center justify-center text-xs font-bold text-purple-400">
-                A
-              </div>
+              <AgentAvatar
+                name={msg.agentName || msg.agentId || "Agent"}
+                avatarUrl={msg.agentId ? agentAvatarMap[msg.agentId] : null}
+                size="xs"
+              />
             )}
             <span className="text-xs font-semibold text-foreground">
               {msg.role === "user" ? "You" : msg.agentName || msg.agentId || "Agent"}
@@ -70,9 +74,11 @@ export function ChannelMessages({ messages, streamingAgents }: Props) {
       {activeStreamList.map((stream) => (
         <div key={stream.agentId} className="flex flex-col items-start">
           <div className="flex items-center gap-2 mb-1 px-1">
-            <div className="w-4 h-4 rounded-full bg-blue-400/20 border border-blue-400/40 flex items-center justify-center text-xs font-bold text-blue-400">
-              A
-            </div>
+            <AgentAvatar
+              name={stream.agentName || stream.agentId}
+              avatarUrl={agentAvatarMap[stream.agentId]}
+              size="xs"
+            />
             <span className="text-xs font-semibold text-foreground">
               {stream.agentName || stream.agentId}
             </span>

@@ -307,6 +307,8 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "render_images",
             "render_html",
             "render_chart",
+            "share_file",
+            "refresh_ui",
           ])
         )
       );

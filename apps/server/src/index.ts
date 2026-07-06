@@ -49,26 +49,6 @@ app.route("/api/experiments", experimentsRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
-app.post("/api/client-log", async (c) => {
-  try {
-    const body = await c.req.json();
-    const messageStr = String(body.message || "");
-    const dataStr = body.data ? JSON.stringify(body.data) : "";
-
-    // Suppress spammy WS context_usage logs
-    if (
-      messageStr.includes("context_usage") ||
-      dataStr.includes("context_usage") ||
-      messageStr.includes("WsClient")
-    ) {
-      return c.json({ ok: true });
-    }
-
-    console.log(`[Client Log] [${body.level ?? 'INFO'}]`, body.message, dataStr);
-  } catch {}
-  return c.json({ ok: true });
-});
-
 app.get(
   "/ws",
   upgradeWebSocket(() => ({

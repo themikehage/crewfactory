@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useChannel } from "@/hooks/useChannel";
 import { useAgents } from "@/hooks/useAgents";
 import { ChannelMessages } from "@/components/channels/ChannelMessages";
@@ -31,6 +31,14 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
 
   const [showMembersSidebar, setShowMembersSidebar] = useState(true);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+
+  const agentAvatarMap = useMemo(() => {
+    const map: Record<string, string | undefined> = {};
+    for (const a of registeredAgents) {
+      map[a.id] = a.avatarUrl;
+    }
+    return map;
+  }, [registeredAgents]);
 
   if (loading) {
     return (
@@ -100,7 +108,7 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
       {/* Main Body */}
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 h-full">
-          <ChannelMessages messages={messages} streamingAgents={streamingAgents} />
+          <ChannelMessages messages={messages} streamingAgents={streamingAgents} agentAvatarMap={agentAvatarMap} />
           <ChannelInput onSend={sendMessage} />
         </div>
 

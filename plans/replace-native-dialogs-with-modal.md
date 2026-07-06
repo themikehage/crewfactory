@@ -1,3 +1,4 @@
+COMPLETED ✅ 
 # Plan: Reemplazar alert/confirm nativos con Modal reutilizable
 
 ## Contexto

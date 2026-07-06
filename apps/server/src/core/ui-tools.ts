@@ -1,6 +1,6 @@
 import { uiApprovalRegistry } from "./ui-approval-registry";
 
-export function createUiTools(workspaceDir: string, isLaboratory?: boolean) {
+export function createUiTools(workspaceDir: string, username: string, isLaboratory?: boolean) {
   const requestApprovalTool = {
     name: "request_approval",
     description: "Request user confirmation or approval before executing a dangerous, critical, or destructive action.",
@@ -161,11 +161,83 @@ export function createUiTools(workspaceDir: string, isLaboratory?: boolean) {
     }
   };
 
+  const shareFileTool = {
+    name: "share_file",
+    description: "Share a generated file (PDF, DOC, XLSX, PPTX, ZIP, images, etc.) with the user for download. Use this when you produce any artifact the user should be able to download.",
+    parameters: {
+      type: "object",
+      properties: {
+        filePath: {
+          type: "string",
+          description: "The workspace-relative path to the file to share (e.g. 'assets/report.pdf')."
+        },
+        title: {
+          type: "string",
+          description: "Optional display title for the download card. Defaults to the file name."
+        }
+      },
+      required: ["filePath"]
+    },
+    execute: async (toolCallId: string, args: any) => {
+      const { existsSync } = await import("node:fs");
+      const { join } = await import("node:path");
+      
+      let cleanPath = args.filePath;
+      if (cleanPath.startsWith("workspace/")) {
+        cleanPath = cleanPath.substring("workspace/".length);
+      }
+      
+      const fullPath = join(workspaceDir, cleanPath);
+      
+      if (!existsSync(fullPath)) {
+        return {
+          content: [{ type: "text", text: `Error: File not found at "${args.filePath}". Make sure you created the file first using write or bash tools.` }],
+          isError: true
+        };
+      }
+      
+      const fileName = args.filePath.split(/[\\/]/).pop() || args.filePath;
+      return {
+        content: [{ type: "text", text: `File "${fileName}" shared for download.` }],
+        details: { status: "shared", filePath: cleanPath }
+      };
+    }
+  };
+
+  const refreshUiTool = {
+    name: "refresh_ui",
+    description: "Notify the frontend interface to refresh a specific section or all sidebar lists (projects/repositories, agents, channels, experiments, custom skills) after making mutations.",
+    parameters: {
+      type: "object",
+      properties: {
+        entityType: {
+          type: "string",
+          enum: ["repo", "agent", "channel", "experiment", "skill", "all"],
+          description: "The type of entity to refresh in the user interface. Use 'all' if multiple types changed."
+        }
+      },
+      required: ["entityType"]
+    },
+    execute: async (toolCallId: string, args: any) => {
+      const { broadcastToUser } = await import("../ws/handler");
+      broadcastToUser(username, {
+        type: "entity-updated",
+        entityType: args.entityType || "all",
+      });
+      return {
+        content: [{ type: "text", text: `Triggered UI refresh for: ${args.entityType}` }],
+        details: { status: "refreshed", entityType: args.entityType }
+      };
+    }
+  };
+
   return [
     requestApprovalTool,
     askQuestionTool,
     renderImagesTool,
     renderHtmlTool,
-    renderChartTool
+    renderChartTool,
+    shareFileTool,
+    refreshUiTool
   ];
 }

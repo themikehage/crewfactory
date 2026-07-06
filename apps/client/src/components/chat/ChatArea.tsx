@@ -58,7 +58,7 @@ interface Message {
 interface Props {
   sessionId: string | null;
   activeRepoName: string | null;
-  activeAgent?: { id: string; name: string } | null;
+  activeAgent?: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel?: { id: string; name: string } | null;
 }
 
@@ -501,6 +501,8 @@ const l = useLiterals(u);
               sessionId={sessionId}
               activeRepoName={activeRepoName}
               activeAgentId={activeAgent?.id}
+              activeAgentName={activeAgent?.name}
+              activeAgentAvatarUrl={activeAgent?.avatarUrl}
               activeChannelId={activeChannel?.id}
               serialTools={serialTools}
             />

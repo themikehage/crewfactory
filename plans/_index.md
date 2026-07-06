@@ -37,4 +37,5 @@ Cada archivo `.md` en esta carpeta documenta una funcionalidad propuesta para im
 - [replace-native-dialogs-with-modal.md](./replace-native-dialogs-with-modal.md) — Reemplazar los 10 `alert()`/`confirm()` nativos con `ConfirmModal` (sobre `Modal` existente) y sistema global de Toasts. 7 tareas ordenadas.
 - [share-file-tool.md](./share-file-tool.md) — Tool oficial `share_file` para que el agente comparta artefactos descargables (PDF, DOC, XLSX, PPTX, ZIP, etc.) directamente en el chat con tarjeta de descarga.
 - [agent-avatar-system.md](./agent-avatar-system.md) — Sistema integral de avatares de agente: componente `AgentAvatar` compartido, galería de avatares por defecto (SVGs inline), y aplicación consistente en las 9 vistas donde se muestran agentes (sidebar, chat, channels, members, modals).
+- [refresh-ui-tool.md](./refresh-ui-tool.md) — Herramienta `refresh_ui` para notificar reactivamente al frontend sobre mutaciones de entidades y actualizar barra lateral y listas.
 

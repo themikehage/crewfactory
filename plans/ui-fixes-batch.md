@@ -1,3 +1,4 @@
+COMPLETED ✅ 
 # UI Fixes Batch
 
 ## 1. SessionPopover: cerrar al seleccionar o crear sesión

@@ -608,6 +608,8 @@ sessionsRouter.post(
           "render_images",
           "render_html",
           "render_chart",
+          "share_file",
+          "refresh_ui",
         ])
       )
     );

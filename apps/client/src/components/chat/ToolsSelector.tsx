@@ -15,6 +15,8 @@ export const ALL_TOOLS = [
   { id: "ask_question", name: "Ask Question", desc: "Ask single/multi-choice or custom text questions" },
   { id: "render_images", name: "Render Images", desc: "Display a responsive grid of generated drawings/images" },
   { id: "render_chart", name: "Render Charts", desc: "Visualize metrics via line/bar/pie/area charts" },
+  { id: "share_file", name: "Share File", desc: "Share downloadable files with the user (PDF, DOC, XLSX, ZIP, etc.)" },
+  { id: "refresh_ui", name: "Refresh UI", desc: "Notify the interface to reload sidebars and lists after changes" },
 ];
 
 interface Props {

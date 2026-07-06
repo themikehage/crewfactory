@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionSidebar.literals";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
 
 // --- Component ---
 
@@ -18,6 +19,7 @@ interface AgentItem {
   role: string;
   status: string;
   createdAt: string;
+  avatarUrl?: string;
 }
 
 interface ChannelItem {
@@ -35,12 +37,12 @@ interface ExperimentItem {
 
 interface Props {
   activeRepoName: string | null;
-  activeAgent: { id: string; name: string } | null;
+  activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
   currentPage?: string;
   onNavigate?: (path: string) => void;
   onSelectRepo?: (repoId: string | null, repoName: string | null) => void;
-  onSelectAgent?: (agent: { id: string; name: string } | null) => void;
+  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   selectedExpId?: string | null;
 }
@@ -184,7 +186,7 @@ export function SessionSidebar({
   );
 
   const handleSelectAgentClick = useCallback(
-    (agent: { id: string; name: string }) => {
+    (agent: { id: string; name: string; avatarUrl?: string }) => {
       if (onSelectAgent) onSelectAgent(agent);
       if (onNavigate) onNavigate("/");
     },
@@ -394,26 +396,14 @@ export function SessionSidebar({
                   return (
                     <button
                       key={agent.id}
-                      onClick={() => handleSelectAgentClick({ id: agent.id, name: agent.name })}
+                      onClick={() => handleSelectAgentClick({ id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl })}
                       className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
                         isActive
                           ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
                           : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
                       }`}
                     >
-                      <svg
-                        width="12"
-                        height="12"
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className="flex-shrink-0 text-muted-foreground"
-                      >
-                        <path
-                          fillRule="evenodd"
-                          d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z"
-                          clipRule="evenodd"
-                        />
-                      </svg>
+                      <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="xs" />
                       <span className="truncate">{agent.name}</span>
                     </button>
                   );
