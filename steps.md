@@ -534,3 +534,19 @@ crear un plan de despliegue facil en vps
 - [x] 58.10 Validar `tsc --noEmit` limpio en server y client
 - [x] 58.11 Documentar plan en `plans/judge-management-ui.md` y actualizar `about.md`
 
+## Phase 59: Robustez y Refactorización del Laboratorio
+- [x] 59.1 Crear subcomponentes VariantViewer, JudgeReport, IaGenerator, ExperimentEditorModal y RunExperimentModal
+- [x] 59.2 Refactorizar LaboratoryPage.tsx para delegar responsabilidades en componentes modulares
+- [x] 59.3 Implementar auto-aprobación autónoma para herramientas interactivas en ejecuciones de laboratorio (isLaboratory flag)
+- [x] 59.4 Optimizar el prompt del LLM-Judge para penalizar redundancia y loops en judge.ts
+- [x] 59.5 Validar compilación exitosa (tsc typecheck sin errores) de servidor y cliente
+
+## Phase 60: Integración del Proveedor OpenCode Go
+- [x] 60.1 Diseñar plan en `plans/opencode-go-provider.md` y actualizar `plans/_index.md`
+- [x] 60.2 Crear `apps/server/src/pi/opencode-go-provider.ts` definiendo modelos y endpoints compatibles
+- [x] 60.3 Registrar el nuevo proveedor en `getUserContext` dentro de `session-manager.ts`
+- [x] 60.4 Validar compilación del servidor con `bun run build` exitosa
+- [x] 60.5 Documentar cambios en `about.md` y `steps.md`
+
+
+

@@ -16,7 +16,9 @@ import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-ski
 import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
 import { registerQwenProvider } from "./qwen-provider";
+import { registerOpenCodeGoProvider } from "./opencode-go-provider";
 import { mcpRegistry } from "./mcp-registry";
+
 import { createUiTools } from "./ui-tools";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
@@ -191,6 +193,7 @@ class PiSessionManager {
 
     modelRegistry.refresh();
     registerQwenProvider(modelRegistry);
+    registerOpenCodeGoProvider(modelRegistry);
 
     const ctx: UserContext = { authStorage, modelRegistry };
     this.users.set(username, ctx);

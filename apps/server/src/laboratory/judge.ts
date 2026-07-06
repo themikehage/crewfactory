@@ -76,6 +76,11 @@ SCORING RUBRIC GUIDE FOR EACH CRITERION:
 - 50-69: Satisfactory but basic. Meets the requirements but lacks depth, has minor formatting issues, or limited scope.
 - 0-49: Incomplete or incorrect. Significant gaps, lacks clarity, or contains irrelevant material.
 
+ADDITIONAL EVALUATION RULES:
+- Conciseness & Redundancy: Penalize outputs that contain excessive repetitiveness, boilerplate code, loops of courtesy pings between agents (e.g. "¡Gracias!", "De nada", "¡Excelente aporte!"), or useless chatty filler.
+- Quality over Verbosity: High quality means exact, robust execution of the requested task. Do not award high scores to long outputs if they do not solve the task more correctly or efficiently than a concise one.
+- Impartiality: Focus strictly on technical completeness, correctness, structure, and correctness of the output content.
+
 ---
 Output Alpha:
 ${outputAlpha || "(No output produced)"}

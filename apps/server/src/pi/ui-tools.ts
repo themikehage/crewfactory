@@ -1,6 +1,6 @@
 import { uiApprovalRegistry } from "./ui-approval-registry";
 
-export function createUiTools(workspaceDir: string) {
+export function createUiTools(workspaceDir: string, isLaboratory?: boolean) {
   const requestApprovalTool = {
     name: "request_approval",
     description: "Request user confirmation or approval before executing a dangerous, critical, or destructive action.",
@@ -17,6 +17,12 @@ export function createUiTools(workspaceDir: string) {
       required: ["title", "description"]
     },
     execute: async (toolCallId: string, args: any) => {
+      if (isLaboratory) {
+        return {
+          content: [{ type: "text", text: "confirmed" }],
+          details: { status: "confirmed", autoApproved: true }
+        };
+      }
       const result = await uiApprovalRegistry.register(toolCallId);
       const textResult = result.action === "confirm" ? "confirmed" : "cancelled";
       return {
@@ -45,6 +51,13 @@ export function createUiTools(workspaceDir: string) {
       required: ["question", "options"]
     },
     execute: async (toolCallId: string, args: any) => {
+      if (isLaboratory) {
+        const firstOption = args.options?.[0] || "Default Option";
+        return {
+          content: [{ type: "text", text: `Selected: ${firstOption} (Auto-selected in Lab)` }],
+          details: { status: "submitted", payload: { selectedOptions: [firstOption] }, autoApproved: true }
+        };
+      }
       const result = await uiApprovalRegistry.register(toolCallId);
       if (result.action === "submit" && result.payload) {
         const selectedStr = result.payload.selectedOptions?.join(", ") || "";

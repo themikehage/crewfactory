@@ -87,7 +87,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
   const customBashTool = createBashToolDefinition(workspaceDir);
 
-  const uiTools = createUiTools(workspaceDir);
+  const isLaboratory = definition.id.startsWith("lab_");
+  const uiTools = createUiTools(workspaceDir, isLaboratory);
   const { session } = await createAgentSession({
     cwd: workspaceDir,
     sessionManager,
