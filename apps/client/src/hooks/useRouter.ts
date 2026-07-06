@@ -112,6 +112,7 @@ export function useRouter() {
   const navigate = useCallback((path: string) => {
     window.history.pushState({}, "", path);
     setRoute(parseRoute());
+    window.dispatchEvent(new PopStateEvent("popstate"));
   }, []);
 
   return { route, navigate };

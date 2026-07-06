@@ -336,6 +336,7 @@ packages/shared/  Shared Zod schemas and types
 - `hooks/useWebSocket.ts` — Thin React wrapper over `wsClient`. Sends `session_subscribe` on connect and exposes `send`/`subscribe`.
 - `hooks/useSessionStatusWs.ts` — Pure hook subscribing to `session_status` events via `wsClient`. No module-level mutable state.
 - `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
+- `hooks/useRouter.ts` — Custom routing hook. Emits a global `popstate` event on pushState navigation to automatically sync independent hook states across SPA components.
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection. Features reactive validation to automatically resolve fallback models in both frontend (`localStorage`) and backend session states when a selected provider key is disconnected.
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/settings/ProvidersTab.tsx` — Tab view managing API credentials. Features an interactive **Sincronizar** action for dynamic model fetching and an **Info** action displaying a premium capability matrix modal.
