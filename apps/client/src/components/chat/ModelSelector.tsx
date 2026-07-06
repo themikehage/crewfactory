@@ -51,45 +51,6 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
   const selectedRef = useRef<SelectedModel | null>(selected);
   const { navigate } = useRouter();
 
-  useEffect(() => {
-    selectedRef.current = selected;
-  }, [selected]);
-
-  useEffect(() => {
-    if (controlled && value) {
-      const parsed = parseModelString(value);
-      if (parsed) setSelected(parsed);
-    }
-  }, [controlled, value]);
-
-  useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("/api/providers", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((res) => res.json())
-      .then((data) => {
-        const configured = (data.providers ?? [])
-          .filter((p: ProviderInfo) => p.authStatus.configured)
-          .sort((a: ProviderInfo, b: ProviderInfo) => a.name.localeCompare(b.name));
-        setProviders(configured);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setActiveProvider(null);
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClick);
-      return () => document.removeEventListener("mousedown", handleClick);
-    }
-  }, [open]);
-
   const applyModelToSession = useCallback(
     async (model: SelectedModel, sid: string) => {
       const token = localStorage.getItem("token");
@@ -118,6 +79,90 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
     },
     []
   );
+
+
+  useEffect(() => {
+    selectedRef.current = selected;
+  }, [selected]);
+
+  useEffect(() => {
+    if (controlled && value) {
+      const parsed = parseModelString(value);
+      if (parsed) setSelected(parsed);
+    }
+  }, [controlled, value]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("/api/providers", {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        const configured = (data.providers ?? [])
+          .filter((p: ProviderInfo) => p.authStatus.configured)
+          .sort((a: ProviderInfo, b: ProviderInfo) => a.name.localeCompare(b.name));
+        setProviders(configured);
+      })
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    if (providers.length === 0) return;
+
+    if (selected) {
+      const providerExists = providers.find((p) => p.id === selected.provider);
+      const modelExists = providerExists?.models.some((m) => m.id === selected.modelId);
+
+      if (!providerExists || !modelExists) {
+        const firstProvider = providers[0];
+        const firstModel = firstProvider.models[0];
+        if (firstModel) {
+          const fallbackSelection = {
+            provider: firstProvider.id,
+            modelId: firstModel.id,
+            modelName: firstModel.name,
+          };
+          setSelected(fallbackSelection);
+          localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSelection));
+          setError(null);
+          if (sessionId) {
+            applyModelToSession(fallbackSelection, sessionId);
+          }
+        }
+      }
+    } else {
+      const firstProvider = providers[0];
+      const firstModel = firstProvider.models[0];
+      if (firstModel) {
+        const fallbackSelection = {
+          provider: firstProvider.id,
+          modelId: firstModel.id,
+          modelName: firstModel.name,
+        };
+        setSelected(fallbackSelection);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSelection));
+        setError(null);
+        if (sessionId) {
+          applyModelToSession(fallbackSelection, sessionId);
+        }
+      }
+    }
+  }, [providers, selected, sessionId, applyModelToSession]);
+
+  useEffect(() => {
+    const handleClick = (e: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setActiveProvider(null);
+      }
+    };
+    if (open) {
+      document.addEventListener("mousedown", handleClick);
+      return () => document.removeEventListener("mousedown", handleClick);
+    }
+  }, [open]);
+
 
   useEffect(() => {
     if (!sessionId || !selectedRef.current) return;
