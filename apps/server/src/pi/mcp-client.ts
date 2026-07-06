@@ -232,46 +232,62 @@ export class McpClient {
     }
   }
 
-  async request(method: string, params: any = {}): Promise<any> {
+  async request(method: string, params: any = {}, timeoutMs = 5000): Promise<any> {
     const id = this.nextId++;
     const payload = JSON.stringify({ jsonrpc: "2.0", id, method, params });
 
-    if (this.config.transport === "http") {
-      if (!this.postUrl) {
-        throw new Error(`[MCP HTTP] Server ${this.name} has no active POST endpoint`);
-      }
+    let timeoutId: any;
+    const timeoutPromise = new Promise((_, reject) => {
+      timeoutId = setTimeout(() => {
+        this.pendingRequests.delete(id);
+        reject(new Error(`MCP request '${method}' timed out after ${timeoutMs}ms`));
+      }, timeoutMs);
+    });
 
-      return new Promise(async (resolve, reject) => {
-        this.pendingRequests.set(id, { resolve, reject });
-        try {
-          const res = await fetch(this.postUrl!, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: payload,
-          });
-          if (!res.ok) {
+    const requestPromise = (async () => {
+      if (this.config.transport === "http") {
+        if (!this.postUrl) {
+          throw new Error(`[MCP HTTP] Server ${this.name} has no active POST endpoint`);
+        }
+
+        return new Promise(async (resolve, reject) => {
+          this.pendingRequests.set(id, { resolve, reject });
+          try {
+            const res = await fetch(this.postUrl!, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: payload,
+            });
+            if (!res.ok) {
+              this.pendingRequests.delete(id);
+              reject(new Error(`HTTP request failed: ${res.statusText}`));
+            }
+          } catch (e) {
             this.pendingRequests.delete(id);
-            reject(new Error(`HTTP request failed: ${res.statusText}`));
+            reject(e);
           }
-        } catch (e) {
-          this.pendingRequests.delete(id);
-          reject(e);
-        }
-      });
-    } else {
-      const stdin = this.proc?.stdin;
-      if (!stdin || typeof stdin === "number") throw new Error("Server not running");
-      
-      return new Promise((resolve, reject) => {
-        this.pendingRequests.set(id, { resolve, reject });
-        try {
-          stdin.write(payload + "\n");
-          stdin.flush();
-        } catch (e) {
-          this.pendingRequests.delete(id);
-          reject(e);
-        }
-      });
+        });
+      } else {
+        const stdin = this.proc?.stdin;
+        if (!stdin || typeof stdin === "number") throw new Error("Server not running");
+        
+        return new Promise((resolve, reject) => {
+          this.pendingRequests.set(id, { resolve, reject });
+          try {
+            stdin.write(payload + "\n");
+            stdin.flush();
+          } catch (e) {
+            this.pendingRequests.delete(id);
+            reject(e);
+          }
+        });
+      }
+    })();
+
+    try {
+      return await Promise.race([requestPromise, timeoutPromise]);
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 

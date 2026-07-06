@@ -7,6 +7,8 @@
   },
   "dependencies": {
     "@hono/zod-validator": "^0.4",
+    "@modelcontextprotocol/server-filesystem": "^0.6.0",
+    "@modelcontextprotocol/server-memory": "^0.6.0",
     "adm-zip": "^0.5.18",
     "bcryptjs": "^2.4",
     "hono": "^4",

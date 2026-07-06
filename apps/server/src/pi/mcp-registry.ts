@@ -313,8 +313,11 @@ export class McpRegistry {
     const tools: any[] = [];
     let configChanged = false;
 
-    for (const [name, srv] of Object.entries(config.mcpServers)) {
-      if (srv.enabled) {
+    const enabledServers = Object.entries(config.mcpServers).filter(([_, srv]) => srv.enabled);
+
+    const results = await Promise.all(
+      enabledServers.map(async ([name, srv]) => {
+        const serverTools: any[] = [];
         const key = `${username}:${name}`;
         let client = this.globalClients.get(key);
 
@@ -340,7 +343,7 @@ export class McpRegistry {
             srv.status = "error";
             srv.error = e.message || String(e);
             configChanged = true;
-            continue;
+            return [];
           }
         }
 
@@ -348,7 +351,7 @@ export class McpRegistry {
         try {
           const mcpTools = await client.listTools();
           for (const t of mcpTools) {
-            tools.push({
+            serverTools.push({
               name: `mcp_${name}_${t.name}`,
               label: `MCP ${name} - ${t.name}`,
               description: `${t.description || ""} (MCP tool from ${name})`,
@@ -393,7 +396,13 @@ export class McpRegistry {
         } catch (e) {
           console.error(`[MCP] Failed to list tools from global client ${name}:`, e);
         }
-      }
+
+        return serverTools;
+      })
+    );
+
+    for (const serverTools of results) {
+      tools.push(...serverTools);
     }
 
     if (configChanged) {

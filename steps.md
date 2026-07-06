@@ -557,5 +557,13 @@ crear un plan de despliegue facil en vps
 - [x] 61.6 Corregir el bug de fallback del modelo seleccionado en `ModelSelector.tsx` agregando validación reactiva de disponibilidad
 - [x] 61.7 Verificar compilación exitosa (`tsc -b` limpio) en servidor y cliente
 
+## Phase 62: Robust Cold Boot & Session Retrieval
+- [x] 62.1 Add modelcontextprotocol filesystem and memory packages to server dependencies
+- [x] 62.2 Refactor getSessionMcpTools in mcp-registry.ts to load MCP clients in parallel with Promise.all
+- [x] 62.3 Implement 5-second request timeouts in McpClient.request to avoid infinite blocks
+- [x] 62.4 Refactor GET /messages, GET /context, POST /model, POST /tools, and POST /navigate to await getOrCreateSession
+- [x] 62.5 Verify server builds and strict TypeScript compilation
+- [x] 62.6 Update about.md and plans indexes
+
 
 

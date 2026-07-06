@@ -33,4 +33,5 @@ Cada archivo `.md` en esta carpeta documenta una funcionalidad propuesta para im
 - [ui-fixes-batch.md](./ui-fixes-batch.md) — Lote de correcciones UI: SessionPopover, delete icon, syntax highlighting, image modal, theme/language toggles, agent avatars, MCP dedup.
 - [judge-management-ui.md](./judge-management-ui.md) — Judge Management UI: persistir scores por criterio del LLM-Judge, endpoint on-demand `POST /api/experiments/:id/judge`, vista comparativa como tab nuevo, desglose por criterio + reasoning en panel derecho, y feedback visual del estado de evaluación.
 - [opencode-go-provider.md](./opencode-go-provider.md) — Registrar OpenCode Go como proveedor nativo de LLMs a través de su API OpenAI-compatible en el backend.
+- [cold-boot-robustness.md](./cold-boot-robustness.md) — Robustez en el arranque en frío y carga síncrona de sesiones con MCP paralelos, timeouts de inicialización y sincronización de rutas HTTP.
 

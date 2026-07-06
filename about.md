@@ -301,15 +301,15 @@ packages/shared/  Shared Zod schemas and types
 - `routes/providers.ts` — Dynamic provider configuration API
 - `routes/backup.ts` — Backup Hono router for exporting and importing zip archives.
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
-- `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints
+- `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints (awaited on critical reads to prevent race conditions during initialization)
 - `agents/create-agent-server.ts` — Factory for isolated agent Hono servers. Inherits user authStorage and modelRegistry.
 - `agents/agent-registry.ts` — Singleton managing programmatic agent lifecycle and filesystem persistence. `get(id, username?)` enforces ownership when username is provided.
 - `channels/channel-store.ts` — Filesystem store for channel definitions and message logs.
 - `channels/channel-orchestrator.ts` — Sequential multi-agent message dispatch and recipient resolution.
 - `benchmark/harness.ts` — Background benchmark harness runner comparing Conditions A vs B.
 - `benchmark/optimizer.ts` — Meta-Agent loop refining prompts based on benchmark metrics.
-- `pi/mcp-client.ts` — Stdio and HTTP/SSE JSON-RPC Client for MCP Server integrations with Bun.
-- `pi/mcp-registry.ts` — Manager for MCP server lifecycle, catalog gallery definitions, connection preflights, and dynamic tool injection.
+- `pi/mcp-client.ts` — Stdio and HTTP/SSE JSON-RPC Client for MCP Server integrations with Bun (with 5-second request timeouts).
+- `pi/mcp-registry.ts` — Manager for MCP server lifecycle, catalog definitions, connection preflights, and dynamic tool injection (with parallel server startup).
 - `routes/mcp.ts` — REST endpoints for MCP catalog, server configs management, manual connections, testing, and status queries.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
 - `routes/channels.ts` — REST endpoints for channel CRUD, member administration, benchmarks, and optimization.

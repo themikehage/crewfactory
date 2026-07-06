@@ -377,7 +377,7 @@ sessionsRouter.get("/:id/messages", async (c) => {
     return c.json({ messages: [] });
   }
 
-  const session = piSessionManager.getSession(username, sessionId);
+  const session = await piSessionManager.getOrCreateSession(username, sessionId);
   if (!session) {
     return c.json({ messages: [] });
   }
@@ -420,7 +420,7 @@ sessionsRouter.post(
     const { targetId } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    const session = piSessionManager.getSession(username, sessionId);
+    const session = await piSessionManager.getOrCreateSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
@@ -498,7 +498,7 @@ sessionsRouter.post(
       return c.json({ error: "Model not found" }, 404);
     }
 
-    const session = piSessionManager.getSession(username, sessionId);
+    const session = await piSessionManager.getOrCreateSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
@@ -528,7 +528,7 @@ sessionsRouter.get("/:id/context", async (c) => {
     return c.json({ contextUsage: null, sessionStats: null });
   }
 
-  const session = piSessionManager.getSession(username, sessionId);
+  const session = await piSessionManager.getOrCreateSession(username, sessionId);
   if (!session) {
     return c.json({ contextUsage: null, sessionStats: null });
   }
@@ -591,7 +591,7 @@ sessionsRouter.post(
       return c.json({ error: "Cannot modify tool permissions for execution logs" }, 400);
     }
 
-    const session = piSessionManager.getSession(username, sessionId);
+    const session = await piSessionManager.getOrCreateSession(username, sessionId);
     if (!session) {
       return c.json({ error: "Session not found" }, 404);
     }
