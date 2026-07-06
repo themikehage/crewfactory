@@ -29,8 +29,8 @@ export function MCPCard({
     switch (server.status) {
       case "connected":
         return (
-          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-accent border border-success/20">
-            <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+          <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/20">
+            <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
             Conectado
           </span>
         );
@@ -134,7 +134,7 @@ export function MCPCard({
               <div className="mt-2 max-h-36 overflow-y-auto space-y-1 p-2 bg-background/80 rounded-lg border border-input/10 font-mono text-xs text-muted-foreground">
                 {server.tools.map((t) => (
                   <div key={t} className="flex items-center gap-1.5 py-0.5 truncate hover:text-foreground">
-                    <span className="w-1.5 h-1.5 rounded-full bg-accent/40" />
+                    <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
                     <span>{t}</span>
                   </div>
                 ))}
@@ -168,7 +168,7 @@ export function MCPCard({
                   onChange={(e) => onToggleEnabled && onToggleEnabled(e.target.checked)}
                   className="sr-only peer"
                 />
-                <div className="w-7 h-4 bg-muted/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-accent" />
+                <div className="w-7 h-4 bg-muted/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary" />
               </label>
               <span className="text-[11px] font-medium text-muted-foreground">Activo</span>
             </div>

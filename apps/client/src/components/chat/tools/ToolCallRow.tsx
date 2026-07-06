@@ -42,6 +42,7 @@ interface Props {
   activeChannelId?: string | null;
   disabled?: boolean;
   serialTools?: string[];
+  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
 }
 
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
@@ -134,7 +135,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   render_images: {
     label: "imágenes",
-    colorClass: "text-accent",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M4 3a2 2 0 00-2 2v10a2 2 0 002 2h12a2 2 0 002-2V5a2 2 0 00-2-2H4zm12 12H4l4-8 3 6 2-4 3 6z" clipRule="evenodd" />
@@ -143,7 +144,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   render_html: {
     label: "html",
-    colorClass: "text-accent",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 4a1 1 0 011-1h8a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
@@ -152,7 +153,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
   },
   render_chart: {
     label: "gráfico",
-    colorClass: "text-accent",
+    colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path d="M2 10a8 8 0 018-8v8h8a8 8 0 11-16 0z" />
@@ -166,6 +167,16 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
         <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 010 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.276.61A5.002 5.002 0 0014.001 13H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.61-1.276z" clipRule="evenodd" />
+      </svg>
+    ),
+  },
+  spawn_subagent: {
+    label: "subagente",
+    colorClass: "text-primary",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+        <line x1="9" y1="3" x2="9" y2="21" />
       </svg>
     ),
   },
@@ -197,6 +208,12 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
     case "render_html": return (args.title as string) || "HTML document";
     case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
     case "refresh_ui": return `UI refresh: ${String(args.entityType)}`;
+    case "spawn_subagent": {
+      const task = (args.task as string) || "";
+      const role = (args.subagentRole as string) || "";
+      const cleanTask = task.length > 40 ? task.slice(0, 40) + "…" : task;
+      return role ? `[${role}] ${cleanTask}` : cleanTask;
+    }
     default: return JSON.stringify(args).slice(0, 50);
   }
 }
@@ -238,6 +255,7 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
     case "render_chart": return "renderizado";
     case "share_file": return "compartido";
     case "refresh_ui": return "refrescado";
+    case "spawn_subagent": return "completado";
     default: return "done";
   }
 }
@@ -251,6 +269,7 @@ function ToolBody({
   activeRepoName,
   activeAgentId,
   activeChannelId,
+  onOpenSubagentConsole,
 }: {
   toolName: string;
   args: Record<string, unknown>;
@@ -260,10 +279,36 @@ function ToolBody({
   activeRepoName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
 }) {
   const text = result?.content.find(b => b.type === "text")?.text ?? "";
 
   switch (toolName) {
+    case "spawn_subagent":
+      return (
+        <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-text-primary">Subagente Consola</span>
+            {onOpenSubagentConsole && (
+              <button
+                onClick={() => onOpenSubagentConsole(toolCallId || "", args.task as string, args.subagentRole as string)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30 animate-pulse"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                Ver Consola en Vivo
+              </button>
+            )}
+          </div>
+          {result && (
+            <pre className="mt-2 text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
+              {text}
+            </pre>
+          )}
+        </div>
+      );
     case "ls": return <LsResult text={text} />;
     case "find": return <FindResult text={text} />;
     case "write": return <WriteResult text={text} isError={result?.isError ?? false} />;
@@ -353,8 +398,9 @@ export function ToolCallRow({
   activeChannelId: _activeChannelId = null,
   disabled = false,
   serialTools = ["request_approval", "ask_question"],
+  onOpenSubagentConsole,
 }: Props) {
-  const isInteractive = serialTools.includes(toolName);
+  const isInteractive = serialTools.includes(toolName) || toolName === "spawn_subagent";
 
   const [expanded, setExpanded] = useState(
     !disabled && (
@@ -365,7 +411,8 @@ export function ToolCallRow({
       toolName === "render_images" ||
       toolName === "render_html" ||
       toolName === "render_chart" ||
-      toolName === "share_file"
+      toolName === "share_file" ||
+      toolName === "spawn_subagent"
     )
   );
 
@@ -408,7 +455,7 @@ export function ToolCallRow({
                 esperando respuesta anterior...
               </span>
             ) : (
-              <span className="flex items-center gap-1.5 text-xs text-warning/70">
+              <span className="flex items-center gap-1.5 text-xs text-warning">
                 <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
                 {isInteractive ? "pendiente" : "running"}
               </span>
@@ -451,6 +498,7 @@ export function ToolCallRow({
             activeRepoName={_activeRepoName}
             activeAgentId={_activeAgentId}
             activeChannelId={_activeChannelId}
+            onOpenSubagentConsole={onOpenSubagentConsole}
           />
         </div>
       )}

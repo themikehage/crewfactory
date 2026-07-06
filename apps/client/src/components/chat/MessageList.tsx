@@ -72,6 +72,7 @@ interface Props {
   activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
+  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
 }
 
 type RenderGroup =
@@ -133,7 +134,7 @@ function BranchNav({ msg, onNavigate }: { msg: Message; onNavigate?: (id: string
   return (
     <div className={clsx(
       "flex items-center gap-1.5 mt-2 pt-1.5 border-t select-none text-xs font-mono",
-      msg.role === "user" ? "border-bg/10 text-background/60" : "border-input/30 text-muted-foreground"
+      msg.role === "user" ? "border-bg/10 text-background/80" : "border-input/30 text-muted-foreground"
     )}>
       <button
         onClick={() => { const i = msg.siblings!.indexOf(msg.id!); if (i > 0) onNavigate(msg.siblings![i - 1]); }}
@@ -286,11 +287,12 @@ function AgentTurn({
   sessionId,
   onNavigate,
   activeRepoName,
-  activeAgentId = null,
-  activeAgentName = null,
-  activeAgentAvatarUrl = null,
-  activeChannelId = null,
-  serialTools = ["request_approval", "ask_question"],
+  activeAgentId,
+  activeAgentName,
+  activeAgentAvatarUrl,
+  activeChannelId,
+  serialTools = [],
+  onOpenSubagentConsole,
 }: {
   messages: Message[];
   sessionId: string | null;
@@ -301,6 +303,7 @@ function AgentTurn({
   activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
+  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
 }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
@@ -390,6 +393,7 @@ function AgentTurn({
                       activeChannelId={activeChannelId}
                       disabled={disabled}
                       serialTools={serialTools}
+                      onOpenSubagentConsole={onOpenSubagentConsole}
                     />
                   );
                 }
@@ -486,7 +490,7 @@ function UserBubble({
           <div className="bg-primary text-background rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm text-right w-fit">
             <p className="text-sm leading-relaxed whitespace-pre-wrap break-words font-sans text-left">{cleanText}</p>
             {msg.isError && (
-              <div className="mt-1.5 text-xs text-background/60">Error sending message</div>
+              <div className="mt-1.5 text-xs text-background/80">Error sending message</div>
             )}
           </div>
         )}
@@ -547,6 +551,7 @@ export const MessageList: FC<Props> = ({
   activeAgentAvatarUrl = null,
   activeChannelId = null,
   serialTools,
+  onOpenSubagentConsole,
 }) => {
   if (messages.length === 0) {
     return (
@@ -592,6 +597,7 @@ export const MessageList: FC<Props> = ({
                 activeAgentAvatarUrl={activeAgentAvatarUrl}
                 activeChannelId={activeChannelId}
                 serialTools={serialTools}
+                onOpenSubagentConsole={onOpenSubagentConsole}
               />
             )}
           </motion.div>

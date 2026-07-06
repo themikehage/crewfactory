@@ -322,12 +322,12 @@ export function MCPCustomForm({
       {/* Connection Test Outputs */}
       {testResult && (
         <div className={`p-4 rounded-xl border ${
-          testResult.success ? "bg-success/5 border-success/20 text-accent" : "bg-destructive/5 border-destructive/20 text-error"
+          testResult.success ? "bg-success/5 border-success/20 text-success" : "bg-destructive/5 border-destructive/20 text-error"
         } text-xs font-mono space-y-2`}>
           <div className="font-bold flex items-center gap-1.5 uppercase tracking-wider">
             {testResult.success ? (
               <>
-                <span className="w-2 h-2 rounded-full bg-accent" />
+                <span className="w-2 h-2 rounded-full bg-success" />
                 Conexión Exitosa
               </>
             ) : (

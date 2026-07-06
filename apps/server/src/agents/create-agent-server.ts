@@ -90,7 +90,14 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const customBashTool = createBashToolDefinition(workspaceDir);
 
   const isLaboratory = definition.id.startsWith("lab_");
-  const uiTools = createUiTools(workspaceDir, username, isLaboratory);
+  const uiTools = createUiTools(workspaceDir, username, isLaboratory, isLaboratory ? undefined : {
+    workspaceDir,
+    username,
+    parentSessionId: sessionManager.getSessionId(),
+    modelRegistry,
+    authStorage,
+    resourceLoader,
+  });
   const { session } = await createAgentSession({
     cwd: workspaceDir,
     sessionManager,
@@ -108,7 +115,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     "render_html",
     "render_chart",
     "share_file",
-    "refresh_ui"
+    "refresh_ui",
+    "spawn_subagent"
   ]);
 
   const available = modelRegistry.getAvailable();

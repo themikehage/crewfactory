@@ -577,18 +577,8 @@ export class SessionManager {
   _persist(entry: SessionEntry): void {
     if (!this.persist || !this.sessionFile) return;
 
-    const hasAssistant = this.fileEntries.some((e) => e.type === "message" && e.message.role === "assistant");
-    if (!hasAssistant) {
-      if (this.flushed) {
-        appendFileSync(this.sessionFile, `${JSON.stringify(entry)}\n`);
-      } else {
-        this.flushed = false;
-      }
-      return;
-    }
-
     if (!this.flushed) {
-      const fd = openSync(this.sessionFile, "wx");
+      const fd = openSync(this.sessionFile, "w");
       try {
         for (const e of this.fileEntries) {
           writeFileSync(fd, `${JSON.stringify(e)}\n`);

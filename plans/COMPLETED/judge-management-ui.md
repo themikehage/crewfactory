@@ -1,3 +1,4 @@
+COMPLETED ✅
 # Judge Management UI — Plan de Implementación
 
 ## Contexto

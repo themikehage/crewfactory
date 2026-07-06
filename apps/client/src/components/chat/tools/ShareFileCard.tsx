@@ -133,7 +133,7 @@ export function ShareFileCard({
         </div>
       </div>
       <Button
-        variant="accent"
+        variant="solid"
         size="sm"
         onClick={handleDownload}
         disabled={downloading}

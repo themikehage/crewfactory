@@ -337,7 +337,15 @@ class SessionManager {
       `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n` +
       `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n` +
       `- share_file: When you generate any file artifact that the user should download (PDF reports, Excel spreadsheets, PowerPoint presentations, Word documents, ZIP archives, etc.), use this tool to share it directly in the chat. The user will see a download card and can click to download. Always prefer this over telling the user to manually find the file in the workspace.\n` +
-      `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`
+      `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`,
+      `\n\nSubagent Delegation (spawn_subagent tool):\n` +
+      `You have a spawn_subagent tool to delegate focused, self-contained tasks to worker agents with fresh context. You are the ORCHESTRATOR, they are the EXECUTORS.\n` +
+      `Use spawn_subagent when:\n` +
+      `- A task requires isolated execution (such as writing several files, analyzing/verifying code, running builds/tests).\n` +
+      `- You want an adversarial peer review of code or plans (spawn a subagent with role 'senior typescript reviewer').\n` +
+      `- You want to break down a larger feature into parallel or serial execution batches without losing context length.\n` +
+      `Do NOT delegate simple one-line changes, git status reads, or trivial file lookups.\n` +
+      `Every subagent is a pure EXECUTOR and must be given all context (relative file paths, code snippets, requirements) in the "task" argument. It has no memory of this parent conversation.\n`
     ];
 
     if (cachedMcpToolNames.length > 0) {
@@ -398,7 +406,14 @@ class SessionManager {
     });
 
 
-    const uiTools = createUiTools(workspaceDir, username);
+    const uiTools = createUiTools(workspaceDir, username, false, {
+      workspaceDir,
+      username,
+      parentSessionId: sessionId,
+      modelRegistry,
+      authStorage,
+      resourceLoader,
+    });
     const { session } = await createAgentSession({
       cwd: workspaceDir,
       sessionManager,
@@ -411,13 +426,26 @@ class SessionManager {
     const systemTools = this.getSessionTools(username, sessionId);
     const activeTools = persistedTools || systemTools;
     
+    const alwaysOnTools = [
+      "request_approval",
+      "ask_question",
+      "render_images",
+      "render_html",
+      "render_chart",
+      "share_file",
+      "refresh_ui",
+      "spawn_subagent",
+    ];
+
     const definedToolNames = new Set([
       ...systemTools,
-      "bash"
+      "bash",
+      ...alwaysOnTools,
     ]);
 
     const combinedTools = Array.from(new Set([
-      ...activeTools
+      ...activeTools,
+      ...alwaysOnTools,
     ]))
       .filter(tName => definedToolNames.has(tName));
 

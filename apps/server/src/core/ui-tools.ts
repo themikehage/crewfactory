@@ -1,6 +1,11 @@
 import { uiApprovalRegistry } from "./ui-approval-registry";
 
-export function createUiTools(workspaceDir: string, username: string, isLaboratory?: boolean) {
+export function createUiTools(
+  workspaceDir: string,
+  username: string,
+  isLaboratory?: boolean,
+  subagentOptions?: any
+) {
   const requestApprovalTool = {
     name: "request_approval",
     description: "Request user confirmation or approval before executing a dangerous, critical, or destructive action.",
@@ -231,7 +236,7 @@ export function createUiTools(workspaceDir: string, username: string, isLaborato
     }
   };
 
-  return [
+  const tools = [
     requestApprovalTool,
     askQuestionTool,
     renderImagesTool,
@@ -240,4 +245,11 @@ export function createUiTools(workspaceDir: string, username: string, isLaborato
     shareFileTool,
     refreshUiTool
   ];
+
+  if (subagentOptions) {
+    const { createSpawnSubagentTool } = require("./spawn-subagent-tool");
+    tools.push(createSpawnSubagentTool(subagentOptions));
+  }
+
+  return tools;
 }

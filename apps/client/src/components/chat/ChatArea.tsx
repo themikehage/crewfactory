@@ -9,6 +9,8 @@ import type { Task, TaskRunnerState } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChatArea.literals";
 
+import { SubagentConsole } from "./tools/SubagentConsole";
+
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
     function getSandboxLabel(tools: string[]): { label: string; color: string } {
@@ -70,6 +72,7 @@ const l = useLiterals(u);
   const [sandboxTools, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
   const [serialTools, setSerialTools] = useState<string[]>(["request_approval", "ask_question"]);
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
+  const [subagentDrawer, setSubagentDrawer] = useState<{ toolCallId: string; task: string; role?: string } | null>(null);
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
@@ -315,6 +318,12 @@ const l = useLiterals(u);
       }
     });
 
+    const unsubSubagent = subscribe("subagent_event", (data: any) => {
+      if (data && data.toolCallId && data.event) {
+        window.dispatchEvent(new CustomEvent(`subagent-event-${data.toolCallId}`, { detail: data.event }));
+      }
+    });
+
     return () => {
       unsubStart();
       unsubEnd();
@@ -324,6 +333,7 @@ const l = useLiterals(u);
       unsubError();
       unsubTasks();
       unsubCtx();
+      unsubSubagent();
     };
   }, [sessionId, subscribe]);
 
@@ -505,6 +515,9 @@ const l = useLiterals(u);
               activeAgentAvatarUrl={activeAgent?.avatarUrl}
               activeChannelId={activeChannel?.id}
               serialTools={serialTools}
+              onOpenSubagentConsole={(toolCallId: string, task: string, role?: string) => {
+                setSubagentDrawer({ toolCallId, task, role });
+              }}
             />
             <div ref={messagesEndRef} />
           </div>
@@ -557,6 +570,18 @@ const l = useLiterals(u);
             onDecompose={handleDecomposeTasks}
             onUpdateTasks={handleUpdateTasks}
             onSendPrompt={(prompt) => handleSend(prompt)}
+          />
+        )}
+      </AnimatePresence>
+
+      <AnimatePresence>
+        {subagentDrawer && (
+          <SubagentConsole
+            parentId={sessionId}
+            toolCallId={subagentDrawer.toolCallId}
+            task={subagentDrawer.task}
+            subagentRole={subagentDrawer.role}
+            onClose={() => setSubagentDrawer(null)}
           />
         )}
       </AnimatePresence>

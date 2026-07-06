@@ -10,11 +10,11 @@ interface Props extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants: Record<Variant, string> = {
-  solid: "bg-background text-foreground border border-border hover:bg-accent hover:text-accent-foreground",
-  outline: "bg-transparent text-foreground border border-border hover:bg-accent/50",
-  ghost: "bg-transparent text-foreground hover:bg-accent hover:text-accent-foreground",
+  solid: "bg-background text-foreground border border-border hover:bg-primary/10 hover:border-primary/30",
+  outline: "bg-transparent text-foreground border border-border hover:bg-primary/10",
+  ghost: "bg-transparent text-foreground hover:bg-primary/10",
   destructive: "bg-destructive text-destructive-foreground hover:opacity-90",
-  accent: "bg-accent text-accent-foreground hover:opacity-90",
+  accent: "bg-primary text-primary-foreground hover:opacity-90",
   "ghost-destructive": "bg-transparent text-destructive hover:bg-destructive/10",
 };
 

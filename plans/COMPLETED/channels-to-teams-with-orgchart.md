@@ -1,4 +1,4 @@
-COMPLETED 
+COMPLETED
 # Channels → Teams + Jerarquía + Organigrama
 
 Renombrar "Channels" a "Teams" en la UI, introducir roles jerárquicos entre miembros, y añadir una vista de organigrama alternativa.
