@@ -13,7 +13,12 @@ import { streamSSE } from "hono/streaming";
 import type { AgentDefinition } from "shared";
 import type { AgentServer } from "./types";
 import { createUiTools } from "../core/ui-tools";
-import { ensureWorkspaceSubdirs } from "../core/session-manager";
+import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
+import jwt from "jsonwebtoken";
+import { filterSecretsFromOutput } from "../core/bash-output-filter";
+import { getEnvironmentContext } from "../core/env-check";
+import { engramRegistry } from "../core/engram/registry";
+import { createEngramTools } from "../core/engram/engram-tools";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -34,9 +39,14 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const workspaceDir = join(agentDir, "workspace");
   const sessionDir = join(agentDir, "sessions", "main");
 
+  const userSettings = coreSessionManager.getUserSettings(username);
+  const engramEnabled = userSettings.engramEnabled ?? false;
+  const engramDbPath = join(agentDir, "engram", "engram.db");
+  const memory = await engramRegistry.get(`agent:${definition.id}`, engramDbPath, engramEnabled);
+
   if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
 
-  const { sessionManager: coreSessionManager, getResolvedSkillPaths } = await import("../core/session-manager");
+  const { getResolvedSkillPaths } = await import("../core/session-manager");
   const { authStorage, modelRegistry } = coreSessionManager.getUserContext(username);
   modelRegistry.refresh();
 
@@ -53,11 +63,13 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     }
   }
 
+  const envContext = getEnvironmentContext(workspaceDir);
   const resourceLoader = new DefaultResourceLoader({
     cwd: workspaceDir,
     agentDir,
     additionalSkillPaths,
     appendSystemPrompt: [
+      `\n\nRuntime Environment:\n${envContext}`,
       `\n\n${definition.systemPrompt}`,
       `\n\nInteractive UI Components (AG-UI Protocol):\n` +
       `You have native interactive UI tools. Prefer using them over custom scripts or general output formats when suitable:\n` +
@@ -87,7 +99,30 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     sessionManager = SessionManager.create(sessionDir, sessionDir);
   }
 
-  const customBashTool = createBashToolDefinition(workspaceDir);
+  const customBashTool = createBashToolDefinition(workspaceDir, {
+    spawnHook: (context) => {
+      const userEnv = coreSessionManager.getUserEnv(username);
+      const token = jwt.sign(
+        { username },
+        process.env.JWT_SECRET!,
+        { expiresIn: "7d" }
+      );
+      return {
+        ...context,
+        env: {
+          ...context.env,
+          ...userEnv,
+          TOKEN: token,
+          JWT_TOKEN: token,
+        },
+      };
+    },
+    outputFilter: (output: string) => {
+      const userEnv = coreSessionManager.getUserEnv(username);
+      const secrets = Object.values(userEnv).filter(Boolean);
+      return filterSecretsFromOutput(output, secrets);
+    },
+  });
 
   const isLaboratory = definition.id.startsWith("lab_");
   const uiTools = createUiTools(workspaceDir, username, isLaboratory, isLaboratory ? undefined : {
@@ -98,16 +133,19 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     authStorage,
     resourceLoader,
   });
+
+  const engramTools = engramEnabled ? createEngramTools(memory) : [];
+
   const { session } = await createAgentSession({
     cwd: workspaceDir,
     sessionManager,
     authStorage,
     modelRegistry,
     resourceLoader,
-    customTools: [customBashTool as any, ...uiTools as any],
+    customTools: [customBashTool as any, ...uiTools as any, ...engramTools as any],
   });
   
-  session.setActiveToolsByName([
+  const activeToolNames = [
     "read", "write", "edit", "bash", "grep", "find", "ls",
     "request_approval",
     "ask_question",
@@ -116,8 +154,20 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     "render_chart",
     "share_file",
     "refresh_ui",
-    "spawn_subagent"
-  ]);
+    "spawn_subagent",
+    "delegate_task"
+  ];
+  if (engramEnabled) {
+    activeToolNames.push("engram_store", "engram_recall", "engram_forget");
+  }
+  session.setActiveToolsByName(activeToolNames);
+
+  const originalPrompt = session.prompt.bind(session);
+  session.prompt = async (message: string) => {
+    const memCtx = await memory.buildContext(message);
+    const enriched = memCtx ? `${memCtx}\n\n${message}` : message;
+    return originalPrompt(enriched);
+  };
 
   const available = modelRegistry.getAvailable();
   if (definition.model) {
@@ -341,6 +391,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     definition,
     session,
     app,
+    memory,
     getActiveObservers() {
       return activeObservers;
     },
@@ -355,6 +406,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     async stop() {
       if (session.isStreaming) await session.abort();
       session.dispose();
+      await memory.shutdown();
       if (bunServer) {
         bunServer.stop(true);
         bunServer = null;

@@ -12,6 +12,7 @@ export type BashSpawnHook = (context: BashSpawnContext) => BashSpawnContext;
 
 export interface BashToolOptions {
   spawnHook?: BashSpawnHook;
+  outputFilter?: (output: string) => string;
 }
 
 export interface ToolDefinition {
@@ -89,9 +90,13 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
           try {
             child.kill();
           } catch {}
+          let finalOutput = output + errorOutput + "\n[Command aborted by user]";
+          if (options?.outputFilter) {
+            finalOutput = options.outputFilter(finalOutput);
+          }
           resolve({
             exitCode: null,
-            output: output + errorOutput + "\n[Command aborted by user]",
+            output: finalOutput,
             cancelled: true,
           });
         };
@@ -110,9 +115,13 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
             try {
               child.kill();
             } catch {}
+            let finalOutput = output + errorOutput + `\n[Command timed out after ${timeout} seconds]`;
+            if (options?.outputFilter) {
+              finalOutput = options.outputFilter(finalOutput);
+            }
             resolve({
               exitCode: null,
-              output: output + errorOutput + `\n[Command timed out after ${timeout} seconds]`,
+              output: finalOutput,
               timedOut: true,
             });
           }, timeout * 1000);
@@ -124,9 +133,14 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
             abortSignal.removeEventListener("abort", onAbort);
           }
 
+          let finalOutput = output + errorOutput;
+          if (options?.outputFilter) {
+            finalOutput = options.outputFilter(finalOutput);
+          }
+
           resolve({
             exitCode: code,
-            output: output + errorOutput,
+            output: finalOutput,
             cancelled: false,
           });
         });

@@ -385,7 +385,7 @@ export function LogsConsolePage({
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Sesiones en Streaming
+          {l.tabSessions}
         </button>
         <button
           onClick={() => setActiveTab("logs")}
@@ -395,7 +395,7 @@ export function LogsConsolePage({
               : "border-transparent text-muted-foreground hover:text-foreground"
           }`}
         >
-          Trazas de Sistema
+          {l.tabLogs}
         </button>
       </div>
 
@@ -405,44 +405,45 @@ export function LogsConsolePage({
           {sessionsLoading ? (
             <div className="flex flex-col items-center justify-center py-20 space-y-2 text-muted-foreground">
               <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs">Cargando sesiones...</span>
+              <span className="text-xs">{l.loadingSessions}</span>
             </div>
           ) : displaySessions.length === 0 ? (
             <div className="text-center text-muted-foreground text-xs py-20">
-              No hay sesiones activas en este momento.
+              {l.noActiveSessions}
             </div>
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {displaySessions.map((session) => {
                 // Resolver el tipo y color del badge del contexto de la sesión
-                let badgeText = "Global";
+                let badgeText: string;
                 let badgeColor = "bg-text-secondary/10 text-muted-foreground border-text-secondary/20";
-                
+
                 if (session.projectName) {
-                  badgeText = `Proyecto: ${session.projectName}`;
+                  badgeText = `${l.badgeProject} ${session.projectName}`;
                   badgeColor = "bg-blue-400/10 text-blue-400 border-blue-400/20";
                 } else if (session.channelId) {
                   const chName = channelNamesMap.get(session.channelId) || session.channelId;
-                  badgeText = `Canal: #${chName}`;
+                  badgeText = `${l.badgeChannel} #${chName}`;
                   badgeColor = "bg-purple-400/10 text-purple-400 border-purple-400/20";
                 } else if (session.agentId) {
                   const agName = agentNamesMap.get(session.agentId) || session.agentId;
-                  badgeText = `Agente: ${agName}`;
+                  badgeText = `${l.badgeAgent} ${agName}`;
                   badgeColor = "bg-amber-400/10 text-amber-400 border-amber-400/20";
+                } else {
+                  badgeText = l.badgeGlobal;
                 }
 
-                // Colores del indicador de estado
                 let statusDotColor = "bg-text-secondary/40";
-                let statusLabel = "Inactiva";
+                let statusLabel = l.statusInactive;
                 if (session.status === "streaming") {
                   statusDotColor = "bg-warning animate-pulse";
-                  statusLabel = "Streaming...";
+                  statusLabel = l.statusStreaming;
                 } else if (session.status === "task-running") {
                   statusDotColor = "bg-primary animate-pulse";
-                  statusLabel = "Task Running...";
+                  statusLabel = l.statusTaskRunning;
                 } else if (session.status === "active") {
                   statusDotColor = "bg-primary";
-                  statusLabel = "Activa";
+                  statusLabel = l.statusActive;
                 }
 
                 return (
@@ -473,7 +474,7 @@ export function LogsConsolePage({
                     <div className="border-t border-input/30 pt-3 flex items-center justify-between mt-1 text-xs text-muted-foreground select-none">
                       {/* Última actividad / Tiempo relativo */}
                       <div className="flex flex-col">
-                        <span className="text-muted-foreground uppercase tracking-widest text-xs font-bold">Actividad</span>
+                        <span className="text-muted-foreground uppercase tracking-widest text-xs font-bold">{l.labelActivity}</span>
                         <span className="font-medium text-muted-foreground/80">
                           {formatRelativeTime(session.updatedAt, session.status)}
                         </span>
@@ -481,7 +482,7 @@ export function LogsConsolePage({
 
                       {/* Botón de abrir chat */}
                       <Button size="sm" onClick={() => handleOpenSession(session)}>
-                        Abrir Chat
+                        {l.openChat}
                       </Button>
                     </div>
                   </div>
@@ -497,15 +498,15 @@ export function LogsConsolePage({
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 bg-card border border-input rounded-xl mb-4 flex-shrink-0 text-xs text-muted-foreground">
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1.5">
-                <span className="font-semibold text-foreground">Origen:</span>
+                <span className="font-semibold text-foreground">{l.sourceLabel}</span>
                 <select
                   value={filterSource}
                   onChange={(e) => setFilterSource(e.target.value as any)}
                   className="bg-background border border-input rounded px-2.5 py-1 text-foreground outline-none focus:border-primary cursor-pointer"
                 >
-                  <option value="all">Todos</option>
-                  <option value="session">Sesiones</option>
-                  <option value="channel">Canales</option>
+                  <option value="all">{l.filterAll}</option>
+                  <option value="session">{l.filterSession}</option>
+                  <option value="channel">{l.filterChannel}</option>
                 </select>
               </div>
 

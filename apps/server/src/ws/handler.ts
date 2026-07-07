@@ -313,11 +313,15 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     if (tools && Array.isArray(tools)) {
       const currentActive = session.getActiveToolNames();
       const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
+      const engramActive = currentActive.filter((tName) => tName.startsWith("engram_"));
+      const exaActive = currentActive.filter((tName) => tName === "exa_search");
       session.setActiveToolsByName(
         Array.from(
           new Set([
             ...tools,
             ...mcpActive,
+            ...engramActive,
+            ...exaActive,
             "request_approval",
             "ask_question",
             "render_images",
@@ -326,6 +330,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "share_file",
             "refresh_ui",
             "spawn_subagent",
+            "delegate_task",
           ])
         )
       );

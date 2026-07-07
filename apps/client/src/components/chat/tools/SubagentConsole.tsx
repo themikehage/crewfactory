@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
-import { RichMarkdown } from "../RichMarkdown";
+import { ThinkingBlock, AssistantTextBlock } from "../MessageBlocks";
+import { AgentAvatar } from "@/components/shared/AgentAvatar";
 
 interface Props {
   parentId: string;
@@ -8,6 +9,12 @@ interface Props {
   task: string;
   subagentRole?: string;
   onClose: () => void;
+  sessionId: string | null;
+  activeProjectName?: string | null;
+  activeAgentId?: string | null;
+  activeAgentName?: string | null;
+  activeAgentAvatarUrl?: string | null;
+  activeChannelId?: string | null;
 }
 
 interface ConsoleStep {
@@ -18,7 +25,19 @@ interface ConsoleStep {
   result?: string;
 }
 
-export function SubagentConsole({ parentId, toolCallId, task, subagentRole, onClose }: Props) {
+export function SubagentConsole({
+  parentId,
+  toolCallId,
+  task,
+  subagentRole,
+  onClose,
+  sessionId,
+  activeProjectName,
+  activeAgentId,
+  activeAgentName,
+  activeAgentAvatarUrl,
+  activeChannelId,
+}: Props) {
   const [messages, setMessages] = useState<any[]>([]);
   const [steps, setSteps] = useState<ConsoleStep[]>([]);
   const [status, setStatus] = useState<string>("running");
@@ -40,9 +59,16 @@ export function SubagentConsole({ parentId, toolCallId, task, subagentRole, onCl
             setStatus(data.metadata.status || "success");
           }
           if (data.messages) {
-            setMessages(data.messages);
+            const flatMessages = data.messages.map((m: any) => {
+              if (m.type === "message" && m.message) {
+                return m.message;
+              }
+              return m;
+            }).filter((m: any) => m.role === "user" || m.role === "assistant");
+
+            setMessages(flatMessages);
             const loadedSteps: ConsoleStep[] = [];
-            for (const msg of data.messages) {
+            for (const msg of flatMessages) {
               if (msg.role === "assistant" && msg.content && Array.isArray(msg.content)) {
                 const toolCalls = msg.content.filter((c: any) => c.type === "toolCall");
                 for (const tc of toolCalls) {
@@ -277,12 +303,28 @@ export function SubagentConsole({ parentId, toolCallId, task, subagentRole, onCl
               messages.map((msg, idx) => {
                 if (msg.role === "user") {
                   return (
-                    <div key={idx} className="border-b border-border/40 pb-1 text-muted-foreground">
-                      <span className="text-primary">&gt;</span> Prompt recibido por el subagente.
-                    </div>
+                    <motion.div
+                      key={idx}
+                      initial={{ opacity: 0, y: 4 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ duration: 0.15 }}
+                      className="flex gap-2 items-start"
+                    >
+                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center mt-0.5">
+                        <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className="text-primary">
+                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                        </svg>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-0.5">User Prompt</div>
+                        <div className="text-[11px] text-text-secondary leading-relaxed bg-surface/50 rounded-lg px-2.5 py-1.5 border border-border/40">
+                          Prompt recibido por el subagente.
+                        </div>
+                      </div>
+                    </motion.div>
                   );
                 }
-                
+
                 let thinkingText = "";
                 let outputText = "";
 
@@ -296,18 +338,38 @@ export function SubagentConsole({ parentId, toolCallId, task, subagentRole, onCl
                 }
 
                 return (
-                  <div key={idx} className="flex flex-col gap-1">
-                    {thinkingText && (
-                      <div className="text-[10px] text-muted-foreground italic border-l-2 border-border pl-2 py-0.5 leading-snug">
-                        Pensamiento: {thinkingText}
+                  <motion.div
+                    key={idx}
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.15 }}
+                    className="flex gap-2 items-start"
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      <AgentAvatar
+                        name={activeAgentName || "Subagent"}
+                        avatarUrl={activeAgentAvatarUrl}
+                        size="sm"
+                      />
+                    </div>
+                    <div className="flex-1 min-w-0 space-y-1">
+                      <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+                        {activeAgentName || "Subagent"}
                       </div>
-                    )}
-                    {outputText && (
-                      <div className="leading-normal text-text-primary">
-                        <RichMarkdown content={outputText} />
+                      <div className="text-text-primary leading-relaxed text-[11px]">
+                        {thinkingText && <ThinkingBlock thinking={thinkingText} />}
+                        {outputText && (
+                          <AssistantTextBlock
+                            text={outputText}
+                            sessionId={sessionId}
+                            activeProjectName={activeProjectName}
+                            activeAgentId={activeAgentId}
+                            activeChannelId={activeChannelId}
+                          />
+                        )}
                       </div>
-                    )}
-                  </div>
+                    </div>
+                  </motion.div>
                 );
               })
             )}

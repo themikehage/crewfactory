@@ -251,6 +251,19 @@ export function SessionSidebar({
           </svg>
         ),
       },
+      {
+        id: "plugins",
+        label: l.navPlugins || "Plugins",
+        path: "/plugins",
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="m21 16-4 4-4-4" />
+            <path d="M17 20V4" />
+            <path d="m3 8 4-4 4 4" />
+            <path d="M7 4v16" />
+          </svg>
+        ),
+      },
     ],
     []
   );

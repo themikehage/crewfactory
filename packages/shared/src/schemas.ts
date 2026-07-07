@@ -38,7 +38,8 @@ export const ModelSettingsSchema = z.object({
 
 export const AVAILABLE_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
-  "request_approval", "ask_question", "render_images", "render_chart", "share_file", "refresh_ui"
+  "request_approval", "ask_question", "render_images", "render_chart", "share_file", "refresh_ui",
+  "spawn_subagent", "delegate_task", "exa_search"
 ] as const;
 export type ToolName = typeof AVAILABLE_TOOLS[number];
 

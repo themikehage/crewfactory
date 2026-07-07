@@ -3,7 +3,14 @@ import { Modal } from "@/components/ui/Modal";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ToolsSelector.literals";
 
-export const ALL_TOOLS = [
+export interface ToolDefinition {
+  id: string;
+  name: string;
+  desc: string;
+  gateKey?: string;
+}
+
+export const ALL_TOOLS: ToolDefinition[] = [
   { id: "read", name: "Read File", desc: "Read content of files on disk" },
   { id: "write", name: "Write File", desc: "Create new files on disk" },
   { id: "edit", name: "Edit File", desc: "Modify existing files on disk" },
@@ -17,15 +24,19 @@ export const ALL_TOOLS = [
   { id: "render_chart", name: "Render Charts", desc: "Visualize metrics via line/bar/pie/area charts" },
   { id: "share_file", name: "Share File", desc: "Share downloadable files with the user (PDF, DOC, XLSX, ZIP, etc.)" },
   { id: "refresh_ui", name: "Refresh UI", desc: "Notify the interface to reload sidebars and lists after changes" },
+  { id: "spawn_subagent", name: "Spawn Subagent", desc: "Delegate a task to a fresh subagent with isolated context" },
+  { id: "delegate_task", name: "Delegate Task", desc: "Delegate task to another agent, project, channel, or session" },
+  { id: "exa_search", name: "Exa Search", desc: "Search the web using Exa AI (semantic search engine)", gateKey: "EXA_API_KEY" },
 ];
 
 interface Props {
   activeTools: string[];
   onChange: (tools: string[]) => void;
   disabled?: boolean;
+  toolStatus?: Record<string, "available" | "missing_key">;
 }
 
-export function ToolsSelector({ activeTools, onChange, disabled = false }: Props) {
+export function ToolsSelector({ activeTools, onChange, disabled = false, toolStatus }: Props) {
   const l = useLiterals(u);
   const [open, setOpen] = useState(false);
 
@@ -41,7 +52,8 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
 
   const applyPreset = (preset: "full" | "readonly") => {
     if (preset === "full") {
-      onChange(ALL_TOOLS.map((t) => t.id));
+      const available = ALL_TOOLS.filter((t) => !(t.gateKey && toolStatus?.[t.id] === "missing_key")).map((t) => t.id);
+      onChange(available);
     } else {
       onChange(["read", "grep", "find", "ls"]);
     }
@@ -107,21 +119,44 @@ export function ToolsSelector({ activeTools, onChange, disabled = false }: Props
           </div>
           <div className="space-y-2">
             {ALL_TOOLS.map((t) => {
+              const isGated = t.gateKey && toolStatus?.[t.id] === "missing_key";
               const checked = activeTools.includes(t.id);
+              const isToolDisabled = disabled || isGated;
+
               return (
                 <label
                   key={t.id}
-                  className="flex items-start gap-2.5 p-1.5 rounded-md hover:bg-card-hover/50 cursor-pointer transition-colors"
+                  className={`flex items-start gap-2.5 p-1.5 rounded-md transition-colors ${
+                    isToolDisabled
+                      ? "opacity-40 cursor-not-allowed"
+                      : "hover:bg-card-hover/50 cursor-pointer"
+                  }`}
+                  title={isGated ? `Requires ${t.gateKey} in Settings > Env Vars` : undefined}
                 >
                   <input
                     type="checkbox"
                     checked={checked}
-                    onChange={() => handleToggleTool(t.id)}
+                    disabled={isToolDisabled}
+                    onChange={() => !isToolDisabled && handleToggleTool(t.id)}
                     className="mt-0.5 accent-accent"
                   />
                   <div>
-                    <div className="font-semibold text-foreground font-mono text-xs">{t.id}</div>
-                    <div className="text-muted-foreground text-xs leading-snug">{t.desc}</div>
+                    <div className="font-semibold text-foreground font-mono text-xs flex items-center gap-1.5">
+                      {t.id}
+                      {isGated && (
+                        <span className="px-1 py-0.2 bg-warning/10 text-warning text-[8px] font-semibold rounded">
+                          Gated
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-muted-foreground text-xs leading-snug">
+                      {t.desc}
+                      {isGated && (
+                        <span className="block text-warning text-[8px] mt-0.5 font-medium">
+                          Requires {t.gateKey}
+                        </span>
+                      )}
+                    </div>
                   </div>
                 </label>
               );

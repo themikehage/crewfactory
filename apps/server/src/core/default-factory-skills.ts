@@ -7,24 +7,24 @@ Welcome to CrewFactory. As the Global Factory Director, you are responsible for 
 1. **Projects:**
    - Projects are Git codebases located in \`/tmp/crewfactory/<username>/projects/<projectId>/workspace/\`.
    - From your global CWD (\`/tmp/crewfactory/<username>/workspace\`), projects are at \`../projects/<projectId>/workspace/\`.
-   - **To perform tasks on a project** (e.g. create features, write code, run builds/tests), **delegate directly to the project** using:
-     \`bun run scripts/delegate.ts --project <projectName> --message "<prompt>"\`
-   - **Under the hood (Session Lifecycle)**: The CLI checks if an active session exists for that project via \`GET /api/sessions\`. If none is active, it creates a new session via \`POST /api/sessions\` (passing \`projectName\`) and then sends the prompt to the streaming endpoint \`POST /api/sessions/:id/prompt/stream\`.
+   - **To perform tasks on a project** (e.g. create features, write code, run builds/tests), **delegate directly to the project** using the native tool:
+     \`delegate_task(targetType: "project", targetId: "<projectName>", task: "<prompt>")\`
+   - **DO NOT run bash commands or curl requests** to trigger execution or prompt agents/projects.
    - **DO NOT create or register a programmatic agent to work on a project.** Programmatic agents cannot be bound or added to projects.
 
 2. **Programmatic Agents:**
    - Programmatic agents are independent, long-lived AI workers with isolated workspaces.
    - They are NOT project developers. They are standalone helpers or member units of group collaboration Channels.
-   - To execute tasks with a programmatic agent, delegate via:
-     \`bun run scripts/delegate.ts --agent <agentId> --message "<prompt>"\`
-   - **Under the hood**: This prompts the agent's internal predefined session via \`POST /api/agents/:id/prompt\`.
+   - To execute tasks with a programmatic agent, delegate using the native tool:
+     \`delegate_task(targetType: "agent", targetId: "<agentId>", task: "<prompt>")\`
+   - **DO NOT use curl or invoke REST endpoints** to prompt agents. Always use \`delegate_task\`.
 
 3. **Channels:**
    - Collaboration chatrooms where multiple programmatic agents coordinate.
    - Programmatic agents can only be added as members to Channels, **not to Projects**.
-   - To delegate tasks to a channel, use:
-     \`bun run scripts/delegate.ts --channel <channelId> --message "<prompt>"\`
-   - **Under the hood**: This sends a message via \`POST /api/channels/:id/send\` (which creates/associates a channel session under the hood if not already active) and polls for active execution.
+   - To delegate tasks to a channel, use the native tool:
+     \`delegate_task(targetType: "channel", targetId: "<channelId>", task: "<prompt>")\`
+   - **DO NOT use curl or dispatch messages via REST.** Always use \`delegate_task\`.
 
 ## Core Capabilities (Factory Skills)
 
@@ -133,7 +133,14 @@ Environment variables are stored securely per user and made available to agent s
 
 ### List Environment Variables
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/env?reveal=true
+# List variables (values will be masked as ••••••••)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/env
+\`\`\`
+
+### Reveal a Specific Variable
+\`\`\`bash
+# Reveal the value of a specific environment variable (logged for audit)
+curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/env/reveal/GITHUB_TOKEN
 \`\`\`
 
 ### Set a Single Environment Variable
@@ -257,10 +264,9 @@ curl -s -X POST http://localhost:3000/api/agents \\
 \`\`\`
 
 ### Delegate Task to Agent (Recommended)
-Use the unified CLI script to delegate tasks and stream responses:
-\`\`\`bash
-bun run scripts/delegate.ts --agent code-reviewer --message "Please review the codebase"
-\`\`\`
+Always use the native \`delegate_task\` tool to prompt and delegate tasks to programmatic agents:
+\`delegate_task(targetType: "agent", targetId: "code-reviewer", task: "Please review the codebase")\`
+DO NOT use curl or bash command scripts to communicate with other agents.
 
 ### Stop an Agent
 \`\`\`bash
@@ -303,10 +309,9 @@ curl -s -X POST http://localhost:3000/api/channels/dev-team/members \\
 \`\`\`
 
 ### Delegate Task to Channel (Recommended)
-Use the CLI delegation helper to send a prompt to the channel and watch execution:
-\`\`\`bash
-bun run scripts/delegate.ts --channel dev-team --message "Review latest feature"
-\`\`\`
+Always use the native \`delegate_task\` tool to prompt and delegate tasks to channels:
+\`delegate_task(targetType: "channel", targetId: "dev-team", task: "Review latest feature")\`
+DO NOT use curl or bash command scripts.
 `
   },
   "factory-observe": {

@@ -1,6 +1,8 @@
 import { useState } from "react";
 import type { McpServerConfig } from "shared";
 import { Button } from "@/components/ui/Button";
+import { useLiterals } from "@/lib";
+import { literals } from "./MCPCard.literals";
 
 interface MCPCardProps {
   server: McpServerConfig;
@@ -24,6 +26,7 @@ export function MCPCard({
   onTest,
 }: MCPCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const l = useLiterals(literals);
 
   const getStatusBadge = () => {
     switch (server.status) {
@@ -31,28 +34,28 @@ export function MCPCard({
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-success/10 text-success border border-success/20">
             <span className="w-1.5 h-1.5 rounded-full bg-success animate-pulse" />
-            Conectado
+            {l.connected}
           </span>
         );
       case "connecting":
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-warning/10 text-warning border border-warning/20">
             <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
-            Conectando...
+            {l.connecting}
           </span>
         );
       case "error":
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-destructive/10 text-error border border-destructive/20">
             <span className="w-1.5 h-1.5 rounded-full bg-error" />
-            Error
+            {l.error}
           </span>
         );
       default:
         return (
           <span className="flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-muted/20 text-muted-foreground border border-input/20">
             <span className="w-1.5 h-1.5 rounded-full bg-muted-foreground/60" />
-            Desconectado
+            {l.disconnected}
           </span>
         );
     }
@@ -80,14 +83,14 @@ export function MCPCard({
             {server.installed && getStatusBadge()}
             {server.isBuiltin && (
               <span className="text-xs px-1.5 py-0.2 bg-primary/10 text-primary rounded font-mono border border-primary/20">
-                Built-in
+                {l.builtin}
               </span>
             )}
           </div>
         </div>
 
         <p className="text-xs text-muted-foreground line-clamp-3 leading-relaxed">
-          {server.description || "Sin descripción disponible."}
+          {server.description || l.noDescription}
         </p>
 
         {/* Configuration Summary */}
@@ -115,7 +118,7 @@ export function MCPCard({
               onClick={() => setExpanded(!expanded)}
               className="flex items-center justify-between w-full text-left text-[11px] font-medium text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
             >
-              <span>Herramientas descubiertas ({server.tools.length})</span>
+              <span>{l.discoveredTools} ({server.tools.length})</span>
               <svg
                 width="12"
                 height="12"
@@ -145,7 +148,7 @@ export function MCPCard({
 
         {server.installed && server.status === "error" && server.error && (
           <div className="p-2.5 bg-destructive/5 border border-destructive/20 rounded-lg text-xs text-error font-mono overflow-x-auto max-h-24 leading-normal">
-            <span className="font-bold uppercase tracking-wider block mb-1">Detalle del error:</span>
+            <span className="font-bold uppercase tracking-wider block mb-1">{l.errorDetail}</span>
             {server.error}
           </div>
         )}
@@ -155,7 +158,7 @@ export function MCPCard({
       <div className="p-4 bg-background/30 border-t border-input/10 flex items-center justify-between gap-2.5">
       {!server.installed ? (
         <Button onClick={onInstall} className="w-full">
-          Instalar
+          {l.install}
         </Button>
       ) : (
           <>
@@ -170,7 +173,7 @@ export function MCPCard({
                 />
                 <div className="w-7 h-4 bg-muted/40 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-3 after:w-3 after:transition-all peer-checked:bg-primary" />
               </label>
-              <span className="text-[11px] font-medium text-muted-foreground">Activo</span>
+              <span className="text-[11px] font-medium text-muted-foreground">{l.active}</span>
             </div>
 
             {/* Connection and Custom management buttons */}
@@ -178,17 +181,17 @@ export function MCPCard({
               {server.enabled && (
                 <>
                   {onTest && (
-                    <Button variant="outline" size="xs" onClick={onTest} title="Validar herramientas en caliente (ping JSON-RPC)">
-                      Validar
+                    <Button variant="outline" size="xs" onClick={onTest} title={l.validateTooltip}>
+                      {l.validate}
                     </Button>
                   )}
                   {server.status === "connected" ? (
-                    <Button variant="ghost" size="xs" onClick={onDisconnect} title="Desconectar">
-                      Desconectar
+                    <Button variant="ghost" size="xs" onClick={onDisconnect} title={l.disconnect}>
+                      {l.disconnect}
                     </Button>
                   ) : (
-                    <Button variant="outline" size="xs" onClick={onConnect} title="Conectar">
-                      Conectar
+                    <Button variant="outline" size="xs" onClick={onConnect} title={l.connect}>
+                      {l.connect}
                     </Button>
                   )}
                 </>
@@ -198,7 +201,7 @@ export function MCPCard({
                 <button
                   onClick={onEdit}
                   className="p-1 hover:bg-card-hover/20 text-muted-foreground hover:text-foreground rounded transition-colors cursor-pointer"
-                  title="Editar configuración"
+                  title={l.editTooltip}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7" />
@@ -211,7 +214,7 @@ export function MCPCard({
                 <button
                   onClick={onDelete}
                   className="p-1 hover:bg-card-hover/20 text-muted-foreground hover:text-error rounded transition-colors cursor-pointer"
-                  title="Eliminar servidor"
+                  title={l.deleteTooltip}
                 >
                   <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                     <polyline points="3 6 5 6 21 6" />

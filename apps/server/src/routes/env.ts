@@ -4,6 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { sessionManager } from "../core/session-manager";
 import { SetEnvVarSchema } from "shared";
+import { auditLog } from "../core/audit-log";
 
 export const envRouter = new Hono();
 
@@ -12,14 +13,27 @@ envRouter.use("/*", authMiddleware);
 envRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
   const userEnv = sessionManager.getUserEnv(username);
-  const reveal = c.req.query("reveal") === "true";
 
-  const envList = Object.entries(userEnv).map(([key, value]) => ({
+  const envList = Object.entries(userEnv).map(([key]) => ({
     key,
-    value: reveal ? value : "••••••••",
+    value: "••••••••",
   }));
 
   return c.json({ env: envList });
+});
+
+envRouter.get("/reveal/:key", (c) => {
+  const key = c.req.param("key").trim().toUpperCase();
+  const { username } = getAuthPayload(c);
+  const userEnv = sessionManager.getUserEnv(username);
+
+  if (!(key in userEnv)) {
+    return c.json({ error: "Variable not found" }, 404);
+  }
+
+  auditLog(username, "env_reveal", { key });
+
+  return c.json({ key, value: userEnv[key] });
 });
 
 envRouter.post(

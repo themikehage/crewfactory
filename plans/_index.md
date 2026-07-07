@@ -21,7 +21,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [subagent-live-console.md](./subagent-live-console.md) — Consola de subagentes en tiempo real: retransmisión de eventos a través del WebSocket padre, APIs de mensajes históricos y panel React premium (terminal + steps).
 
 
-## Completados (24)
+## Completados (25)
 
 Ver [COMPLETED/](./COMPLETED/)
 

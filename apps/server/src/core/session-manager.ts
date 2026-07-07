@@ -20,6 +20,12 @@ import { registerOpenCodeGoProvider } from "./opencode-go-provider";
 import { mcpRegistry } from "./mcp-registry";
 
 import { createUiTools } from "./ui-tools";
+import { encryptEnv, decryptEnv } from "../lib/env-crypto";
+import { filterSecretsFromOutput } from "./bash-output-filter";
+import { getEnvironmentContext } from "./env-check";
+import { createExaSearchTool } from "./exa-search-tool";
+import { engramRegistry } from "./engram/registry";
+import { createEngramTools } from "./engram/engram-tools";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
@@ -153,34 +159,65 @@ class SessionManager {
     const userDir = this.ensureUserDir(username);
     const envPath = join(userDir, "env.json");
     if (!existsSync(envPath)) return {};
+    const raw = readFileSync(envPath, "utf-8");
+    if (!raw.trim()) return {};
+    
+    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
     try {
-      return JSON.parse(readFileSync(envPath, "utf-8"));
+      const decrypted = decryptEnv(raw, jwtSecret);
+      return JSON.parse(decrypted);
     } catch (e) {
-      console.error(`Failed to read env.json for ${username}:`, e);
-      return {};
+      try {
+        const parsed = JSON.parse(raw);
+        console.warn(`env.json for ${username} is in plaintext. Migrating to encrypted...`);
+        this.setUserEnvMap(username, parsed);
+        return parsed;
+      } catch (err) {
+        console.error(`Failed to parse env.json for ${username}:`, err);
+        return {};
+      }
     }
   }
 
   setUserEnv(username: string, key: string, value: string): void {
-    const userDir = this.ensureUserDir(username);
-    const envPath = join(userDir, "env.json");
     const env = this.getUserEnv(username);
     env[key] = value;
-    writeFileSync(envPath, JSON.stringify(env, null, 2), "utf-8");
+    this.setUserEnvMap(username, env);
   }
 
   setUserEnvMap(username: string, env: Record<string, string>): void {
     const userDir = this.ensureUserDir(username);
     const envPath = join(userDir, "env.json");
-    writeFileSync(envPath, JSON.stringify(env, null, 2), "utf-8");
+    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
+    const encrypted = encryptEnv(JSON.stringify(env), jwtSecret);
+    writeFileSync(envPath, encrypted, "utf-8");
   }
 
   deleteUserEnv(username: string, key: string): void {
-    const userDir = this.ensureUserDir(username);
-    const envPath = join(userDir, "env.json");
     const env = this.getUserEnv(username);
     delete env[key];
-    writeFileSync(envPath, JSON.stringify(env, null, 2), "utf-8");
+    this.setUserEnvMap(username, env);
+  }
+
+  getUserSettings(username: string): Record<string, any> {
+    const userDir = this.ensureUserDir(username);
+    const settingsPath = join(userDir, "settings.json");
+    if (!existsSync(settingsPath)) return {};
+    try {
+      const raw = readFileSync(settingsPath, "utf-8");
+      return JSON.parse(raw);
+    } catch (e) {
+      console.error(`Failed to parse settings.json for ${username}:`, e);
+      return {};
+    }
+  }
+
+  saveUserSettings(username: string, settings: Record<string, any>): void {
+    const userDir = this.ensureUserDir(username);
+    const settingsPath = join(userDir, "settings.json");
+    const current = this.getUserSettings(username);
+    const updated = { ...current, ...settings };
+    writeFileSync(settingsPath, JSON.stringify(updated, null, 2), "utf-8");
   }
 
   getUserContext(username: string): UserContext {
@@ -319,7 +356,9 @@ class SessionManager {
       }
     }
 
+    const envContext = getEnvironmentContext(workspaceDir);
     const appendPrompts = [
+      `\n\nRuntime Environment:\n${envContext}`,
       `\n\nAdditional Instructions for HTML Visual Preview and Image Rendering:\n` +
       `- When generating web pages, HTML layouts, mockups, or visual documents, always output them as complete HTML files starting with "<!DOCTYPE html>" or "<html>" to enable a live browser-based preview.\n` +
       `- When generating plots, charts, diagrams, or images, save them to a file and output their file paths or URLs on a separate line using this exact format:\n` +
@@ -344,8 +383,28 @@ class SessionManager {
       `- You want an adversarial peer review of code or plans (spawn a subagent with role 'senior typescript reviewer').\n` +
       `- You want to break down a larger feature into parallel or serial execution batches without losing context length.\n` +
       `Do NOT delegate simple one-line changes, git status reads, or trivial file lookups.\n` +
-      `Every subagent is a pure EXECUTOR and must be given all context (relative file paths, code snippets, requirements) in the "task" argument. It has no memory of this parent conversation.\n`
+      `Every subagent is a pure EXECUTOR and must be given all context (relative file paths, code snippets, requirements) in the "task" argument. It has no memory of this parent conversation.\n`,
+      `\n\nTask Delegation (delegate_task tool):\n` +
+      `You have a delegate_task tool to prompt and execute tasks on programmatic agents, channels, projects, or existing sessions.\n` +
+      `Use delegate_task when you need to coordinate or ask another entity to do work (e.g. asking a search agent to search images, asking a channel team to build a plan, prompting a project build/test loop).\n` +
+      `- CRITICAL: ALWAYS use this tool to communicate with other agents, channels, or projects. DO NOT run bash commands (like curl, Invoke-RestMethod, or scripts/delegate.ts) to send prompts or communicate. Communicating with other agents via bash/HTTP endpoints is strictly prohibited and will cause permission/sandbox errors.\n` +
+      `- Target Type mapping: targetType must be "agent" | "project" | "channel" | "session".\n` +
+      `- For agent targets, it triggers a clean isolated session bound to the target agent. For project targets, it invokes the project executor. For channel targets, it coordinates multi-agent chains and awaits agreement/negotiation completion.\n`
     ];
+
+    if (sessionId.startsWith("del_")) {
+      appendPrompts.push(
+        `\n\n## Delegated Task Mode\n` +
+        `You are executing a delegated task. Perform the task directly and output a structured result envelope at the very end of your response.\n` +
+        `Return the result envelope exactly in this format as your last message:\n` +
+        `---\n` +
+        `status: success | partial | blocked\n` +
+        `executive_summary: <1-3 sentences summarizing what was accomplished>\n` +
+        `artifacts: <comma-separated list of files created/modified, or "none">\n` +
+        `risks: <any risks found, or "None">\n` +
+        `---`
+      );
+    }
 
     if (cachedMcpToolNames.length > 0) {
       appendPrompts.push(
@@ -402,8 +461,20 @@ class SessionManager {
           },
         };
       },
+      outputFilter: (output: string) => {
+        const userEnv = this.getUserEnv(username);
+        const secrets = Object.values(userEnv).filter(Boolean);
+        return filterSecretsFromOutput(output, secrets);
+      },
     });
 
+
+    const exaSearchTool = createExaSearchTool({ username });
+    const userSettings = this.getUserSettings(username);
+    const engramEnabled = userSettings.engramEnabled ?? false;
+    const engramDbPath = join(userDir, "sessions", sessionId, "engram", "engram.db");
+    const memory = await engramRegistry.get(`session:${sessionId}`, engramDbPath, engramEnabled);
+    const engramTools = engramEnabled ? createEngramTools(memory) : [];
 
     const uiTools = createUiTools(workspaceDir, username, false, {
       workspaceDir,
@@ -419,12 +490,19 @@ class SessionManager {
       authStorage,
       modelRegistry,
       resourceLoader,
-      customTools: [customBashTool as any, ...uiTools as any],
+      customTools: [customBashTool as any, ...uiTools as any, exaSearchTool as any, ...engramTools as any],
     });
 
+    const userEnv = this.getUserEnv(username);
+    const hasExaKey = !!(userEnv.EXA_API_KEY || process.env.EXA_API_KEY);
+
     const systemTools = this.getSessionTools(username, sessionId);
-    const activeTools = persistedTools || systemTools;
+    let activeTools = persistedTools || systemTools;
     
+    if (!hasExaKey) {
+      activeTools = activeTools.filter(t => t !== "exa_search");
+    }
+
     const alwaysOnTools = [
       "request_approval",
       "ask_question",
@@ -434,13 +512,20 @@ class SessionManager {
       "share_file",
       "refresh_ui",
       "spawn_subagent",
+      "delegate_task",
     ];
 
     const definedToolNames = new Set([
       ...systemTools,
       "bash",
+      "exa_search",
       ...alwaysOnTools,
     ]);
+    if (engramEnabled) {
+      definedToolNames.add("engram_store");
+      definedToolNames.add("engram_recall");
+      definedToolNames.add("engram_forget");
+    }
 
     const combinedTools = Array.from(new Set([
       ...activeTools,
@@ -449,6 +534,13 @@ class SessionManager {
       .filter(tName => definedToolNames.has(tName));
 
     session.setActiveToolsByName(combinedTools);
+
+    const originalPrompt = session.prompt.bind(session);
+    session.prompt = async (message: string) => {
+      const memCtx = await memory.buildContext(message);
+      const enriched = memCtx ? `${memCtx}\n\n${message}` : message;
+      return originalPrompt(enriched);
+    };
 
     // Load and inject MCP tools in the background asynchronously
     (async () => {
@@ -623,6 +715,7 @@ class SessionManager {
       this.sessions.delete(key);
     }
     mcpRegistry.stopSessionMcpTools(username, sessionId);
+    await engramRegistry.shutdown(`session:${sessionId}`);
     const userDir = this.ensureUserDir(username);
     const sessionDir = join(userDir, "sessions", sessionId);
     if (existsSync(sessionDir)) {

@@ -8,6 +8,7 @@ import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
 import { NegotiationStateMachine } from "./negotiation-state";
 import { TaskLedger } from "./task-ledger";
+import { engramRegistry } from "../core/engram/registry";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -42,6 +43,25 @@ class ChannelOrchestrator {
   private agentQueues = new Map<string, AgentWorkQueue>();
   private channelAbortControllers = new Map<string, AbortController>(); // key = channelId:sessionId
   private activeStreams = new Map<string, Map<string, ActiveAgentStream>>();
+  private activeChains = new Map<string, { count: number; resolve: () => void }>();
+
+  private incrementChain(key: string) {
+    const entry = this.activeChains.get(key);
+    if (entry) {
+      entry.count++;
+    }
+  }
+
+  private decrementChain(key: string) {
+    const entry = this.activeChains.get(key);
+    if (entry) {
+      entry.count--;
+      if (entry.count <= 0) {
+        entry.resolve();
+        this.activeChains.delete(key);
+      }
+    }
+  }
 
   private getOrCreateQueue(agentId: string): AgentWorkQueue {
     let q = this.agentQueues.get(agentId);
@@ -156,17 +176,28 @@ class ChannelOrchestrator {
     const controller = new AbortController();
     this.channelAbortControllers.set(key, controller);
 
+    // Setup active chain wait promise
+    let resolveChain: () => void = () => {};
+    const chainPromise = new Promise<void>((resolve) => {
+      resolveChain = resolve;
+    });
+    this.activeChains.set(key, { count: 1, resolve: resolveChain });
+
     // Check if this channel uses broadcast (cooperative/leaderless) reply mode
     const isBroadcastChannel = channel.members.some(m => m.replyMode === "broadcast");
 
     if (isBroadcastChannel) {
       this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal).catch((err) => {
         console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
+      }).finally(() => {
+        this.decrementChain(key);
       });
     } else {
-      // Fire-and-forget: do not await — returns immediately
       this.runDispatchRound(username, channelId, userMsg, 1, controller.signal);
+      this.decrementChain(key);
     }
+
+    return chainPromise;
   }
 
   /**
@@ -201,6 +232,7 @@ class ChannelOrchestrator {
 
     // Dispatch each agent independently — fire-and-forget
     for (const member of targetMembers) {
+      this.incrementChain(key);
       this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
         console.error(`[ChannelOrchestrator] Unexpected error dispatching to ${member.agentId}:`, err);
       });
@@ -212,6 +244,22 @@ class ChannelOrchestrator {
    * Awaits completion of this specific agent, then posts and chains.
    */
   private async dispatchToAgentAsync(
+    username: string,
+    channelId: string,
+    member: ChannelMember,
+    incomingMsg: ChannelMessage,
+    depth: number,
+    signal: AbortSignal
+  ): Promise<void> {
+    const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
+    try {
+      await this.dispatchToAgentAsyncInternal(username, channelId, member, incomingMsg, depth, signal);
+    } finally {
+      this.decrementChain(key);
+    }
+  }
+
+  private async dispatchToAgentAsyncInternal(
     username: string,
     channelId: string,
     member: ChannelMember,
@@ -337,6 +385,7 @@ class ChannelOrchestrator {
             agentName: result.agentMsg.agentName,
             detail: result.agentMsg.content,
           });
+          this.incrementChain(key);
           this.dispatchToAgentAsync(username, channelId, arbiterMember, escalationMsg, depth + 1, signal).catch((err) => {
             console.error(`[ChannelOrchestrator] Escalation dispatch error:`, err);
           });
@@ -449,6 +498,7 @@ class ChannelOrchestrator {
 
     if (subDispatches.length > 0) {
       for (const sd of subDispatches) {
+        this.incrementChain(key);
         this.dispatchToAgentAsync(username, channelId, sd.member, sd.taskMsg, depth + 1, signal).catch((err) => {
           console.error(`[ChannelOrchestrator] Delegation dispatch error:`, err);
         });
@@ -458,7 +508,9 @@ class ChannelOrchestrator {
 
     // Chain to next round if not agreed
     if (!isAgreed) {
+      this.incrementChain(key);
       this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
+      this.decrementChain(key);
     }
   }
 
@@ -545,9 +597,28 @@ class ChannelOrchestrator {
       agentName,
     });
 
+    const userSettings = sessionManager.getUserSettings(username);
+    const engramEnabled = userSettings.engramEnabled ?? false;
+    const channelDbPath = `/tmp/crewfactory/${username}/channels/${channelId}/engram/engram.db`;
+    const channelMemory = await engramRegistry.get(`channel:${channelId}`, channelDbPath, engramEnabled);
+
+    const [agentMemCtx, channelMemCtx] = await Promise.all([
+      agentEntry.server.memory.buildContext(incomingMsg.content),
+      channelMemory.buildContext(incomingMsg.content),
+    ]);
+
+    let memoryPrefix = "";
+    if (agentMemCtx) {
+      memoryPrefix += `${agentMemCtx}\n\n`;
+    }
+    if (channelMemCtx) {
+      const channelFormatted = channelMemCtx.replace("--- Relevant Memories ---", "--- Relevant Channel Memories ---");
+      memoryPrefix += `${channelFormatted}\n\n`;
+    }
+
     const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
     const agentNameMap = this.buildAgentNameMap(channel.members);
-    const promptText = this.buildAgentPrompt(
+    const promptText = memoryPrefix + this.buildAgentPrompt(
       agentEntry.server.definition,
       incomingMsg,
       recentMessages,
@@ -730,6 +801,15 @@ class ChannelOrchestrator {
 
     const trimmed = fullResponse.trim();
     const isSilent = this.isSilentContent(trimmed);
+
+    if (engramEnabled && userSettings.engramAutoStore !== false && trimmed && !isSilent) {
+      await agentEntry.server.memory.store(
+        trimmed.slice(0, 500),
+        "episodic",
+        0.5,
+        ["interaction", `channel:${channelId}`]
+      );
+    }
 
     broadcast(channelId, {
       type: "channel_agent_end",

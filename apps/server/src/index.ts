@@ -19,6 +19,8 @@ import { backupRouter } from "./routes/backup";
 import { logsRouter } from "./routes/logs";
 import { mcpRouter } from "./routes/mcp";
 import { experimentsRouter } from "./routes/experiments";
+import { settingsRouter } from "./routes/settings";
+import { engramRegistry } from "./core/engram/registry";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
 
@@ -46,6 +48,7 @@ app.route("/api/backup", backupRouter);
 app.route("/api/logs", logsRouter);
 app.route("/api/mcp", mcpRouter);
 app.route("/api/experiments", experimentsRouter);
+app.route("/api/settings", settingsRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
@@ -86,4 +89,16 @@ const server = Bun.serve({
 console.log(`Server running at http://0.0.0.0:${server.port}`);
 
 if (!PREVIEW_HOST) startPreviewServer();
+
+process.on("SIGTERM", async () => {
+  console.log("SIGTERM received, shutting down engram brains...");
+  await engramRegistry.shutdownAll();
+  process.exit(0);
+});
+
+process.on("SIGINT", async () => {
+  console.log("SIGINT received, shutting down engram brains...");
+  await engramRegistry.shutdownAll();
+  process.exit(0);
+});
 

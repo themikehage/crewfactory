@@ -43,6 +43,12 @@
 - Model persistence in localStorage, applied to sessions via SDK's setModel()
 - Auth status indicators (configured/not configured per provider)
 
+### Security & Environment Variables
+- **Cifrado en Reposo:** Cifrado simétrico AES-256-GCM para los archivos de configuración sensibles (`env.json` y `auth.json`) derivando la clave criptográfica a partir del `JWT_SECRET` del servidor. Migración automática de archivos legacy en texto plano.
+- **Filtrado de Salida de Terminal (Bash Output Filter):** Sanitización inteligente y optimizada sobre el stdout/stderr de todos los comandos ejecutados por agentes principales, programmatic agents y subagents para enmascarar automáticamente secretos del usuario con `***hidden***`.
+- **API con Auditoría de Revelado:** Eliminación del revelado masivo de secretos. Incorporación del endpoint seguro `/api/env/reveal/:key` con logs de auditoría dedicados en `/tmp/crewfactory/_audit/{user}/env-access.log`.
+- **Interfaz Masked de Usuario:** Enmascaramiento completo por defecto en la vista de variables de entorno del cliente (`EnvVarsTab`) con botones de revelado individual puntual.
+
 ### PWA (Progressive Web App)
 - Installable on mobile via manifest.json with `display: standalone`
 - Service worker with Workbox for asset caching (auto-update on new deploy)
@@ -95,6 +101,12 @@
 - Manual "Compact" button triggering `session.compact()` via WebSocket
 - Context usage emitted automatically after each `message_end` event
 
+### Runtime Environment Check & Context Injection
+- **Dynamic Context Detection:** Automatically checks server operating system, architecture, running runtime versions (Bun/Node), temp/home paths, and available shell utilities (git, docker, python, curl, jq, ffmpeg, pnpm, bun) once at startup.
+- **Process-Level Cache:** Caches detected environment variables at startup to prevent unnecessary subprocess spawning and overhead during chat sessions.
+- **OS-Specific Prompt Injection:** Injects a structured `Runtime Environment` block dynamically into the system prompts of standard session agents, programmatic agents, and spawned subagents.
+- **Environment-Aware Command Hints:** Automatically injects shell execution instructions (e.g. advising against Linux heredocs or `curl` parameter styles on Windows PowerShell, and suggesting Unicode configuration for Python outputs) to prevent agents from attempting invalid commands and wasting tokens.
+
 ### AG-UI Protocol & Interactive Agent Components
 - **Generative UI Pipeline:** Bridges agent-to-frontend execution via custom tool call interceptions, enabling rich components to render directly in the message stream.
 - **Interactive Approvals:** The `request_approval` tool suspends agent backend execution on critical tasks, rendering a warning card with a premium animated layout (custom buttons, severity indicators, pulsing active dot, and fluid Framer Motion transitions) and markdown tech details. Settled reactively via WebSocket `ui_action`.
@@ -104,6 +116,7 @@
 - **Streaming & API Fault-Tolerance:** UI card components (`DynamicFormCard`, `DiffApplyCard`, `ApprovalForm`, `AgentConfigCard`, `MediaCard`) feature defensive object destructuring and default parameters, preventing React runtime crashes when arguments are streamed partially or are undefined. Additionally, `AgentConfigCard` handles API failures gracefully without freezing, and `MediaCard` utilizes declarative React error states for image fallbacks to avoid DOM duplication or leaking partially resolved keys like `[Media Asset: undefined]` during streaming, integrating authenticated image fetching to securely load assets from protected workspace pathways.
 - **Reactive UI Refreshes:** The `refresh_ui` tool allows agents to notify the user's interface to dynamically reload specific sections or all sidebar lists (projects, agents, channels, experiments, and skills) in real-time immediately after modifying workspace resources.
 - **Subagent Native Delegation (`spawn_subagent`):** Official worker agent tool using the fire-and-wait model (Option A). Enables orchestrator agents to run focused, self-contained subtasks in fresh-context sessions, persisting full message logs and `metadata.json` mapping relations under `sessions/{parentId}/subagents/sub_{toolCallId}/`. Automatically propagates `AbortSignal` for instant subagent cancellation and expects a structured YAML/YAML-like result envelope (status, executive_summary, artifacts, risks).
+- **Task Delegation (`delegate_task`):** Native delegation tool supporting execution targeting programmatic agents, projects, channels, or existing sessions. Creates isolated sessions starting with `del_` to prevent contamination of target/user chats, automatically propagates `AbortSignal`, and supports returning a clean structured summary envelope (status, executive summary, artifacts, risks) or the full conversation history.
 
 
 ### Live Render Preview
@@ -191,7 +204,7 @@
 - **Central Event Broker**: Singleton server module (`eventBroker`) buffering recent logs in-memory and broadcasting events via WebSockets.
 - **Rich Interactive Control**: Filtering by source type (Sessions/Channels) and event type (Messages/Thoughts/Tools), manual scrolling freezer, screen log clearing, and WebSocket connection status badges.
 
-### AutoConsulting Multi-Agent Pi Integration (`autoconsulting`)
+### AutoConsulting Multi-Agent
 - **WebBuilder Agent**: Autonomous A2A agent powered by the local AI runner module (port 4104).
 - **Project Workspaces**: Each project maintains its own isolated workspace at `/tmp/ac-projects/{projectId}`.
 - **Deployment Skills**: Pre-installed static skills for GitHub (`github-deploy`), Cloudflare (`cloudflare-deploy`), and Neon Postgres (`neon-db`).
@@ -356,3 +369,20 @@ packages/shared/  Shared Zod schemas and types
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.
 - `pages/LaboratoryPage.tsx` — Multi-variant benchmarking laboratory orchestration view.
 - `components/laboratory/` — Dashboard panels including comparative metrics charts, live execution logs, historical sidebar, and step-by-step experiment wizard.
+- `pages/PluginsPage.tsx` — Main plugins page listing and managing Engram memory and Exa Search add-ons settings.
+
+## Add-ons & Plugins Architecture
+
+The application implements a decoupled, modular addon system using the **Null Object Pattern** and dynamic registries. These add-ons extend agent capabilities while ensuring zero regression risk and zero runtime overhead when deactivated.
+
+### 1. Persistent Agent Memory (Engram)
+- **Engine:** Built upon `@engram-ai-memory/core` using a local SQLite instance and local ONNX embeddings (via `@xenova/transformers`).
+- **Isolation:** Managed through the `EngramRegistry` singleton which instantiates isolated `MemoryProvider` containers mapped to unique namespaces (`agent:{id}`, `channel:{id}`, `session:{id}`).
+- **Integration:** Pure wrapping injection over the public `session.prompt` interface. Merges relevant memories dynamically at runtime post-recall without modifying the vendored agent core or prompts database.
+- **Auto-store:** Conditionally archives assistant responses as episodic memories post-generation, toggleable per-user.
+
+### 2. Exa Neural Search Tool
+- **Engine:** Standardized JSON-RPC `exa_search` tool querying Exa AI's semantic endpoint. Implementation uses zero dependencies (native `fetch()` calls).
+- **Gating Protocol:** Exposed in the `toolStatus` map from the server's session tools API. Checked reactively in the frontend `ToolsSelector` checkbox list: dims, disables, and alerts the user with warning badges/tooltips if `EXA_API_KEY` is not present in Settings > Env Vars.
+- **Cleanup:** Automatically filters active `exa_search` mappings on session reload if the corresponding credential key is removed.
+

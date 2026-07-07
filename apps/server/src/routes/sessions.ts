@@ -601,11 +601,16 @@ sessionsRouter.post(
 
     const currentActive = session.getActiveToolNames();
     const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
+    const engramActive = currentActive.filter((tName) => tName.startsWith("engram_"));
+    const exaActive = currentActive.filter((tName) => tName === "exa_search");
+
     session.setActiveToolsByName(
       Array.from(
         new Set([
           ...tools,
           ...mcpActive,
+          ...engramActive,
+          ...exaActive,
           "request_approval",
           "ask_question",
           "render_images",
@@ -613,6 +618,8 @@ sessionsRouter.post(
           "render_chart",
           "share_file",
           "refresh_ui",
+          "spawn_subagent",
+          "delegate_task"
         ])
       )
     );
@@ -622,12 +629,19 @@ sessionsRouter.post(
   }
 );
 
+function getGatedToolStatus(username: string): Record<string, "available" | "missing_key"> {
+  const env = sessionManager.getUserEnv(username);
+  return {
+    exa_search: (env.EXA_API_KEY || process.env.EXA_API_KEY) ? "available" : "missing_key",
+  };
+}
+
 sessionsRouter.get("/:id/tools", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
   if (sessionId.startsWith("exec_")) {
-    return c.json({ tools: [], serialTools: ["request_approval", "ask_question"] });
+    return c.json({ tools: [], serialTools: ["request_approval", "ask_question"], toolStatus: getGatedToolStatus(username) });
   }
 
   const tools = sessionManager.getSessionTools(username, sessionId);
@@ -641,7 +655,7 @@ sessionsRouter.get("/:id/tools", async (c) => {
     }
   }
 
-  return c.json({ tools, serialTools });
+  return c.json({ tools, serialTools, toolStatus: getGatedToolStatus(username) });
 });
 
 sessionsRouter.get("/:id/tasks", async (c) => {
@@ -753,15 +767,20 @@ sessionsRouter.get("/:parentId/subagents/:subagentId/messages", async (c) => {
   const { username } = getAuthPayload(c);
 
   const userDir = sessionManager.ensureUserDir(username);
+  const delegateDir = join(userDir, "sessions", `del_${subagentId}`);
   const subFolder = `sub_${subagentId}`;
   const subagentDir = join(userDir, "sessions", parentId, "subagents", subFolder);
-  const metadataPath = join(subagentDir, "metadata.json");
 
-  if (!existsSync(subagentDir)) {
-    return c.json({ error: "Subagent session not found" }, 404);
+  let targetDir = subagentDir;
+  if (existsSync(delegateDir)) {
+    targetDir = delegateDir;
+  } else if (!existsSync(subagentDir)) {
+    return c.json({ error: "Subagent or delegation session not found" }, 404);
   }
 
-  const jsonlFiles = readdirSync(subagentDir)
+  const metadataPath = join(targetDir, "metadata.json");
+
+  const jsonlFiles = readdirSync(targetDir)
     .filter((f) => f.endsWith(".jsonl"))
     .sort()
     .reverse();
@@ -769,7 +788,7 @@ sessionsRouter.get("/:parentId/subagents/:subagentId/messages", async (c) => {
   let messages: any[] = [];
   if (jsonlFiles.length > 0) {
     try {
-      const content = readFileSync(join(subagentDir, jsonlFiles[0]), "utf-8");
+      const content = readFileSync(join(targetDir, jsonlFiles[0]), "utf-8");
       messages = content.trim().split("\n")
         .filter(Boolean)
         .map((line) => JSON.parse(line));
@@ -793,13 +812,17 @@ sessionsRouter.post("/:parentId/subagents/:subagentId/abort", async (c) => {
   const subagentId = c.req.param("subagentId");
   const { username } = getAuthPayload(c);
 
-  const subSession = sessionManager.getSession(username, `sub_${subagentId}`);
+  let subSession = sessionManager.getSession(username, `del_${subagentId}`);
+  if (!subSession) {
+    subSession = sessionManager.getSession(username, `sub_${subagentId}`);
+  }
+
   if (subSession) {
     await subSession.abort();
     return c.json({ success: true });
   }
 
-  return c.json({ success: true, message: "Subagent not running" });
+  return c.json({ success: true, message: "Session not running" });
 });
 
 

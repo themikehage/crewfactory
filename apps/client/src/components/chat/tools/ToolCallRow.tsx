@@ -12,6 +12,8 @@ import { AskQuestionForm } from "./AskQuestionForm";
 import { ImageGrid } from "../ImageGrid";
 import { HtmlPreview } from "../HtmlPreview";
 import { ShareFileCard } from "./ShareFileCard";
+import { useLiterals } from "@/lib";
+import { literals } from "./ToolCallRow.literals";
 
 export interface ToolContentBlock {
   type: string;
@@ -116,7 +118,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   request_approval: {
-    label: "aprobación",
+    label: "request_approval",
     colorClass: "text-warning",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -125,7 +127,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   ask_question: {
-    label: "pregunta",
+    label: "ask_question",
     colorClass: "text-warning",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -134,7 +136,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   render_images: {
-    label: "imágenes",
+    label: "render_images",
     colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -143,7 +145,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   render_html: {
-    label: "html",
+    label: "render_html",
     colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -152,7 +154,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   render_chart: {
-    label: "gráfico",
+    label: "render_chart",
     colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -162,7 +164,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   refresh_ui: {
-    label: "refrescar",
+    label: "refresh_ui",
     colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 20 20" fill="currentColor">
@@ -171,7 +173,7 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
     ),
   },
   spawn_subagent: {
-    label: "subagente",
+    label: "spawn_subagent",
     colorClass: "text-primary",
     icon: (
       <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -180,9 +182,21 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  delegate_task: {
+    label: "delegate_task",
+    colorClass: "text-primary",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+        <circle cx="9" cy="7" r="4" />
+        <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+      </svg>
+    ),
+  },
 };
 
-function getArgSummary(toolName: string, args: Record<string, unknown>): string {
+function getArgSummary(toolName: string, args: Record<string, unknown>, l: Record<string, string>): string {
   switch (toolName) {
     case "ls": return (args.path as string) || ".";
     case "find": return (args.pattern as string) || "";
@@ -202,23 +216,30 @@ function getArgSummary(toolName: string, args: Record<string, unknown>): string 
       const cmd = (args.command as string) || "";
       return cmd.length > 55 ? cmd.slice(0, 55) + "…" : cmd;
     }
-    case "request_approval": return (args.title as string) || "Petición de aprobación";
-    case "ask_question": return (args.question as string) || "Pregunta al usuario";
-    case "render_images": return Array.isArray(args.images) ? `${args.images.length} imágenes` : "Imágenes";
-    case "render_html": return (args.title as string) || "HTML document";
-    case "render_chart": return (args.title as string) || (args.chartType as string) || "Gráfico";
-    case "refresh_ui": return `UI refresh: ${String(args.entityType)}`;
+    case "request_approval": return (args.title as string) || l.argApprovalRequest;
+    case "ask_question": return (args.question as string) || l.argUserQuestion;
+    case "render_images": return Array.isArray(args.images) ? `${args.images.length} ${l.argImages}` : "Images";
+    case "render_html": return (args.title as string) || l.argHtmlDoc;
+    case "render_chart": return (args.title as string) || (args.chartType as string) || l.argChart;
+    case "refresh_ui": return `${l.argUiRefresh}: ${String(args.entityType)}`;
     case "spawn_subagent": {
       const task = (args.task as string) || "";
       const role = (args.subagentRole as string) || "";
       const cleanTask = task.length > 40 ? task.slice(0, 40) + "…" : task;
       return role ? `[${role}] ${cleanTask}` : cleanTask;
     }
+    case "delegate_task": {
+      const type = (args.targetType as string) || "";
+      const target = (args.targetId as string) || "";
+      const task = (args.task as string) || "";
+      const cleanTask = task.length > 35 ? task.slice(0, 35) + "…" : task;
+      return `[${type}: ${target}] ${cleanTask}`;
+    }
     default: return JSON.stringify(args).slice(0, 50);
   }
 }
 
-function getResultSummary(toolName: string, result: ToolResultData): string {
+function getResultSummary(toolName: string, result: ToolResultData, l: Record<string, string>): string {
   const text = result.content.find(b => b.type === "text")?.text ?? "";
   if (result.isError) return "error";
   switch (toolName) {
@@ -248,14 +269,15 @@ function getResultSummary(toolName: string, result: ToolResultData): string {
       return `${n} match${n !== 1 ? "es" : ""}`;
     }
     case "bash": return "done";
-    case "request_approval": return text || "esperando...";
-    case "ask_question": return text || "esperando...";
-    case "render_images": return "renderizado";
-    case "render_html": return "renderizado";
-    case "render_chart": return "renderizado";
-    case "share_file": return "compartido";
-    case "refresh_ui": return "refrescado";
-    case "spawn_subagent": return "completado";
+    case "request_approval": return text || l.resWaiting;
+    case "ask_question": return text || l.resWaiting;
+    case "render_images": return l.resRendered;
+    case "render_html": return l.resRendered;
+    case "render_chart": return l.resRendered;
+    case "share_file": return l.resShared;
+    case "refresh_ui": return l.resRefreshed;
+    case "spawn_subagent": return l.resCompleted;
+    case "delegate_task": return l.resCompleted;
     default: return "done";
   }
 }
@@ -270,6 +292,7 @@ function ToolBody({
   activeAgentId,
   activeChannelId,
   onOpenSubagentConsole,
+  l,
 }: {
   toolName: string;
   args: Record<string, unknown>;
@@ -280,6 +303,7 @@ function ToolBody({
   activeAgentId?: string | null;
   activeChannelId?: string | null;
   onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
+  l: Record<string, string>;
 }) {
   const text = result?.content.find(b => b.type === "text")?.text ?? "";
 
@@ -288,7 +312,7 @@ function ToolBody({
       return (
         <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-text-primary">Subagente Consola</span>
+            <span className="text-xs font-semibold text-text-primary">{l.bodySubagentConsole}</span>
             {onOpenSubagentConsole && (
               <button
                 onClick={() => onOpenSubagentConsole(toolCallId || "", args.task as string, args.subagentRole as string)}
@@ -298,7 +322,34 @@ function ToolBody({
                   <polyline points="4 17 10 11 4 5" />
                   <line x1="12" y1="19" x2="20" y2="19" />
                 </svg>
-                Ver Consola en Vivo
+                {l.bodyViewLiveConsole}
+              </button>
+            )}
+          </div>
+          {result && (
+            <pre className="mt-2 text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
+              {text}
+            </pre>
+          )}
+        </div>
+      );
+    case "delegate_task":
+      return (
+        <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-semibold text-text-primary">
+              {l.bodyDelegationTo} {String(args.targetType)}: <span className="text-primary font-mono font-normal">{String(args.targetId)}</span>
+            </span>
+            {onOpenSubagentConsole && (
+              <button
+                onClick={() => onOpenSubagentConsole(toolCallId || "", args.task as string)}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30 animate-pulse"
+              >
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <polyline points="4 17 10 11 4 5" />
+                  <line x1="12" y1="19" x2="20" y2="19" />
+                </svg>
+                {l.bodyViewLiveConsole}
               </button>
             )}
           </div>
@@ -375,7 +426,7 @@ function ToolBody({
       return (
         <div className="flex items-center gap-2 p-2.5 rounded-lg bg-bg border border-primary/30 text-primary-foreground text-xs font-mono">
           <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-          <span>Secciones del espacio de trabajo refrescadas: {String(args.entityType)}</span>
+          <span>{l.bodyWorkspaceRefreshed}{String(args.entityType)}</span>
         </div>
       );
     default:
@@ -400,7 +451,8 @@ export function ToolCallRow({
   serialTools = ["request_approval", "ask_question"],
   onOpenSubagentConsole,
 }: Props) {
-  const isInteractive = serialTools.includes(toolName) || toolName === "spawn_subagent";
+  const l = useLiterals(literals);
+  const isInteractive = serialTools.includes(toolName) || toolName === "spawn_subagent" || toolName === "delegate_task";
 
   const [expanded, setExpanded] = useState(
     !disabled && (
@@ -412,7 +464,8 @@ export function ToolCallRow({
       toolName === "render_html" ||
       toolName === "render_chart" ||
       toolName === "share_file" ||
-      toolName === "spawn_subagent"
+      toolName === "spawn_subagent" ||
+      toolName === "delegate_task"
     )
   );
 
@@ -422,10 +475,26 @@ export function ToolCallRow({
     icon: <span className="w-3 h-3 rounded-full bg-text-secondary/30" />,
   };
 
+  const getToolLabel = (name: string): string => {
+    switch (name) {
+      case "request_approval": return l.labelApproval;
+      case "ask_question": return l.labelQuestion;
+      case "render_images": return l.labelImages;
+      case "render_html": return l.labelHtml;
+      case "render_chart": return l.labelChart;
+      case "refresh_ui": return l.labelRefresh;
+      case "spawn_subagent": return l.labelSubagent;
+      case "delegate_task": return l.labelDelegation;
+      default: return name;
+    }
+  };
+
+  const labelText = meta.label === toolName ? getToolLabel(toolName) : meta.label;
+
   const running = result === null;
   const hasError = result?.isError ?? false;
-  const argSummary = getArgSummary(toolName, args);
-  const resultSummary = result ? getResultSummary(toolName, result) : "";
+  const argSummary = getArgSummary(toolName, args, l);
+  const resultSummary = result ? getResultSummary(toolName, result, l) : "";
 
   return (
     <div className={`my-1.5 rounded-lg border overflow-hidden transition-all ${
@@ -440,7 +509,7 @@ export function ToolCallRow({
         <span className={`flex-shrink-0 ${meta.colorClass}`}>{meta.icon}</span>
 
         <span className={`font-mono font-bold text-xs flex-shrink-0 ${meta.colorClass}`}>
-          {meta.label}
+          {labelText}
         </span>
 
         <span className="font-mono text-[11px] text-muted-foreground truncate min-w-0 flex-1">
@@ -487,8 +556,8 @@ export function ToolCallRow({
         </div>
       </button>
 
-      {expanded && !disabled && (result || isInteractive) && (
-        <div className="px-3 pb-3 pt-1 border-t border-input/40">
+      {!running && expanded && (
+        <div className="border-t border-border bg-card-hover/20 p-3">
           <ToolBody
             toolName={toolName}
             args={args}
@@ -499,6 +568,7 @@ export function ToolCallRow({
             activeAgentId={_activeAgentId}
             activeChannelId={_activeChannelId}
             onOpenSubagentConsole={onOpenSubagentConsole}
+            l={l}
           />
         </div>
       )}

@@ -1,15 +1,16 @@
 import { useState, useEffect, useCallback } from "react";
 import { apiFetch } from "@/lib/api";
+import { useLiterals } from "@/lib";
 import { MCPCard } from "@/components/mcp/MCPCard";
-import { MCPCustomForm } from "@/components/mcp/MCPCustomForm";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { useToast } from "@/contexts/ToastContext";
 import { motion, AnimatePresence } from "framer-motion";
 import type { McpServerConfig, McpCatalogItem } from "shared";
-import { Button } from "@/components/ui/Button";
+import { literals } from "./MCPMarketplacePage.literals";
 
 export function MCPMarketplacePage() {
   const { addToast } = useToast();
+  const l = useLiterals(literals);
   const [activeTab, setActiveTab] = useState<"gallery" | "custom">("gallery");
   const [catalog, setCatalog] = useState<McpCatalogItem[]>([]);
   const [servers, setServers] = useState<McpServerConfig[]>([]);
@@ -17,9 +18,6 @@ export function MCPMarketplacePage() {
   const [error, setError] = useState("");
 
   const [selectedCategory, setSelectedCategory] = useState<string>("All");
-
-  const [isFormOpen, setIsFormOpen] = useState(false);
-  const [editingServer, setEditingServer] = useState<McpServerConfig | null>(null);
 
   const [installingId, setInstallingId] = useState<string | null>(null);
   const [testingId, setTestingId] = useState<string | null>(null);
@@ -246,46 +244,11 @@ export function MCPMarketplacePage() {
     }
   };
 
-  const handleSaveCustomServer = async (config: McpServerConfig) => {
-    try {
-      const method = editingServer ? "PUT" : "POST";
-      const url = editingServer ? `/api/mcp/servers/${editingServer.id}` : "/api/mcp/servers";
-      
-      const res = await apiFetch(url, {
-        method,
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(config),
-      });
-
-      if (!res.ok) throw new Error("Error al guardar el servidor personalizado");
-      const data = await res.json();
-
-      setServers((prev) => {
-        const filtered = prev.filter((s) => s.id !== data.server.id);
-        return [...filtered, data.server];
-      });
-
-      setIsFormOpen(false);
-      setEditingServer(null);
-
-      addToast("success", `Servidor ${data.server.name} guardado.`);
-
-      // Auto-trigger connect for new servers
-      try {
-        await handleConnect(data.server.id);
-      } catch {}
-    } catch (err: any) {
-      addToast("error", err.message || "Error al guardar servidor personalizado");
-    }
-  };
-
   // --- RENDERS ---
 
   const filteredCatalog = catalog.filter(
     (item) => selectedCategory === "All" || item.category === selectedCategory
   );
-
-  const customServers = servers.filter((s) => !s.isBuiltin);
 
   return (
     <div className="flex-1 flex flex-col min-h-0 h-full overflow-hidden bg-background text-foreground relative">
@@ -295,7 +258,6 @@ export function MCPMarketplacePage() {
           <button
             onClick={() => {
               setActiveTab("gallery");
-              setIsFormOpen(false);
             }}
             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === "gallery"
@@ -303,7 +265,7 @@ export function MCPMarketplacePage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Galería Oficial
+            {l.tabGallery}
           </button>
           <button
             onClick={() => setActiveTab("custom")}
@@ -313,21 +275,9 @@ export function MCPMarketplacePage() {
                 : "text-muted-foreground hover:text-foreground"
             }`}
           >
-            Servidores Custom ({customServers.length})
+            {l.tabCustom}
           </button>
         </div>
-        {activeTab === "custom" && !isFormOpen && (
-          <Button onClick={() => {
-            setEditingServer(null);
-            setIsFormOpen(true);
-          }}>
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-              <line x1="12" y1="5" x2="12" y2="19" />
-              <line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            Agregar Servidor Custom
-          </Button>
-        )}
       </div>
 
       <div className="flex-1 overflow-y-auto p-6 min-h-0">
@@ -419,13 +369,13 @@ export function MCPMarketplacePage() {
                         {isInstalling && (
                           <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl border border-input/25 z-10 space-y-2 animate-fade-in">
                             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Instalando...</span>
+                            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{l.installing}</span>
                           </div>
                         )}
                         {isTesting && (
                           <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl border border-input/25 z-10 space-y-2 animate-fade-in">
                             <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Validando...</span>
+                            <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">{l.validating}</span>
                           </div>
                         )}
                       </div>
@@ -444,65 +394,17 @@ export function MCPMarketplacePage() {
                 exit={{ opacity: 0, y: -10 }}
                 transition={{ duration: 0.15 }}
               >
-                {isFormOpen ? (
-                  <MCPCustomForm
-                    initialConfig={editingServer}
-                    onCancel={() => {
-                      setIsFormOpen(false);
-                      setEditingServer(null);
-                    }}
-                    onTest={handleTestConnection}
-                    onSubmit={handleSaveCustomServer}
-                  />
-                ) : customServers.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center py-20 bg-card/25 border border-input/10 rounded-2xl p-6 text-center space-y-4">
-                    <div className="w-12 h-12 bg-background border border-input/10 flex items-center justify-center text-2xl rounded-2xl shadow-inner select-none">
-                      🔌
-                    </div>
-                    <div>
-                      <h4 className="font-semibold text-sm text-foreground">Sin Servidores Personalizados</h4>
-                      <p className="text-muted-foreground text-xs max-w-sm mt-1">
-                        Crea integraciones MCP locales ejecutando scripts de node/python, o apunta a microservicios externos compatibles con el protocolo.
-                      </p>
-                    </div>
-                    <Button
-                      onClick={() => {
-                        setEditingServer(null);
-                        setIsFormOpen(true);
-                      }}
-                    >
-                      Agregar Servidor Custom
-                    </Button>
+                <div className="flex flex-col items-center justify-center py-20 bg-card/25 border border-input/10 rounded-2xl p-6 text-center space-y-4">
+                  <div className="w-12 h-12 bg-background border border-input/10 flex items-center justify-center text-2xl rounded-2xl shadow-inner select-none">
+                    🔌
                   </div>
-                ) : (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {customServers.map((srv) => {
-                      const isTesting = testingId === srv.id;
-                      return (
-                        <div key={srv.id} className="relative">
-                          <MCPCard
-                            server={srv}
-                            onToggleEnabled={(enabled) => handleToggleEnabled(srv.id, enabled)}
-                            onConnect={() => handleConnect(srv.id)}
-                            onDisconnect={() => handleDisconnect(srv.id)}
-                            onDelete={() => handleDeleteServer(srv.id)}
-                            onEdit={() => {
-                              setEditingServer(srv);
-                              setIsFormOpen(true);
-                            }}
-                            onTest={() => handleTestServer(srv)}
-                          />
-                          {isTesting && (
-                            <div className="absolute inset-0 bg-background/60 backdrop-blur-xs flex flex-col items-center justify-center rounded-xl border border-input/25 z-10 space-y-2 animate-fade-in">
-                              <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                              <span className="text-xs text-muted-foreground font-semibold uppercase tracking-wider">Validando...</span>
-                            </div>
-                          )}
-                        </div>
-                      );
-                    })}
+                  <div>
+                    <h4 className="font-semibold text-sm text-foreground">{l.customComingSoon}</h4>
+                    <p className="text-muted-foreground text-xs max-w-sm mt-1">
+                      {l.customComingSoonDesc}
+                    </p>
                   </div>
-                )}
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

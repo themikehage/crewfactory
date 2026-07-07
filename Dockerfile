@@ -38,6 +38,7 @@ EXPOSE 3000
 EXPOSE 3001
 
 ENV PORT=3000
+ENV ENGRAM_SQLITE_DRIVER=bun
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1

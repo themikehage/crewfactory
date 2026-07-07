@@ -603,3 +603,54 @@ crear un plan de despliegue facil en vps
 - [x] 67.5 Integrate component in `IaGenerator.tsx` for laboratory team configuration generator
 - [x] 67.6 Adjust input visual contrast to `bg-[#1a1a1a]` and remove layout border box wrapper in laboratory
 - [x] 67.7 Verify compilation bundle exitoso in client React framework
+
+## Phase 68: Native Delegation Tool (delegate_task)
+- [x] 68.1 Add `delegate_task` to shared `AVAILABLE_TOOLS` in `packages/shared/src/schemas.ts`
+- [x] 68.2 Create `apps/server/src/core/delegate-tool.ts` with delegation execution logic for agents, projects, channels, and sessions
+- [x] 68.3 Integrate `delegate_task` in `session-manager.ts` and `create-agent-server.ts`
+- [x] 68.4 Register `delegate_task` in `ui-tools.ts`
+- [x] 68.5 Add `delegate_task` to client `InputArea.tsx` and `ToolsSelector.tsx`
+- [x] 68.6 Implement custom UI visualization for `delegate_task` in `ToolCallRow.tsx`
+- [x] 68.7 Update `about.md` and `steps.md` to document the new capability
+- [x] 68.8 Update default factory skills, templates, and session prompt injections to enforce `delegate_task` and forbid bash/curl delegation
+- [x] 68.9 Update subagent history and abort endpoints in `routes/sessions.ts` to seamlessly resolve `del_*` delegation sessions
+- [x] 68.10 Normalize historical messages in `SubagentConsole.tsx` to resolve nested and flat message formats
+
+## Phase 69: Ofuscación de Variables de Entorno y Cifrado de Secretos
+- [x] 69.1 Crear módulo `env-crypto.ts` en `apps/server/src/lib/env-crypto.ts` para cifrado AES-256-GCM
+- [x] 69.2 Crear módulo `bash-output-filter.ts` en `apps/server/src/core/bash-output-filter.ts` para filtrado de secrets en logs
+- [x] 69.3 Crear módulo `audit-log.ts` en `apps/server/src/core/audit-log.ts` para auditoría de revelado de secrets
+- [x] 69.4 Modificar `apps/server/src/ai/bash-tool.ts` para inyectar callback `outputFilter` sobre el output de comandos
+- [x] 69.5 Integrar cifrado, descifrado y migración transparente en `getUserEnv`/`setUserEnvMap` de `session-manager.ts`
+- [x] 69.6 Configurar `outputFilter` en `customBashTool` en `session-manager.ts` y `spawn-subagent-tool.ts`
+- [x] 69.7 Integrar `spawnHook` para `userEnv` y `outputFilter` en `customBashTool` de `create-agent-server.ts`
+- [x] 69.8 Encriptar almacenamiento de `auth.json` mediante `env-crypto.ts` en `auth-storage.ts`
+- [x] 69.9 Modificar endpoints de variables de entorno en `routes/env.ts` para forzar enmascaramiento y auditoría individual
+- [x] 69.10 Actualizar documentación de skill en `default-factory-skills.ts`
+- [x] 69.11 Reemplazar reveal bulk por reveal individual en `EnvVarsTab.tsx` en el cliente React
+- [x] 69.12 Verificar compilación estricta y exitosa en cliente y servidor
+
+## Phase 70: Runtime Environment Check & Context Injection
+- [x] 70.1 Crear el módulo `env-check.ts` para detectar plataforma, arquitectura, shell, versiones de runtime y herramientas disponibles
+- [x] 70.2 Importar e inyectar el bloque de contexto de entorno en `session-manager.ts` para las sesiones globales/de proyecto
+- [x] 70.3 Importar e inyectar el bloque de contexto en `spawn-subagent-tool.ts` para los subagentes delegados
+- [x] 70.4 Importar e inyectar el bloque de contexto en `create-agent-server.ts` para los agentes programáticos
+- [x] 70.5 Validar compilación estricta de TypeScript y bundling del servidor exitosamente
+- [x] 70.6 Actualizar la documentación de arquitectura en `about.md` y la bitácora de pasos en `steps.md`
+
+## Phase 71: Engram Agent Memory & Exa Search Decoupled Add-ons
+- [x] 71.1 Instalar dependencia `@engram-ai-memory/core` en apps/server
+- [x] 71.2 Crear interfaces y tipos de MemoryProvider en `src/core/engram/types.ts`
+- [x] 71.3 Crear NullMemoryProvider en `src/core/engram/null-provider.ts`
+- [x] 71.4 Crear EngramMemoryProvider en `src/core/engram/engram-provider.ts`
+- [x] 71.5 Crear EngramRegistry en `src/core/engram/registry.ts`
+- [x] 71.6 Crear tools de memoria (engram_store, engram_recall, engram_forget) en `src/core/engram/engram-tools.ts`
+- [x] 71.7 Configurar settings del usuario (engramEnabled, engramAutoStore, engramEmbeddings) en `session-manager.ts` y Hono routes
+- [x] 71.8 Integrar MemoryProvider en create-agent-server.ts y en el channel-orchestrator.ts (con auto-store y prompt injection)
+- [x] 71.9 Crear la tool oficial exa_search en `src/core/exa-search-tool.ts` y registrar en shared schemas
+- [x] 71.10 Habilitar gating de exa_search y endpoint de toolStatus en `routes/sessions.ts`
+- [x] 71.11 Crear la vista /plugins en el cliente frontend (PluginsPage, literals, router y sidebar link)
+- [x] 71.12 Modificar ToolsSelector e InputArea en el frontend para soportar gating de herramientas por API key
+- [x] 71.13 Validar compilación completa y actualizar bitácora y about.md
+
+

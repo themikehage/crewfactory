@@ -249,6 +249,8 @@ export function createUiTools(
   if (subagentOptions) {
     const { createSpawnSubagentTool } = require("./spawn-subagent-tool");
     tools.push(createSpawnSubagentTool(subagentOptions));
+    const { createDelegateTaskTool } = require("./delegate-tool");
+    tools.push(createDelegateTaskTool(subagentOptions));
   }
 
   return tools;

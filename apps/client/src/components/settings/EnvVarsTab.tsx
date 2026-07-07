@@ -32,7 +32,7 @@ const l = useLiterals(u);
   const [savingEnv, setSavingEnv] = useState(false);
   const [isDevView, setIsDevView] = useState(false);
   const [bulkEnvText, setBulkEnvText] = useState("");
-  const [isRevealed, setIsRevealed] = useState(false);
+  const [revealedVars, setRevealedVars] = useState<Record<string, string>>({});
   const [localEnvLoading, setLocalEnvLoading] = useState(false);
 
   const handleSaveEnvVar = async () => {
@@ -89,42 +89,44 @@ const l = useLiterals(u);
   const handleToggleDevView = () => {
     if (isDevView) {
       setIsDevView(false);
-      setIsRevealed(false);
+      setRevealedVars({});
       setEnvError("");
     } else {
       const text = envVars.map((v) => `${v.key}=${v.value}`).join("\n");
       setBulkEnvText(text);
       setIsDevView(true);
-      setIsRevealed(false);
+      setRevealedVars({});
       setEnvError("");
     }
   };
 
-  const handleToggleReveal = async () => {
-    if (isRevealed) {
-      const text = envVars.map((v) => `${v.key}=${v.value}`).join("\n");
-      setBulkEnvText(text);
-      setIsRevealed(false);
-    } else {
-      setLocalEnvLoading(true);
-      setEnvError("");
-      try {
-        const res = await fetch("/api/env?reveal=true", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (!res.ok) throw new Error("Failed to load environment variables");
-        const data = await res.json();
-        const unmaskedText = (data.env ?? [])
-          .map((v: EnvVar) => `${v.key}=${v.value}`)
-          .join("\n");
-        setBulkEnvText(unmaskedText);
-        setIsRevealed(true);
-      } catch (err: unknown) {
-        const errMsg = err instanceof Error ? err.message : "Error loading environment variables";
-        setEnvError(errMsg);
-      } finally {
-        setLocalEnvLoading(false);
-      }
+  const handleRevealKey = async (key: string) => {
+    if (revealedVars[key]) {
+      setRevealedVars(prev => {
+        const copy = { ...prev };
+        delete copy[key];
+        return copy;
+      });
+      return;
+    }
+
+    setLocalEnvLoading(true);
+    setEnvError("");
+    try {
+      const res = await fetch(`/api/env/reveal/${key}`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!res.ok) throw new Error("Failed to reveal secret");
+      const data = await res.json();
+      setRevealedVars(prev => ({
+        ...prev,
+        [key]: data.value,
+      }));
+    } catch (err: unknown) {
+      const errMsg = err instanceof Error ? err.message : "Error revealing secret";
+      setEnvError(errMsg);
+    } finally {
+      setLocalEnvLoading(false);
     }
   };
 
@@ -172,7 +174,7 @@ const l = useLiterals(u);
 
       await fetchEnvVars();
       setIsDevView(false);
-      setIsRevealed(false);
+      setRevealedVars({});
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "Error saving environment variables";
       setEnvError(errMsg);
@@ -201,7 +203,7 @@ const l = useLiterals(u);
                 : "bg-card hover:bg-card-hover/50 border-input/30 text-muted-foreground hover:text-foreground"
             }`}
           >
-            {isDevView ? "{l.standardView}" : "{l.developerView}"}
+            {isDevView ? l.standardView : l.developerView}
           </button>
           {!isDevView && (
             <Button
@@ -234,12 +236,6 @@ const l = useLiterals(u);
                 .env Configuration
               </span>
               <div className="flex items-center gap-2">
-                <button
-                  onClick={handleToggleReveal}
-                  className="text-xs bg-card-hover hover:bg-card-hover/80 text-muted-foreground hover:text-foreground font-semibold px-2 py-0.5 rounded-full select-none cursor-pointer font-mono"
-                >
-                  {isRevealed ? "{l.hideSecrets}" : "{l.revealSecrets}"}
-                </button>
                 <span className="text-xs bg-primary/10 text-primary font-semibold px-2 py-0.5 rounded-full select-none uppercase tracking-wider font-mono">
                   Editor Mode
                 </span>
@@ -263,13 +259,13 @@ const l = useLiterals(u);
           <div className="flex justify-end gap-2">
             <Button variant="ghost" onClick={() => {
               setIsDevView(false);
-              setIsRevealed(false);
+              setRevealedVars({});
               setEnvError("");
             }}>
               Cancel
             </Button>
             <Button onClick={handleSaveBulkEnv} disabled={savingEnv}>
-              {savingEnv ? "Saving..." : "{l.saveChanges}"}
+              {savingEnv ? "Saving..." : l.saveChanges}
             </Button>
           </div>
         </div>
@@ -286,15 +282,23 @@ const l = useLiterals(u);
                   {v.key}
                 </div>
                 <div className="text-muted-foreground text-xs font-mono mt-0.5">
-                  {v.value}
+                  {revealedVars[v.key] ?? "••••••••"}
                 </div>
               </div>
-              <button
-                onClick={() => handleDeleteEnvVar(v.key)}
-                className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 flex-shrink-0 cursor-pointer font-semibold"
-              >
-                Remove
-              </button>
+              <div className="flex items-center gap-2 flex-shrink-0">
+                <button
+                  onClick={() => handleRevealKey(v.key)}
+                  className="text-xs text-muted-foreground hover:text-primary transition-colors px-2 py-1 cursor-pointer font-semibold font-mono"
+                >
+                  {revealedVars[v.key] ? "Hide" : "Reveal"}
+                </button>
+                <button
+                  onClick={() => handleDeleteEnvVar(v.key)}
+                  className="text-xs text-muted-foreground hover:text-destructive transition-colors px-2 py-1 cursor-pointer font-semibold"
+                >
+                  Remove
+                </button>
+              </div>
             </div>
           ))}
         </div>

@@ -11,6 +11,8 @@ import {
 } from "../ai";
 import { createUiTools } from "./ui-tools";
 import { sessionManager } from "./session-manager";
+import { filterSecretsFromOutput } from "./bash-output-filter";
+import { getEnvironmentContext } from "./env-check";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -157,6 +159,11 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
             },
           };
         },
+        outputFilter: (output: string) => {
+          const userEnv = sessionManager.getUserEnv(username);
+          const secrets = Object.values(userEnv).filter(Boolean);
+          return filterSecretsFromOutput(output, secrets);
+        },
       });
 
       const uiTools = createUiTools(workspaceDir, username);
@@ -180,11 +187,15 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         `---`
       ].filter(Boolean).join("\n");
 
+      const envContext = getEnvironmentContext(workspaceDir);
       const subResourceLoader = new DefaultResourceLoader({
         cwd: workspaceDir,
         agentDir: userDir,
-        additionalSkillPaths: resourceLoader.getSkills().skills.map(s => s.path),
-        appendSystemPrompt: [subagentInstructions],
+        additionalSkillPaths: resourceLoader.getSkills().skills.map(s => s.baseDir),
+        appendSystemPrompt: [
+          subagentInstructions,
+          `\n\nRuntime Environment:\n${envContext}`
+        ],
       });
       await subResourceLoader.reload();
 

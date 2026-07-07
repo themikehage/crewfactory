@@ -5,7 +5,8 @@ import { SkillsSelector, type SkillInfo } from "./SkillsSelector";
 
 const DEFAULT_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
-  "request_approval", "ask_question", "render_images", "render_chart", "refresh_ui"
+  "request_approval", "ask_question", "render_images", "render_chart", "refresh_ui",
+  "spawn_subagent", "delegate_task"
 ];
 
 export interface MentionTarget {
@@ -63,6 +64,7 @@ export function InputArea({
 }: Props) {
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
+  const [toolStatus, setToolStatus] = useState<Record<string, "available" | "missing_key">>({});
   const [showOptions, setShowOptions] = useState(false);
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
@@ -127,6 +129,7 @@ export function InputArea({
         if (res.ok) {
           const data = await res.json();
           setActiveTools(data.tools ?? DEFAULT_TOOLS);
+          setToolStatus(data.toolStatus ?? {});
         }
       } catch {
         setActiveTools(DEFAULT_TOOLS);
@@ -685,6 +688,7 @@ export function InputArea({
             activeTools={activeTools}
             onChange={handleToolsChange}
             disabled={runnerActive}
+            toolStatus={toolStatus}
           />
         </div>
       </div>

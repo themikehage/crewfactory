@@ -728,6 +728,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
             task={subagentDrawer.task}
             subagentRole={subagentDrawer.role}
             onClose={() => setSubagentDrawer(null)}
+            sessionId={sessionId}
+            activeProjectName={activeProjectName}
+            activeAgentId={activeAgent?.id}
+            activeAgentName={activeAgent?.name}
+            activeAgentAvatarUrl={activeAgent?.avatarUrl}
+            activeChannelId={activeChannel?.id}
           />
         )}
       </AnimatePresence>

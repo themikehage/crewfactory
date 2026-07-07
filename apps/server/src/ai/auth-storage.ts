@@ -1,5 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
+import { encryptEnv, decryptEnv } from "../lib/env-crypto";
 
 export type AuthStatus = {
   configured: boolean;
@@ -25,17 +26,32 @@ export class AuthStorage {
 
   private load(): AuthStorageData {
     if (!existsSync(this.authPath)) return {};
+    const raw = readFileSync(this.authPath, "utf-8");
+    if (!raw.trim()) return {};
+
+    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
     try {
-      return JSON.parse(readFileSync(this.authPath, "utf-8"));
+      const decrypted = decryptEnv(raw, jwtSecret);
+      return JSON.parse(decrypted);
     } catch {
-      return {};
+      try {
+        const parsed = JSON.parse(raw);
+        console.warn(`auth.json at ${this.authPath} is in plaintext. Migrating to encrypted...`);
+        const encrypted = encryptEnv(JSON.stringify(parsed), jwtSecret);
+        writeFileSync(this.authPath, encrypted, "utf-8");
+        return parsed;
+      } catch {
+        return {};
+      }
     }
   }
 
   private save(): void {
     const dir = dirname(this.authPath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    writeFileSync(this.authPath, JSON.stringify(this.data, null, 2), "utf-8");
+    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
+    const encrypted = encryptEnv(JSON.stringify(this.data), jwtSecret);
+    writeFileSync(this.authPath, encrypted, "utf-8");
   }
 
   hasAuth(provider: string): boolean {
