@@ -601,7 +601,7 @@ sessionsRouter.post(
 
     const currentActive = session.getActiveToolNames();
     const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
-    const engramActive = currentActive.filter((tName) => tName.startsWith("engram_"));
+    const memoryActive = currentActive.filter((tName) => tName.startsWith("memory_"));
     const exaActive = currentActive.filter((tName) => tName === "exa_search");
 
     session.setActiveToolsByName(
@@ -609,7 +609,7 @@ sessionsRouter.post(
         new Set([
           ...tools,
           ...mcpActive,
-          ...engramActive,
+          ...memoryActive,
           ...exaActive,
           "request_approval",
           "ask_question",

@@ -9,8 +9,8 @@ export function PluginsPage() {
   const l = useLiterals(u);
   const { navigate } = useRouter();
 
-  const [engramEnabled, setEngramEnabled] = useState(false);
-  const [engramAutoStore, setEngramAutoStore] = useState(false);
+  const [memoryEnabled, setMemoryEnabled] = useState(false);
+  const [memoryAutoStore, setMemoryAutoStore] = useState(false);
 
   // Estado de Exa Search (si está la API Key)
   const [hasExaKey, setHasExaKey] = useState(false);
@@ -38,8 +38,8 @@ export function PluginsPage() {
       const settingsData = await resSettings.json();
       const envData = await resEnv.json();
 
-      setEngramEnabled(settingsData.engramEnabled ?? false);
-      setEngramAutoStore(settingsData.engramAutoStore ?? false);
+      setMemoryEnabled(settingsData.memoryEnabled ?? false);
+      setMemoryAutoStore(settingsData.memoryAutoStore ?? false);
 
       const envList = (envData.env ?? []) as Array<{ key: string }>;
       const exaKeyExists = envList.some((e) => e.key === "EXA_API_KEY");
@@ -60,9 +60,9 @@ export function PluginsPage() {
     fetchData();
   }, []);
 
-  const handleUpdateEngramSettings = async (updates: {
-    engramEnabled?: boolean;
-    engramAutoStore?: boolean;
+  const handleUpdateMemorySettings = async (updates: {
+    memoryEnabled?: boolean;
+    memoryAutoStore?: boolean;
   }) => {
     setSaving(true);
     setSuccessMsg("");
@@ -80,8 +80,8 @@ export function PluginsPage() {
       }
 
       const data = await res.json();
-      setEngramEnabled(data.settings.engramEnabled ?? false);
-      setEngramAutoStore(data.settings.engramAutoStore ?? false);
+      setMemoryEnabled(data.settings.memoryEnabled ?? false);
+      setMemoryAutoStore(data.settings.memoryAutoStore ?? false);
 
       setSuccessMsg(l.saveSuccess);
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -130,7 +130,7 @@ export function PluginsPage() {
         )}
 
         <div className="grid gap-6">
-          {/* Card Engram */}
+          {/* Card Memory */}
           <motion.div
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
@@ -140,16 +140,16 @@ export function PluginsPage() {
             <div className="flex items-start justify-between gap-4">
               <div className="space-y-1">
                 <div className="flex items-center gap-2.5">
-                  <h2 className="text-lg font-bold text-text-primary">{l.cardEngramTitle}</h2>
+                  <h2 className="text-lg font-bold text-text-primary">{l.cardMemoryTitle}</h2>
                   <span
                     className={`px-2 py-0.5 rounded text-2xs font-bold font-mono tracking-wide ${
-                      engramEnabled ? "bg-accent/10 text-accent" : "bg-text-secondary/15 text-text-secondary"
+                      memoryEnabled ? "bg-accent/10 text-accent" : "bg-text-secondary/15 text-text-secondary"
                     }`}
                   >
-                    {engramEnabled ? l.statusEnabled : l.statusDisabled}
+                    {memoryEnabled ? l.statusEnabled : l.statusDisabled}
                   </span>
                 </div>
-                <p className="text-sm text-text-secondary leading-relaxed">{l.cardEngramDesc}</p>
+                <p className="text-sm text-text-secondary leading-relaxed">{l.cardMemoryDesc}</p>
               </div>
             </div>
 
@@ -160,9 +160,9 @@ export function PluginsPage() {
                 <label className="relative inline-flex items-center cursor-pointer">
                   <input
                     type="checkbox"
-                    checked={engramEnabled}
+                    checked={memoryEnabled}
                     disabled={saving}
-                    onChange={(e) => handleUpdateEngramSettings({ engramEnabled: e.target.checked })}
+                    onChange={(e) => handleUpdateMemorySettings({ memoryEnabled: e.target.checked })}
                     className="sr-only peer"
                   />
                   <div className="w-10 h-5 bg-border/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-primary after:border-border after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-accent"></div>
@@ -170,7 +170,7 @@ export function PluginsPage() {
               </div>
 
               {/* Sub-toggles (se muestran con indentación cuando está activo) */}
-              {engramEnabled && (
+              {memoryEnabled && (
                 <motion.div
                   initial={{ opacity: 0, height: 0 }}
                   animate={{ opacity: 1, height: "auto" }}
@@ -182,9 +182,9 @@ export function PluginsPage() {
                     <label className="relative inline-flex items-center cursor-pointer">
                       <input
                         type="checkbox"
-                        checked={engramAutoStore}
+                        checked={memoryAutoStore}
                         disabled={saving}
-                        onChange={(e) => handleUpdateEngramSettings({ engramAutoStore: e.target.checked })}
+                        onChange={(e) => handleUpdateMemorySettings({ memoryAutoStore: e.target.checked })}
                         className="sr-only peer"
                       />
                       <div className="w-8 h-4.5 bg-border/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-primary after:border-border after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-accent"></div>

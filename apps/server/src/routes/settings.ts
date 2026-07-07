@@ -12,9 +12,9 @@ settingsRouter.get("/", (c) => {
 
   // Fallbacks razonables por defecto
   return c.json({
-    engramEnabled: settings.engramEnabled ?? false,
-    engramAutoStore: settings.engramAutoStore ?? false,
-    engramEmbeddings: settings.engramEmbeddings ?? true,
+    memoryEnabled: settings.memoryEnabled ?? false,
+    memoryAutoStore: settings.memoryAutoStore ?? false,
+    memoryEmbeddings: settings.memoryEmbeddings ?? true,
   });
 });
 
@@ -22,21 +22,21 @@ settingsRouter.patch("/", async (c) => {
   const { username } = getAuthPayload(c);
   try {
     const body = await c.req.json<{
-      engramEnabled?: boolean;
-      engramAutoStore?: boolean;
-      engramEmbeddings?: boolean;
+      memoryEnabled?: boolean;
+      memoryAutoStore?: boolean;
+      memoryEmbeddings?: boolean;
     }>();
 
     const updates: Record<string, boolean> = {};
 
-    if (body.engramEnabled !== undefined) {
-      updates.engramEnabled = !!body.engramEnabled;
+    if (body.memoryEnabled !== undefined) {
+      updates.memoryEnabled = !!body.memoryEnabled;
     }
-    if (body.engramAutoStore !== undefined) {
-      updates.engramAutoStore = !!body.engramAutoStore;
+    if (body.memoryAutoStore !== undefined) {
+      updates.memoryAutoStore = !!body.memoryAutoStore;
     }
-    if (body.engramEmbeddings !== undefined) {
-      updates.engramEmbeddings = !!body.engramEmbeddings;
+    if (body.memoryEmbeddings !== undefined) {
+      updates.memoryEmbeddings = !!body.memoryEmbeddings;
     }
 
     sessionManager.saveUserSettings(username, updates);

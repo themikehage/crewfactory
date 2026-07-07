@@ -58,6 +58,18 @@ interface Message {
     diff?: string;
     patch?: string;
     firstChangedLine?: number;
+    totalResults?: number;
+    searchType?: string;
+    results?: Array<{ title?: string; url: string; publishedDate?: string }>;
+    synthesizedOutput?: string;
+    costDollars?: number;
+    count?: number;
+    memories?: Array<{ id: string; type: string; importance: number; content: string; tags?: string[] }>;
+    status?: string;
+    type?: string;
+    importance?: number;
+    tags?: string[];
+    deletedId?: string;
   };
 }
 

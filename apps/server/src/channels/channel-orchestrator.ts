@@ -8,7 +8,7 @@ import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
 import { NegotiationStateMachine } from "./negotiation-state";
 import { TaskLedger } from "./task-ledger";
-import { engramRegistry } from "../core/engram/registry";
+import { memoryRegistry } from "../core/memory/registry";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -598,9 +598,9 @@ class ChannelOrchestrator {
     });
 
     const userSettings = sessionManager.getUserSettings(username);
-    const engramEnabled = userSettings.engramEnabled ?? false;
-    const channelDbPath = `/tmp/crewfactory/${username}/channels/${channelId}/engram/engram.db`;
-    const channelMemory = await engramRegistry.get(`channel:${channelId}`, channelDbPath, engramEnabled);
+    const memoryEnabled = userSettings.memoryEnabled ?? false;
+    const channelDbPath = `/tmp/crewfactory/${username}/channels/${channelId}/memory/memory.db`;
+    const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);
 
     const [agentMemCtx, channelMemCtx] = await Promise.all([
       agentEntry.server.memory.buildContext(incomingMsg.content),
@@ -802,7 +802,7 @@ class ChannelOrchestrator {
     const trimmed = fullResponse.trim();
     const isSilent = this.isSilentContent(trimmed);
 
-    if (engramEnabled && userSettings.engramAutoStore !== false && trimmed && !isSilent) {
+    if (memoryEnabled && userSettings.memoryAutoStore !== false && trimmed && !isSilent) {
       await agentEntry.server.memory.store(
         trimmed.slice(0, 500),
         "episodic",

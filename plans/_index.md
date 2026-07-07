@@ -19,6 +19,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [mcp-marketplace.md](./mcp-marketplace.md) — Marketplace de MCPs estilo Windsurf: galeria de servidores populares, MCPs custom, conexion y exposicion de tools al agente.
 - [mobile-navigation-redesign.md](./mobile-navigation-redesign.md) — Rediseño de navegación mobile estilo Slack iOS: sidebar full-screen, transiciones split-screen, topbar simplificada, touch targets optimizados.
 - [subagent-live-console.md](./subagent-live-console.md) — Consola de subagentes en tiempo real: retransmisión de eventos a través del WebSocket padre, APIs de mensajes históricos y panel React premium (terminal + steps).
+- [tool-visualization-exa-memory.md](./tool-visualization-exa-memory.md) — Rendering estructurado para tools `exa_search` y `engram_store/recall/forget`: iconos, resumen de args/resultado, componentes dedicados con cards para resultados de búsqueda y memorias.
 
 
 ## Completados (25)

@@ -1,8 +1,8 @@
 import type { MemoryProvider, MemoryType } from "./types";
 
-export function createEngramTools(memory: MemoryProvider) {
-  const engramStoreTool = {
-    name: "engram_store",
+export function createMemoryTools(memory: MemoryProvider) {
+  const memoryStoreTool = {
+    name: "memory_store",
     description: "Store a fact, event, or code/architectural pattern into the agent's long-term persistent memory.",
     parameters: {
       type: "object",
@@ -50,8 +50,8 @@ export function createEngramTools(memory: MemoryProvider) {
     },
   };
 
-  const engramRecallTool = {
-    name: "engram_recall",
+  const memoryRecallTool = {
+    name: "memory_recall",
     description: "Search and retrieve query-relevant facts or interactions from the agent's long-term memory.",
     parameters: {
       type: "object",
@@ -96,8 +96,8 @@ export function createEngramTools(memory: MemoryProvider) {
     },
   };
 
-  const engramForgetTool = {
-    name: "engram_forget",
+  const memoryForgetTool = {
+    name: "memory_forget",
     description: "Forget or delete a specific memory using its memory ID.",
     parameters: {
       type: "object",
@@ -122,5 +122,5 @@ export function createEngramTools(memory: MemoryProvider) {
     },
   };
 
-  return [engramStoreTool, engramRecallTool, engramForgetTool];
+  return [memoryStoreTool, memoryRecallTool, memoryForgetTool];
 }

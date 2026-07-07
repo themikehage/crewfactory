@@ -119,7 +119,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false, toolSta
           </div>
           <div className="space-y-2">
             {ALL_TOOLS.map((t) => {
-              const isGated = t.gateKey && toolStatus?.[t.id] === "missing_key";
+              const isGated = !!(t.gateKey && toolStatus?.[t.id] === "missing_key");
               const checked = activeTools.includes(t.id);
               const isToolDisabled = disabled || isGated;
 

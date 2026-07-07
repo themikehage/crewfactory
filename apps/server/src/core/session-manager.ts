@@ -24,8 +24,8 @@ import { encryptEnv, decryptEnv } from "../lib/env-crypto";
 import { filterSecretsFromOutput } from "./bash-output-filter";
 import { getEnvironmentContext } from "./env-check";
 import { createExaSearchTool } from "./exa-search-tool";
-import { engramRegistry } from "./engram/registry";
-import { createEngramTools } from "./engram/engram-tools";
+import { memoryRegistry } from "./memory/registry";
+import { createMemoryTools } from "./memory/memory-tools";
 
 export function getResolvedSkillPaths(cwd: string, username?: string): string[] {
   const paths: string[] = [];
@@ -471,10 +471,10 @@ class SessionManager {
 
     const exaSearchTool = createExaSearchTool({ username });
     const userSettings = this.getUserSettings(username);
-    const engramEnabled = userSettings.engramEnabled ?? false;
-    const engramDbPath = join(userDir, "sessions", sessionId, "engram", "engram.db");
-    const memory = await engramRegistry.get(`session:${sessionId}`, engramDbPath, engramEnabled);
-    const engramTools = engramEnabled ? createEngramTools(memory) : [];
+    const memoryEnabled = userSettings.memoryEnabled ?? false;
+    const memoryDbPath = join(userDir, "sessions", sessionId, "memory", "memory.db");
+    const memory = await memoryRegistry.get(`session:${sessionId}`, memoryDbPath, memoryEnabled);
+    const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
 
     const uiTools = createUiTools(workspaceDir, username, false, {
       workspaceDir,
@@ -490,7 +490,7 @@ class SessionManager {
       authStorage,
       modelRegistry,
       resourceLoader,
-      customTools: [customBashTool as any, ...uiTools as any, exaSearchTool as any, ...engramTools as any],
+      customTools: [customBashTool as any, ...uiTools as any, exaSearchTool as any, ...memoryTools as any],
     });
 
     const userEnv = this.getUserEnv(username);
@@ -521,10 +521,10 @@ class SessionManager {
       "exa_search",
       ...alwaysOnTools,
     ]);
-    if (engramEnabled) {
-      definedToolNames.add("engram_store");
-      definedToolNames.add("engram_recall");
-      definedToolNames.add("engram_forget");
+    if (memoryEnabled) {
+      definedToolNames.add("memory_store");
+      definedToolNames.add("memory_recall");
+      definedToolNames.add("memory_forget");
     }
 
     const combinedTools = Array.from(new Set([
@@ -715,7 +715,7 @@ class SessionManager {
       this.sessions.delete(key);
     }
     mcpRegistry.stopSessionMcpTools(username, sessionId);
-    await engramRegistry.shutdown(`session:${sessionId}`);
+    await memoryRegistry.shutdown(`session:${sessionId}`);
     const userDir = this.ensureUserDir(username);
     const sessionDir = join(userDir, "sessions", sessionId);
     if (existsSync(sessionDir)) {

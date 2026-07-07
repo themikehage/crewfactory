@@ -4,8 +4,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
   en: {
     pluginsTitle: "Add-ons & Plugins",
     pluginsSubtitle: "Extend the capabilities of your agents with persistent memory and advanced web search integrations.",
-    cardEngramTitle: "Persistent Agent Memory",
-    cardEngramDesc: "Gives agents long-term memory using local SQLite with full-text search (FTS5). Store facts, events, and patterns — retrieved by relevance. 100% local, zero external calls.",
+    cardMemoryTitle: "Persistent Agent Memory",
+    cardMemoryDesc: "Gives agents long-term memory using local SQLite with full-text search (FTS5). Store facts, events, and patterns — retrieved by relevance. 100% local, zero external calls.",
     cardExaTitle: "Exa Neural Web Search",
     cardExaDesc: "Enables agents to perform grounded web search with neural embeddings, excerpt extraction, and structured synthesis.",
     statusEnabled: "Active",
@@ -25,8 +25,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
   es: {
     pluginsTitle: "Add-ons y Plugins",
     pluginsSubtitle: "Extiende las capacidades de tus agentes con memoria persistente e integraciones avanzadas de búsqueda web.",
-    cardEngramTitle: "Memoria Persistente para Agentes",
-    cardEngramDesc: "Otorga a los agentes memoria a largo plazo mediante SQLite local con búsqueda de texto completo (FTS5). Guarda hechos, eventos y patrones — recuperados por relevancia. 100% local, sin llamadas externas.",
+    cardMemoryTitle: "Memoria Persistente para Agentes",
+    cardMemoryDesc: "Otorga a los agentes memoria a largo plazo mediante SQLite local con búsqueda de texto completo (FTS5). Guarda hechos, eventos y patrones — recuperados por relevancia. 100% local, sin llamadas externas.",
     cardExaTitle: "Búsqueda Web Neural (Exa)",
     cardExaDesc: "Permite a los agentes realizar búsquedas web basadas en contexto con embeddings neuronales, extracción de citas y síntesis estructurada.",
     statusEnabled: "Activo",

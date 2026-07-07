@@ -12,6 +12,8 @@ import { AskQuestionForm } from "./AskQuestionForm";
 import { ImageGrid } from "../ImageGrid";
 import { HtmlPreview } from "../HtmlPreview";
 import { ShareFileCard } from "./ShareFileCard";
+import { ExaSearchResult } from "./ExaSearchResult";
+import { MemoryResult } from "./MemoryResult";
 import { useLiterals } from "@/lib";
 import { literals } from "./ToolCallRow.literals";
 
@@ -30,6 +32,18 @@ export interface ToolResultData {
     diff?: string;
     patch?: string;
     firstChangedLine?: number;
+    totalResults?: number;
+    searchType?: string;
+    results?: Array<{ title?: string; url: string; publishedDate?: string }>;
+    synthesizedOutput?: string;
+    costDollars?: number;
+    count?: number;
+    memories?: Array<{ id: string; type: string; importance: number; content: string; tags?: string[] }>;
+    status?: string;
+    type?: string;
+    importance?: number;
+    tags?: string[];
+    deletedId?: string;
   };
 }
 
@@ -194,6 +208,51 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  exa_search: {
+    label: "exa_search",
+    colorClass: "text-highlight",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="11" cy="11" r="7" />
+        <line x1="21" y1="21" x2="16.65" y2="16.65" />
+        <path d="M8 11h6" />
+        <path d="M11 8v6" />
+      </svg>
+    ),
+  },
+  memory_store: {
+    label: "memory_store",
+    colorClass: "text-accent",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a4 4 0 0 1 4 4v1a3 3 0 0 1 3 3v2a3 3 0 0 1-1.5 2.6A4 4 0 0 1 14 18h-4a4 4 0 0 1-3.5-3.4A3 3 0 0 1 5 12v-2a3 3 0 0 1 3-3V6a4 4 0 0 1 4-4z" />
+        <line x1="12" y1="18" x2="12" y2="22" />
+        <line x1="9" y1="22" x2="15" y2="22" />
+      </svg>
+    ),
+  },
+  memory_recall: {
+    label: "memory_recall",
+    colorClass: "text-accent",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a4 4 0 0 1 4 4v1a3 3 0 0 1 3 3v2a3 3 0 0 1-1.5 2.6A4 4 0 0 1 14 18h-4a4 4 0 0 1-3.5-3.4A3 3 0 0 1 5 12v-2a3 3 0 0 1 3-3V6a4 4 0 0 1 4-4z" />
+        <circle cx="18" cy="18" r="3" />
+        <line x1="20.5" y1="20.5" x2="22" y2="22" />
+      </svg>
+    ),
+  },
+  memory_forget: {
+    label: "memory_forget",
+    colorClass: "text-error",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2a4 4 0 0 1 4 4v1a3 3 0 0 1 3 3v2a3 3 0 0 1-1.5 2.6A4 4 0 0 1 14 18h-4a4 4 0 0 1-3.5-3.4A3 3 0 0 1 5 12v-2a3 3 0 0 1 3-3V6a4 4 0 0 1 4-4z" />
+        <line x1="15" y1="15" x2="21" y2="21" />
+        <line x1="21" y1="15" x2="15" y2="21" />
+      </svg>
+    ),
+  },
 };
 
 function getArgSummary(toolName: string, args: Record<string, unknown>, l: Record<string, string>): string {
@@ -235,6 +294,19 @@ function getArgSummary(toolName: string, args: Record<string, unknown>, l: Recor
       const cleanTask = task.length > 35 ? task.slice(0, 35) + "…" : task;
       return `[${type}: ${target}] ${cleanTask}`;
     }
+    case "exa_search": {
+      const q = (args.query as string) || "";
+      return q.length > 60 ? q.slice(0, 60) + "…" : q;
+    }
+    case "memory_recall": {
+      const q = (args.query as string) || "";
+      return q.length > 60 ? q.slice(0, 60) + "…" : q;
+    }
+    case "memory_store": {
+      const c = (args.content as string) || "";
+      return c.length > 50 ? c.slice(0, 50) + "…" : c;
+    }
+    case "memory_forget": return (args.id as string) || "";
     default: return JSON.stringify(args).slice(0, 50);
   }
 }
@@ -278,6 +350,16 @@ function getResultSummary(toolName: string, result: ToolResultData, l: Record<st
     case "refresh_ui": return l.resRefreshed;
     case "spawn_subagent": return l.resCompleted;
     case "delegate_task": return l.resCompleted;
+    case "exa_search": {
+      const n = result.details?.totalResults ?? 0;
+      return `${n} ${n !== 1 ? l.resExaResults : l.resExaResult}`;
+    }
+    case "memory_recall": {
+      const n = result.details?.count ?? 0;
+      return `${n} ${n !== 1 ? l.resMemories : l.resMemory}`;
+    }
+    case "memory_store": return l.resStored;
+    case "memory_forget": return l.resForgotten;
     default: return "done";
   }
 }
@@ -429,6 +511,14 @@ function ToolBody({
           <span>{l.bodyWorkspaceRefreshed}{String(args.entityType)}</span>
         </div>
       );
+    case "exa_search":
+      return <ExaSearchResult text={text} details={result?.details} l={l} />;
+    case "memory_recall":
+      return <MemoryResult mode="recall" details={result?.details} l={l} />;
+    case "memory_store":
+      return <MemoryResult mode="store" args={args} details={result?.details} l={l} />;
+    case "memory_forget":
+      return <MemoryResult mode="forget" details={result?.details} l={l} />;
     default:
       return (
         <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
@@ -465,7 +555,10 @@ export function ToolCallRow({
       toolName === "render_chart" ||
       toolName === "share_file" ||
       toolName === "spawn_subagent" ||
-      toolName === "delegate_task"
+      toolName === "delegate_task" ||
+      toolName === "exa_search" ||
+      toolName === "memory_recall" ||
+      toolName === "memory_store"
     )
   );
 
@@ -485,6 +578,10 @@ export function ToolCallRow({
       case "refresh_ui": return l.labelRefresh;
       case "spawn_subagent": return l.labelSubagent;
       case "delegate_task": return l.labelDelegation;
+      case "exa_search": return l.labelExaSearch;
+      case "memory_recall":
+      case "memory_store":
+      case "memory_forget": return l.labelMemory;
       default: return name;
     }
   };

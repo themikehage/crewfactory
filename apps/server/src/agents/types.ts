@@ -1,7 +1,7 @@
 import type { AgentDefinition, AgentStatus } from "shared";
 import type { AgentSession } from "../ai";
 import type { Hono } from "hono";
-import type { MemoryProvider } from "../core/engram/types";
+import type { MemoryProvider } from "../core/memory/types";
 
 export interface AgentServer {
   definition: AgentDefinition;

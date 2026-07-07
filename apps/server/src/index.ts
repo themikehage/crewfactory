@@ -20,7 +20,7 @@ import { logsRouter } from "./routes/logs";
 import { mcpRouter } from "./routes/mcp";
 import { experimentsRouter } from "./routes/experiments";
 import { settingsRouter } from "./routes/settings";
-import { engramRegistry } from "./core/engram/registry";
+import { memoryRegistry } from "./core/memory/registry";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
 
@@ -91,14 +91,14 @@ console.log(`Server running at http://0.0.0.0:${server.port}`);
 if (!PREVIEW_HOST) startPreviewServer();
 
 process.on("SIGTERM", async () => {
-  console.log("SIGTERM received, shutting down engram brains...");
-  await engramRegistry.shutdownAll();
+  console.log("SIGTERM received, shutting down memory providers...");
+  await memoryRegistry.shutdownAll();
   process.exit(0);
 });
 
 process.on("SIGINT", async () => {
-  console.log("SIGINT received, shutting down engram brains...");
-  await engramRegistry.shutdownAll();
+  console.log("SIGINT received, shutting down memory providers...");
+  await memoryRegistry.shutdownAll();
   process.exit(0);
 });
 

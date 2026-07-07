@@ -17,8 +17,8 @@ import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "..
 import jwt from "jsonwebtoken";
 import { filterSecretsFromOutput } from "../core/bash-output-filter";
 import { getEnvironmentContext } from "../core/env-check";
-import { engramRegistry } from "../core/engram/registry";
-import { createEngramTools } from "../core/engram/engram-tools";
+import { memoryRegistry } from "../core/memory/registry";
+import { createMemoryTools } from "../core/memory/memory-tools";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -40,9 +40,9 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const sessionDir = join(agentDir, "sessions", "main");
 
   const userSettings = coreSessionManager.getUserSettings(username);
-  const engramEnabled = userSettings.engramEnabled ?? false;
-  const engramDbPath = join(agentDir, "engram", "engram.db");
-  const memory = await engramRegistry.get(`agent:${definition.id}`, engramDbPath, engramEnabled);
+  const memoryEnabled = userSettings.memoryEnabled ?? false;
+  const memoryDbPath = join(agentDir, "memory", "memory.db");
+  const memory = await memoryRegistry.get(`agent:${definition.id}`, memoryDbPath, memoryEnabled);
 
   if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
 
@@ -134,7 +134,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     resourceLoader,
   });
 
-  const engramTools = engramEnabled ? createEngramTools(memory) : [];
+  const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
 
   const { session } = await createAgentSession({
     cwd: workspaceDir,
@@ -142,7 +142,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     authStorage,
     modelRegistry,
     resourceLoader,
-    customTools: [customBashTool as any, ...uiTools as any, ...engramTools as any],
+    customTools: [customBashTool as any, ...uiTools as any, ...memoryTools as any],
   });
   
   const activeToolNames = [
@@ -157,8 +157,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     "spawn_subagent",
     "delegate_task"
   ];
-  if (engramEnabled) {
-    activeToolNames.push("engram_store", "engram_recall", "engram_forget");
+  if (memoryEnabled) {
+    activeToolNames.push("memory_store", "memory_recall", "memory_forget");
   }
   session.setActiveToolsByName(activeToolNames);
 

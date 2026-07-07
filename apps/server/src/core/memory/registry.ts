@@ -43,4 +43,4 @@ class MemoryRegistry {
   }
 }
 
-export const engramRegistry = new MemoryRegistry();
+export const memoryRegistry = new MemoryRegistry();
