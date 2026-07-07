@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import { ThinkingBlock, AssistantTextBlock } from "../MessageBlocks";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
 
@@ -42,16 +42,17 @@ export function SubagentConsole({
   const [steps, setSteps] = useState<ConsoleStep[]>([]);
   const [status, setStatus] = useState<string>("running");
   const [isAborting, setIsAborting] = useState(false);
+  const [activeTab, setActiveTab] = useState<"execution" | "tools">("execution");
   const terminalEndRef = useRef<HTMLDivElement>(null);
   const terminalContainerRef = useRef<HTMLDivElement>(null);
+  const toolsContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    // 1. Fetch historical messages
     const fetchHistory = async () => {
       try {
         const token = localStorage.getItem("token");
         const res = await fetch(`/api/sessions/${parentId}/subagents/${toolCallId}/messages`, {
-          headers: { Authorization: `Bearer ${token}` }
+          headers: { Authorization: `Bearer ${token}` },
         });
         if (res.ok) {
           const data = await res.json();
@@ -59,12 +60,14 @@ export function SubagentConsole({
             setStatus(data.metadata.status || "success");
           }
           if (data.messages) {
-            const flatMessages = data.messages.map((m: any) => {
-              if (m.type === "message" && m.message) {
-                return m.message;
-              }
-              return m;
-            }).filter((m: any) => m.role === "user" || m.role === "assistant");
+            const flatMessages = data.messages
+              .map((m: any) => {
+                if (m.type === "message" && m.message) {
+                  return m.message;
+                }
+                return m;
+              })
+              .filter((m: any) => m.role === "user" || m.role === "assistant");
 
             setMessages(flatMessages);
             const loadedSteps: ConsoleStep[] = [];
@@ -93,7 +96,6 @@ export function SubagentConsole({
   }, [parentId, toolCallId]);
 
   useEffect(() => {
-    // 2. Listen to WebSocket events in real-time
     const handleEvent = (event: Event) => {
       const customEvt = event as CustomEvent;
       const evt = customEvt.detail;
@@ -133,8 +135,8 @@ export function SubagentConsole({
             id: evt.toolCallId,
             name: evt.toolName,
             args: evt.args,
-            status: "running"
-          }
+            status: "running",
+          },
         ]);
       } else if (evt.type === "tool_execution_end") {
         setSteps((prev) =>
@@ -160,10 +162,8 @@ export function SubagentConsole({
   }, [toolCallId]);
 
   useEffect(() => {
-    // Auto-scroll terminal container
     if (terminalContainerRef.current) {
-      const container = terminalContainerRef.current;
-      container.scrollTop = container.scrollHeight;
+      terminalContainerRef.current.scrollTop = terminalContainerRef.current.scrollHeight;
     }
   }, [messages, steps]);
 
@@ -173,7 +173,7 @@ export function SubagentConsole({
       const token = localStorage.getItem("token");
       await fetch(`/api/sessions/${parentId}/subagents/${toolCallId}/abort`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` }
+        headers: { Authorization: `Bearer ${token}` },
       });
       setStatus("blocked");
     } catch (err) {
@@ -202,182 +202,251 @@ export function SubagentConsole({
     }
     if (status === "blocked") {
       return (
-        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/10 text-red-500">
-          <span className="w-1.5 h-1.5 rounded-full bg-red-500" />
+        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-error/10 text-error">
+          <span className="w-1.5 h-1.5 rounded-full bg-error" />
           ABORTED
         </span>
       );
     }
     return (
-      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-600/15 text-red-500">
-        <span className="w-1.5 h-1.5 rounded-full bg-red-600" />
+      <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-error/15 text-error">
+        <span className="w-1.5 h-1.5 rounded-full bg-error" />
         ERROR
       </span>
     );
   };
 
   return (
-    <motion.div
-      initial={{ x: "100%" }}
-      animate={{ x: 0 }}
-      exit={{ x: "100%" }}
-      transition={{ duration: 0.2, ease: "easeInOut" }}
-      className="w-85 sm:w-110 flex flex-col h-full bg-card border-l border-border flex-shrink-0 relative z-20 shadow-2xl"
-    >
-      {/* Header */}
-      <div className="h-12 border-b border-border flex items-center justify-between px-3 flex-shrink-0 bg-card/60 backdrop-blur-xs">
-        <div className="flex items-center gap-2">
-          <span className="text-xs font-mono font-bold text-text-primary">Subagente Consola</span>
-          {getStatusBadge()}
-        </div>
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        exit={{ opacity: 0 }}
+        transition={{ duration: 0.2 }}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 bg-background/80 backdrop-blur-sm"
+        onClick={(e) => {
+          if (e.target === e.currentTarget) onClose();
+        }}
+      >
+        <motion.div
+          initial={{ scale: 0.96, opacity: 0 }}
+          animate={{ scale: 1, opacity: 1 }}
+          exit={{ scale: 0.96, opacity: 0 }}
+          transition={{ duration: 0.2, ease: "easeOut" }}
+          className="w-full max-w-5xl h-[90vh] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="h-13 border-b border-border flex items-center justify-between px-4 flex-shrink-0 bg-card/80 backdrop-blur-sm">
+            <div className="flex items-center gap-3">
+              <span className="text-sm font-mono font-bold text-text-primary">Subagente Consola</span>
+              {getStatusBadge()}
+            </div>
 
-        <div className="flex items-center gap-2">
-          {status === "running" && (
-            <button
-              onClick={handleAbort}
-              disabled={isAborting}
-              className="bg-destructive hover:bg-destructive/80 text-destructive-foreground px-2 py-0.5 rounded-md text-[10px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
-            >
-              {isAborting ? "Aborting..." : "Abort"}
-            </button>
-          )}
-          <button
-            onClick={onClose}
-            className="text-muted-foreground hover:text-foreground p-1 cursor-pointer transition-colors"
-          >
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Body content */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-4 min-h-0">
-        
-        {/* Subagent Meta Details */}
-        <div className="rounded-lg bg-surface border border-border p-3 flex flex-col gap-1.5 flex-shrink-0">
-          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">Rol Asignado</div>
-          <div className="text-xs text-text-primary font-mono">{subagentRole || "Executor General"}</div>
-          
-          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground mt-2">Objetivo del Spawning</div>
-          <div className="text-xs text-text-primary leading-relaxed bg-bg border border-border p-2 rounded-md max-h-24 overflow-y-auto whitespace-pre-wrap font-mono select-text">
-            {task}
-          </div>
-        </div>
-
-        {/* Steps Ledger Timeline */}
-        {steps.length > 0 && (
-          <div className="flex flex-col gap-2 flex-shrink-0">
-            <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground px-1">Llamadas a Herramientas ({steps.length})</div>
-            <div className="flex flex-col gap-1.5 bg-surface border border-border rounded-lg p-2.5">
-              {steps.map((step, idx) => (
-                <div key={idx} className="flex items-center gap-2 text-[11px] font-mono">
-                  {step.status === "running" ? (
-                    <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
-                  ) : step.status === "error" ? (
-                    <span className="w-2 h-2 rounded-full bg-destructive" />
-                  ) : (
-                    <span className="w-2 h-2 rounded-full bg-success" />
-                  )}
-                  <span className="font-bold text-muted-foreground">{step.name}</span>
-                  <span className="text-muted-foreground truncate max-w-40">
-                    {step.args ? JSON.stringify(step.args) : ""}
-                  </span>
-                </div>
-              ))}
+            <div className="flex items-center gap-2">
+              {status === "running" && (
+                <button
+                  onClick={handleAbort}
+                  disabled={isAborting}
+                  className="bg-destructive hover:bg-destructive/80 text-destructive-foreground px-3 py-1 rounded-md text-[11px] font-semibold transition-all disabled:opacity-50 cursor-pointer"
+                >
+                  {isAborting ? "Aborting..." : "Abort"}
+                </button>
+              )}
+              <button
+                onClick={onClose}
+                className="text-muted-foreground hover:text-foreground p-1.5 rounded-lg hover:bg-card-hover/40 cursor-pointer transition-colors"
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
             </div>
           </div>
-        )}
 
-        {/* Terminal logs block */}
-        <div className="flex-1 flex flex-col min-h-24">
-          <div className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground px-1 mb-1.5">Consola de Ejecución</div>
-          <div 
-            ref={terminalContainerRef}
-            className="flex-1 rounded-lg bg-bg border border-border p-3 overflow-y-auto font-mono text-[11px] leading-relaxed text-text-primary flex flex-col gap-2 select-text"
-          >
-            {messages.length === 0 ? (
-              <div className="text-muted-foreground italic">Iniciando subagente, esperando logs...</div>
+          <div className="flex items-center gap-1 px-4 pt-3 pb-2 border-b border-border/40 flex-shrink-0">
+            <button
+              onClick={() => setActiveTab("execution")}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer ${
+                activeTab === "execution"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card-hover/30"
+              }`}
+            >
+              Ejecución
+            </button>
+            <button
+              onClick={() => setActiveTab("tools")}
+              className={`px-3 py-1.5 rounded-md text-xs font-semibold transition-all cursor-pointer flex items-center gap-1.5 ${
+                activeTab === "tools"
+                  ? "bg-muted text-foreground"
+                  : "text-muted-foreground hover:text-foreground hover:bg-card-hover/30"
+              }`}
+            >
+              Herramientas
+              {steps.length > 0 && (
+                <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                  activeTab === "tools" ? "bg-card border border-border text-muted-foreground" : "bg-muted text-muted-foreground"
+                }`}>
+                  {steps.length}
+                </span>
+              )}
+            </button>
+          </div>
+
+          <div className="flex-1 flex min-h-0">
+            {activeTab === "execution" ? (
+              <div className="flex-1 flex flex-col min-h-0">
+                {messages.length === 0 ? (
+                  <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground min-h-0">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                    <span className="text-xs font-mono">Iniciando subagente, esperando logs...</span>
+                  </div>
+                ) : (
+                  <div
+                    ref={terminalContainerRef}
+                    className="flex-1 overflow-y-auto min-h-0 px-6 py-4 font-mono text-[12px] leading-relaxed text-text-primary flex flex-col gap-3"
+                  >
+                      {messages.map((msg, idx) => {
+                        if (msg.role === "user") {
+                          return (
+                            <motion.div
+                              key={idx}
+                              initial={{ opacity: 0, y: 4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              transition={{ duration: 0.15 }}
+                              className="flex gap-3 items-start"
+                            >
+                              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mt-0.5">
+                                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className="text-primary">
+                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <div className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1">User Prompt</div>
+                                <div className="text-text-secondary leading-relaxed bg-surface/30 rounded-lg px-3 py-2 border border-border/20">
+                                  Prompt recibido por el subagente.
+                                </div>
+                              </div>
+                            </motion.div>
+                          );
+                        }
+
+                        let thinkingText = "";
+                        let outputText = "";
+
+                        if (typeof msg.content === "string") {
+                          outputText = msg.content;
+                        } else if (Array.isArray(msg.content)) {
+                          const thinkingBlock = msg.content.find((c: any) => c.type === "thinking");
+                          const textBlock = msg.content.find((c: any) => c.type === "text");
+                          if (thinkingBlock) thinkingText = thinkingBlock.thinking || "";
+                          if (textBlock) outputText = textBlock.text || "";
+                        }
+
+                        return (
+                          <motion.div
+                            key={idx}
+                            initial={{ opacity: 0, y: 4 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.15 }}
+                            className="flex gap-3 items-start"
+                          >
+                            <div className="flex-shrink-0 mt-0.5">
+                              <AgentAvatar
+                                name={activeAgentName || "Subagent"}
+                                avatarUrl={activeAgentAvatarUrl}
+                                size="sm"
+                              />
+                            </div>
+                            <div className="flex-1 min-w-0 space-y-1.5">
+                              <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
+                                {activeAgentName || "Subagent"}
+                              </div>
+                              <div className="text-text-primary leading-relaxed">
+                                {thinkingText && <ThinkingBlock thinking={thinkingText} />}
+                                {outputText && (
+                                  <AssistantTextBlock
+                                    text={outputText}
+                                    sessionId={sessionId}
+                                    activeProjectName={activeProjectName}
+                                    activeAgentId={activeAgentId}
+                                    activeChannelId={activeChannelId}
+                                  />
+                                )}
+                              </div>
+                            </div>
+                          </motion.div>
+                        );
+                      })}
+                      <div ref={terminalEndRef} />
+                    </div>
+                  )}
+
+                <div className="flex-shrink-0 border-t border-border/40 px-4 py-2.5 flex items-center gap-4 text-[11px] text-muted-foreground font-mono bg-card/50">
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold">Rol:</span>
+                    <span className="text-text-primary">{subagentRole || "Executor General"}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5 flex-1 min-w-0">
+                    <span className="text-[10px] uppercase tracking-wider font-semibold flex-shrink-0">Objetivo:</span>
+                    <span className="text-text-primary truncate">{task}</span>
+                  </div>
+                </div>
+              </div>
             ) : (
-              messages.map((msg, idx) => {
-                if (msg.role === "user") {
-                  return (
-                    <motion.div
-                      key={idx}
-                      initial={{ opacity: 0, y: 4 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ duration: 0.15 }}
-                      className="flex gap-2 items-start"
-                    >
-                      <div className="flex-shrink-0 w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center mt-0.5">
-                        <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className="text-primary">
-                          <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                        </svg>
-                      </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-0.5">User Prompt</div>
-                        <div className="text-[11px] text-text-secondary leading-relaxed bg-surface/50 rounded-lg px-2.5 py-1.5 border border-border/40">
-                          Prompt recibido por el subagente.
+              <div
+                ref={toolsContainerRef}
+                className="flex-1 overflow-y-auto px-6 py-4"
+              >
+                {steps.length === 0 ? (
+                  <div className="flex items-center justify-center h-full text-muted-foreground text-xs font-mono">
+                    No se han ejecutado herramientas todavía.
+                  </div>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    {steps.map((step, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-3 px-3 py-2.5 rounded-lg hover:bg-card-hover/20 transition-colors group"
+                      >
+                        {step.status === "running" ? (
+                          <span className="w-2.5 h-2.5 rounded-full bg-warning animate-pulse flex-shrink-0" />
+                        ) : step.status === "error" ? (
+                          <span className="w-2.5 h-2.5 rounded-full bg-destructive flex-shrink-0" />
+                        ) : (
+                          <span className="w-2.5 h-2.5 rounded-full bg-success flex-shrink-0" />
+                        )}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2">
+                            <span className="font-bold text-foreground font-mono text-[12px]">{step.name}</span>
+                            <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded ${
+                              step.status === "running" ? "bg-warning/10 text-warning" :
+                              step.status === "error" ? "bg-destructive/10 text-destructive" :
+                              "bg-success/10 text-success"
+                            }`}>
+                              {step.status.toUpperCase()}
+                            </span>
+                          </div>
+                          {step.args && (
+                            <div className="text-[11px] text-muted-foreground font-mono mt-0.5 truncate max-w-2xl opacity-0 group-hover:opacity-100 transition-opacity">
+                              {JSON.stringify(step.args)}
+                            </div>
+                          )}
+                          {step.result && step.status !== "running" && (
+                            <div className="text-[11px] text-muted-foreground font-mono mt-1 bg-muted/50 rounded px-2 py-1.5 max-h-32 overflow-y-auto whitespace-pre-wrap">
+                              {typeof step.result === "string" ? step.result.slice(0, 500) : JSON.stringify(step.result).slice(0, 500)}
+                            </div>
+                          )}
                         </div>
                       </div>
-                    </motion.div>
-                  );
-                }
-
-                let thinkingText = "";
-                let outputText = "";
-
-                if (typeof msg.content === "string") {
-                  outputText = msg.content;
-                } else if (Array.isArray(msg.content)) {
-                  const thinkingBlock = msg.content.find((c: any) => c.type === "thinking");
-                  const textBlock = msg.content.find((c: any) => c.type === "text");
-                  if (thinkingBlock) thinkingText = thinkingBlock.thinking || "";
-                  if (textBlock) outputText = textBlock.text || "";
-                }
-
-                return (
-                  <motion.div
-                    key={idx}
-                    initial={{ opacity: 0, y: 4 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ duration: 0.15 }}
-                    className="flex gap-2 items-start"
-                  >
-                    <div className="flex-shrink-0 mt-0.5">
-                      <AgentAvatar
-                        name={activeAgentName || "Subagent"}
-                        avatarUrl={activeAgentAvatarUrl}
-                        size="sm"
-                      />
-                    </div>
-                    <div className="flex-1 min-w-0 space-y-1">
-                      <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
-                        {activeAgentName || "Subagent"}
-                      </div>
-                      <div className="text-text-primary leading-relaxed text-[11px]">
-                        {thinkingText && <ThinkingBlock thinking={thinkingText} />}
-                        {outputText && (
-                          <AssistantTextBlock
-                            text={outputText}
-                            sessionId={sessionId}
-                            activeProjectName={activeProjectName}
-                            activeAgentId={activeAgentId}
-                            activeChannelId={activeChannelId}
-                          />
-                        )}
-                      </div>
-                    </div>
-                  </motion.div>
-                );
-              })
+                    ))}
+                  </div>
+                )}
+              </div>
             )}
-            <div ref={terminalEndRef} />
           </div>
-        </div>
-
-      </div>
-    </motion.div>
+        </motion.div>
+      </motion.div>
+    </AnimatePresence>
   );
 }

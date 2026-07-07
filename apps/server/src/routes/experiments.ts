@@ -80,7 +80,7 @@ You must output a JSON object representing:
 
 DESIGN PRINCIPLES FOR HIERARCHICAL TEAMS:
 - EXACTLY ONE agent must be the leader (role: "lead").
-- The leader coordinates the debate. In their systemPrompt (which must be written in Spanish), instruct them to define the initial strategy, delegate tasks to specific team members using the format "DELEGATE: @agent-id — task description", collect inputs, and write "ACUERDO ALCANZADO." to finalize the work.
+- The leader coordinates the debate. In their systemPrompt (which must be written in Spanish), instruct them to define the initial strategy, coordinate tasks with specific team members by mentioning them (e.g., "@agent-id"), collect inputs, and write "ACUERDO ALCANZADO." to finalize the work.
 - The leader's replyMode must be "user-only".
 - The other agents (role: "member" or "senior") must act as specialists. In their systemPrompt (which must be written in Spanish), instruct them to focus exclusively on their assigned task, reply directly to the leader, explicitly mention the leader (e.g. "@leader-agent-id") at the end of their messages to invoke them, and return exactly "(silent)" if they have no tasks assigned or if consensus has been reached.
 - The other agents' replyMode must be "targeted", and their targetAgentIds array MUST contain ONLY the leader's agentId.

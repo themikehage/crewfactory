@@ -285,90 +285,70 @@ export function LogsConsolePage({
   const renderLogLine = (log: GlobalLogEvent, idx: number) => {
     const sourceColor = log.sourceType === "channel" ? "text-purple-400" : "text-blue-400";
     const sourceLabel = log.sourceType === "channel" ? l.labelSourceChannel : l.labelSourceSession;
+    const timestamp = new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+    const sourceName = log.sourceName || log.sourceId.substring(0, 8);
+
+    const renderContent = () => {
+      switch (log.eventType) {
+        case "user_message":
+          return (
+            <span>
+              <span className="font-semibold text-muted-foreground">{l.labelUser}</span>: "{log.detail}"
+            </span>
+          );
+        case "agent_message":
+          return (
+            <span>
+              <span className="font-semibold text-purple-400">{l.labelResponse}</span>: "{log.detail}"
+            </span>
+          );
+        case "agent_start":
+          return <span className="text-success/80 italic">Iniciando respuesta...</span>;
+        case "agent_end":
+          return <span className="text-muted-foreground italic">Finalizo respuesta.</span>;
+        case "text_delta":
+          return (
+            <span>
+              <span className="font-semibold text-muted-foreground">{l.labelWriting}</span>: {log.detail}
+            </span>
+          );
+        case "thinking_delta":
+          return (
+            <span className="text-primary/60">
+              <span className="font-semibold text-primary/80">{l.labelThinking}</span>: {log.detail}
+            </span>
+          );
+        case "tool_start":
+          return (
+            <span className="text-warning/80">
+              <span className="font-bold">{l.labelToolStart}</span>: <span className="text-warning font-mono">{log.detail.toolName}</span>
+              <span className="text-muted-foreground"> ({JSON.stringify(log.detail.args)})</span>
+            </span>
+          );
+        case "tool_end":
+          return (
+            <span className={log.detail.isError ? "text-destructive/80" : "text-success/80"}>
+              <span className="font-bold">{l.labelToolEnd}</span>: <span className={log.detail.isError ? "text-destructive font-mono" : "text-success font-mono"}>{log.detail.toolName}</span>
+              <span className="text-muted-foreground"> ({log.detail.isError ? l.toolError : l.toolSuccess}{!log.detail.isError && log.detail.result ? ` - ${typeof log.detail.result === "string" ? log.detail.result.slice(0, 120) : JSON.stringify(log.detail.result).slice(0, 120)}` : ""}{log.detail.isError && log.detail.result ? ` - ${String(log.detail.result)}` : ""})</span>
+            </span>
+          );
+        case "error":
+          return <span className="text-destructive font-semibold">Error: {log.detail}</span>;
+        default:
+          return <span className="text-muted-foreground">{log.detail || log.eventType}</span>;
+      }
+    };
 
     return (
-      <div key={idx} className="hover:bg-card-hover/20 px-2 py-1 border-b border-input/10 leading-relaxed">
-        <div className="flex flex-wrap items-baseline gap-1.5">
-          <span className="text-muted-foreground select-none shrink-0">
-            [{new Date(log.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" })}]
+      <div key={idx} className="hover:bg-card-hover/15 px-3 py-1 text-[11px] leading-relaxed">
+        <span className="text-muted-foreground select-none">[{timestamp}]</span>{" "}
+        <span className={`font-bold ${sourceColor} select-none`}>[{sourceLabel}: {sourceName}]</span>{" "}
+        {log.agentName && (
+          <span className="bg-purple-400/10 text-purple-400 px-1 py-0.5 rounded text-[10px] font-semibold select-none mr-1">
+            @{log.agentName}
           </span>
-
-          <span className={`text-xs font-bold ${sourceColor} shrink-0 select-none`}>
-            [{sourceLabel}: {log.sourceName || log.sourceId.substring(0, 8)}]
-          </span>
-
-          {log.agentName && (
-            <span className="text-xs bg-purple-400/10 text-purple-400 border border-purple-400/20 px-1 py-0.2 rounded font-semibold shrink-0 select-none">
-              {log.agentName}
-            </span>
-          )}
-
-          <div className="flex-1 min-w-0">
-            {log.eventType === "user_message" && (
-              <span className="text-foreground">
-                👤 <span className="font-semibold text-muted-foreground">{l.labelUser}</span> "{log.detail}"
-              </span>
-            )}
-
-            {log.eventType === "agent_message" && (
-              <span className="text-foreground">
-                🤖 <span className="font-semibold text-purple-400">{l.labelResponse}</span> "{log.detail}"
-              </span>
-            )}
-
-            {log.eventType === "agent_start" && (
-              <span className="text-primary/80 italic font-sans select-none">
-                🎬 Iniciando respuesta...
-              </span>
-            )}
-
-            {log.eventType === "agent_end" && (
-              <span className="text-muted-foreground italic font-sans select-none">
-                ⏹️ Finalizó respuesta.
-              </span>
-            )}
-
-            {log.eventType === "text_delta" && (
-              <span className="text-foreground block font-mono whitespace-pre-wrap mt-0.5 bg-card/30 p-1.5 rounded border border-input/10 leading-relaxed">
-                ✍️ <span className="font-semibold text-muted-foreground">{l.labelWriting}</span> {log.detail}
-              </span>
-            )}
-
-            {log.eventType === "thinking_delta" && (
-              <span className="text-primary/60 block font-mono whitespace-pre-wrap mt-0.5 bg-primary/5 p-1.5 rounded border border-primary/10 leading-relaxed">
-                🧠 <span className="font-semibold text-primary/80">{l.labelThinking}</span> {log.detail}
-              </span>
-            )}
-
-            {log.eventType === "tool_start" && (
-              <span className="text-warning/80">
-                🛠️ <span className="font-bold font-mono">{l.labelToolStart}</span> <span className="text-warning">{log.detail.toolName}</span> (args: <span className="text-muted-foreground font-mono">{JSON.stringify(log.detail.args)}</span>)
-              </span>
-            )}
-
-            {log.eventType === "tool_end" && (
-              <span className={log.detail.isError ? "text-destructive/80" : "text-primary/80"}>
-                {log.detail.isError ? "❌" : "✓"} <span className="font-bold font-mono">{l.labelToolEnd}</span> <span className={log.detail.isError ? "text-destructive" : "text-primary"}>{log.detail.toolName}</span> ({log.detail.isError ? l.toolError : l.toolSuccess})
-                {!log.detail.isError && log.detail.result && (
-                  <span className="text-muted-foreground text-xs ml-2 block font-sans">
-                    Resultado: {typeof log.detail.result === "string" ? log.detail.result.slice(0, 150) : JSON.stringify(log.detail.result).slice(0, 150)}...
-                  </span>
-                )}
-                {log.detail.isError && log.detail.result && (
-                  <span className="text-destructive/70 text-xs ml-2 block font-sans whitespace-pre-wrap">
-                    Error: {String(log.detail.result)}
-                  </span>
-                )}
-              </span>
-            )}
-
-            {log.eventType === "error" && (
-              <span className="text-destructive font-semibold">
-                ⚠️ Error: {log.detail}
-              </span>
-            )}
-          </div>
-        </div>
+        )}
+        {renderContent()}
       </div>
     );
   };
@@ -581,7 +561,7 @@ export function LogsConsolePage({
                 &gt;_ Esperando trazas de logs del sistema...
               </div>
             ) : (
-              <div className="flex-1 overflow-y-auto p-4 font-mono text-[11px] text-foreground space-y-2 selection:bg-primary/30 selection:text-foreground">
+              <div className="flex-1 overflow-y-auto py-2 font-mono text-foreground selection:bg-primary/30 selection:text-foreground">
                 {filteredLogs.map((log, idx) => renderLogLine(log, idx))}
                 <div ref={consoleEndRef} />
               </div>
