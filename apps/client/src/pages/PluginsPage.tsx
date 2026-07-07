@@ -9,10 +9,8 @@ export function PluginsPage() {
   const l = useLiterals(u);
   const { navigate } = useRouter();
 
-  // Settings de Engram
   const [engramEnabled, setEngramEnabled] = useState(false);
   const [engramAutoStore, setEngramAutoStore] = useState(false);
-  const [engramEmbeddings, setEngramEmbeddings] = useState(true);
 
   // Estado de Exa Search (si está la API Key)
   const [hasExaKey, setHasExaKey] = useState(false);
@@ -42,7 +40,6 @@ export function PluginsPage() {
 
       setEngramEnabled(settingsData.engramEnabled ?? false);
       setEngramAutoStore(settingsData.engramAutoStore ?? false);
-      setEngramEmbeddings(settingsData.engramEmbeddings ?? true);
 
       const envList = (envData.env ?? []) as Array<{ key: string }>;
       const exaKeyExists = envList.some((e) => e.key === "EXA_API_KEY");
@@ -66,7 +63,6 @@ export function PluginsPage() {
   const handleUpdateEngramSettings = async (updates: {
     engramEnabled?: boolean;
     engramAutoStore?: boolean;
-    engramEmbeddings?: boolean;
   }) => {
     setSaving(true);
     setSuccessMsg("");
@@ -86,7 +82,6 @@ export function PluginsPage() {
       const data = await res.json();
       setEngramEnabled(data.settings.engramEnabled ?? false);
       setEngramAutoStore(data.settings.engramAutoStore ?? false);
-      setEngramEmbeddings(data.settings.engramEmbeddings ?? true);
 
       setSuccessMsg(l.saveSuccess);
       setTimeout(() => setSuccessMsg(""), 3000);
@@ -190,20 +185,6 @@ export function PluginsPage() {
                         checked={engramAutoStore}
                         disabled={saving}
                         onChange={(e) => handleUpdateEngramSettings({ engramAutoStore: e.target.checked })}
-                        className="sr-only peer"
-                      />
-                      <div className="w-8 h-4.5 bg-border/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-primary after:border-border after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-accent"></div>
-                    </label>
-                  </div>
-
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs text-text-secondary">{l.localEmbeddings}</span>
-                    <label className="relative inline-flex items-center cursor-pointer">
-                      <input
-                        type="checkbox"
-                        checked={engramEmbeddings}
-                        disabled={saving}
-                        onChange={(e) => handleUpdateEngramSettings({ engramEmbeddings: e.target.checked })}
                         className="sr-only peer"
                       />
                       <div className="w-8 h-4.5 bg-border/20 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-text-primary after:border-border after:border after:rounded-full after:h-3.5 after:w-3.5 after:transition-all peer-checked:bg-accent"></div>
