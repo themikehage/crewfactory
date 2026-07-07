@@ -41,7 +41,7 @@ export function RichMarkdown({ content }: Props) {
   const processedContent = useMemo(() => replaceWorkspacePathsWithLinks(content), [content]);
 
   return (
-    <div className="prose prose-invert max-w-none overflow-x-auto text-base md:text-sm leading-relaxed font-sans break-words">
+    <div className="prose prose-invert max-w-none text-base md:text-sm leading-relaxed font-sans break-word">
       <ReactMarkdown
         remarkPlugins={[remarkGfm]}
         urlTransform={customUrlTransform}
