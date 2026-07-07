@@ -24,6 +24,7 @@ export class AgentSession {
   modelRegistry: ModelRegistry;
   resourceLoader: DefaultResourceLoader;
   customTools: any[];
+  _customTools: any[];
 
   messages: any[] = [];
   model: AvailableModel | null = null;
@@ -42,15 +43,14 @@ export class AgentSession {
     this.modelRegistry = options.modelRegistry;
     this.resourceLoader = options.resourceLoader;
     this.customTools = options.customTools || [];
+    this._customTools = this.customTools;
 
-    // Inicializar herramientas disponibles
     this.initializeTools();
-
-    // Restaurar estado de modelo/thinking desde la sesión
     this.restoreSessionState();
   }
 
-  private initializeTools() {
+  _refreshToolRegistry(): void {
+    this.allToolsMap.clear();
     for (const toolDef of this.customTools) {
       const wrappedTool: AgentTool = {
         name: toolDef.name,
@@ -82,6 +82,10 @@ export class AgentSession {
       this.allToolsMap.set(toolDef.name, wrappedTool);
     }
     this.activeTools = Array.from(this.allToolsMap.values());
+  }
+
+  private initializeTools() {
+    this._refreshToolRegistry();
   }
 
   private restoreSessionState() {

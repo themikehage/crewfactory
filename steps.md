@@ -697,3 +697,14 @@ crear un plan de despliegue facil en vps
 - [x] 76.5 Scaled user and assistant chat message fonts to text-base on mobile viewports for enhanced legibility
 - [x] 76.6 Validate full TypeScript typecheck and production bundler build
 
+## Phase 77: Chat Input Redesign & Mobile Navigation Hiding
+- [x] 77.1 Create localized literals in `ChatInput.literals.ts`
+- [x] 77.2 Implement leaf components: `SendStopButton.tsx`, `ContextIndicator.tsx`, `AttachmentPreview.tsx`, and `ChatTextarea.tsx`
+- [x] 77.3 Implement popovers: `SkillsPopover.tsx` and `ToolsPopover.tsx`, and add a compact mode for `ModelSelector.tsx`
+- [x] 77.4 Implement autocomplete popover and top-level orchestrators: `AutocompletePopover.tsx`, `InputToolbar.tsx`, `InputCard.tsx`, and `ChatInput.tsx`
+- [x] 77.5 Integrate redesigned input into `ChatArea.tsx` and `ChannelChatArea.tsx`
+- [x] 77.6 Remove deprecated `InputArea.tsx` and `ContextMeter.tsx` components
+- [x] 77.7 Conditionally hide `MobileBottomBar` on active chat routes in `MainLayout.tsx` and adjust mobile panel height to bottom-0
+- [x] 77.8 Verify client compiles without type errors and build is successful
+- [x] 77.9 Update architecture in `about.md` and bitácora in `steps.md`
+

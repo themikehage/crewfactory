@@ -1,3 +1,4 @@
+COMPLETED
 # Mobile Navigation Redesign - Implementation Plan
 
 **Spec:** [docs/superpowers/specs/2026-03-07-mobile-navigation-redesign-design.md](../docs/superpowers/specs/2026-03-07-mobile-navigation-redesign-design.md)  

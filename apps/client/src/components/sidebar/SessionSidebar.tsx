@@ -234,25 +234,22 @@ export function SessionSidebar({
   const handleSelectRepoClick = useCallback(
     (projectId: string, projectName: string) => {
       if (onSelectProject) onSelectProject(projectId, projectName);
-      if (onNavigate) onNavigate("/");
     },
-    [onSelectProject, onNavigate]
+    [onSelectProject]
   );
 
   const handleSelectAgentClick = useCallback(
     (agent: { id: string; name: string; avatarUrl?: string }) => {
       if (onSelectAgent) onSelectAgent(agent);
-      if (onNavigate) onNavigate("/");
     },
-    [onSelectAgent, onNavigate]
+    [onSelectAgent]
   );
 
   const handleSelectChannelClick = useCallback(
     (channel: { id: string; name: string }) => {
       if (onSelectChannel) onSelectChannel(channel);
-      if (onNavigate) onNavigate("/");
     },
-    [onSelectChannel, onNavigate]
+    [onSelectChannel]
   );
 
   const adminItems = useMemo(

@@ -1,8 +1,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelMessageList } from "./ChannelMessageList";
-import { InputArea } from "@/components/chat/InputArea";
-import type { MentionTarget } from "@/components/chat/InputArea";
+import { ChatInput } from "@/components/chat/ChatInput";
+import type { MentionTarget } from "@/components/chat/ChatInput";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
@@ -267,16 +267,14 @@ export function ChannelChatArea({ activeChannel, sessionId }: Props) {
           />
 
           {/* Reused InputArea shared with normal chat */}
-          <div className="p-3 sm:p-4 border-t border-border/60 bg-card/10 flex-shrink-0">
-            <InputArea
-              sessionId={sessionId}
-              streaming={isStreaming}
-              onSend={(msg) => handleSend(msg)}
-              onAbort={abortDispatch}
-              mentionTargets={mentionTargets}
-              activeChannelId={activeChannel.id}
-            />
-          </div>
+          <ChatInput
+            sessionId={sessionId}
+            streaming={isStreaming}
+            onSend={(msg) => handleSend(msg)}
+            onAbort={abortDispatch}
+            mentionTargets={mentionTargets}
+            activeChannelId={activeChannel.id}
+          />
         </>
       )}
 

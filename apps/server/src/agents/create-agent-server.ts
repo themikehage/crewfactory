@@ -19,6 +19,7 @@ import { filterSecretsFromOutput } from "../core/bash-output-filter";
 import { getEnvironmentContext } from "../core/env-check";
 import { memoryRegistry } from "../core/memory/registry";
 import { createMemoryTools } from "../core/memory/memory-tools";
+import { mcpRegistry } from "../core/mcp-registry";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = `/tmp/crewfactory/${username}/agents/${id}`;
@@ -40,7 +41,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const sessionDir = join(agentDir, "sessions", "main");
 
   const userSettings = coreSessionManager.getUserSettings(username);
-  const memoryEnabled = userSettings.memoryEnabled ?? false;
+    const memoryEnabled = userSettings.memoryEnabled ?? true;
   const memoryDbPath = join(agentDir, "memory", "memory.db");
   const memory = await memoryRegistry.get(`agent:${definition.id}`, memoryDbPath, memoryEnabled);
 
@@ -79,7 +80,20 @@ export async function createAgentServer(definition: AgentDefinition, username: s
       `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n` +
       `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n` +
       `- share_file: When you generate any file artifact that the user should download (PDF reports, Excel spreadsheets, PowerPoint presentations, Word documents, ZIP archives, etc.), use this tool to share it directly in the chat. The user will see a download card and can click to download. Always prefer this over telling the user to manually find the file in the workspace.\n` +
-      `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`
+      `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`,
+      `\n\nPersistent Memory Tools (memory_store, memory_recall, memory_forget):\n` +
+      `You have access to long-term persistent memory tools that help you remember facts, decisions, patterns, and interactions across sessions.\n` +
+      `- memory_store: Save a fact, event, or code/architectural pattern into your long-term persistent memory. Use this to remember user preferences, project conventions, bug fixes, architecture decisions, and important discoveries.\n` +
+      `  * content: The memory text or factual content to store (required).\n` +
+      `  * type: "semantic" (facts/concepts), "episodic" (events/interactions), or "procedural" (patterns/procedures). Default: "semantic".\n` +
+      `  * importance: 0.0 (low) to 1.0 (high). Default: 0.5.\n` +
+      `  * tags: Optional categorization tags for searching later.\n` +
+      `- memory_recall: Search and retrieve query-relevant memories from your long-term memory. Use this before starting work on a topic to check if you have prior knowledge about it.\n` +
+      `  * query: Natural language search term or semantic query (required).\n` +
+      `  * limit: Max number of memories to return (1-20, default: 5).\n` +
+      `- memory_forget: Delete a specific memory by its ID when it's no longer relevant or correct.\n` +
+      `  * id: The unique memory ID to be deleted (required).\n` +
+      `IMPORTANT: Use memory_store proactively after completing significant work (bug fixes, architecture decisions, discoveries, new patterns). Always use memory_recall before starting work on a topic that may have prior context.\n`
     ],
   });
   await resourceLoader.reload();
@@ -161,6 +175,21 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     activeToolNames.push("memory_store", "memory_recall", "memory_forget");
   }
   session.setActiveToolsByName(activeToolNames);
+
+  (async () => {
+    try {
+      const mcpTools = await mcpRegistry.getSessionMcpTools(username, definition.id);
+      if (mcpTools.length > 0) {
+        if (session._customTools) {
+          session._customTools.push(...mcpTools);
+          session._refreshToolRegistry();
+        }
+        console.log(`[AgentServer:${definition.id}] Loaded ${mcpTools.length} MCP tools`);
+      }
+    } catch (err) {
+      console.error(`[AgentServer:${definition.id}] Failed to load MCP tools:`, err);
+    }
+  })();
 
   const originalPrompt = session.prompt.bind(session);
   session.prompt = async (message: string) => {

@@ -1,3 +1,4 @@
+COMPLETED
 # Plan: Tool Visualization — Exa Search & Engram Memory
 
 **Fecha:** 2026-07-07

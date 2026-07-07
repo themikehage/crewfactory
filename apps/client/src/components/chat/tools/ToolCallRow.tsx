@@ -14,6 +14,7 @@ import { HtmlPreview } from "../HtmlPreview";
 import { ShareFileCard } from "./ShareFileCard";
 import { ExaSearchResult } from "./ExaSearchResult";
 import { MemoryResult } from "./MemoryResult";
+import { DecomposeResult } from "./DecomposeResult";
 import { useLiterals } from "@/lib";
 import { literals } from "./ToolCallRow.literals";
 
@@ -253,6 +254,20 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  decompose_tasks: {
+    label: "decompose_tasks",
+    colorClass: "text-primary",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="8" y1="6" x2="21" y2="6" />
+        <line x1="8" y1="12" x2="21" y2="12" />
+        <line x1="8" y1="18" x2="21" y2="18" />
+        <line x1="3" y1="6" x2="3.01" y2="6" />
+        <line x1="3" y1="12" x2="3.01" y2="12" />
+        <line x1="3" y1="18" x2="3.01" y2="18" />
+      </svg>
+    ),
+  },
 };
 
 function getArgSummary(toolName: string, args: Record<string, unknown>, l: Record<string, string>): string {
@@ -307,6 +322,10 @@ function getArgSummary(toolName: string, args: Record<string, unknown>, l: Recor
       return c.length > 50 ? c.slice(0, 50) + "…" : c;
     }
     case "memory_forget": return (args.id as string) || "";
+    case "decompose_tasks": {
+      const obj = (args.objective as string) || "";
+      return obj.length > 50 ? obj.slice(0, 50) + "…" : obj;
+    }
     default: return JSON.stringify(args).slice(0, 50);
   }
 }
@@ -360,6 +379,7 @@ function getResultSummary(toolName: string, result: ToolResultData, l: Record<st
     }
     case "memory_store": return l.resStored;
     case "memory_forget": return l.resForgotten;
+    case "decompose_tasks": return l.resDecomposed;
     default: return "done";
   }
 }
@@ -390,6 +410,8 @@ function ToolBody({
   const text = result?.content.find(b => b.type === "text")?.text ?? "";
 
   switch (toolName) {
+    case "decompose_tasks":
+      return <DecomposeResult text={text} details={result?.details} l={l} />;
     case "spawn_subagent":
       return (
         <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">
@@ -653,7 +675,7 @@ export function ToolCallRow({
         </div>
       </button>
 
-      {!running && expanded && (
+      {(!running || isInteractive) && expanded && (
         <div className="border-t border-border bg-card-hover/20 p-3">
           <ToolBody
             toolName={toolName}

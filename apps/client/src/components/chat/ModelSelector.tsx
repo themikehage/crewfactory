@@ -1,5 +1,8 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "@/hooks/useRouter";
+import { PortalPopover } from "./PortalPopover";
+import { useLiterals } from "@/lib";
+import { literals as u } from "./ChatInput.literals";
 
 interface ProviderInfo {
   id: string;
@@ -19,6 +22,7 @@ interface Props {
   disabled?: boolean;
   value?: string;
   onChange?: (modelId: string) => void;
+  compact?: boolean;
 }
 
 const STORAGE_KEY = "crewfy-selected-model";
@@ -30,8 +34,9 @@ function parseModelString(modelId: string): SelectedModel | null {
   return { provider: modelId.slice(0, idx), modelId: modelId.slice(idx + 1), modelName: modelId.slice(idx + 1) };
 }
 
-export function ModelSelector({ sessionId, disabled = false, value, onChange }: Props) {
+export function ModelSelector({ sessionId, disabled = false, value, onChange, compact = false }: Props) {
   const controlled = onChange !== undefined;
+  const l = useLiterals(u);
 
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [selected, setSelected] = useState<SelectedModel | null>(() => {
@@ -56,8 +61,8 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
   const [open, setOpen] = useState(false);
   const [activeProvider, setActiveProvider] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const selectedRef = useRef<SelectedModel | null>(selected);
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const { navigate } = useRouter();
 
   const applyModelToSession = useCallback(
@@ -160,20 +165,6 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
   }, [providers, selected, sessionId, applyModelToSession]);
 
   useEffect(() => {
-    const handleClick = (e: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setOpen(false);
-        setActiveProvider(null);
-      }
-    };
-    if (open) {
-      document.addEventListener("mousedown", handleClick);
-      return () => document.removeEventListener("mousedown", handleClick);
-    }
-  }, [open]);
-
-
-  useEffect(() => {
     if (!sessionId || !selectedRef.current) return;
     applyModelToSession(selectedRef.current, sessionId);
   }, [sessionId, applyModelToSession]);
@@ -221,34 +212,41 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
     : null;
 
   return (
-    <div className="relative" ref={dropdownRef}>
+    <>
       <button
+        ref={triggerRef}
         onClick={() => {
           if (disabled) return;
           setOpen(!open);
           setActiveProvider(null);
         }}
         disabled={disabled}
-        className={`flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 cursor-pointer ${
-          disabled ? "opacity-50 cursor-not-allowed" : ""
-        }`}
+        className={
+          compact
+            ? `flex items-center gap-1.5 px-2 py-1.5 rounded-lg border border-border/40 bg-[#171717] hover:bg-[#313131] text-xs text-muted-foreground hover:text-foreground transition-all cursor-pointer ${
+                disabled ? "opacity-50 cursor-not-allowed" : ""
+              }`
+            : `flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition-colors px-1 py-0.5 cursor-pointer ${
+                disabled ? "opacity-50 cursor-not-allowed" : ""
+              }`
+        }
       >
-        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+        <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className="text-primary flex-shrink-0">
           <path fillRule="evenodd" d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V6a2 2 0 00-2-2H4zm0 2h12v2H4V6zm0 4h3v4H4v-4zm5 0h7v4H9v-4z" clipRule="evenodd" />
         </svg>
-        <span className="truncate max-w-[200px]">
+        <span className={compact ? "truncate max-w-[120px]" : "truncate max-w-[200px]"}>
           {selected ? selected.modelName : "Select model"}
         </span>
         {error && (
           <span className="text-destructive ml-1" title={error}>!</span>
         )}
-        <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${open ? "rotate-180" : ""}`}>
+        <svg width="10" height="10" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`}>
           <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
         </svg>
       </button>
 
-      {open && (
-        <div className="absolute bottom-full left-0 mb-1 w-64 bg-card border border-input rounded-lg shadow-lg z-50 overflow-hidden">
+      <PortalPopover triggerRef={triggerRef} open={open} onClose={() => { setOpen(false); setActiveProvider(null); }}>
+        <div className="w-72 bg-[#171717] border border-border rounded-xl shadow-xl overflow-hidden flex flex-col max-h-80">
           {activeProvider && currentProvider ? (
             <>
               <button
@@ -282,7 +280,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
                 {recentModels.length > 0 && (
                   <div className="border-b border-input pb-1.5 mb-1.5">
                     <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
-                      Recientes
+                      {l.recentModels}
                     </div>
                     {[...recentModels]
                       .sort((a, b) => {
@@ -351,12 +349,12 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange }: 
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />
                 </svg>
-                Connect more providers
+                {l.connectProviders}
               </button>
             </>
           )}
         </div>
-      )}
-    </div>
+      </PortalPopover>
+    </>
   );
 }

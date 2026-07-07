@@ -27,15 +27,13 @@ export function MobileTopbar({
   return (
     <div className="w-full h-12 px-3 flex items-center justify-between bg-card/30 border-b border-border flex-shrink-0">
       <div className="flex items-center gap-2 flex-1 min-w-0">
-        {!isHome && (
-          <button
-            onClick={onMenuToggle}
-            className="w-12 h-12 -ml-3 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg active:bg-surface-hover transition-colors cursor-pointer"
-            aria-label={l.btnToggleMenu}
-          >
-            <Menu size={20} />
-          </button>
-        )}
+        <button
+          onClick={onMenuToggle}
+          className="w-12 h-12 -ml-3 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg active:bg-surface-hover transition-colors cursor-pointer"
+          aria-label={l.btnToggleMenu}
+        >
+          <Menu size={20} />
+        </button>
         {isHome ? (
           <div className="flex items-center gap-2">
             <Logo size={20} className="w-[20px] h-[20px]" />

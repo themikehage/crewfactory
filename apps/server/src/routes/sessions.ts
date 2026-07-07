@@ -7,15 +7,7 @@ import { streamSSE } from "hono/streaming";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { sessionManager } from "../core/session-manager";
 import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema } from "shared";
-import {
-  loadTasksState,
-  saveTasksState,
-  decomposeObjective,
-  startTaskRunner,
-  pauseTaskRunner,
-  resetTasks,
-  broadcastTaskUpdate
-} from "../core/task-runner";
+
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
 
@@ -619,7 +611,10 @@ sessionsRouter.post(
           "share_file",
           "refresh_ui",
           "spawn_subagent",
-          "delegate_task"
+          "delegate_task",
+          "decompose_tasks",
+          "update_task_status",
+          "complete_task_list",
         ])
       )
     );
@@ -662,100 +657,49 @@ sessionsRouter.get("/:id/tasks", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
-    return c.json({ tasks: [], status: "idle", currentStepIndex: 0, logs: {} });
-  }
+  const userDir = sessionManager.ensureUserDir(username);
+  const sessionDir = join(userDir, "sessions", sessionId);
+  const tasksPath = join(sessionDir, "tasks.json");
 
-  const state = loadTasksState(username, sessionId);
-  return c.json(state);
-});
-
-sessionsRouter.post("/:id/tasks", async (c) => {
-  const sessionId = c.req.param("id");
-  const { username } = getAuthPayload(c);
-
-  if (sessionId.startsWith("exec_")) {
-    return c.json({ error: "Cannot modify tasks for execution logs" }, 400);
+  if (!existsSync(tasksPath)) {
+    return c.json({ tasks: [], currentTaskId: null, status: "idle" });
   }
 
   try {
-    const { tasks } = await c.req.json();
-    const state = loadTasksState(username, sessionId);
-    state.tasks = tasks || [];
-    state.status = "idle";
-    state.currentTaskId = null;
-    state.error = undefined;
-    saveTasksState(username, sessionId, state);
-    broadcastTaskUpdate(sessionId, state);
-    return c.json(state);
-  } catch (err: any) {
-    return c.json({ error: String(err) }, 400);
+    const content = readFileSync(tasksPath, "utf-8");
+    return c.json(JSON.parse(content));
+  } catch {
+    return c.json({ tasks: [], currentTaskId: null, status: "idle" });
   }
 });
 
-sessionsRouter.post("/:id/tasks/decompose", async (c) => {
+sessionsRouter.post("/:id/tasks/status", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
-
-  if (sessionId.startsWith("exec_")) {
-    return c.json({ error: "Cannot run tasks for execution logs" }, 400);
-  }
-
   try {
-    const { objective } = await c.req.json();
-    if (!objective || typeof objective !== "string") {
-      return c.json({ error: "Objective is required" }, 400);
+    const { status } = await c.req.json();
+    if (status !== "running" && status !== "paused") {
+      return c.json({ error: "Invalid status value. Must be 'running' or 'paused'." }, 400);
     }
-    await decomposeObjective(username, sessionId, objective);
-    return c.json({ success: true });
-  } catch (err: any) {
-    return c.json({ error: String(err) }, 500);
-  }
-});
 
-sessionsRouter.post("/:id/tasks/run", async (c) => {
-  const sessionId = c.req.param("id");
-  const { username } = getAuthPayload(c);
+    const userDir = sessionManager.ensureUserDir(username);
+    const sessionDir = join(userDir, "sessions", sessionId);
+    const tasksPath = join(sessionDir, "tasks.json");
 
-  if (sessionId.startsWith("exec_")) {
-    return c.json({ error: "Cannot run tasks for execution logs" }, 400);
-  }
+    if (!existsSync(tasksPath)) {
+      return c.json({ error: "No active task list found" }, 404);
+    }
 
-  try {
-    await startTaskRunner(username, sessionId);
-    return c.json({ success: true });
-  } catch (err: any) {
-    return c.json({ error: String(err) }, 500);
-  }
-});
+    const state = JSON.parse(readFileSync(tasksPath, "utf-8"));
+    state.status = status;
+    writeFileSync(tasksPath, JSON.stringify(state, null, 2), "utf-8");
 
-sessionsRouter.post("/:id/tasks/pause", async (c) => {
-  const sessionId = c.req.param("id");
-  const { username } = getAuthPayload(c);
+    broadcastToSession(sessionId, {
+      type: "tasks_update",
+      state,
+    });
 
-  if (sessionId.startsWith("exec_")) {
-    return c.json({ error: "Cannot pause tasks for execution logs" }, 400);
-  }
-
-  try {
-    await pauseTaskRunner(username, sessionId);
-    return c.json({ success: true });
-  } catch (err: any) {
-    return c.json({ error: String(err) }, 500);
-  }
-});
-
-sessionsRouter.post("/:id/tasks/reset", async (c) => {
-  const sessionId = c.req.param("id");
-  const { username } = getAuthPayload(c);
-
-  if (sessionId.startsWith("exec_")) {
-    return c.json({ error: "Cannot reset tasks for execution logs" }, 400);
-  }
-
-  try {
-    resetTasks(username, sessionId);
-    return c.json({ success: true });
+    return c.json(state);
   } catch (err: any) {
     return c.json({ error: String(err) }, 500);
   }

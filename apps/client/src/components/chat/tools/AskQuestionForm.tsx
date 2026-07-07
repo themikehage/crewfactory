@@ -28,18 +28,15 @@ interface Props {
 export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) {
   const { addToast } = useToast();
   const {
-    question = "¿?",
     isMultiSelect = false,
     options = [],
     placeholder = "Escribe tu respuesta personalizada aquí...",
     allowCustom = true,
   } = args || {};
 
-  // Determinar si ya está resuelto
   const isResolved = !!result;
   const resolvedPayload = result?.details?.payload;
 
-  // Estado local para el formulario interactivo
   const [selected, setSelected] = useState<Set<string>>(
     new Set(resolvedPayload?.selectedOptions || [])
   );
@@ -96,117 +93,71 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
   };
 
   return (
-    <div className="w-full rounded-xl border border-border bg-card/40 overflow-hidden font-sans shadow-lg my-3 transition-colors duration-300">
-      {/* Header */}
-      <div className="flex items-center justify-between px-4 py-3 border-b border-input/20 bg-background/30">
-        <div className="flex items-center gap-2">
-          <svg className="w-4 h-4 text-primary shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2.5">
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.228 9c.549-1.165 2.03-2 3.772-2 2.21 0 4 1.343 4 3 0 1.4-1.278 2.575-3.006 2.907-.542.104-.994.54-.994 1.093m0 3h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
-          <span className="text-xs font-bold text-foreground tracking-wide">
-            Pregunta del Agente
-          </span>
-        </div>
-        {isResolved ? (
-          <span className="text-xs uppercase font-bold px-2 py-0.5 rounded bg-primary/10 border border-primary/20 text-primary">
-            Respondido
-          </span>
-        ) : (
-          <span className="text-xs uppercase font-bold px-2 py-0.5 rounded bg-warning/10 border border-warning/20 text-warning animate-pulse">
-            Pendiente
-          </span>
-        )}
-      </div>
-
-      {/* Main Content */}
-      <div className="p-4 space-y-4">
-        {/* Question Title */}
-        <h3 className="text-sm font-bold text-foreground leading-snug">
-          {question}
-        </h3>
-
-        {/* Options Selection */}
+    <div className="font-sans">
+      <div className="px-3 pb-2 space-y-1.5">
         {options.length > 0 && (
-          <div className="space-y-2">
-            <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider block">
-              {isMultiSelect ? "Selección múltiple" : "Selección única"}
-            </span>
-            <div className="grid grid-cols-1 gap-2">
-              {options.map((option, idx) => {
-                const isChecked = selected.has(option);
-                return (
-                  <button
-                    key={idx}
-                    type="button"
-                    disabled={isResolved || submitting}
-                    onClick={() => handleOptionToggle(option)}
-                    className={`w-full flex items-center justify-between p-3 rounded-lg border text-xs text-left transition-all ${
+          <div className="grid grid-cols-1 gap-1">
+            {options.map((option, idx) => {
+              const isChecked = selected.has(option);
+              return (
+                <button
+                  key={idx}
+                  type="button"
+                  disabled={isResolved || submitting}
+                  onClick={() => handleOptionToggle(option)}
+                  className={`flex items-center justify-between px-2.5 py-1.5 rounded-md text-xs text-left transition-all ${
+                    isChecked
+                      ? "bg-primary/10 text-foreground font-semibold"
+                      : "hover:bg-card-hover/40 text-muted-foreground"
+                  } ${isResolved ? "cursor-default" : "cursor-pointer"}`}
+                >
+                  <span className="break-words mr-2">{option}</span>
+                  <div
+                    className={`w-3.5 h-3.5 shrink-0 flex items-center justify-center transition-all ${
+                      isMultiSelect ? "rounded-[2px]" : "rounded-full"
+                    } ${
                       isChecked
-                        ? "border-primary bg-primary/5 text-foreground font-semibold"
-                        : "border-input bg-card/60 hover:bg-card-hover/40 text-muted-foreground"
-                    } ${isResolved ? "cursor-default" : "cursor-pointer"}`}
+                        ? "bg-primary text-primary-foreground"
+                        : "bg-card-hover/60"
+                    }`}
                   >
-                    <span className="break-words max-w-[90%]">{option}</span>
-                    <div
-                      className={`w-4 h-4 shrink-0 flex items-center justify-center border transition-all ${
-                        isMultiSelect ? "rounded" : "rounded-full"
-                      } ${
-                        isChecked
-                          ? "border-primary bg-primary text-primary-foreground"
-                          : "border-muted-foreground/40 bg-transparent"
-                      }`}
-                    >
-                      {isChecked && (
-                        <svg className="w-2.5 h-2.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
-                          <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
-                        </svg>
-                      )}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
+                    {isChecked && (
+                      <svg className="w-2 h-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="3">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                      </svg>
+                    )}
+                  </div>
+                </button>
+              );
+            })}
           </div>
         )}
 
-        {/* Custom Answer / Text Input */}
-        {allowCustom && (
-          <div className="space-y-1.5">
-            <span className="text-xs uppercase font-bold text-muted-foreground tracking-wider block">
-              Respuesta personalizada
-            </span>
-            {isResolved ? (
-              customText ? (
-                <div className="p-3 rounded-lg border border-input/20 bg-background/20 text-xs text-foreground/90 font-mono whitespace-pre-wrap leading-relaxed select-all">
-                  {customText}
-                </div>
-              ) : (
-                <span className="text-xs text-muted-foreground italic block py-1">
-                  Ninguna respuesta personalizada escrita.
-                </span>
-              )
-            ) : (
-              <textarea
-                disabled={submitting}
-                value={customText}
-                onChange={(e) => setCustomText(e.target.value)}
-                placeholder={placeholder}
-                rows={3}
-                className="w-full rounded-lg border border-input bg-background/60 p-3 text-xs text-foreground placeholder-muted-foreground/60 leading-relaxed outline-none focus:border-accent/70 transition-colors font-sans resize-none"
-              />
-            )}
+        {allowCustom && !isResolved && (
+          <textarea
+            disabled={submitting}
+            value={customText}
+            onChange={(e) => setCustomText(e.target.value)}
+            placeholder={placeholder}
+            rows={2}
+            className="w-full rounded-md border border-input bg-background/60 px-2.5 py-1.5 text-xs text-foreground placeholder-muted-foreground/60 leading-relaxed outline-none focus:border-accent/70 transition-colors font-sans resize-none"
+          />
+        )}
+
+        {isResolved && allowCustom && customText && (
+          <div className="text-xs text-muted-foreground leading-relaxed select-all bg-background/20 rounded-md px-2.5 py-1.5">
+            {customText}
           </div>
         )}
       </div>
 
-      {/* Footer Controls */}
       {!isResolved && (
-        <div className="flex items-center justify-end gap-2 px-4 py-3 bg-background/20 border-t border-input/10">
+        <div className="flex items-center justify-end gap-1.5 px-3 pb-2">
           <button
             type="button"
             disabled={submitting}
             onClick={handleCancel}
-            className="px-3 py-1.5 rounded bg-card hover:bg-card-hover/80 text-xs font-semibold text-muted-foreground border border-input transition-colors cursor-pointer disabled:opacity-50"
+            className="px-2 py-1 rounded text-[11px] font-semibold text-muted-foreground hover:text-foreground transition-colors cursor-pointer disabled:opacity-50"
           >
             Ignorar
           </button>
@@ -214,9 +165,9 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
             type="button"
             disabled={submitting}
             onClick={handleSubmit}
-            className="px-4 py-1.5 rounded bg-primary hover:opacity-90 text-xs font-bold text-primary-foreground transition-opacity cursor-pointer disabled:opacity-50"
+            className="px-2.5 py-1 rounded bg-primary hover:opacity-90 text-[11px] font-bold text-primary-foreground transition-opacity cursor-pointer disabled:opacity-50"
           >
-            {submitting ? "Enviando..." : "Enviar respuesta"}
+            {submitting ? "Enviando..." : "Enviar"}
           </button>
         </div>
       )}

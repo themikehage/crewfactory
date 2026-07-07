@@ -14,6 +14,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [env-var-obfuscation.md](./env-var-obfuscation.md) — Cifrado AES-256-GCM de env.json en reposo, filtrado de secrets en output bash, y API de revelado individual con auditoría.
 - [environment-check.md](./environment-check.md)
 - [exa-search-tool.md](./exa-search-tool.md) — Integración de Exa Search como tool oficial del agente. Búsqueda semántica web con highlights, filtros por dominio, categorías y freshness. Sin dependencias npm, API key gestionada via Env Vars.
+- [execute-mcp-tool.md](./execute-mcp-tool.md) — Herramienta `mcp` unificada que encapsula toda la lógica de MCP: reemplaza la inyección asíncrona de pseudo-tools con una tool única que acepta server, tool y arguments.
 - [factory-sessions-skill.md](./factory-sessions-skill.md)
 - [gentle-ai-prompt-patterns.md](./gentle-ai-prompt-patterns.md) — Análisis de patrones de prompts y subdelegación de agentes extraídos de Gentle AI (SDD framework), con 12 patrones transferibles a CrewFactory y hoja de ruta de implementación.
 - [mcp-marketplace.md](./mcp-marketplace.md) — Marketplace de MCPs estilo Windsurf: galeria de servidores populares, MCPs custom, conexion y exposicion de tools al agente.

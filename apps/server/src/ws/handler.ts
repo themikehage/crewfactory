@@ -331,6 +331,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "refresh_ui",
             "spawn_subagent",
             "delegate_task",
+            "decompose_tasks",
+            "update_task_status",
+            "complete_task_list",
           ])
         )
       );

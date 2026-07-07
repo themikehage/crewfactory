@@ -12,7 +12,7 @@ settingsRouter.get("/", (c) => {
 
   // Fallbacks razonables por defecto
   return c.json({
-    memoryEnabled: settings.memoryEnabled ?? false,
+    memoryEnabled: settings.memoryEnabled ?? true,
     memoryAutoStore: settings.memoryAutoStore ?? false,
     memoryEmbeddings: settings.memoryEmbeddings ?? true,
   });

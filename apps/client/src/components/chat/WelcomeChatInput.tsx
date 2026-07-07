@@ -183,7 +183,7 @@ export function WelcomeChatInput({
               type="button"
               onClick={handleSend}
               disabled={disabled || loading || (!input.trim() && attachments.length === 0)}
-              className="p-2 bg-accent hover:bg-accent/90 disabled:bg-surface-hover disabled:text-text-secondary/40 text-background rounded-lg transition-all cursor-pointer font-semibold shadow-md shadow-accent/15"
+              className="p-2 bg-foreground hover:opacity-85 disabled:bg-surface-hover disabled:text-text-secondary/40 text-background rounded-lg transition-all cursor-pointer font-semibold shadow-sm"
             >
               {loading ? (
                 <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />

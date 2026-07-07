@@ -376,6 +376,19 @@ class SessionManager {
       `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n` +
       `- share_file: When you generate any file artifact that the user should download (PDF reports, Excel spreadsheets, PowerPoint presentations, Word documents, ZIP archives, etc.), use this tool to share it directly in the chat. The user will see a download card and can click to download. Always prefer this over telling the user to manually find the file in the workspace.\n` +
       `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`,
+      `\n\nPersistent Memory Tools (memory_store, memory_recall, memory_forget):\n` +
+      `You have access to long-term persistent memory tools that help you remember facts, decisions, patterns, and interactions across sessions.\n` +
+      `- memory_store: Save a fact, event, or code/architectural pattern into your long-term persistent memory. Use this to remember user preferences, project conventions, bug fixes, architecture decisions, and important discoveries.\n` +
+      `  * content: The memory text or factual content to store (required).\n` +
+      `  * type: "semantic" (facts/concepts), "episodic" (events/interactions), or "procedural" (patterns/procedures). Default: "semantic".\n` +
+      `  * importance: 0.0 (low) to 1.0 (high). Default: 0.5.\n` +
+      `  * tags: Optional categorization tags for searching later.\n` +
+      `- memory_recall: Search and retrieve query-relevant memories from your long-term memory. Use this before starting work on a topic to check if you have prior knowledge about it.\n` +
+      `  * query: Natural language search term or semantic query (required).\n` +
+      `  * limit: Max number of memories to return (1-20, default: 5).\n` +
+      `- memory_forget: Delete a specific memory by its ID when it's no longer relevant or correct.\n` +
+      `  * id: The unique memory ID to be deleted (required).\n` +
+      `IMPORTANT: Use memory_store proactively after completing significant work (bug fixes, architecture decisions, discoveries, new patterns). Always use memory_recall before starting work on a topic that may have prior context.\n`,
       `\n\nSubagent Delegation (spawn_subagent tool):\n` +
       `You have a spawn_subagent tool to delegate focused, self-contained tasks to worker agents with fresh context. You are the ORCHESTRATOR, they are the EXECUTORS.\n` +
       `Use spawn_subagent when:\n` +
@@ -417,6 +430,39 @@ class SessionManager {
 
     if (agentDef?.systemPrompt) {
       appendPrompts.push(`\n\nAgent Instructions (${agentDef.name} - ${agentDef.role}):\n${agentDef.systemPrompt}`);
+    }
+
+    const tasksPath = join(sessionDir, "tasks.json");
+    if (existsSync(tasksPath)) {
+      try {
+        const tasksState = JSON.parse(readFileSync(tasksPath, "utf-8"));
+        if (tasksState.status === "running") {
+          const activeTask = tasksState.tasks?.find((t: any) => t.id === tasksState.currentTaskId);
+          const tasksListStr = tasksState.tasks
+            ?.map((t: any) => `- [${t.status === "done" ? "x" : t.status === "running" ? "/" : " "}] ${t.id}: ${t.title}${t.depends_on?.length > 0 ? ` (depends on: ${t.depends_on.join(", ")})` : ""}`)
+            .join("\n");
+
+          const promptSnippet = 
+            `\n\n## Active Task Plan\n` +
+            `You are currently executing a structured, dependency-aware task plan to achieve a high-level goal.\n` +
+            `Overall Objective: "${tasksState.objective || ""}"\n` +
+            `Current Plan Status: ${tasksState.status}\n\n` +
+            `Tasks List:\n${tasksListStr}\n\n` +
+            `Active Task Details:\n` +
+            `- ID: ${tasksState.currentTaskId}\n` +
+            `- Title: ${activeTask?.title || "N/A"}\n` +
+            `- Instructions: "${activeTask?.prompt || "N/A"}"\n\n` +
+            `Guidelines:\n` +
+            `1. Focus ONLY on completing the active task: ${tasksState.currentTaskId}. Do not perform actions related to other tasks.\n` +
+            `2. When the active task's objective is fully achieved, you MUST call the native tool: \`update_task_status(taskId: "${tasksState.currentTaskId}", status: "done", log: "summary of what was done")\` to mark it as complete. This will automatically update your active instructions in the next turn.\n` +
+            `3. If a task fails or you hit an error you cannot resolve, call \`update_task_status(taskId: "${tasksState.currentTaskId}", status: "failed", log: "error reason")\`.\n` +
+            `4. When all tasks in the list have been marked as "done", you MUST call \`complete_task_list(summary: "final completion summary")\` to finalize the execution.`;
+
+          appendPrompts.push(promptSnippet);
+        }
+      } catch (e) {
+        console.error("Failed to parse tasks.json for prompt injection:", e);
+      }
     }
 
     const resourceLoader = new DefaultResourceLoader({
@@ -471,7 +517,7 @@ class SessionManager {
 
     const exaSearchTool = createExaSearchTool({ username });
     const userSettings = this.getUserSettings(username);
-    const memoryEnabled = userSettings.memoryEnabled ?? false;
+    const memoryEnabled = userSettings.memoryEnabled ?? true;
     const memoryDbPath = join(userDir, "sessions", sessionId, "memory", "memory.db");
     const memory = await memoryRegistry.get(`session:${sessionId}`, memoryDbPath, memoryEnabled);
     const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
@@ -513,6 +559,9 @@ class SessionManager {
       "refresh_ui",
       "spawn_subagent",
       "delegate_task",
+      "decompose_tasks",
+      "update_task_status",
+      "complete_task_list",
     ];
 
     const definedToolNames = new Set([
@@ -530,6 +579,7 @@ class SessionManager {
     const combinedTools = Array.from(new Set([
       ...activeTools,
       ...alwaysOnTools,
+      ...(memoryEnabled ? ["memory_store", "memory_recall", "memory_forget"] : []),
     ]))
       .filter(tName => definedToolNames.has(tName));
 
@@ -714,6 +764,7 @@ class SessionManager {
       entry.session.dispose();
       this.sessions.delete(key);
     }
+    this.pendingSessions.delete(key);
     mcpRegistry.stopSessionMcpTools(username, sessionId);
     await memoryRegistry.shutdown(`session:${sessionId}`);
     const userDir = this.ensureUserDir(username);
@@ -754,7 +805,7 @@ class SessionManager {
     try {
       const entries = await readdir(sessionsDir, { withFileTypes: true });
       const sessionPromises = entries
-        .filter((entry) => entry.isDirectory())
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("plan_") && !entry.name.startsWith("del_") && !entry.name.startsWith("sub_"))
         .map(async (entry) => {
           const sessionId = entry.name;
           const sessionSubdir = join(sessionsDir, sessionId);
@@ -799,14 +850,6 @@ class SessionManager {
             }
           } else {
             status = "sleeping";
-          }
-          if (status === "active" || status === "sleeping") {
-            try {
-              const { isTaskRunnerActive } = await import("./task-runner");
-              if (isTaskRunnerActive(sessionId)) {
-                status = "task-running";
-              }
-            } catch {}
           }
 
           return {

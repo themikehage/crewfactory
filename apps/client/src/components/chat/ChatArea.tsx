@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageList } from "./MessageList";
-import { InputArea, processAttachments } from "./InputArea";
+import { ChatInput, processAttachments } from "./ChatInput";
 import { RightDrawer } from "./RightDrawer";
-import { ContextMeter } from "./ContextMeter";
 import { AnimatePresence } from "framer-motion";
 import type { TaskRunnerState } from "shared";
 import { useLiterals } from "@/lib";
@@ -172,12 +171,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     currentTaskId: null,
     status: "idle",
   });
-  const [contextData, setContextData] = useState<{
-    contextUsage: { tokens: number | null; contextWindow: number | null; percent: number | null } | null;
-    sessionStats: { tokens: { input: number; output: number; total: number } } | null;
-  } | null>(null);
-  const [activeObservers, setActiveObservers] = useState(0);
-  const { connected, send, subscribe } = useWebSocket(sessionId);
+  const { send, subscribe } = useWebSocket(sessionId);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const isAtBottomRef = useRef(true);
@@ -294,22 +288,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     };
     fetchTasks();
 
-    const fetchContext = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/context`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          if (data.contextUsage || data.sessionStats) {
-            setContextData(data);
-          }
-        }
-      } catch {}
-    };
-    fetchContext();
-
     const unsubStart = subscribe("agent_start", () => {
       setStreaming(true);
     });
@@ -375,12 +353,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       }
     });
 
-    const unsubCtx = subscribe("context_usage", (data: any) => {
-      if (data.contextUsage || data.sessionStats) {
-        setContextData({ contextUsage: data.contextUsage, sessionStats: data.sessionStats });
-      }
-    });
-
     const unsubSubagent = subscribe("subagent_event", (data: any) => {
       if (data && data.toolCallId && data.event) {
         window.dispatchEvent(new CustomEvent(`subagent-event-${data.toolCallId}`, { detail: data.event }));
@@ -395,7 +367,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubMsgEnd();
       unsubError();
       unsubTasks();
-      unsubCtx();
       unsubSubagent();
     };
   }, [sessionId, subscribe]);
@@ -489,42 +460,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     }
   }, [sessionId, loadMessages]);
 
-  useEffect(() => {
-    if (!sessionId) {
-      setActiveObservers(0);
-      return;
-    }
-
-    const checkObservers = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const sessionsRes = await fetch("/api/sessions", {
-          headers: { Authorization: `Bearer ${token}` }
-        });
-        if (!sessionsRes.ok) return;
-        const { sessions } = await sessionsRes.json();
-        const s = sessions.find((item: any) => item.id === sessionId);
-        if (s && s.agentId) {
-          const agentRes = await fetch(`/api/agents/${s.agentId}`, {
-            headers: { Authorization: `Bearer ${token}` }
-          });
-          if (agentRes.ok) {
-            const data = await agentRes.json();
-            setActiveObservers(data.activeObservers || 0);
-            return;
-          }
-        }
-        setActiveObservers(0);
-      } catch {
-        setActiveObservers(0);
-      }
-    };
-
-    checkObservers();
-    const interval = setInterval(checkObservers, 3000);
-    return () => clearInterval(interval);
-  }, [sessionId]);
-
   if (!sessionId) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-bg relative">
@@ -545,25 +480,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   return (
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
-        <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border-b border-border text-xs text-muted-foreground flex-shrink-0">
-          <span
-            className={`w-2 h-2 rounded-full ${connected ? "bg-primary" : "bg-warning"}`}
-          />
-          {connected ? l.connected : l.reconnecting}
-          {streaming && <span className="ml-2 text-primary">Streaming...</span>}
-          {activeObservers > 0 && (
-            <span className="ml-2 px-1.5 py-0.5 rounded bg-blue-400/10 text-blue-400 border border-blue-400/20 font-medium text-xs animate-pulse flex items-center gap-1">
-              <span className="w-1 h-1 rounded-full bg-blue-400" />
-              Observado ({activeObservers})
-            </span>
-          )}
-          {tasksState.status !== "idle" && (
-            <span className="ml-2 px-1.5 py-0.2 rounded bg-primary/15 text-primary font-semibold text-xs">
-              Task Queue: {tasksState.status}
-            </span>
-          )}
 
-        </div>
         {error && (
           <div className="px-3 sm:px-4 py-2 bg-destructive/10 border-b border-error/20 text-destructive text-xs flex-shrink-0">
             {error}
@@ -581,7 +498,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
               <span className="text-xs font-mono tracking-wider animate-pulse opacity-85">Cargando mensajes...</span>
             </div>
           ) : (
-            <div className="max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4 w-full">
+            <div className={`max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4 w-full`}>
               {messages.length === 0 ? (
                 <WelcomeChatInput
                   title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
@@ -617,45 +534,44 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     }}
                   />
                   <div ref={messagesEndRef} />
+                  {!isReadOnlyExecution && <div className="h-[176px] flex-shrink-0" />}
                 </>
               )}
             </div>
           )}
         </div>
-        {messages.length > 0 && !isReadOnlyExecution && (
-          <ContextMeter
-            contextUsage={contextData?.contextUsage ?? null}
-            sessionStats={contextData?.sessionStats ?? null}
-          />
-        )}
         {messages.length > 0 && (
-          isReadOnlyExecution ? (
-            <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 flex-shrink-0 text-muted-foreground">
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-xs uppercase tracking-wider font-mono">
-                <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                </svg>
-                {sessionId.includes("_channel_") ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
+          <div className="absolute bottom-0 left-0 right-0 z-10">
+            <div className="absolute inset-x-0 top-0 h-12 bg-gradient-to-t from-bg to-transparent pointer-events-none" />
+            {isReadOnlyExecution ? (
+              <div className="p-4 bg-card border-t border-input flex flex-col items-center justify-center gap-2 text-muted-foreground">
+                <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-purple-500/10 border border-purple-500/25 text-purple-400 font-medium text-xs uppercase tracking-wider font-mono">
+                  <svg className="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+                    <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+                  </svg>
+                  {sessionId.includes("_channel_") ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
+                </div>
+                <p className="text-[11px] text-center max-w-md font-sans">
+                  Esta conversación corresponde a una ejecución automática externa. Podés navegar el historial de mensajes y tool calls, pero no es interactiva.
+                </p>
               </div>
-              <p className="text-[11px] text-center max-w-md font-sans">
-                Esta conversación corresponde a una ejecución automática externa. Podés navegar el historial de mensajes y tool calls, pero no es interactiva.
-              </p>
-            </div>
-          ) : (
-            <InputArea
-              onSend={handleSend}
-              onAbort={handleAbort}
-              streaming={streaming}
-              sessionId={sessionId}
-              onToolsChange={setSandboxTools}
-              runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
-              activeProjectName={activeProjectName}
-              activeAgentId={activeAgent?.id}
-              activeChannelId={activeChannel?.id}
-            />
-          )
+            ) : (
+              <ChatInput
+                onSend={handleSend}
+                onAbort={handleAbort}
+                streaming={streaming}
+                sessionId={sessionId}
+                onToolsChange={setSandboxTools}
+                runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
+                activeProjectName={activeProjectName}
+                activeAgentId={activeAgent?.id}
+                activeChannelId={activeChannel?.id}
+              />
+            )}
+          </div>
         )}
+
         {sessionId && (
           <FloatingTasks
             tasksState={tasksState}

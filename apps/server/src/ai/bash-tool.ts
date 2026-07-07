@@ -22,6 +22,61 @@ export interface ToolDefinition {
   execute: (args: { command: string; timeout?: number }, context?: any) => Promise<any>;
 }
 
+export function verifyCommandSafety(command: string): { safe: boolean; reason?: string } {
+  const protectedPorts = [
+    process.env.PORT ?? "3000",
+    process.env.PREVIEW_PORT ?? "3001",
+    "4104",
+    "5173"
+  ].map(p => parseInt(p, 10)).filter(p => !isNaN(p));
+
+  const pid = process.pid;
+  const lowerCmd = command.toLowerCase();
+
+  // 1. Detectar si contiene palabras clave destructivas de procesos
+  const killKeywords = ["kill", "taskkill", "stop-process", "fuser", "pkill", "killall"];
+  const hasKillKeyword = killKeywords.some(kw => lowerCmd.includes(kw));
+
+  if (hasKillKeyword) {
+    // Buscar si contiene el PID actual como número entero aislado
+    const pidRegex = new RegExp(`\\b${pid}\\b`);
+    if (pidRegex.test(lowerCmd)) {
+      return {
+        safe: false,
+        reason: `Command attempts to terminate the current server process (PID: ${pid}) which runs the agent platform.`
+      };
+    }
+
+    // Buscar si contiene alguno de los puertos protegidos como número entero aislado
+    for (const port of protectedPorts) {
+      const portRegex = new RegExp(`\\b${port}\\b`);
+      if (portRegex.test(lowerCmd)) {
+        return {
+          safe: false,
+          reason: `Command attempts to terminate processes associated with protected infrastructure port: ${port}.`
+        };
+      }
+    }
+  }
+
+  // 2. Protecciones heurísticas sobre comandos de red combinados con terminación/forzado
+  for (const port of protectedPorts) {
+    const portRegex = new RegExp(`\\b${port}\\b`);
+    if (portRegex.test(lowerCmd)) {
+      const networkKeywords = ["netstat", "lsof", "fuser", "get-nettcpconnection", "owningprocess"];
+      const hasNetworkKeyword = networkKeywords.some(nw => lowerCmd.includes(nw));
+      if (hasNetworkKeyword && (hasKillKeyword || lowerCmd.includes("stop") || lowerCmd.includes("force") || lowerCmd.includes("-k"))) {
+        return {
+          safe: false,
+          reason: `Command matches a dangerous pattern that targets infrastructure port: ${port}.`
+        };
+      }
+    }
+  }
+
+  return { safe: true };
+}
+
 export function createBashToolDefinition(cwd: string, options?: BashToolOptions): ToolDefinition {
   return {
     name: "bash",
@@ -36,6 +91,15 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
     },
     execute: async (args, context: any = {}) => {
       const { command, timeout } = args;
+
+      const safety = verifyCommandSafety(command);
+      if (!safety.safe) {
+        return {
+          exitCode: 1,
+          output: `Security Policy Error: Command execution rejected. ${safety.reason}`,
+          isError: true,
+        };
+      }
 
       if (!existsSync(cwd)) {
         return {

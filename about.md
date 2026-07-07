@@ -19,7 +19,10 @@
 - Message rendering: user, assistant, tool calls, thinking blocks
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
-- Context Window Meter with token usage bar and manual Compact button
+- **Premium Floating Chat Input & Popovers:** Replaces the legacy 2-row chat input and fullscreen modals with a premium, unified floating card (`ChatInput`). It integrates:
+  - **Inline Popovers:** Checkbox-based tool selectors (`ToolsPopover`) and searchable skills lists (`SkillsPopover`) directly above the action bar.
+  - **Context Usage Indicator:** Compact token display (e.g. `12k / 128k`) and a 2px dynamic, color-coded progress meter at the bottom edge of the input card.
+  - **Send/Stop Button:** Circular interactive button that morphs smoothly between sending and aborting streaming.
 - **Streaming Reconnection & Session Persistence:** Resolves page refresh issues during active streaming (e.g., waiting for long-running tools). Real-time message synchronization updates the session's active messages on every append, while the WebSocket handler immediately pushes current streaming states (`agent_start`) and token context meters upon client reconnection, marking the last assistant message as active.
 - **Virtualized Execution Sessions:** API and CLI executions for Agents, Repositories, and Channels are virtualized as read-only sessions in the chat UI. Toggled via a switch in the session popover, showing historical log messages with distinct "API" / "CLI" badges and locking the chat input to prevent interactive steer inputs.
 - **Rutas Jerárquicas Estructuradas:** El router enruta de forma contextualizada las vistas en la URL (ej: `/projects/{projectName}/session/{sessionId}`, `/projects/{projectName}/workspace`, `/agents/{agentId}/...`). Al recargar la página se mantiene al 100% el estado del contexto de trabajo y las breadcrumbs dinámicas reflejan exactamente la jerarquía del usuario (`Proyectos / got / Files`).
@@ -62,7 +65,7 @@
 - **Breakpoints**: Mobile (< 768px), Tablet (768px - 1024px), Desktop (> 1024px).
 - **Split-Screen Model (Mobile)**: On screens < 768px, the sidebar functions as the full-screen landing view when no context is active. When a project, agent, channel, or admin page is selected, the content slides in from the right to cover the sidebar.
 - **Mobile Header (MobileTopbar)**: A simplified 48px header on mobile with context names, quick session creation `[+]`, and the menu drawer button `[≡]` placed on the top-left for native-feeling reach.
-- **Mobile Bottom Navigation Bar**: A persistent 56px bottom bar on mobile provides instant access to **Home** (clears active context and shows the sidebar drawer), **Skills Library**, **Settings**, **Logs**, and **Plugins**. Content blocks automatically end above it (`bottom-14`).
+- **Mobile Bottom Navigation Bar**: A persistent 56px bottom bar on mobile provides instant access to **Home** (clears active context and shows the sidebar drawer), **Skills Library**, **Settings**, **Logs**, and **Plugins**. Content blocks automatically end above it (`bottom-14`). **Note:** This bar is automatically hidden in active chat screens (`route.page === "chat" && !isHome`) to maximize vertical chat space, allowing the chat input area to sit directly at `bottom-0`.
 - **Overlay Drawer**: Toggling the menu `[≡]` on the top-left slides the sidebar drawer in from the left over the active view with a dimming backdrop overlay (`opacity: 0.5`).
 - **MCP Tab Consolidation**: The top-level MCP configurations are integrated as a tab inside **Settings** (replaces `/mcps` top-level page) and automatically redirected to `/settings` with tab `mcp` active.
 - **Message Font Scale**: Chat bubbles (user, assistant, and rich markdown blocks) are scaled up to `text-base` (16px) on mobile viewports to avoid straining readers and improve touch accessibility.

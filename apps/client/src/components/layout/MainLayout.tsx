@@ -10,6 +10,7 @@ import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";
 import { MobileTopbar } from "./MobileTopbar";
+import { wsClient } from "@/lib/ws-client";
 import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
@@ -67,9 +68,11 @@ export function MainLayout({
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [quickCreating, setQuickCreating] = useState(false);
+  const [wsConnected, setWsConnected] = useState(() => wsClient.getState() === "connected");
   const pendingWorkspaceFile = useRef<string | null>(null);
 
   const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && route.page === "chat";
+  const isChatActive = route.page === "chat" && !isHome;
 
   const mobileTitle = useMemo(() => {
     if (activeProjectId) return activeProjectName || activeProjectId;
@@ -100,6 +103,10 @@ export function MainLayout({
   }, [onNavigate]);
 
   useEffect(() => {
+    setSidebarOpen(false);
+  }, [activeProjectId, activeAgent?.id, activeChannel?.id, route.page]);
+
+  useEffect(() => {
     const handleOpenWorkspace = (e: Event) => {
       const path = (e as CustomEvent<{ path?: string }>).detail?.path ?? null;
       if (route.page !== "workspace") {
@@ -122,6 +129,13 @@ export function MainLayout({
       }, 150);
     }
   }, [route.page]);
+
+  useEffect(() => {
+    const unsub = wsClient.onStateChange((state) => {
+      setWsConnected(state === "connected");
+    });
+    return unsub;
+  }, []);
 
   const getSessionPath = useCallback((id: string) => {
     if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
@@ -354,6 +368,13 @@ export function MainLayout({
             </button>
             {renderBreadcrumbs()}
           </div>
+          <div className="flex items-center gap-1.5">
+            <span
+              className={`w-2 h-2 rounded-full flex-shrink-0 ${wsConnected ? "bg-primary" : "bg-warning"}`}
+              title={wsConnected ? "Connected" : "Reconnecting"}
+            />
+            <span className="text-[10px] text-muted-foreground/60">{wsConnected ? "online" : "offline"}</span>
+          </div>
         </header>
       )}
 
@@ -362,15 +383,21 @@ export function MainLayout({
           <>
             {/* Sidebar for Mobile */}
             <AnimatePresence>
-              {(isHome || sidebarOpen) && (
+              {sidebarOpen && (
                 <motion.aside
-                  key="mobile-sidebar"
+                  key={isHome ? "sidebar-home" : "sidebar-overlay"}
                   initial={{ x: isHome ? 0 : "-100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "-100%" }}
                   transition={{ duration: 0.25, ease: sidebarOpen ? "easeOut" : "easeIn" }}
-                  className="absolute inset-x-0 top-0 bottom-14 z-50 w-full bg-background"
+                  className="fixed inset-0 z-50 w-full bg-background pb-14"
                 >
+                  <div className="h-12 px-3 flex items-center border-b border-border bg-card/30 flex-shrink-0">
+                    <div className="flex items-center gap-2">
+                      <Logo size={20} className="w-[20px] h-[20px]" />
+                      <span className="text-base font-semibold text-foreground">Factory</span>
+                    </div>
+                  </div>
                   <SessionSidebar
                     activeProjectName={activeProjectId}
                     activeAgent={activeAgent}
@@ -389,7 +416,7 @@ export function MainLayout({
 
             {/* Backdrop for Mobile Overlay Sidebar */}
             <AnimatePresence>
-              {!isHome && sidebarOpen && (
+              {sidebarOpen && !isHome && (
                 <motion.div
                   key="mobile-backdrop"
                   initial={{ opacity: 0 }}
@@ -404,15 +431,14 @@ export function MainLayout({
 
             {/* Content for Mobile */}
             <AnimatePresence>
-              {!isHome && (
-                <motion.main
-                  key={route.page + (activeProjectId || activeAgent?.id || activeChannel?.id || "")}
-                  initial={{ x: "100%" }}
-                  animate={{ x: 0 }}
-                  exit={{ x: "100%" }}
-                  transition={{ duration: 0.2, ease: "easeOut" }}
-                  className="absolute inset-x-0 top-0 bottom-14 z-30 flex flex-col bg-background"
-                >
+              <motion.main
+                key={route.page + (activeProjectId || activeAgent?.id || activeChannel?.id || "")}
+                initial={{ x: "100%" }}
+                animate={{ x: 0 }}
+                exit={{ x: "100%" }}
+                transition={{ duration: 0.2, ease: "easeOut" }}
+                className={`absolute inset-x-0 top-0 ${isChatActive && !sidebarOpen ? "bottom-0" : "bottom-14"} z-30 flex flex-col bg-background`}
+              >
                   {isContextView && (
                     <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
                       <div className="flex gap-1">
@@ -599,18 +625,6 @@ export function MainLayout({
                         ) : (
                           <>
                             <button
-                              onClick={handleQuickCreate}
-                              disabled={quickCreating}
-                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10 disabled:opacity-50"
-                              title="Nueva sesion"
-                            >
-                              {quickCreating ? (
-                                <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                              ) : (
-                                <Plus size={14} />
-                              )}
-                            </button>
-                            <button
                               onClick={() => setSessionPopoverOpen((p) => !p)}
                               className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
                               title="Ver sesiones"
@@ -640,17 +654,18 @@ export function MainLayout({
                     {children}
                   </div>
                 </motion.main>
-              )}
             </AnimatePresence>
-            <MobileBottomBar
-              currentPage={route.page}
-              isHome={isHome}
-              onNavigate={handleNavigate}
-              onSelectProject={onSelectProject}
-              onSelectAgent={onSelectAgent}
-              onSelectChannel={onSelectChannel}
-              setSidebarOpen={setSidebarOpen}
-            />
+            {(!isChatActive || sidebarOpen) && (
+              <MobileBottomBar
+                currentPage={route.page}
+                isHome={isHome}
+                onNavigate={handleNavigate}
+                onSelectProject={onSelectProject}
+                onSelectAgent={onSelectAgent}
+                onSelectChannel={onSelectChannel}
+                setSidebarOpen={setSidebarOpen}
+              />
+            )}
           </>
         ) : (
           <>
@@ -959,7 +974,7 @@ function MobileBottomBar({
   };
 
   return (
-    <div className="absolute bottom-0 left-0 right-0 h-14 bg-[#171717]/95 border-t border-border flex items-center justify-around z-40 backdrop-blur-md px-2">
+    <div className="absolute bottom-0 left-0 right-0 h-14 bg-[#171717]/95 border-t border-border flex items-center justify-around z-50 backdrop-blur-md px-2">
       {tabs.map((tab) => {
         let active = false;
         if (tab.id === "home") {

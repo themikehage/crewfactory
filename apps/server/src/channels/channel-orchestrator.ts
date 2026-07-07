@@ -598,7 +598,7 @@ class ChannelOrchestrator {
     });
 
     const userSettings = sessionManager.getUserSettings(username);
-    const memoryEnabled = userSettings.memoryEnabled ?? false;
+    const memoryEnabled = userSettings.memoryEnabled ?? true;
     const channelDbPath = `/tmp/crewfactory/${username}/channels/${channelId}/memory/memory.db`;
     const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);
 

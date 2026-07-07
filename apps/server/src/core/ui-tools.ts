@@ -251,6 +251,17 @@ export function createUiTools(
     tools.push(createSpawnSubagentTool(subagentOptions));
     const { createDelegateTaskTool } = require("./delegate-tool");
     tools.push(createDelegateTaskTool(subagentOptions));
+    const { createDecomposeTasksTool } = require("./decompose-tool");
+    tools.push(createDecomposeTasksTool({
+      username: subagentOptions.username,
+      parentSessionId: subagentOptions.parentSessionId,
+    }));
+    const { createUpdateTaskTools } = require("./update-task-tool");
+    const updateTools = createUpdateTaskTools({
+      username: subagentOptions.username,
+      parentSessionId: subagentOptions.parentSessionId,
+    });
+    tools.push(...updateTools);
   }
 
   return tools;
