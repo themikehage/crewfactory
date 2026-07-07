@@ -230,13 +230,18 @@
 - **Merge/Overwrite Restoration Modes**: Supports merging zip configurations with current setups, or cleanly wiping all data before overwrite.
 - **Safety Preflight & Warnings**: Shows warning modals on destructive overwrite imports, offering quick backup downloads and text verification inputs.
 
-### Task Delegation & Meta-Agent Optimization Loop
+### Task Delegation & Unified Multi-Agent Primitives
 - **Unified CLI Delegation**: Command-line helper script `scripts/delegate.ts` executed via Bun. Lets the global meta-agent delegate prompt execution to programmatic agents (`--agent`), channels (`--channel`), or project sessions (`--project`) with live SSE streams rendered directly to stdout.
 - **Active Observation API**: Endpoint `GET /api/agents/:id/observe` (SSE) providing live streaming of internal agent execution events (thoughts, text deltas, tool calls, errors).
 - **Execution Log Store**: Structured folder persistence under `/tmp/crewfactory/{username}/[agents|projects]/{id}/executions/{execId}/` saving prompt execution detail files (`prompt.json`, `messages.jsonl`, `tool-calls.json`, `errors.json`, `summary.json`) upon completion.
 - **Continuous Optimization Loop**: Factory skills `factory-delegate`, `factory-observe`, and `factory-quick-actions` teaching the global director how to delegate tasks, inspect execution reports, detect repetitive sequences, and compile/register optimized Quick Actions.
 - **Global Session Management & Diagnostics**: Factory skill `factory-sessions` teaching the global director how to list, inspect, delete, and analyze session messages, error logs, and execution bottlenecks across repositories, channels, agents, and experiments using standard REST APIs.
 - **Rich Monitoring UI**: "Historial" (Executions) logs tab in `AgentsPage.tsx` with collapsable tool detail pre-blocks and real-time Observed status indicators in `ChatArea.tsx`.
+- **Multi-Agent Primitives Architecture**: Consolidates 7 legacy orchestration pathways into 4 composeable primitives (`Spawn`, `Delegate`, `Negotiate`, `Arbitrate`):
+  - **Spawn / Delegate Primitives**: Unified in `apps/server/src/core/agent-utils.ts` supporting generic result envelope parsing (`parseEnvelope`), WebSocket log event forwarding (`forwardSubagentEvents`), and model fallback resolution.
+  - **Negotiation Protocol**: Isolated in `apps/server/src/core/negotiation/negotiation-protocol.ts` wrapping agreement, counter, and rejection state machine checks with clean event hooks (`onAgreement`, `onEscalation`).
+  - **Arbitration Protocol**: Isolated in `apps/server/src/core/negotiation/arbitration-protocol.ts` encapsulating binding verification prompts and structured system escalation message templates.
+  - **Consolidated Entry Points**: `ChannelOrchestrator` and `ExperimentRunner` compose these primitives directly. Implícit `DELEGATE:` text parsing and legacy setup-autoconsulting setup files have been deleted in favor of native tool calls.
 - **Minimalist Welcome Chat Input**: Unified, high-contrast text input component (`WelcomeChatInput`) configured for empty sessions, first-time prompt initializations (auto-creating sessions dynamically based on active contexts), and laboratory team generator view. Implements Dynamic greeting based on user local time/active locale, built-in model dropdown selectors, files attachments lists, and custom suggestions cards. Includes `loadingMessages` shimmer checks in `ChatArea` to eliminate layout transition flickering.
 
 ### Model Context Protocol (MCP) Marketplace & Gallery

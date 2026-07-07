@@ -1,5 +1,5 @@
 import { createAgentServer } from "./create-agent-server";
-import type { AgentDefinition, AgentInfo, AgentStatus } from "shared";
+import { type AgentDefinition, type AgentInfo, type AgentStatus, SessionPrefix } from "shared";
 import type { AgentEntry } from "./types";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -102,7 +102,7 @@ class AgentRegistry {
   list(username: string): AgentInfo[] {
     const result: AgentInfo[] = [];
     for (const [id, entry] of this.agents) {
-      if (entry.username === username && !id.startsWith("lab_")) {
+      if (entry.username === username && !id.startsWith(SessionPrefix.LAB)) {
         result.push({
           id,
           name: entry.server.definition.name,

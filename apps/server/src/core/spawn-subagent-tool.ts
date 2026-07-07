@@ -13,6 +13,8 @@ import { createUiTools } from "./ui-tools";
 import { sessionManager } from "./session-manager";
 import { filterSecretsFromOutput } from "./bash-output-filter";
 import { getEnvironmentContext } from "./env-check";
+import { SessionPrefix } from "shared";
+import { parseEnvelope, forwardSubagentEvents, getLastAssistantText } from "./agent-utils";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -21,55 +23,6 @@ export interface SpawnSubagentOptions {
   modelRegistry: ModelRegistry;
   authStorage: AuthStorage;
   resourceLoader: DefaultResourceLoader;
-}
-
-function parseEnvelope(text: string): { status: string; executive_summary: string; artifacts: string; risks: string } {
-  const result = {
-    status: "success",
-    executive_summary: "",
-    artifacts: "none",
-    risks: "None",
-  };
-
-  const cleanText = text.trim();
-  result.executive_summary = cleanText.slice(0, 500);
-
-  // Try to find explicit key-value lines
-  const lines = cleanText.split("\n");
-  let hasStatus = false;
-  let hasSummary = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const match = trimmed.match(/^(status|executive_summary|summary|artifacts|risks)\s*:\s*(.*)$/i);
-    if (match) {
-      const key = match[1].toLowerCase();
-      const val = match[2].trim();
-      if (key === "status") {
-        result.status = val;
-        hasStatus = true;
-      } else if (key === "executive_summary" || key === "summary") {
-        result.executive_summary = val;
-        hasSummary = true;
-      } else if (key === "artifacts") {
-        result.artifacts = val;
-      } else if (key === "risks") {
-        result.risks = val;
-      }
-    }
-  }
-
-  // Fallback to cleaner summary if we didn't parse key-values
-  if (!hasStatus && !hasSummary) {
-    // If the output has --- delimiters, we can clean them up for the summary
-    const cleanSummary = cleanText
-      .replace(/---/g, "")
-      .trim()
-      .slice(0, 300);
-    result.executive_summary = cleanSummary;
-  }
-
-  return result;
 }
 
 export function createSpawnSubagentTool(opts: SpawnSubagentOptions) {
@@ -119,7 +72,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
 
       // 1. Create a directory for the subagent session
       const userDir = sessionManager.ensureUserDir(username);
-      const subagentSessionId = `sub_${toolCallId}`;
+      const subagentSessionId = `${SessionPrefix.SUBAGENT}${toolCallId}`;
       const subagentDir = join(userDir, "sessions", parentSessionId, "subagents", subagentSessionId);
       mkdirSync(subagentDir, { recursive: true });
 
@@ -230,20 +183,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       }
 
       // Subscribe to subagent session logs and forward them via parent session WebSocket
-      const subagentUnsub = subSession.subscribe((evt: any) => {
-        try {
-          const { broadcastToSession } = require("../ws/handler");
-          broadcastToSession(parentSessionId, {
-            type: "subagent_event",
-            sessionId: parentSessionId,
-            subagentSessionId,
-            toolCallId,
-            event: evt,
-          });
-        } catch (err) {
-          console.error("[Subagent Event Forwarding Error]:", err);
-        }
-      });
+      const subagentUnsub = forwardSubagentEvents(subSession, parentSessionId, subagentSessionId, toolCallId);
 
       // 5. Execute subagent prompt loop
       let status = "success";
@@ -260,20 +200,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       }
 
       // 6. Finalize, parse response, and update session tracking
-      const assistantMsgs = subSession.messages.filter(m => m.role === "assistant");
-      const lastMsg = assistantMsgs[assistantMsgs.length - 1];
-
-      let lastText = "";
-      if (lastMsg && lastMsg.content) {
-        if (typeof lastMsg.content === "string") {
-          lastText = lastMsg.content;
-        } else if (Array.isArray(lastMsg.content)) {
-          lastText = lastMsg.content
-            .filter((c: any) => c.type === "text")
-            .map((c: any) => c.text)
-            .join("\n");
-        }
-      }
+      const lastText = getLastAssistantText(subSession.messages);
 
       const envelope = parseEnvelope(lastText);
 

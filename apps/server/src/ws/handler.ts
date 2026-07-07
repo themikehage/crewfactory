@@ -7,6 +7,7 @@ import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
+import { SessionPrefix } from "shared";
 
 function getProjectNameForSession(username: string, sessionId: string): string | undefined {
   const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
@@ -87,7 +88,7 @@ async function subscribeWsToSession(
   user: AuthPayload,
   sessionId: string
 ): Promise<void> {
-  if (sessionId.startsWith("exec_") || sessionId.startsWith("lab_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC) || sessionId.startsWith(SessionPrefix.LAB)) {
     return;
   }
 
@@ -303,7 +304,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
     const tools = data.tools as string[] | undefined;
     const images = data.images as any[] | undefined;
 
-    if (sessionId && sessionId.startsWith("exec_")) {
+    if (sessionId && sessionId.startsWith(SessionPrefix.EXEC)) {
       safeSend(ws, JSON.stringify({ type: "agent_error", sessionId, error: "Esta sesion de ejecucion es de solo lectura y no acepta prompts." }));
       return;
     }

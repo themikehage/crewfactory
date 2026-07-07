@@ -11,7 +11,7 @@ import {
 } from "../ai";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { AVAILABLE_TOOLS } from "shared";
+import { AVAILABLE_TOOLS, SessionPrefix } from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
 import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
@@ -405,7 +405,7 @@ class SessionManager {
       `- For agent targets, it triggers a clean isolated session bound to the target agent. For project targets, it invokes the project executor. For channel targets, it coordinates multi-agent chains and awaits agreement/negotiation completion.\n`
     ];
 
-    if (sessionId.startsWith("del_")) {
+    if (sessionId.startsWith(SessionPrefix.DELEGATE)) {
       appendPrompts.push(
         `\n\n## Delegated Task Mode\n` +
         `You are executing a delegated task. Perform the task directly and output a structured result envelope at the very end of your response.\n` +
@@ -805,7 +805,7 @@ class SessionManager {
     try {
       const entries = await readdir(sessionsDir, { withFileTypes: true });
       const sessionPromises = entries
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("plan_") && !entry.name.startsWith("del_") && !entry.name.startsWith("sub_"))
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("plan_") && !entry.name.startsWith(SessionPrefix.DELEGATE) && !entry.name.startsWith(SessionPrefix.SUBAGENT))
         .map(async (entry) => {
           const sessionId = entry.name;
           const sessionSubdir = join(sessionsDir, sessionId);

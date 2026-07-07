@@ -6,7 +6,8 @@ import type { Channel, ChannelMember, ChannelMessage } from "shared";
 import { eventBroker } from "../lib/event-broker";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
-import { NegotiationStateMachine } from "./negotiation-state";
+import { NegotiationProtocol } from "../core/negotiation/negotiation-protocol";
+import { ArbitrationProtocol } from "../core/negotiation/arbitration-protocol";
 import { TaskLedger } from "./task-ledger";
 import { memoryRegistry } from "../core/memory/registry";
 
@@ -311,12 +312,12 @@ class ChannelOrchestrator {
     let isRejected = false;
     if (channel.negotiationProtocol) {
       const negotiationState = channelStore.getNegotiationState(username, channelId);
-      const sm = new NegotiationStateMachine(channel.negotiationProtocol, negotiationState);
+      const protocol = new NegotiationProtocol(channel.negotiationProtocol, negotiationState);
       const receiverId = incomingMsg.role === "user" ? "user" : incomingMsg.agentId || "user";
       const senderId = member.agentId;
-      const ingestResult = sm.ingest(senderId, receiverId, result.agentMsg.content);
+      const ingestResult = protocol.ingest(senderId, receiverId, result.agentMsg.content);
 
-      channelStore.saveNegotiationState(username, channelId, sm.getState());
+      channelStore.saveNegotiationState(username, channelId, protocol.getState());
 
       broadcast(channelId, {
         type: "channel_negotiation_round",
@@ -325,7 +326,7 @@ class ChannelOrchestrator {
         agentId: senderId,
         receiverId,
         rounds: ingestResult.rounds,
-        status: sm.getState()[ingestResult.pairKey]?.status || "open",
+        status: protocol.getState()[ingestResult.pairKey]?.status || "open",
       });
 
       if (ingestResult.matched === "agreed") {
@@ -361,17 +362,19 @@ class ChannelOrchestrator {
           rounds: ingestResult.rounds,
         });
 
-        // Trigger arbiter dispatch
+        // Trigger arbiter dispatch using ArbitrationProtocol
         const agentName = agentEntry?.server.definition.name || senderId;
         const targetName = receiverId === "user" ? "user" : agentRegistry.get(receiverId)?.server.definition.name || receiverId;
-        const escalationMsg: ChannelMessage = {
-          id: crypto.randomUUID(),
+        const arbiterProtocol = new ArbitrationProtocol({ arbiterAgentId: arbiterId });
+        const escalationMsg = arbiterProtocol.buildEscalationMessage({
+          senderId,
+          senderName: agentName,
+          receiverId,
+          receiverName: targetName,
+          rounds: ingestResult.rounds,
           channelId,
           sessionId: incomingMsg.sessionId,
-          role: "user", // treated as system escalation prompt
-          content: `Bloqueo detectado tras ${ingestResult.rounds} rondas entre @${agentName} y @${targetName}. Emite veredicto vinculante.`,
-          createdAt: new Date().toISOString(),
-        };
+        });
 
         const arbiterMember = channel.members.find((m) => m.agentId === arbiterId);
         if (arbiterMember) {
@@ -409,81 +412,6 @@ class ChannelOrchestrator {
       return;
     }
 
-    // F3: Task Decomposition
-    const delegationPattern = channel.delegationPattern || { token: "DELEGATE: @(\\w+) — (.+)", applyToRole: "lead" };
-    const senderRole = member.role || "member";
-    const isLeadRole = delegationPattern.applyToRole ? senderRole === delegationPattern.applyToRole : senderRole === "lead";
-
-    const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
-    const ledger = new TaskLedger(ledgerPath);
-
-    // If this agent is resolving any tasks, mark them as done
-    const openTasks = ledger.getOpenTasksFor(member.agentId);
-    for (const ot of openTasks) {
-      ledger.updateStatus(ot.id, "done");
-      broadcast(channelId, {
-        type: "channel_task_updated",
-        channelId,
-        sessionId: incomingMsg.sessionId,
-        task: ot,
-        status: "done",
-      });
-    }
-
-    let subDispatches: { member: ChannelMember; taskMsg: ChannelMessage }[] = [];
-
-    if (isLeadRole) {
-      const tokenRegex = new RegExp(delegationPattern.token || "DELEGATE: @(\\w+) — (.+)", "gi");
-      let match;
-      const content = result.agentMsg.content;
-      const agentName = agentEntry?.server.definition.name || member.agentId;
-
-      while ((match = tokenRegex.exec(content)) !== null) {
-        const targetName = match[1];
-        const taskDetail = match[2];
-
-        // Resolve target agent by name
-        const targetMember = channel.members.find((m) => {
-          const entry = agentRegistry.get(m.agentId);
-          return entry && entry.server.definition.name.toLowerCase() === targetName.toLowerCase();
-        });
-
-        if (targetMember) {
-          const targetEntry = agentRegistry.get(targetMember.agentId);
-          const targetNameResolved = targetEntry?.server.definition.name || targetMember.agentId;
-
-          const ledgerTask = ledger.record({
-            assignedBy: member.agentId,
-            assignedByName: agentName,
-            assignedTo: targetMember.agentId,
-            assignedToName: targetNameResolved,
-            role: targetMember.role || "member",
-            task: taskDetail,
-          });
-
-          broadcast(channelId, {
-            type: "channel_task_created",
-            channelId,
-            sessionId: incomingMsg.sessionId,
-            task: ledgerTask,
-          });
-
-          const taskMsg: ChannelMessage = {
-            id: crypto.randomUUID(),
-            channelId,
-            sessionId: incomingMsg.sessionId,
-            role: "agent",
-            agentId: member.agentId,
-            agentName: agentName,
-            content: `Tarea asignada por @${agentName}: ${taskDetail}`,
-            createdAt: new Date().toISOString(),
-          };
-
-          subDispatches.push({ member: targetMember, taskMsg });
-        }
-      }
-    }
-
     channelStore.appendMessage(username, channelId, result.agentMsg);
     broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
 
@@ -495,16 +423,6 @@ class ChannelOrchestrator {
       agentName: result.agentMsg.agentName,
       detail: result.agentMsg.content,
     });
-
-    if (subDispatches.length > 0) {
-      for (const sd of subDispatches) {
-        this.incrementChain(key);
-        this.dispatchToAgentAsync(username, channelId, sd.member, sd.taskMsg, depth + 1, signal).catch((err) => {
-          console.error(`[ChannelOrchestrator] Delegation dispatch error:`, err);
-        });
-      }
-      return;
-    }
 
     // Chain to next round if not agreed
     if (!isAgreed) {
@@ -1030,20 +948,7 @@ class ChannelOrchestrator {
         const isEligible = recipients.some(r => r.agentId === member.agentId);
         if (!isEligible) continue;
 
-        // Process task ledger updates (mark tasks as done)
-        const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
-        const ledger = new TaskLedger(ledgerPath);
-        const openTasks = ledger.getOpenTasksFor(member.agentId);
-        for (const ot of openTasks) {
-          ledger.updateStatus(ot.id, "done");
-          broadcast(channelId, {
-            type: "channel_task_updated",
-            channelId,
-            sessionId: currentIncomingMsg.sessionId,
-            task: ot,
-            status: "done",
-          });
-        }
+
 
         const queue = this.getOrCreateQueue(member.agentId);
         let result: DispatchResult;
@@ -1083,12 +988,12 @@ class ChannelOrchestrator {
         let isAgreed = false;
         if (channel.negotiationProtocol) {
           const negotiationState = channelStore.getNegotiationState(username, channelId);
-          const sm = new NegotiationStateMachine(channel.negotiationProtocol, negotiationState);
+          const protocol = new NegotiationProtocol(channel.negotiationProtocol, negotiationState);
           const receiverId = currentIncomingMsg.role === "user" ? "user" : currentIncomingMsg.agentId || "user";
           const senderId = member.agentId;
-          const ingestResult = sm.ingest(senderId, receiverId, currentIncomingMsg.content);
+          const ingestResult = protocol.ingest(senderId, receiverId, currentIncomingMsg.content);
 
-          channelStore.saveNegotiationState(username, channelId, sm.getState());
+          channelStore.saveNegotiationState(username, channelId, protocol.getState());
 
           broadcast(channelId, {
             type: "channel_negotiation_round",
@@ -1097,7 +1002,7 @@ class ChannelOrchestrator {
             agentId: senderId,
             receiverId,
             rounds: ingestResult.rounds,
-            status: sm.getState()[ingestResult.pairKey]?.status || "open",
+            status: protocol.getState()[ingestResult.pairKey]?.status || "open",
           });
 
           if (ingestResult.matched === "agreed") {

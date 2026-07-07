@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { sessionManager } from "../core/session-manager";
-import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema } from "shared";
+import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema, SessionPrefix } from "shared";
 
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
@@ -295,7 +295,7 @@ sessionsRouter.get("/:id/messages", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     const parts = sessionId.split("_");
     const tipo = parts[1];
     const entidad = parts[2];
@@ -433,7 +433,7 @@ sessionsRouter.post("/:id/abort", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     return c.json({ success: true });
   }
 
@@ -451,7 +451,7 @@ sessionsRouter.delete("/:id", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     return c.json({ error: "Cannot delete API executions from UI" }, 400);
   }
 
@@ -465,7 +465,7 @@ sessionsRouter.patch("/:id", zValidator("json", z.object({ name: z.string().min(
   const { name } = c.req.valid("json");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     return c.json({ error: "Cannot rename API executions" }, 400);
   }
 
@@ -482,7 +482,7 @@ sessionsRouter.post(
     const { provider, modelId, thinkingLevel } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    if (sessionId.startsWith("exec_")) {
+    if (sessionId.startsWith(SessionPrefix.EXEC)) {
       return c.json({ error: "Cannot modify model settings for execution logs" }, 400);
     }
 
@@ -519,7 +519,7 @@ sessionsRouter.get("/:id/context", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     return c.json({ contextUsage: null, sessionStats: null });
   }
 
@@ -540,7 +540,7 @@ sessionsRouter.get("/:id/skills", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     return c.json({ skills: [], diagnostics: [] });
   }
 
@@ -582,7 +582,7 @@ sessionsRouter.post(
     const { tools } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    if (sessionId.startsWith("exec_")) {
+    if (sessionId.startsWith(SessionPrefix.EXEC)) {
       return c.json({ error: "Cannot modify tool permissions for execution logs" }, 400);
     }
 
@@ -635,7 +635,7 @@ sessionsRouter.get("/:id/tools", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  if (sessionId.startsWith("exec_")) {
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
     return c.json({ tools: [], serialTools: ["request_approval", "ask_question"], toolStatus: getGatedToolStatus(username) });
   }
 

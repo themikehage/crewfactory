@@ -10,7 +10,7 @@ import { Hono } from "hono";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { streamSSE } from "hono/streaming";
-import type { AgentDefinition } from "shared";
+import { type AgentDefinition, SessionPrefix } from "shared";
 import type { AgentServer } from "./types";
 import { createUiTools } from "../core/ui-tools";
 import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
@@ -138,7 +138,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     },
   });
 
-  const isLaboratory = definition.id.startsWith("lab_");
+  const isLaboratory = definition.id.startsWith(SessionPrefix.LAB);
   const uiTools = createUiTools(workspaceDir, username, isLaboratory, isLaboratory ? undefined : {
     workspaceDir,
     username,

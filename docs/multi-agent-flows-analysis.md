@@ -284,3 +284,28 @@ La arquitectura subyacente es sólida — el `ChannelOrchestrator` (1138 líneas
 | `apps/client/src/pages/ChannelsPage.tsx` | 1-334 | Client: channel list, create, manage members/context |
 | `apps/client/src/pages/LaboratoryPage.tsx` | 1-282 | Client: experiment viewer with single/multi/compare tabs |
 | `apps/client/src/components/laboratory/IaGenerator.tsx` | 1-800 | Client: AI team generation, instantiation, experiment creation |
+## Arquitectura Unificada de Primitivas Multi-Agente (Refactorización)
+
+Hemos consolidado y refactorizado los mecanismos de ejecución multi-agente en primitivas componibles:
+
+1. **Spawn / Delegate Primitives**
+   - Centralizado en `apps/server/src/core/agent-utils.ts` con funciones de extracción unificadas:
+     - `parseEnvelope(text)`: Extrae estados, resúmenes de ejecución, artefactos y riesgos de las respuestas de los agentes.
+     - `forwardSubagentEvents(...)`: Reenvía eventos WebSocket de subagente de manera segura.
+     - `getLastAssistantText(messages)`: Maneja el formato de mensajes del asistente de manera limpia.
+     - `resolveModelWithFallback(...)`: Resuelve el modelo del agente cayendo al primer modelo configurado si no está disponible.
+   - El prefijo de sesión y control se define centralmente en `packages/shared/src/session-prefix.ts` mediante `SessionPrefix` const enum.
+   - Las respuestas devuelven un esquema uniforme `EnvelopeResultSchema` definido en `packages/shared/src/envelope.ts`.
+
+2. **Negotiation Protocol Primitive**
+   - Implementado en `apps/server/src/core/negotiation/negotiation-protocol.ts` mediante la clase `NegotiationProtocol`.
+   - Encapsula la máquina de estados de acuerdo, contrapropuesta y rechazo. Expone hooks limpios como `onAgreement` y `onEscalation`.
+
+3. **Arbitration Protocol Primitive**
+   - Implementado en `apps/server/src/core/negotiation/arbitration-protocol.ts` mediante la clase `ArbitrationProtocol`.
+   - Encapsula la lógica de arbitraje jerárquico y construcción de mensajes de escalación vinculantes.
+
+4. **Consolidación de Entry Points**
+   - `ChannelOrchestrator` y `ExperimentRunner` ahora componen estas primitivas en lugar de duplicar su lógica interna.
+   - Hemos eliminado por completo el parser de delegación implícita por texto `DELEGATE:` en el orquestador y descartado el archivo obsoleto `setup-autoconsulting-channel.ts`.
+   - Reemplazamos el polling manual `waitChannelIdle` en benchmarks por el promise nativo del orquestador.

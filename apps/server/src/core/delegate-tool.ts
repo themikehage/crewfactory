@@ -1,10 +1,10 @@
-import { existsSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
 import { sessionManager } from "./session-manager";
 import { agentRegistry } from "../agents";
 import { channelStore } from "../channels/channel-store";
 import { channelOrchestrator } from "../channels/channel-orchestrator";
 import type { ModelRegistry, AuthStorage, DefaultResourceLoader } from "../ai";
+import { SessionPrefix } from "shared";
+import { parseEnvelope, forwardSubagentEvents, getLastAssistantText } from "./agent-utils";
 
 export interface DelegateTaskOptions {
   workspaceDir: string;
@@ -13,52 +13,6 @@ export interface DelegateTaskOptions {
   modelRegistry: ModelRegistry;
   authStorage: AuthStorage;
   resourceLoader: DefaultResourceLoader;
-}
-
-function parseEnvelope(text: string): { status: string; executive_summary: string; artifacts: string; risks: string } {
-  const result = {
-    status: "success",
-    executive_summary: "",
-    artifacts: "none",
-    risks: "None",
-  };
-
-  const cleanText = text.trim();
-  result.executive_summary = cleanText.slice(0, 500);
-
-  const lines = cleanText.split("\n");
-  let hasStatus = false;
-  let hasSummary = false;
-
-  for (const line of lines) {
-    const trimmed = line.trim();
-    const match = trimmed.match(/^(status|executive_summary|summary|artifacts|risks)\s*:\s*(.*)$/i);
-    if (match) {
-      const key = match[1].toLowerCase();
-      const val = match[2].trim();
-      if (key === "status") {
-        result.status = val;
-        hasStatus = true;
-      } else if (key === "executive_summary" || key === "summary") {
-        result.executive_summary = val;
-        hasSummary = true;
-      } else if (key === "artifacts") {
-        result.artifacts = val;
-      } else if (key === "risks") {
-        result.risks = val;
-      }
-    }
-  }
-
-  if (!hasStatus && !hasSummary) {
-    const cleanSummary = cleanText
-      .replace(/---/g, "")
-      .trim()
-      .slice(0, 300);
-    result.executive_summary = cleanSummary;
-  }
-
-  return result;
 }
 
 export function createDelegateTaskTool(opts: DelegateTaskOptions) {
@@ -94,7 +48,7 @@ Allows keeping parent context clean by returning a structured summary instead of
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
       const { targetType, targetId, task, includeFullHistory = false } = args;
-      const delegateSessionId = `del_${toolCallId}`;
+      const delegateSessionId = `${SessionPrefix.DELEGATE}${toolCallId}`;
       let status = "success";
       let executionResultText = "";
       let parsedEnvelope: any = null;
@@ -132,20 +86,7 @@ Allows keeping parent context clean by returning a structured summary instead of
           }
 
           // Forward parent websocket event notifications for streaming logging
-          const unsub = session.subscribe((evt: any) => {
-            try {
-              const { broadcastToSession } = require("../ws/handler");
-              broadcastToSession(parentSessionId, {
-                type: "subagent_event",
-                sessionId: parentSessionId,
-                subagentSessionId: delegateSessionId,
-                toolCallId,
-                event: evt,
-              });
-            } catch (err) {
-              console.error("[Delegate Agent Event Forwarding Error]:", err);
-            }
-          });
+          const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
           try {
             await session.prompt(task);
@@ -154,19 +95,7 @@ Allows keeping parent context clean by returning a structured summary instead of
           }
 
           // Read the output and parse
-          const assistantMsgs = session.messages.filter(m => m.role === "assistant");
-          const lastMsg = assistantMsgs[assistantMsgs.length - 1];
-          let lastText = "";
-          if (lastMsg && lastMsg.content) {
-            if (typeof lastMsg.content === "string") {
-              lastText = lastMsg.content;
-            } else if (Array.isArray(lastMsg.content)) {
-              lastText = lastMsg.content
-                .filter((c: any) => c.type === "text")
-                .map((c: any) => c.text)
-                .join("\n");
-            }
-          }
+          const lastText = getLastAssistantText(session.messages);
 
           parsedEnvelope = parseEnvelope(lastText);
           if (includeFullHistory) {
@@ -189,20 +118,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             });
           }
 
-          const unsub = session.subscribe((evt: any) => {
-            try {
-              const { broadcastToSession } = require("../ws/handler");
-              broadcastToSession(parentSessionId, {
-                type: "subagent_event",
-                sessionId: parentSessionId,
-                subagentSessionId: delegateSessionId,
-                toolCallId,
-                event: evt,
-              });
-            } catch (err) {
-              console.error("[Delegate Project Event Forwarding Error]:", err);
-            }
-          });
+          const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
           try {
             await session.prompt(task);
@@ -211,19 +127,7 @@ Allows keeping parent context clean by returning a structured summary instead of
           }
 
           // Read and parse output
-          const assistantMsgs = session.messages.filter(m => m.role === "assistant");
-          const lastMsg = assistantMsgs[assistantMsgs.length - 1];
-          let lastText = "";
-          if (lastMsg && lastMsg.content) {
-            if (typeof lastMsg.content === "string") {
-              lastText = lastMsg.content;
-            } else if (Array.isArray(lastMsg.content)) {
-              lastText = lastMsg.content
-                .filter((c: any) => c.type === "text")
-                .map((c: any) => c.text)
-                .join("\n");
-            }
-          }
+          const lastText = getLastAssistantText(session.messages);
 
           parsedEnvelope = parseEnvelope(lastText);
           if (includeFullHistory) {
@@ -269,20 +173,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             });
           }
 
-          const unsub = session.subscribe((evt: any) => {
-            try {
-              const { broadcastToSession } = require("../ws/handler");
-              broadcastToSession(parentSessionId, {
-                type: "subagent_event",
-                sessionId: parentSessionId,
-                subagentSessionId: targetId,
-                toolCallId,
-                event: evt,
-              });
-            } catch (err) {
-              console.error("[Delegate Session Event Forwarding Error]:", err);
-            }
-          });
+          const unsub = forwardSubagentEvents(session, parentSessionId, targetId, toolCallId);
 
           try {
             await session.prompt(task);
@@ -290,19 +181,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             unsub();
           }
 
-          const assistantMsgs = session.messages.filter(m => m.role === "assistant");
-          const lastMsg = assistantMsgs[assistantMsgs.length - 1];
-          let lastText = "";
-          if (lastMsg && lastMsg.content) {
-            if (typeof lastMsg.content === "string") {
-              lastText = lastMsg.content;
-            } else if (Array.isArray(lastMsg.content)) {
-              lastText = lastMsg.content
-                .filter((c: any) => c.type === "text")
-                .map((c: any) => c.text)
-                .join("\n");
-            }
-          }
+          const lastText = getLastAssistantText(session.messages);
 
           parsedEnvelope = parseEnvelope(lastText);
           if (includeFullHistory) {

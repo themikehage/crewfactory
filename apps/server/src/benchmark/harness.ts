@@ -1,4 +1,4 @@
-import type { Channel, ChannelMessage } from "shared";
+import { type Channel, type ChannelMessage, SessionPrefix } from "shared";
 import { channelOrchestrator, channelStore } from "../channels/index.js";
 import { sessionManager } from "../core/session-manager.js";
 import { computeGlobalScore } from "./scoring.js";
@@ -18,32 +18,7 @@ export interface ConditionResult {
   fichasPropuestas: number | null;
 }
 
-export async function waitChannelIdle(username: string, channelId: string, sessionId: string): Promise<void> {
-  const channel = channelStore.getChannel(username, channelId);
-  if (!channel) return;
 
-  // Wait 1.5s initially for the dispatch to spawn and enqueue tasks
-  await new Promise((resolve) => setTimeout(resolve, 1500));
-
-  while (true) {
-    const activeStreams = channelOrchestrator.getActiveStreams(channelId, sessionId);
-    const hasActiveStreams = Object.keys(activeStreams).length > 0;
-
-    let hasQueuedOrProcessing = false;
-    for (const member of channel.members) {
-      const q = (channelOrchestrator as any).agentQueues.get(member.agentId);
-      if (q && (q.size > 0 || q.processing)) {
-        hasQueuedOrProcessing = true;
-        break;
-      }
-    }
-
-    if (!hasActiveStreams && !hasQueuedOrProcessing) {
-      break;
-    }
-    await new Promise((resolve) => setTimeout(resolve, 800));
-  }
-}
 
 export async function runConditionA(
   username: string,
@@ -53,7 +28,7 @@ export async function runConditionA(
   modelId?: string
 ): Promise<ConditionResult> {
   const startTime = Date.now();
-  const sessionId = `bench_a_${crypto.randomUUID()}`;
+  const sessionId = `${SessionPrefix.BENCHMARK}a_${crypto.randomUUID()}`;
 
   const session = await sessionManager.getOrCreateSession(username, sessionId);
   if (modelId) {
@@ -130,13 +105,10 @@ export async function runConditionB(
   goldAnswer: { fichas: number; dias: number }
 ): Promise<ConditionResult> {
   const startTime = Date.now();
-  const sessionId = `bench_b_${crypto.randomUUID()}`;
+  const sessionId = `${SessionPrefix.BENCHMARK}b_${crypto.randomUUID()}`;
 
-  // Trigger dispatch to channel
+  // Trigger dispatch to channel and wait for settle
   await channelOrchestrator.dispatchUserMessage(username, channelId, briefText, sessionId);
-
-  // Poll until the chain settles
-  await waitChannelIdle(username, channelId, sessionId);
 
   const durationMs = Date.now() - startTime;
 

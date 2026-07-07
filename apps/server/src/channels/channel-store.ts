@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, statSync, openSync, fstatSync, readSync, closeSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
+import { SessionPrefix } from "shared";
 
 export interface NegotiationPairState {
   rounds: number;
@@ -85,7 +86,7 @@ class ChannelStore {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const channel = this.getChannel(username, entry.name);
-        if (channel && !channel.id.startsWith("lab_")) {
+        if (channel && !channel.id.startsWith(SessionPrefix.LAB)) {
           const msgPath = this.getMessagesPath(username, entry.name);
           if (existsSync(msgPath)) {
             try {

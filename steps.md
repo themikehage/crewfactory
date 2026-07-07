@@ -708,3 +708,16 @@ crear un plan de despliegue facil en vps
 - [x] 77.8 Verify client compiles without type errors and build is successful
 - [x] 77.9 Update architecture in `about.md` and bitácora in `steps.md`
 
+## Phase 78: Refactorización a Primitivas Multi-Agente (Spawn, Delegate, Negotiate, Arbitrate)
+- [x] 78.1 Crear módulo `agent-utils.ts` para compartir utilidades comunes de agentes (envelope parser, event forwarding, assistant message text y model resolver)
+- [x] 78.2 Definir enum `SessionPrefix` en `packages/shared/src/session-prefix.ts` y exportar en el index del paquete compartido
+- [x] 78.3 Refactorizar `delegate-tool.ts` y `spawn-subagent-tool.ts` para integrar los nuevos helpers y prefijos centralizados
+- [x] 78.4 Definir schema `EnvelopeResultSchema` en `packages/shared/src/envelope.ts` y exportar en el index del paquete compartido
+- [x] 78.5 Eliminar parser de delegación implícita de texto `DELEGATE:` en `channel-orchestrator.ts` y borrar script de AutoConsulting (`setup-autoconsulting-channel.ts`)
+- [x] 78.6 Extraer lógica de negociación a `NegotiationProtocol` en `apps/server/src/core/negotiation/negotiation-protocol.ts`
+- [x] 78.7 Extraer lógica de arbitraje a `ArbitrationProtocol` en `apps/server/src/core/negotiation/arbitration-protocol.ts`
+- [x] 78.8 Consolidar entry points (`ChannelOrchestrator`, `ExperimentRunner` y `benchmark/harness.ts`) para componer y usar las nuevas primitivas
+- [x] 78.9 Escribir tests de integración automatizados en `primitives.test.ts` cubriendo todas las primitivas y utilidades
+- [x] 78.10 Verificar compilación exitosa y ejecución de pruebas sin errores
+- [x] 78.11 Actualizar bitácora de desarrollo (`steps.md`) y el documento de arquitectura (`about.md`)
+

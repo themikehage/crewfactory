@@ -5,8 +5,7 @@ import { type LabExperiment, type VariantRunResult } from "shared";
 import { channelOrchestrator, channelStore } from "../channels";
 import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";
-import { broadcastToUser } from "../ws/handler";
-import { waitChannelIdle } from "../benchmark/harness";
+import { resolveModelWithFallback } from "../core/agent-utils";
 
 export class ExperimentRunner {
   private static activeRuns = new Set<string>();
@@ -251,14 +250,9 @@ export class ExperimentRunner {
         try { await agentRegistry.stop(regId, false); } catch {}
       }
 
-      // Resolve model: if not configured, fallback to first configured model
+      // Resolve model using agent-utils helper
       const { modelRegistry } = sessionManager.getUserContext(username);
-      const configuredModels = modelRegistry.getAvailable();
-      let resolvedModel = ag.model;
-      const foundModel = configuredModels.find(m => m.id === ag.model || `${m.provider}/${m.id}` === ag.model);
-      if (!foundModel && configuredModels.length > 0) {
-        resolvedModel = `${configuredModels[0].provider}/${configuredModels[0].id}`;
-      }
+      const resolvedModel = resolveModelWithFallback(ag.model, modelRegistry);
 
       await agentRegistry.register(username, {
         id: regId,
@@ -301,11 +295,8 @@ export class ExperimentRunner {
         isExecution: true
       });
 
-      // 2. Dispatch prompt
+      // 2. Dispatch prompt and await settle
       await channelOrchestrator.dispatchUserMessage(username, channelId, exp.taskPrompt, sessionId);
-
-      // 3. Wait for settle
-      await waitChannelIdle(username, channelId, sessionId);
 
       // 4. Gather output
       const messages = channelStore.getMessages(username, channelId, 50, sessionId);
@@ -448,12 +439,8 @@ export class ExperimentRunner {
           try { await agentRegistry.stop(regId, false); } catch {}
         }
 
-        // Resolve model: if not configured, fallback to first configured model
-        let resolvedModel = ag.model;
-        const foundModel = configuredModels.find(m => m.id === ag.model || `${m.provider}/${m.id}` === ag.model);
-        if (!foundModel && configuredModels.length > 0) {
-          resolvedModel = `${configuredModels[0].provider}/${configuredModels[0].id}`;
-        }
+        // Resolve model using agent-utils helper
+        const resolvedModel = resolveModelWithFallback(ag.model, modelRegistry);
 
         await agentRegistry.register(username, {
           id: regId,
@@ -552,11 +539,8 @@ export class ExperimentRunner {
         isExecution: true
       });
 
-      // 3. Dispatch user message task prompt
+      // 3. Dispatch user message task prompt and await settle
       await channelOrchestrator.dispatchUserMessage(username, channelId, exp.taskPrompt, sessionId);
-
-      // 4. Wait for settle
-      await waitChannelIdle(username, channelId, sessionId);
 
       // 5. Gather output
       const messages = channelStore.getMessages(username, channelId, 50, sessionId);

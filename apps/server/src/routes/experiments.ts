@@ -6,7 +6,7 @@ import { ExperimentRunner } from "../laboratory/experiment-runner";
 import { LabJudge } from "../laboratory/judge";
 import { calculateVariantScores } from "../laboratory/scoring";
 import { sessionManager } from "../core/session-manager";
-import { type LabStance, type LabAgent, type LabExperiment } from "shared";
+import { type LabStance, type LabAgent, type LabExperiment, SessionPrefix } from "shared";
 import { agentRegistry } from "../agents";
 import { channelStore } from "../channels";
 import { broadcastToUser } from "../ws/handler";
@@ -48,7 +48,7 @@ experimentsRouter.post("/generate", async (c) => {
   const userDefaultModel = sessionManager.getUserDefaultModel(username);
   const selectedModel = model || userDefaultModel || "anthropic/claude-3-5-sonnet";
 
-  const tempSessionId = `generate_${crypto.randomUUID()}`;
+  const tempSessionId = `${SessionPrefix.GENERATE}${crypto.randomUUID()}`;
   console.log(`[Experiments /generate] Running AI generator on tempSessionId=${tempSessionId} with model=${selectedModel}`);
 
   try {
