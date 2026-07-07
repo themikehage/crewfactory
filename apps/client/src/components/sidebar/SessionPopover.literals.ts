@@ -13,6 +13,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     messages: "messages",
     message: "message",
     deleteSession: "Delete Session",
+    sessionHistory: "Session History",
   },
   es: {
     statusActive: "Activa",
@@ -26,5 +27,6 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     messages: "mensajes",
     message: "mensaje",
     deleteSession: "Eliminar Sesion",
+    sessionHistory: "Historial de Sesiones",
   },
 };

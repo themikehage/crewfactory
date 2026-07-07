@@ -158,10 +158,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         label: l.pillListAgents || "List Agents",
         promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles.",
       },
-      {
-        label: l.pillStartLab || "Start Experiment",
-        promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory.",
-      }
     ];
   };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);

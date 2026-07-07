@@ -208,7 +208,7 @@ export function SessionPopover({
         {/* Header */}
         <div className="p-3 border-b border-input flex items-center justify-between flex-shrink-0 bg-card/80 backdrop-blur-md">
           <div className="flex flex-col min-w-0">
-            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">Historial de Sesiones</span>
+            <span className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">{l.sessionHistory}</span>
             <span className="text-xs font-bold text-primary truncate" title={contextLabel}>
               {contextLabel}
             </span>

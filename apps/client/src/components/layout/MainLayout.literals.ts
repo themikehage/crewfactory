@@ -17,6 +17,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     btnBack: "Back",
     btnNewSession: "New Session",
     btnToggleMenu: "Toggle Menu",
+    btnSessions: "Sessions",
+    titleSessions: "View sessions",
   },
   es: {
     tabChat: "Chat",
@@ -34,5 +36,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     btnBack: "Atrás",
     btnNewSession: "Nueva sesión",
     btnToggleMenu: "Menú",
+    btnSessions: "Sesiones",
+    titleSessions: "Ver sesiones",
   },
 };

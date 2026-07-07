@@ -629,12 +629,12 @@ export function MainLayout({
                             <button
                               onClick={() => setSessionPopoverOpen((p) => !p)}
                               className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
-                              title="Ver sesiones"
+                              title={l.titleSessions}
                             >
                               <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                                 <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
                               </svg>
-                              <span>Sesiones</span>
+                              <span>{l.btnSessions}</span>
                             </button>
                             <SessionPopover
                               isOpen={sessionPopoverOpen}
@@ -897,12 +897,12 @@ export function MainLayout({
                         <button
                           onClick={() => setSessionPopoverOpen((p) => !p)}
                           className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
-                          title="Ver sesiones"
+                          title={l.titleSessions}
                         >
                           <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                             <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
                           </svg>
-                          <span>Sesiones</span>
+                          <span>{l.btnSessions}</span>
                         </button>
                         <SessionPopover
                           isOpen={sessionPopoverOpen}
