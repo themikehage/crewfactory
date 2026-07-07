@@ -1,3 +1,4 @@
+COMPLETED
 # Chat Input Area Redesign - Implementation Plan
 
 **Spec:** [docs/superpowers/specs/2026-03-07-chat-input-redesign-design.md](../docs/superpowers/specs/2026-03-07-chat-input-redesign-design.md)  

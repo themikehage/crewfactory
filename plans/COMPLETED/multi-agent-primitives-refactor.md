@@ -1,3 +1,4 @@
+COMPLETED 
 # Plan: Refactorizacion a Primitivas Multi-Agente
 
 **Estado:** Pendiente

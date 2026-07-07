@@ -1,11 +1,12 @@
-# Gentle AI — Prompt Patterns para Subdelegación de Agentes
+COMPLETED
+AI — Prompt Patterns para Subdelegación de Agentes
 
 **Fecha:** 2026-07-01
 **Origen:** [github.com/Gentleman-Programming/gentle-ai](https://github.com/Gentleman-Programming/gentle-ai) — SDD framework con 9 sub-agentes especializados
 
 ## Resumen Ejecutivo
 
-Gentle AI implementa **Spec-Driven Development (SDD)** con un orchestrator + 9 sub-agentes de fase. Su arquitectura de delegación es la más madura que hemos visto en código abierto. Este documento extrae los patrones transferibles a CrewFactory, mapeándolos a nuestra arquitectura de channels, agentes programáticos y sesiones.
+AI implementa **Spec-Driven Development (SDD)** con un orchestrator + 9 sub-agentes de fase. Su arquitectura de delegación es la más madura que hemos visto en código abierto. Este documento extrae los patrones transferibles a CrewFactory, mapeándolos a nuestra arquitectura de channels, agentes programáticos y sesiones.
 
 ---
 

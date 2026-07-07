@@ -281,11 +281,12 @@ class SessionManager {
     let resolvedChannelId = channelId;
     let persistedTools: string[] | undefined;
 
+    const existingMeta = existsSync(metadataPath)
+      ? (() => { try { return JSON.parse(readFileSync(metadataPath, "utf-8")); } catch { return {}; } })()
+      : {};
+    const updatedMeta = { ...existingMeta };
+
     if (projectName || agentId || channelId) {
-      const existingMeta = existsSync(metadataPath)
-        ? (() => { try { return JSON.parse(readFileSync(metadataPath, "utf-8")); } catch { return {}; } })()
-        : {};
-      const updatedMeta = { ...existingMeta };
       if (projectName !== undefined) updatedMeta.projectName = projectName;
       if (agentId !== undefined) updatedMeta.agentId = agentId;
       if (channelId !== undefined) updatedMeta.channelId = channelId;
@@ -293,16 +294,11 @@ class SessionManager {
       resolvedProjectName = updatedMeta.projectName;
       resolvedAgentId = updatedMeta.agentId;
       resolvedChannelId = updatedMeta.channelId;
-    } else if (existsSync(metadataPath)) {
-      try {
-        const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
-        resolvedProjectName = metadata.projectName;
-        resolvedAgentId = metadata.agentId;
-        resolvedChannelId = metadata.channelId;
-        persistedTools = Array.isArray(metadata.tools) ? metadata.tools : undefined;
-      } catch (e) {
-        console.error(`Failed to read metadata.json for session ${sessionId}:`, e);
-      }
+    } else {
+      resolvedProjectName = existingMeta.projectName;
+      resolvedAgentId = existingMeta.agentId;
+      resolvedChannelId = existingMeta.channelId;
+      persistedTools = Array.isArray(existingMeta.tools) ? existingMeta.tools : undefined;
     }
 
     // Asegurar estructura de carpetas

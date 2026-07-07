@@ -52,19 +52,18 @@ export function useNavigationStack(): UseNavigationStackReturn {
       const newStack = [...prev];
       const top = newStack[newStack.length - 1];
       if (top) {
-        // If we navigate to the same context, replace the top of the stack to avoid duplicates
+        if (top.type === item.type && top.page === item.page && top.path === item.path) {
+          return prev;
+        }
         if (
           top.type === "context" &&
           item.type === "context" &&
           top.contextId === item.contextId &&
-          top.contextType === item.contextType
+          top.contextType === item.contextType &&
+          top.path !== item.path
         ) {
           newStack[newStack.length - 1] = item;
           return newStack;
-        }
-        // If identical, do nothing
-        if (top.type === item.type && top.page === item.page && top.path === item.path) {
-          return prev;
         }
       }
       return [...newStack, item];

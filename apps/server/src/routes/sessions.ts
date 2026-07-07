@@ -24,7 +24,7 @@ sessionsRouter.get("/", async (c) => {
 });
 
 sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
-  const { name, projectName, agentId, channelId } = c.req.valid("json");
+  const { name, projectName, agentId, channelId, experimentId } = c.req.valid("json");
   const { username } = getAuthPayload(c);
   const sessionId = crypto.randomUUID();
 
@@ -38,11 +38,8 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     projectName,
     agentId,
     channelId,
+    experimentId,
   };
-
-  sessionManager.getOrCreateSession(username, sessionId, projectName, agentId, channelId).catch(err => {
-    console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
-  });
 
   sessionManager.saveSessionMetadata(username, sessionId, {
     name,
@@ -51,6 +48,11 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     projectName: projectName || null,
     agentId: agentId || null,
     channelId: channelId || null,
+    experimentId: experimentId || null,
+  });
+
+  sessionManager.getOrCreateSession(username, sessionId, projectName, agentId, channelId).catch(err => {
+    console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
   });
 
   return c.json(session, 201);

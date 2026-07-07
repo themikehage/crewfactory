@@ -1,3 +1,4 @@
+COMPLETED
 # Plan: Laboratorio como Agente Conversacional con Tool `create_experiment`
 
 **Estado:** Pendiente

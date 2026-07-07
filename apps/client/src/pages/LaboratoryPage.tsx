@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./LaboratoryPage.literals";
@@ -61,6 +61,7 @@ export function LaboratoryPage({
   const [editorVariants, setEditorVariants] = useState<any | null>(null);
 
   const [labSessionId, setLabSessionId] = useState<string | null>(null);
+  const labArchitectAgent = useMemo(() => ({ id: "lab-architect" as const, name: "Lab Architect" }), []);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastAutoSwitchedVariantRef = useRef<"single" | "multiNoLeader" | "multiWithLeader" | null>(null);
   const [isJudging, setIsJudging] = useState(false);
@@ -273,7 +274,7 @@ export function LaboratoryPage({
                   key={labSessionId}
                   sessionId={labSessionId}
                   activeProjectName={null}
-                  activeAgent={{ id: "lab-architect", name: "Lab Architect" }}
+                  activeAgent={labArchitectAgent}
                 />
               ) : (
                 <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
@@ -296,7 +297,7 @@ export function LaboratoryPage({
                     key={labSessionId}
                     sessionId={labSessionId}
                     activeProjectName={null}
-                    activeAgent={{ id: "lab-architect", name: "Lab Architect" }}
+                    activeAgent={labArchitectAgent}
                   />
                 ) : (
                   <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
