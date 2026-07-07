@@ -29,7 +29,8 @@ export function parseEnvelope(text: string): EnvelopeResult {
       const key = match[1].toLowerCase();
       const val = match[2].trim();
       if (key === "status") {
-        result.status = val;
+        const validStatuses = ["success", "partial", "blocked", "error"] as const;
+        result.status = validStatuses.includes(val as typeof validStatuses[number]) ? (val as typeof validStatuses[number]) : "success";
         hasStatus = true;
       } else if (key === "executive_summary" || key === "summary") {
         result.executive_summary = val;

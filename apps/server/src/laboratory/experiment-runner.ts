@@ -6,6 +6,7 @@ import { channelOrchestrator, channelStore } from "../channels";
 import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";
 import { resolveModelWithFallback } from "../core/agent-utils";
+import { broadcastToUser } from "../ws/handler";
 
 export class ExperimentRunner {
   private static activeRuns = new Set<string>();
