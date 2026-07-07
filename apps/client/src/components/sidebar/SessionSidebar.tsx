@@ -292,19 +292,7 @@ export function SessionSidebar({
           </svg>
         ),
       },
-      {
-        id: "mcps",
-        label: l.navMcps || "Marketplace",
-        path: "/mcps",
-        icon: (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <rect width="7" height="9" x="3" y="3" rx="1" />
-            <rect width="7" height="5" x="14" y="3" rx="1" />
-            <rect width="7" height="9" x="14" y="12" rx="1" />
-            <rect width="7" height="5" x="3" y="16" rx="1" />
-          </svg>
-        ),
-      },
+
       {
         id: "plugins",
         label: l.navPlugins || "Plugins",
@@ -597,28 +585,30 @@ export function SessionSidebar({
       </div>
 
       {/* Admin Links */}
-      <div className={isMobile ? "p-3 border-t border-border/60 bg-card/10 space-y-2 flex-shrink-0" : "p-2 border-t border-border/60 bg-card/10 space-y-1 flex-shrink-0"}>
-        <div className={isMobile ? "px-4 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground" : "px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground"}>
-          Admin
-        </div>
-        {adminItems.map((item) => {
-          const isActive = currentPage === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => onNavigate && onNavigate(item.path)}
-              className={adminItemClass(isActive)}
-            >
-              <span
-                className={`${isActive ? "text-primary" : "text-muted-foreground"} ${isMobile ? "w-5" : "w-4"} flex justify-center flex-shrink-0`}
+      {!isMobile && (
+        <div className="p-2 border-t border-border/60 bg-card/10 space-y-1 flex-shrink-0">
+          <div className="px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+            Admin
+          </div>
+          {adminItems.map((item) => {
+            const isActive = currentPage === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => onNavigate && onNavigate(item.path)}
+                className={adminItemClass(isActive)}
               >
-                {item.icon}
-              </span>
-              <span className="truncate">{item.label}</span>
-            </button>
-          );
-        })}
-      </div>
+                <span
+                  className={`${isActive ? "text-primary" : "text-muted-foreground"} w-4 flex justify-center flex-shrink-0`}
+                >
+                  {item.icon}
+                </span>
+                <span className="truncate">{item.label}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

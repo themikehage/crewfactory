@@ -1,4 +1,4 @@
-import { ArrowLeft, Menu, Plus } from "lucide-react";
+import { Menu, Plus } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
 
 interface MobileTopbarProps {
@@ -17,7 +17,6 @@ export function MobileTopbar({
   isMobile,
   isHome,
   title,
-  onBack,
   onMenuToggle,
   onNewSession,
   showNewSessionButton,
@@ -30,11 +29,11 @@ export function MobileTopbar({
       <div className="flex items-center gap-2 flex-1 min-w-0">
         {!isHome && (
           <button
-            onClick={onBack}
-            className="w-12 h-12 -ml-3 flex items-center justify-center text-foreground hover:text-foreground/80 rounded-lg active:bg-surface-hover transition-colors cursor-pointer"
-            aria-label={l.btnBack}
+            onClick={onMenuToggle}
+            className="w-12 h-12 -ml-3 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg active:bg-surface-hover transition-colors cursor-pointer"
+            aria-label={l.btnToggleMenu}
           >
-            <ArrowLeft size={20} />
+            <Menu size={20} />
           </button>
         )}
         {isHome ? (
@@ -57,15 +56,6 @@ export function MobileTopbar({
             aria-label={l.btnNewSession}
           >
             <Plus size={20} />
-          </button>
-        )}
-        {!isHome && (
-          <button
-            onClick={onMenuToggle}
-            className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg active:bg-surface-hover transition-colors cursor-pointer"
-            aria-label={l.btnToggleMenu}
-          >
-            <Menu size={20} />
           </button>
         )}
       </div>

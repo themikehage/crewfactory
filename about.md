@@ -61,11 +61,14 @@
 ### Mobile-First Responsive (Slack iOS Style Split-Screen)
 - **Breakpoints**: Mobile (< 768px), Tablet (768px - 1024px), Desktop (> 1024px).
 - **Split-Screen Model (Mobile)**: On screens < 768px, the sidebar functions as the full-screen landing view when no context is active. When a project, agent, channel, or admin page is selected, the content slides in from the right to cover the sidebar.
-- **Mobile Header (MobileTopbar)**: A simplified 48px header on mobile with custom back navigation, context names, quick session creation `[+]`, and overlay menu toggle `[≡]`.
-- **Overlay Drawer**: Toggling the menu `[≡]` from within a context slides the sidebar in from the left over the content, accompanied by a dimming backdrop overlay (`opacity: 0.5`).
+- **Mobile Header (MobileTopbar)**: A simplified 48px header on mobile with context names, quick session creation `[+]`, and the menu drawer button `[≡]` placed on the top-left for native-feeling reach.
+- **Mobile Bottom Navigation Bar**: A persistent 56px bottom bar on mobile provides instant access to **Home** (clears active context and shows the sidebar drawer), **Skills Library**, **Settings**, **Logs**, and **Plugins**. Content blocks automatically end above it (`bottom-14`).
+- **Overlay Drawer**: Toggling the menu `[≡]` on the top-left slides the sidebar drawer in from the left over the active view with a dimming backdrop overlay (`opacity: 0.5`).
+- **MCP Tab Consolidation**: The top-level MCP configurations are integrated as a tab inside **Settings** (replaces `/mcps` top-level page) and automatically redirected to `/settings` with tab `mcp` active.
+- **Message Font Scale**: Chat bubbles (user, assistant, and rich markdown blocks) are scaled up to `text-base` (16px) on mobile viewports to avoid straining readers and improve touch accessibility.
 - **Touch-Optimized Styling**: Interactive list elements, accordion headers, and buttons are dynamically resized to 48px heights with larger text sizes (16px) and wider spacing for natural tap targets.
-- **Smooth Animations**: Hardware-accelerated transitions powered by `framer-motion` provide 300ms slide-in/slide-out animations and fade transitions at 60fps.
-- **Navigation Stack Synchronization**: Maintains navigation history stack in `localStorage` (`nav-stack-mobile`) synchronized with browser back/forward and the customized back button.
+- **Smooth Animations**: Hardware-accelerated concurrent transitions powered by `framer-motion` provide 200ms entering slide-in animations and 250ms overlay drawer slides.
+- **Navigation Stack Synchronization**: Maintains navigation history stack in `localStorage` (`nav-stack-mobile`) synchronized with browser back/forward.
 
 ### Theme & Localization
 - oklch theme with light and dark mode support (dark by default)

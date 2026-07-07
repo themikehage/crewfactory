@@ -289,6 +289,12 @@ export function AppRouter() {
 
   // Sincronizar estado y localStorage con los parámetros de la URL
   useEffect(() => {
+    if (route.page === "mcps") {
+      localStorage.setItem("settings-active-tab", "mcp");
+      navigate("/settings");
+      return;
+    }
+
     const routeProject = "projectName" in route ? route.projectName : null;
     const routeAgent = "agentId" in route ? route.agentId : null;
     const routeChannel = "channelId" in route ? route.channelId : null;

@@ -3,7 +3,7 @@ import { SessionPopover } from "@/components/sidebar/SessionPopover";
 import { Logo } from "@/components/ui/Logo";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Home, Library, Settings, Terminal, Cpu } from "lucide-react";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { apiFetch } from "@/lib/api";
@@ -368,8 +368,8 @@ export function MainLayout({
                   initial={{ x: isHome ? 0 : "-100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "-100%" }}
-                  transition={{ duration: 0.3, ease: sidebarOpen ? "easeOut" : "easeIn" }}
-                  className="absolute inset-0 z-50 w-full bg-background"
+                  transition={{ duration: 0.25, ease: sidebarOpen ? "easeOut" : "easeIn" }}
+                  className="absolute inset-x-0 top-0 bottom-14 z-50 w-full bg-background"
                 >
                   <SessionSidebar
                     activeProjectName={activeProjectId}
@@ -395,7 +395,7 @@ export function MainLayout({
                   initial={{ opacity: 0 }}
                   animate={{ opacity: 0.5 }}
                   exit={{ opacity: 0 }}
-                  transition={{ duration: 0.3 }}
+                  transition={{ duration: 0.25 }}
                   onClick={() => setSidebarOpen(false)}
                   className="fixed inset-0 bg-black z-40"
                 />
@@ -403,15 +403,15 @@ export function MainLayout({
             </AnimatePresence>
 
             {/* Content for Mobile */}
-            <AnimatePresence mode="wait">
+            <AnimatePresence>
               {!isHome && (
                 <motion.main
                   key={route.page + (activeProjectId || activeAgent?.id || activeChannel?.id || "")}
                   initial={{ x: "100%" }}
                   animate={{ x: 0 }}
                   exit={{ x: "100%" }}
-                  transition={{ duration: 0.3, ease: "easeOut" }}
-                  className="absolute inset-0 z-30 flex flex-col h-full bg-background"
+                  transition={{ duration: 0.2, ease: "easeOut" }}
+                  className="absolute inset-x-0 top-0 bottom-14 z-30 flex flex-col bg-background"
                 >
                   {isContextView && (
                     <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
@@ -642,6 +642,15 @@ export function MainLayout({
                 </motion.main>
               )}
             </AnimatePresence>
+            <MobileBottomBar
+              currentPage={route.page}
+              isHome={isHome}
+              onNavigate={handleNavigate}
+              onSelectProject={onSelectProject}
+              onSelectAgent={onSelectAgent}
+              onSelectChannel={onSelectChannel}
+              setSidebarOpen={setSidebarOpen}
+            />
           </>
         ) : (
           <>
@@ -899,6 +908,79 @@ export function MainLayout({
           </>
         )}
       </div>
+    </div>
+  );
+}
+
+interface MobileBottomBarProps {
+  currentPage: string;
+  isHome: boolean;
+  onNavigate: (path: string) => void;
+  onSelectProject?: (projectId: string | null, projectName: string | null) => void;
+  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
+  onSelectChannel?: (channel: { id: string; name: string } | null) => void;
+  setSidebarOpen: (open: boolean) => void;
+}
+
+function MobileBottomBar({
+  currentPage,
+  isHome,
+  onNavigate,
+  onSelectProject,
+  onSelectAgent,
+  onSelectChannel,
+  setSidebarOpen,
+}: MobileBottomBarProps) {
+  const tabs = [
+    { id: "home", label: "Home", icon: <Home size={20} /> },
+    { id: "skills", label: "Skills", icon: <Library size={20} /> },
+    { id: "settings", label: "Settings", icon: <Settings size={20} /> },
+    { id: "logs", label: "Logs", icon: <Terminal size={20} /> },
+    { id: "plugins", label: "Plugins", icon: <Cpu size={20} /> },
+  ];
+
+  const handleTabClick = (tabId: string) => {
+    setSidebarOpen(false);
+    if (tabId === "home") {
+      if (onSelectProject) onSelectProject(null, null);
+      if (onSelectAgent) onSelectAgent(null);
+      if (onSelectChannel) onSelectChannel(null);
+      onNavigate("/");
+    } else if (tabId === "skills") {
+      onNavigate("/skills");
+    } else if (tabId === "settings") {
+      localStorage.setItem("settings-active-tab", "providers");
+      onNavigate("/settings");
+    } else if (tabId === "logs") {
+      onNavigate("/logs");
+    } else if (tabId === "plugins") {
+      onNavigate("/plugins");
+    }
+  };
+
+  return (
+    <div className="absolute bottom-0 left-0 right-0 h-14 bg-[#171717]/95 border-t border-border flex items-center justify-around z-40 backdrop-blur-md px-2">
+      {tabs.map((tab) => {
+        let active = false;
+        if (tab.id === "home") {
+          active = isHome;
+        } else {
+          active = currentPage === tab.id;
+        }
+
+        return (
+          <button
+            key={tab.id}
+            onClick={() => handleTabClick(tab.id)}
+            className={`flex flex-col items-center justify-center flex-1 py-1 h-full cursor-pointer transition-colors ${
+              active ? "text-primary font-semibold" : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {tab.icon}
+            <span className="text-[10px] mt-0.5">{tab.label}</span>
+          </button>
+        );
+      })}
     </div>
   );
 }

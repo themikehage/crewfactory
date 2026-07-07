@@ -688,3 +688,12 @@ crear un plan de despliegue facil en vps
 - [x] 75.3 Redesign MainLayout to support split-screen panels and Framer Motion slide/fade transitions
 - [x] 75.4 Optimize SessionSidebar spacing, touch targets, and sizes for mobile viewports
 - [x] 75.5 Verify compilation types and production build, and update documentation
+
+## Phase 76: Refinement of Mobile Navigation & Sizing
+- [x] 76.1 Relocate mobile menu drawer button to the top-left and remove back button from MobileTopbar
+- [x] 76.2 Speed up and streamline mobile sliding panel animations (remove mode="wait" and reduce duration to 0.2s)
+- [x] 76.3 Build and integrate MobileBottomBar for home and admin routes (Skills, Settings, Logs, Plugins)
+- [x] 76.4 Move MCP Marketplace to be a settings page tab (mcp) and configure redirection from /mcps
+- [x] 76.5 Scaled user and assistant chat message fonts to text-base on mobile viewports for enhanced legibility
+- [x] 76.6 Validate full TypeScript typecheck and production bundler build
+
