@@ -92,7 +92,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         },
         body: JSON.stringify({
           name: sessionName,
-          repoName: activeAgent || activeChannel ? undefined : activeProjectName || undefined,
+          projectName: activeAgent || activeChannel ? undefined : activeProjectName || undefined,
           agentId: activeChannel ? undefined : activeAgent ? activeAgent.id : undefined,
           channelId: activeChannel ? activeChannel.id : undefined,
         }),

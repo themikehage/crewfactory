@@ -828,7 +828,11 @@ When designing a team:
 
   saveSessionMetadata(username: string, sessionId: string, data: Record<string, unknown>): void {
     const userDir = this.ensureUserDir(username);
-    const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");
+    const sessionDir = join(userDir, "sessions", sessionId);
+    if (!existsSync(sessionDir)) {
+      mkdirSync(sessionDir, { recursive: true });
+    }
+    const metadataPath = join(sessionDir, "metadata.json");
     let metadata: Record<string, unknown> = {};
     if (existsSync(metadataPath)) {
       try { metadata = JSON.parse(readFileSync(metadataPath, "utf-8")); } catch {}
