@@ -48,7 +48,7 @@
 - [x] 7.6 Model selector
 
 ## Phase 8: Polish
-- [ ] 8.1 Responsive design (375px, 768px, 1280px)
+- [x] 8.1 Responsive design (375px, 768px, 1280px)
 - [ ] 8.2 Loading states
 - [ ] 8.3 Error handling
 - [x] 8.4 Keyboard shortcuts (Enter=send/steer, Alt+Enter=follow_up, Escape=cancel)
@@ -653,4 +653,38 @@ crear un plan de despliegue facil en vps
 - [x] 71.12 Modificar ToolsSelector e InputArea en el frontend para soportar gating de herramientas por API key
 - [x] 71.13 Validar compilación completa y actualizar bitácora y about.md
 
+## Phase 72: Herramienta de Planificación y Descomposición de Tareas (decompose_tasks)
+- [x] 72.1 Extender `TaskSchema` con campos para grafos de dependencia (`depends_on`, `estimated_steps`) y registrar `decompose_tasks` en `AVAILABLE_TOOLS` (shared)
+- [x] 72.2 Crear el módulo de la herramienta `decompose-tool.ts` en el servidor backend para planificar objetivos mediante el LLM de la sesión parental
+- [x] 72.3 Registrar la herramienta `decompose_tasks` como herramienta nativa siempre activa en `ui-tools.ts`, `session-manager.ts`, `ws/handler.ts` y `routes/sessions.ts`
+- [x] 72.4 Eliminar el loop del Task Runner supervisor original (`task-runner.ts` y endpoints REST de ejecución) delegando la ejecución directamente al loop ReAct del agente
+- [x] 72.5 Diseñar el componente de visualización de planes `DecomposeResult.tsx` con soporte para grafos de dependencia (DAG) en el frontend
+- [x] 72.6 Simplificar el panel lateral `RightDrawer.tsx` para remover la pestaña de tareas y renderizar únicamente la infraestructura
+- [x] 72.7 Eliminar componentes y manejadores obsoletos (`TasksPanel.tsx`) en el cliente
+- [x] 72.8 Actualizar las instrucciones globales en `default-factory-skills.ts` para instruir al agente sobre cómo planificar y auto-ejecutar tareas
+- [x] 72.9 Validar compilación exitosa y libre de errores sintácticos de servidor y cliente
 
+## Phase 73: Ejecución de Tareas Nativa y Acordeón de Planificación Flotante
+- [x] 73.1 Evitar la creación de múltiples planes paralelos activos (status: running) en `decompose-tool.ts` devolviendo error controlado
+- [x] 73.2 Crear las herramientas oficiales `update_task_status` y `complete_task_list` en `update-task-tool.ts`
+- [x] 73.3 Implementar resolución automática de la tarea activa en el grafo de dependencias (DAG) tras completar dependencias previas
+- [x] 73.4 Registrar las herramientas de actualización en shared schemas, `alwaysOnTools`, WS handler, y sessions allowed tools
+- [x] 73.5 Inyectar el estado del plan de tareas activo (`tasks.json`) y las instrucciones de la tarea activa directamente en el system prompt en `session-manager.ts` para total consciencia del agente
+- [x] 73.6 Restaurar el endpoint `GET /:id/tasks` para cargar el plan de tareas desde el archivo local `tasks.json`
+- [x] 73.7 Añadir el endpoint `POST /:id/tasks/status` para pausar y reanudar la ejecución desde la UI del cliente
+- [x] 73.8 Diseñar el componente flotante `FloatingTasks.tsx` con acordeón expandible, barra de progreso y botón de play/pausa
+- [x] 73.9 Integrar `<FloatingTasks />` como overlay absoluto sobre el área de chat del cliente (`ChatArea.tsx`)
+- [x] 73.10 Validar compilación completa y exitosa del cliente y servidor en producción
+
+## Phase 74: Prevención de Terminación de Procesos de Infraestructura Crítica
+- [x] 74.1 Implementar la función de verificación `verifyCommandSafety` en `bash-tool.ts`
+- [x] 74.2 Integrar `verifyCommandSafety` en el flujo de ejecución de la herramienta `bash` del agente para denegar comandos destructivos dirigidos a los puertos `3000`, `3001`, `4104`, `5173` o al PID actual del servidor
+- [x] 74.3 Diseñar y ejecutar pruebas automatizadas en `scratch/test-bash-safety.ts` validando la detección de comandos prohibidos y la aceptación de comandos seguros
+- [x] 74.4 Actualizar la documentación de seguridad en `about.md` y la bitácora de pasos en `steps.md`
+
+## Phase 75: Mobile Navigation Redesign (Slack iOS Style)
+- [x] 75.1 Create useIsMobile and useNavigationStack custom hooks
+- [x] 75.2 Build MobileTopbar component and update MainLayout.literals.ts
+- [x] 75.3 Redesign MainLayout to support split-screen panels and Framer Motion slide/fade transitions
+- [x] 75.4 Optimize SessionSidebar spacing, touch targets, and sizes for mobile viewports
+- [x] 75.5 Verify compilation types and production build, and update documentation

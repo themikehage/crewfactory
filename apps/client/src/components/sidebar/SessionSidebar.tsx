@@ -45,6 +45,7 @@ interface Props {
   onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   selectedExpId?: string | null;
+  isMobile?: boolean;
 }
 
 export function SessionSidebar({
@@ -57,6 +58,7 @@ export function SessionSidebar({
   onSelectAgent,
   onSelectChannel,
   selectedExpId = null,
+  isMobile = false,
 }: Props) {
   const l = useLiterals(u);
   const [repos, setRepos] = useState<RepoItem[]>([]);
@@ -130,6 +132,61 @@ export function SessionSidebar({
     }
   }, []);
 
+  const isGlobal = !activeChannel && !activeAgent && !activeProjectName;
+  const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
+
+  const itemClass = useCallback((isActive: boolean) => {
+    if (isMobile) {
+      return `w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base truncate transition-colors text-left cursor-pointer ${
+        isActive
+          ? "bg-card-hover text-foreground font-semibold border-l-4 border-primary rounded-l-none pl-3"
+          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
+      }`;
+    }
+    return `w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
+      isActive
+        ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
+        : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
+    }`;
+  }, [isMobile]);
+
+  const accordionHeaderClass = isMobile
+    ? "group/title flex items-center justify-between px-4 py-3 h-12 text-sm uppercase tracking-wider font-semibold text-muted-foreground"
+    : "group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground";
+
+  const accordionButtonClass = "flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer text-left";
+
+  const chevronSize = isMobile ? 20 : 12;
+
+  const actionButtonClass = isMobile
+    ? "w-11 h-11 flex items-center justify-center hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold"
+    : "p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none";
+
+  const factoryButtonClass = `${
+    isMobile
+      ? "w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base font-semibold transition-all cursor-pointer"
+      : "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer"
+  } ${
+    isGlobal
+      ? "bg-card text-primary border border-primary/30"
+      : "bg-card/40 text-muted-foreground hover:bg-card hover:text-primary border border-transparent hover:border-primary/20"
+  }`;
+
+  const adminItemClass = useCallback((isActive: boolean) => {
+    if (isMobile) {
+      return `w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base transition-colors cursor-pointer text-left ${
+        isActive
+          ? "bg-card text-foreground font-semibold border-l-4 border-primary rounded-l-none pl-3"
+          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
+      }`;
+    }
+    return `w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
+      isActive
+        ? "bg-card text-foreground font-medium"
+        : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
+    }`;
+  }, [isMobile]);
+
   useEffect(() => {
     fetchRepos();
     fetchAgents();
@@ -166,9 +223,6 @@ export function SessionSidebar({
     },
     [onNavigate]
   );
-
-  const isGlobal = !activeChannel && !activeAgent && !activeProjectName;
-  const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
 
   const handleGoFactory = useCallback(() => {
     if (onSelectProject) onSelectProject(null, null);
@@ -271,17 +325,13 @@ export function SessionSidebar({
   return (
     <div className="flex flex-col h-full bg-background select-none text-foreground">
       {/* Factory Button */}
-      <div className="p-3 border-b border-border flex-shrink-0">
+      <div className={isMobile ? "p-4 border-b border-border flex-shrink-0" : "p-3 border-b border-border flex-shrink-0"}>
         <button
           onClick={handleGoFactory}
-          className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-            isGlobal
-              ? "bg-card text-primary border border-primary/30"
-              : "bg-card/40 text-muted-foreground hover:bg-card hover:text-primary border border-transparent hover:border-primary/20"
-          }`}
+          className={factoryButtonClass}
           title={l.globalWorkspace}
         >
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
+          <svg width={isMobile ? 20 : 14} height={isMobile ? 20 : 14} viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
             <path
               fillRule="evenodd"
               d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm7 5a1 1 0 10-2 0v1H8a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V9z"
@@ -293,17 +343,17 @@ export function SessionSidebar({
       </div>
 
       {/* Context List Accordions */}
-      <div className="flex-1 overflow-y-auto min-h-0 py-2 space-y-3">
+      <div className={isMobile ? "flex-1 overflow-y-auto min-h-0 py-3 space-y-4" : "flex-1 overflow-y-auto min-h-0 py-2 space-y-3"}>
         {/* Repos Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+          <div className={accordionHeaderClass}>
             <button
               onClick={() => setIsOpenRepos((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left"
+              className={accordionButtonClass}
             >
               <svg
-                width="12"
-                height="12"
+                width={chevronSize}
+                height={chevronSize}
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenRepos ? "rotate-90" : ""}`}
@@ -318,17 +368,17 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/projects")}
-              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
+              className={actionButtonClass}
               title={l.manageProjects}
             >
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
             </button>
           </div>
 
           {isOpenRepos && (
-            <div className="px-2 mt-1 space-y-0.5">
+            <div className={isMobile ? "px-3 mt-1 space-y-1.5" : "px-2 mt-1 space-y-0.5"}>
               {loadingRepos ? (
                 <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
               ) : repos.length === 0 ? (
@@ -340,15 +390,11 @@ export function SessionSidebar({
                     <button
                       key={repo.id || repo.name}
                       onClick={() => handleSelectRepoClick(repo.id || repo.name, repo.name)}
-                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
-                        isActive
-                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
-                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-                      }`}
+                      className={itemClass(isActive)}
                     >
                       <svg
-                        width="12"
-                        height="12"
+                        width={isMobile ? 20 : 12}
+                        height={isMobile ? 20 : 12}
                         viewBox="0 0 20 20"
                         fill="currentColor"
                         className="flex-shrink-0 text-muted-foreground"
@@ -366,14 +412,14 @@ export function SessionSidebar({
 
         {/* Agents Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+          <div className={accordionHeaderClass}>
             <button
               onClick={() => setIsOpenAgents((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left"
+              className={accordionButtonClass}
             >
               <svg
-                width="12"
-                height="12"
+                width={chevronSize}
+                height={chevronSize}
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenAgents ? "rotate-90" : ""}`}
@@ -388,17 +434,17 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/agents")}
-              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
+              className={actionButtonClass}
               title={l.manageAgents}
             >
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
             </button>
           </div>
 
           {isOpenAgents && (
-            <div className="px-2 mt-1 space-y-0.5">
+            <div className={isMobile ? "px-3 mt-1 space-y-1.5" : "px-2 mt-1 space-y-0.5"}>
               {loadingAgents ? (
                 <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
               ) : agents.length === 0 ? (
@@ -410,13 +456,9 @@ export function SessionSidebar({
                     <button
                       key={agent.id}
                       onClick={() => handleSelectAgentClick({ id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl })}
-                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
-                        isActive
-                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
-                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-                      }`}
+                      className={itemClass(isActive)}
                     >
-                      <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size="xs" />
+                      <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size={isMobile ? "sm" : "xs"} />
                       <span className="truncate">{agent.name}</span>
                     </button>
                   );
@@ -428,14 +470,14 @@ export function SessionSidebar({
 
         {/* Channels Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+          <div className={accordionHeaderClass}>
             <button
               onClick={() => setIsOpenChannels((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left"
+              className={accordionButtonClass}
             >
               <svg
-                width="12"
-                height="12"
+                width={chevronSize}
+                height={chevronSize}
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenChannels ? "rotate-90" : ""}`}
@@ -450,17 +492,17 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/channels")}
-              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
+              className={actionButtonClass}
               title={l.manageChannels}
             >
-            <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
               <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
             </svg>
             </button>
           </div>
 
           {isOpenChannels && (
-            <div className="px-2 mt-1 space-y-0.5">
+            <div className={isMobile ? "px-3 mt-1 space-y-1.5" : "px-2 mt-1 space-y-0.5"}>
               {loadingChannels ? (
                 <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
               ) : channels.length === 0 ? (
@@ -472,13 +514,9 @@ export function SessionSidebar({
                     <button
                       key={channel.id}
                       onClick={() => handleSelectChannelClick({ id: channel.id, name: channel.name })}
-                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
-                        isActive
-                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
-                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-                      }`}
+                      className={itemClass(isActive)}
                     >
-                      <span className="font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center">#</span>
+                      <span className={isMobile ? "font-bold text-base text-muted-foreground flex-shrink-0 w-5 text-center" : "font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center"}>#</span>
                       <span className="truncate">{channel.name}</span>
                     </button>
                   );
@@ -490,14 +528,14 @@ export function SessionSidebar({
 
         {/* Experiments Accordion */}
         <div className="flex flex-col">
-          <div className="group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+          <div className={accordionHeaderClass}>
             <button
               onClick={() => setIsOpenExperiments((prev) => !prev)}
-              className="flex items-center gap-1.5 hover:text-foreground transition-colors cursor-pointer text-left font-semibold"
+              className={accordionButtonClass}
             >
               <svg
-                width="12"
-                height="12"
+                width={chevronSize}
+                height={chevronSize}
                 viewBox="0 0 20 20"
                 fill="currentColor"
                 className={`transform transition-transform ${isOpenExperiments ? "rotate-90" : ""}`}
@@ -512,17 +550,17 @@ export function SessionSidebar({
             </button>
             <button
               onClick={() => onNavigate && onNavigate("/laboratory")}
-              className="p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none"
+              className={actionButtonClass}
               title={l.manageExperiments || "Gestionar Experimentos"}
             >
-              <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
                 <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>
           </div>
 
           {isOpenExperiments && (
-            <div className="px-2 mt-1 space-y-0.5">
+            <div className={isMobile ? "px-3 mt-1 space-y-1.5" : "px-2 mt-1 space-y-0.5"}>
               {loadingExperiments ? (
                 <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
               ) : experiments.length === 0 ? (
@@ -534,15 +572,11 @@ export function SessionSidebar({
                     <button
                       key={exp.id}
                       onClick={() => handleSelectExperimentClick(exp.id)}
-                      className={`w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
-                        isActive
-                          ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
-                          : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-                      }`}
+                      className={itemClass(isActive)}
                     >
                       <svg
-                        width="12"
-                        height="12"
+                        width={isMobile ? 20 : 12}
+                        height={isMobile ? 20 : 12}
                         viewBox="0 0 24 24"
                         fill="none"
                         stroke="currentColor"
@@ -563,8 +597,8 @@ export function SessionSidebar({
       </div>
 
       {/* Admin Links */}
-      <div className="p-2 border-t border-border/60 bg-card/10 space-y-1 flex-shrink-0">
-        <div className="px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground">
+      <div className={isMobile ? "p-3 border-t border-border/60 bg-card/10 space-y-2 flex-shrink-0" : "p-2 border-t border-border/60 bg-card/10 space-y-1 flex-shrink-0"}>
+        <div className={isMobile ? "px-4 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground" : "px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground"}>
           Admin
         </div>
         {adminItems.map((item) => {
@@ -573,14 +607,10 @@ export function SessionSidebar({
             <button
               key={item.id}
               onClick={() => onNavigate && onNavigate(item.path)}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
-                isActive
-                  ? "bg-card text-foreground font-medium"
-                  : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-              }`}
+              className={adminItemClass(isActive)}
             >
               <span
-                className={`${isActive ? "text-primary" : "text-muted-foreground"} w-4 flex justify-center flex-shrink-0`}
+                className={`${isActive ? "text-primary" : "text-muted-foreground"} ${isMobile ? "w-5" : "w-4"} flex justify-center flex-shrink-0`}
               >
                 {item.icon}
               </span>

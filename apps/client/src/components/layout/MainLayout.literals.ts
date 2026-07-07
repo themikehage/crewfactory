@@ -14,6 +14,9 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     breadSkills: "Skills",
     breadLogs: "Logs",
     breadMcps: "MCP Marketplace",
+    btnBack: "Back",
+    btnNewSession: "New Session",
+    btnToggleMenu: "Toggle Menu",
   },
   es: {
     tabChat: "Chat",
@@ -28,5 +31,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     breadSkills: "Skills",
     breadLogs: "Logs",
     breadMcps: "MCP Marketplace",
+    btnBack: "Atrás",
+    btnNewSession: "Nueva sesión",
+    btnToggleMenu: "Menú",
   },
 };

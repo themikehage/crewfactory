@@ -1,30 +1,22 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { MessageList } from "./MessageList";
-import { InputArea } from "./InputArea";
+import { InputArea, processAttachments } from "./InputArea";
 import { RightDrawer } from "./RightDrawer";
 import { ContextMeter } from "./ContextMeter";
 import { AnimatePresence } from "framer-motion";
-import type { Task, TaskRunnerState } from "shared";
+import type { TaskRunnerState } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChatArea.literals";
 import { useRouter } from "@/hooks/useRouter";
 import { WelcomeChatInput } from "./WelcomeChatInput";
 
 import { SubagentConsole } from "./tools/SubagentConsole";
+import { FloatingTasks } from "./FloatingTasks";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
-    function getSandboxLabel(tools: string[]): { label: string; color: string } {
-      const coreTools = ALL_TOOL_NAMES;
-      const activeCore = tools.filter(t => coreTools.includes(t));
-      const hasWrite = activeCore.includes("write") || activeCore.includes("edit") || activeCore.includes("bash");
-      const hasRead = activeCore.includes("read") || activeCore.includes("grep") || activeCore.includes("find") || activeCore.includes("ls");
-      if (activeCore.length === 0) return { label: "No Tools", color: "text-destructive" };
-      if (!hasWrite && hasRead) return { label: "Read-Only", color: "text-warning" };
-      if (activeCore.length === coreTools.length) return { label: "Full Access", color: "text-primary" };
-      return { label: `${activeCore.length}/${coreTools.length} Tools`, color: "text-primary" };
-    }
+
 
 interface MessageUsage {
   input: number;
@@ -73,7 +65,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [streaming, setStreaming] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [sandboxTools, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
+  const [, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
   const [serialTools, setSerialTools] = useState<string[]>(["request_approval", "ask_question"]);
 
   const getSessionPath = useCallback((id: string) => {
@@ -83,7 +75,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     return `/session/${id}`;
   }, [activeChannel, activeAgent, activeProjectName]);
 
-  const createSessionAndSend = async (messageText: string) => {
+  const createSessionAndSend = async (messageText: string, attachments?: File[]) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
@@ -110,7 +102,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       if (createRes.ok) {
         const session = await createRes.json();
         const path = getSessionPath(session.id);
-        localStorage.setItem(`pending-prompt-${session.id}`, messageText);
+
+        let finalText = messageText;
+        if (attachments && attachments.length > 0) {
+          const result = await processAttachments(attachments, { activeProjectName, activeAgentId: activeAgent?.id, activeChannelId: activeChannel?.id });
+          finalText = messageText + result.extraText;
+        }
+
+        localStorage.setItem(`pending-prompt-${session.id}`, finalText);
         navigate(path);
       }
     } catch (e) {
@@ -198,67 +197,27 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     messagesEndRef.current?.scrollIntoView({ behavior });
   }, []);
 
-  const handleRunTasks = useCallback(async () => {
-    if (!sessionId) return;
-    try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${sessionId}/tasks/run`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {}
-  }, [sessionId]);
 
-  const handlePauseTasks = useCallback(async () => {
-    if (!sessionId) return;
-    try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${sessionId}/tasks/pause`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {}
-  }, [sessionId]);
 
-  const handleResetTasks = useCallback(async () => {
+  const handleToggleTasksStatus = useCallback(async (newStatus: "running" | "paused") => {
     if (!sessionId) return;
     try {
       const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${sessionId}/tasks/reset`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-    } catch {}
-  }, [sessionId]);
-
-  const handleDecomposeTasks = useCallback(async (objective: string) => {
-    if (!sessionId) return;
-    try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${sessionId}/tasks/decompose`, {
+      const res = await fetch(`/api/sessions/${sessionId}/tasks/status`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ objective }),
+        body: JSON.stringify({ status: newStatus }),
       });
-    } catch {}
-  }, [sessionId]);
-
-  const handleUpdateTasks = useCallback(async (updatedTasks: Task[]) => {
-    if (!sessionId) return;
-    try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${sessionId}/tasks`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ tasks: updatedTasks }),
-      });
-    } catch {}
+      if (res.ok) {
+        const data = await res.json();
+        setTasksState(data);
+      }
+    } catch (e) {
+      console.error("Failed to toggle task runner status:", e);
+    }
   }, [sessionId]);
 
   const loadMessages = useCallback(async () => {
@@ -572,7 +531,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         <WelcomeChatInput
           title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
           sessionId={null}
-          onSend={(msg) => createSessionAndSend(msg)}
+          onSend={(msg, attachments) => createSessionAndSend(msg, attachments)}
           suggestions={getSuggestions()}
           showModelSelector={true}
           allowAttachments={false}
@@ -585,7 +544,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
   return (
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
-      <div className="flex-1 flex flex-col min-w-0 h-full">
+      <div className="flex-1 flex flex-col min-w-0 h-full relative">
         <div className="flex items-center gap-2 px-3 sm:px-4 py-1.5 sm:py-2 border-b border-border text-xs text-muted-foreground flex-shrink-0">
           <span
             className={`w-2 h-2 rounded-full ${connected ? "bg-primary" : "bg-warning"}`}
@@ -603,19 +562,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
               Task Queue: {tasksState.status}
             </span>
           )}
-          <span className="ml-auto flex items-center gap-3">
-            <span className={`font-medium ${getSandboxLabel(sandboxTools).color}`}>
-              {getSandboxLabel(sandboxTools).label}
-            </span>
-            <button
-              onClick={() => setRightDrawerOpen(!rightDrawerOpen)}
-              className={`px-2 py-0.5 border border-border hover:border-primary hover:text-primary rounded cursor-pointer transition-colors text-xs sm:text-xs font-semibold ${
-                rightDrawerOpen ? "text-primary border-primary bg-primary/10" : ""
-              }`}
-            >
-              Ops & Tasks
-            </button>
-          </span>
+
         </div>
         {error && (
           <div className="px-3 sm:px-4 py-2 bg-destructive/10 border-b border-error/20 text-destructive text-xs flex-shrink-0">
@@ -639,7 +586,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 <WelcomeChatInput
                   title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
                   sessionId={sessionId}
-                  onSend={(msg) => handleSend(msg)}
+                  onSend={async (msg, attachments) => {
+                    if (attachments && attachments.length > 0) {
+                      const result = await processAttachments(attachments, { activeProjectName, activeAgentId: activeAgent?.id, activeChannelId: activeChannel?.id });
+                      handleSend(msg + result.extraText, undefined, undefined, result.images.length > 0 ? result.images : undefined);
+                    } else {
+                      handleSend(msg);
+                    }
+                  }}
                   suggestions={getSuggestions()}
                   showModelSelector={true}
                   allowAttachments={!activeChannel}
@@ -702,19 +656,19 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
             />
           )
         )}
+        {sessionId && (
+          <FloatingTasks
+            tasksState={tasksState}
+            onToggleStatus={handleToggleTasksStatus}
+          />
+        )}
       </div>
 
       <AnimatePresence>
         {rightDrawerOpen && (
           <RightDrawer
             activeProjectName={activeProjectName}
-            tasksState={tasksState}
             onClose={() => setRightDrawerOpen(false)}
-            onRun={handleRunTasks}
-            onPause={handlePauseTasks}
-            onReset={handleResetTasks}
-            onDecompose={handleDecomposeTasks}
-            onUpdateTasks={handleUpdateTasks}
             onSendPrompt={(prompt) => handleSend(prompt)}
           />
         )}

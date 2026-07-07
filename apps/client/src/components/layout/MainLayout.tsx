@@ -9,6 +9,8 @@ import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";
+import { MobileTopbar } from "./MobileTopbar";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface Props {
   route: Route;
@@ -31,6 +33,9 @@ interface Props {
   onStopExperiment?: (id: string) => void;
   onEditExperiment?: (id: string) => void;
   onJudgeExperiment?: (id: string) => void;
+  isMobile?: boolean;
+  canGoBack?: boolean;
+  onBack?: () => void;
 }
 
 export function MainLayout({
@@ -53,6 +58,9 @@ export function MainLayout({
   onStopExperiment,
   onEditExperiment,
   onJudgeExperiment,
+  isMobile = false,
+  canGoBack = false,
+  onBack,
 }: Props) {
   const l = useLiterals(u);
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -60,6 +68,36 @@ export function MainLayout({
   const [actionsOpen, setActionsOpen] = useState(false);
   const [quickCreating, setQuickCreating] = useState(false);
   const pendingWorkspaceFile = useRef<string | null>(null);
+
+  const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && route.page === "chat";
+
+  const mobileTitle = useMemo(() => {
+    if (activeProjectId) return activeProjectName || activeProjectId;
+    if (activeAgent) return activeAgent.name;
+    if (activeChannel) return `#${activeChannel.name}`;
+    if (route.page === "laboratory") return "Laboratorio";
+    if (route.page === "settings") return l.breadSettings || "Settings";
+    if (route.page === "skills") return l.breadSkills || "Skills";
+    if (route.page === "logs") return l.breadLogs || "Logs";
+    if (route.page === "mcps") return l.breadMcps || "MCP Marketplace";
+    if (route.page === "plugins") return "Plugins";
+    return "Factory";
+  }, [activeProjectId, activeProjectName, activeAgent, activeChannel, route.page, l]);
+
+  const handleBackClick = useCallback(() => {
+    if (onBack) {
+      onBack();
+    }
+  }, [onBack]);
+
+  const handleMenuToggle = useCallback(() => {
+    setSidebarOpen((prev) => !prev);
+  }, []);
+
+  const handleNavigate = useCallback((path: string) => {
+    onNavigate(path);
+    setSidebarOpen(false);
+  }, [onNavigate]);
 
   useEffect(() => {
     const handleOpenWorkspace = (e: Event) => {
@@ -147,6 +185,8 @@ export function MainLayout({
   });
 
   const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview" || route.page === "laboratory";
+
+  const showNewSessionButton = !isHome && isContextView && route.page !== "laboratory";
 
   const contextTabs = useMemo(() => {
     let basePath = "";
@@ -281,284 +321,583 @@ export function MainLayout({
   };
   return (
     <div className="h-dvh flex flex-col bg-background text-foreground overflow-hidden font-sans">
-      <header className="h-10 sm:h-12 border-b border-border px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-card/30">
-        <div className="flex items-center gap-1.5 sm:gap-2">
-          <button
-            onClick={() => onSelectProject ? onSelectProject(null, null) : onNavigate("/")}
-            className="p-1 text-muted-foreground hover:text-foreground rounded cursor-pointer flex-shrink-0"
-            title="Inicio"
-          >
-            <Logo size={20} className="sm:w-[22px] sm:h-[22px] w-[18px] h-[18px]" />
-          </button>
-          <button
-            onClick={() => setSidebarOpen((p) => !p)}
-            className="sm:hidden p-1 text-muted-foreground hover:text-foreground rounded flex-shrink-0"
-            title="Toggle sidebar"
-          >
-            <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
-            </svg>
-          </button>
-          {renderBreadcrumbs()}
-        </div>
-      </header>
-      <div className="flex flex-1 min-h-0 relative">
-        {sidebarOpen && (
-          <div
-            className="fixed inset-0 z-40 bg-black/50 sm:hidden"
-            onClick={() => setSidebarOpen(false)}
-          />
-        )}
-        <aside
-          className={`${
-            sidebarOpen ? "translate-x-0" : "-translate-x-full"
-          } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-border bg-background transition-transform duration-200`}
-        >
-          <SessionSidebar
-            activeProjectName={activeProjectId}
-            activeAgent={activeAgent}
-            activeChannel={activeChannel}
-            currentPage={route.page}
-            onNavigate={onNavigate}
-            onSelectProject={onSelectProject}
-            onSelectAgent={onSelectAgent}
-            onSelectChannel={onSelectChannel}
-            selectedExpId={selectedExpId}
-          />
-        </aside>
-        <main className="flex-1 min-w-0 flex flex-col h-full bg-background">
-          {isContextView && (
-            <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
-              <div className="flex gap-1">
-                {route.page === "laboratory" ? (
-                  selectedExpId ? (
-                    (() => {
-                      const activeExp = experiments.find((e) => e.id === selectedExpId);
-                      const isCompleted = activeExp?.status === "completed";
-                      const variantDefs = [
-                        { key: "single" as const, label: "Baseline" },
-                        { key: "multiNoLeader" as const, label: "H. Horizontal" },
-                        { key: "multiWithLeader" as const, label: "H. Jerárquico" },
-                      ];
-                      return (
-                        <>
-                          {variantDefs.map(({ key: vKey, label }) => {
-                            const runData = activeExp?.variants?.[vKey];
-                            const hasResult = !!runData?.result;
-                            const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
-                            const isActive = activeVariantTab === vKey;
+      {isMobile ? (
+        <MobileTopbar
+          isMobile={isMobile}
+          isHome={isHome}
+          title={mobileTitle}
+          canGoBack={canGoBack}
+          onBack={handleBackClick}
+          onMenuToggle={handleMenuToggle}
+          onNewSession={handleQuickCreate}
+          showNewSessionButton={showNewSessionButton}
+          l={l}
+        />
+      ) : (
+        <header className="h-10 sm:h-12 border-b border-border px-2 sm:px-4 flex items-center justify-between flex-shrink-0 bg-card/30">
+          <div className="flex items-center gap-1.5 sm:gap-2">
+            <button
+              onClick={() => onSelectProject ? onSelectProject(null, null) : onNavigate("/")}
+              className="p-1 text-muted-foreground hover:text-foreground rounded cursor-pointer flex-shrink-0"
+              title="Inicio"
+            >
+              <Logo size={20} className="sm:w-[22px] sm:h-[22px] w-[18px] h-[18px]" />
+            </button>
+            <button
+              onClick={() => setSidebarOpen((p) => !p)}
+              className="sm:hidden p-1 text-muted-foreground hover:text-foreground rounded flex-shrink-0"
+              title="Toggle sidebar"
+            >
+              <svg width="18" height="18" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M3 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm0 5a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1z" clipRule="evenodd" />
+              </svg>
+            </button>
+            {renderBreadcrumbs()}
+          </div>
+        </header>
+      )}
+
+      <div className="flex flex-1 min-h-0 relative overflow-hidden">
+        {isMobile ? (
+          <>
+            {/* Sidebar for Mobile */}
+            <AnimatePresence>
+              {(isHome || sidebarOpen) && (
+                <motion.aside
+                  key="mobile-sidebar"
+                  initial={{ x: isHome ? 0 : "-100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "-100%" }}
+                  transition={{ duration: 0.3, ease: sidebarOpen ? "easeOut" : "easeIn" }}
+                  className="absolute inset-0 z-50 w-full bg-background"
+                >
+                  <SessionSidebar
+                    activeProjectName={activeProjectId}
+                    activeAgent={activeAgent}
+                    activeChannel={activeChannel}
+                    currentPage={route.page}
+                    onNavigate={handleNavigate}
+                    onSelectProject={onSelectProject}
+                    onSelectAgent={onSelectAgent}
+                    onSelectChannel={onSelectChannel}
+                    selectedExpId={selectedExpId}
+                    isMobile={true}
+                  />
+                </motion.aside>
+              )}
+            </AnimatePresence>
+
+            {/* Backdrop for Mobile Overlay Sidebar */}
+            <AnimatePresence>
+              {!isHome && sidebarOpen && (
+                <motion.div
+                  key="mobile-backdrop"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 0.5 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                  onClick={() => setSidebarOpen(false)}
+                  className="fixed inset-0 bg-black z-40"
+                />
+              )}
+            </AnimatePresence>
+
+            {/* Content for Mobile */}
+            <AnimatePresence mode="wait">
+              {!isHome && (
+                <motion.main
+                  key={route.page + (activeProjectId || activeAgent?.id || activeChannel?.id || "")}
+                  initial={{ x: "100%" }}
+                  animate={{ x: 0 }}
+                  exit={{ x: "100%" }}
+                  transition={{ duration: 0.3, ease: "easeOut" }}
+                  className="absolute inset-0 z-30 flex flex-col h-full bg-background"
+                >
+                  {isContextView && (
+                    <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
+                      <div className="flex gap-1">
+                        {route.page === "laboratory" ? (
+                          selectedExpId ? (
+                            (() => {
+                              const activeExp = experiments.find((e) => e.id === selectedExpId);
+                              const isCompleted = activeExp?.status === "completed";
+                              const variantDefs = [
+                                { key: "single" as const, label: "Baseline" },
+                                { key: "multiNoLeader" as const, label: "H. Horizontal" },
+                                { key: "multiWithLeader" as const, label: "H. Jerárquico" },
+                              ];
+                              return (
+                                <>
+                                  {variantDefs.map(({ key: vKey, label }) => {
+                                    const runData = activeExp?.variants?.[vKey];
+                                    const hasResult = !!runData?.result;
+                                    const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
+                                    const isActive = activeVariantTab === vKey;
+                                    return (
+                                      <button
+                                        key={vKey}
+                                        onClick={() => setActiveVariantTab?.(vKey)}
+                                        className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                          isActive
+                                            ? "text-primary border-primary font-semibold"
+                                            : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                        }`}
+                                      >
+                                        {label}
+                                        {isRunning && (
+                                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                                        )}
+                                        {hasResult && (
+                                          <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
+                                        )}
+                                      </button>
+                                    );
+                                  })}
+                                  {isCompleted && (
+                                    <button
+                                      onClick={() => setActiveVariantTab?.("compare")}
+                                      className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                        activeVariantTab === "compare"
+                                          ? "text-primary border-primary font-semibold"
+                                          : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                      }`}
+                                    >
+                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M18 20V10M12 20V4M6 20v-6" />
+                                      </svg>
+                                      Comparativa
+                                    </button>
+                                  )}
+                                </>
+                              );
+                            })()
+                          ) : (
+                            <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                              </svg>
+                              Generador IA
+                            </span>
+                          )
+                        ) : (
+                          contextTabs.map((tab) => {
+                            const isActive = route.page === tab.id;
                             return (
                               <button
-                                key={vKey}
-                                onClick={() => setActiveVariantTab?.(vKey)}
+                                key={tab.id}
+                                onClick={() => handleNavigate(tab.path)}
                                 className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
                                   isActive
                                     ? "text-primary border-primary font-semibold"
                                     : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
                                 }`}
                               >
-                                {label}
-                                {isRunning && (
-                                  <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                                )}
-                                {hasResult && (
-                                  <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
-                                )}
+                                <span className={isActive ? "text-primary" : "text-muted-foreground"}>
+                                  {tab.icon}
+                                </span>
+                                {tab.label}
                               </button>
                             );
-                          })}
-                          {isCompleted && (
+                          })
+                        )}
+                      </div>
+
+                      <div className="relative py-1 flex items-center gap-2">
+                        {route.page === "laboratory" ? (
+                          selectedExpId ? (
+                            <>
+                              <button
+                                onClick={() => setActionsOpen((p) => !p)}
+                                className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
+                                title="Opciones del Experimento"
+                              >
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                  <circle cx="12" cy="12" r="1.5" />
+                                  <circle cx="12" cy="5" r="1.5" />
+                                  <circle cx="12" cy="19" r="1.5" />
+                                </svg>
+                                <span>Opciones</span>
+                              </button>
+                              
+                              {actionsOpen && (
+                                <>
+                                  <div className="fixed inset-0 z-45 bg-transparent" onClick={() => setActionsOpen(false)} />
+                                  <div className="absolute right-0 top-full mt-2 w-40 bg-card border border-input rounded-xl shadow-2xl flex flex-col z-50 py-1 animate-scale-in text-left">
+                                    {experiments.find((e) => e.id === selectedExpId)?.status === "running" ? (
+                                      <button
+                                        onClick={() => {
+                                          setActionsOpen(false);
+                                          onStopExperiment?.(selectedExpId);
+                                        }}
+                                        className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                      >
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                                          <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                        </svg>
+                                        Detener
+                                      </button>
+                                    ) : (
+                                      <button
+                                        onClick={() => {
+                                          setActionsOpen(false);
+                                          onRunExperiment?.(selectedExpId);
+                                        }}
+                                        className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                      >
+                                        <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" className="text-primary">
+                                          <path d="M8 5v14l11-7z" />
+                                        </svg>
+                                        Ejecutar
+                                      </button>
+                                    )}
+                                    
+                                    {experiments.find((e) => e.id === selectedExpId)?.status === "completed" && (
+                                      <button
+                                        onClick={() => {
+                                          setActionsOpen(false);
+                                          onJudgeExperiment?.(selectedExpId);
+                                        }}
+                                        className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                      >
+                                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-primary">
+                                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                        </svg>
+                                        Re-evaluar
+                                      </button>
+                                    )}
+
+                                    <button
+                                      onClick={() => {
+                                        setActionsOpen(false);
+                                        onEditExperiment?.(selectedExpId);
+                                      }}
+                                      className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                    >
+                                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-blue-400">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                      </svg>
+                                      Editar
+                                    </button>
+                                    
+                                    <button
+                                      onClick={() => {
+                                        setActionsOpen(false);
+                                        onDeleteExperiment?.(selectedExpId);
+                                      }}
+                                      className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                    >
+                                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                      </svg>
+                                      Eliminar
+                                    </button>
+                                  </div>
+                                </>
+                              )}
+                            </>
+                          ) : null
+                        ) : (
+                          <>
                             <button
-                              onClick={() => setActiveVariantTab?.("compare")}
-                              className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                                activeVariantTab === "compare"
-                                  ? "text-primary border-primary font-semibold"
-                                  : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                              }`}
+                              onClick={handleQuickCreate}
+                              disabled={quickCreating}
+                              className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10 disabled:opacity-50"
+                              title="Nueva sesion"
                             >
-                              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M18 20V10M12 20V4M6 20v-6" />
-                              </svg>
-                              Comparativa
+                              {quickCreating ? (
+                                <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                              ) : (
+                                <Plus size={14} />
+                              )}
                             </button>
+                            <button
+                              onClick={() => setSessionPopoverOpen((p) => !p)}
+                              className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
+                              title="Ver sesiones"
+                            >
+                              <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
+                              </svg>
+                              <span>Sesiones</span>
+                            </button>
+                            <SessionPopover
+                              isOpen={sessionPopoverOpen}
+                              onClose={() => setSessionPopoverOpen(false)}
+                              activeSessionId={sessionId}
+                              activeProjectName={activeProjectId}
+                              activeProjectFriendlyName={activeProjectName}
+                              activeAgent={activeAgent}
+                              activeChannel={activeChannel}
+                              onSelectSession={handleSelectSession}
+                              onNewSession={handleNewSession}
+                            />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  <div className="flex-1 min-h-0 relative">
+                    {children}
+                  </div>
+                </motion.main>
+              )}
+            </AnimatePresence>
+          </>
+        ) : (
+          <>
+            {sidebarOpen && (
+              <div
+                className="fixed inset-0 z-40 bg-black/50 sm:hidden"
+                onClick={() => setSidebarOpen(false)}
+              />
+            )}
+            <aside
+              className={`${
+                sidebarOpen ? "translate-x-0" : "-translate-x-full"
+              } fixed sm:relative sm:translate-x-0 z-50 sm:z-auto w-64 sm:w-64 flex-shrink-0 h-full border-r border-border bg-background transition-transform duration-200`}
+            >
+              <SessionSidebar
+                activeProjectName={activeProjectId}
+                activeAgent={activeAgent}
+                activeChannel={activeChannel}
+                currentPage={route.page}
+                onNavigate={handleNavigate}
+                onSelectProject={onSelectProject}
+                onSelectAgent={onSelectAgent}
+                onSelectChannel={onSelectChannel}
+                selectedExpId={selectedExpId}
+              />
+            </aside>
+            <main className="flex-1 min-w-0 flex flex-col h-full bg-background">
+              {isContextView && (
+                <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
+                  <div className="flex gap-1">
+                    {route.page === "laboratory" ? (
+                      selectedExpId ? (
+                        (() => {
+                          const activeExp = experiments.find((e) => e.id === selectedExpId);
+                          const isCompleted = activeExp?.status === "completed";
+                          const variantDefs = [
+                            { key: "single" as const, label: "Baseline" },
+                            { key: "multiNoLeader" as const, label: "H. Horizontal" },
+                            { key: "multiWithLeader" as const, label: "H. Jerárquico" },
+                          ];
+                          return (
+                            <>
+                              {variantDefs.map(({ key: vKey, label }) => {
+                                const runData = activeExp?.variants?.[vKey];
+                                const hasResult = !!runData?.result;
+                                const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
+                                const isActive = activeVariantTab === vKey;
+                                return (
+                                  <button
+                                    key={vKey}
+                                    onClick={() => setActiveVariantTab?.(vKey)}
+                                    className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                      isActive
+                                        ? "text-primary border-primary font-semibold"
+                                        : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                    }`}
+                                  >
+                                    {label}
+                                    {isRunning && (
+                                      <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                                    )}
+                                    {hasResult && (
+                                      <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
+                                    )}
+                                  </button>
+                                );
+                              })}
+                              {isCompleted && (
+                                <button
+                                  onClick={() => setActiveVariantTab?.("compare")}
+                                  className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                    activeVariantTab === "compare"
+                                      ? "text-primary border-primary font-semibold"
+                                      : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                  }`}
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M18 20V10M12 20V4M6 20v-6" />
+                                  </svg>
+                                  Comparativa
+                                </button>
+                              )}
+                            </>
+                          );
+                        })()
+                      ) : (
+                        <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                          </svg>
+                          Generador IA
+                        </span>
+                      )
+                    ) : (
+                      contextTabs.map((tab) => {
+                        const isActive = route.page === tab.id;
+                        return (
+                          <button
+                            key={tab.id}
+                            onClick={() => handleNavigate(tab.path)}
+                            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                              isActive
+                                ? "text-primary border-primary font-semibold"
+                                : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                            }`}
+                          >
+                            <span className={isActive ? "text-primary" : "text-muted-foreground"}>
+                              {tab.icon}
+                            </span>
+                            {tab.label}
+                          </button>
+                        );
+                      })
+                    )}
+                  </div>
+
+                  <div className="relative py-1 flex items-center gap-2">
+                    {route.page === "laboratory" ? (
+                      selectedExpId ? (
+                        <>
+                          <button
+                            onClick={() => setActionsOpen((p) => !p)}
+                            className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
+                            title="Opciones del Experimento"
+                          >
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                              <circle cx="12" cy="12" r="1.5" />
+                              <circle cx="12" cy="5" r="1.5" />
+                              <circle cx="12" cy="19" r="1.5" />
+                            </svg>
+                            <span>Opciones</span>
+                          </button>
+                          
+                          {actionsOpen && (
+                            <>
+                              <div className="fixed inset-0 z-45 bg-transparent" onClick={() => setActionsOpen(false)} />
+                              <div className="absolute right-0 top-full mt-2 w-40 bg-card border border-input rounded-xl shadow-2xl flex flex-col z-50 py-1 animate-scale-in text-left">
+                                {experiments.find((e) => e.id === selectedExpId)?.status === "running" ? (
+                                  <button
+                                    onClick={() => {
+                                      setActionsOpen(false);
+                                      onStopExperiment?.(selectedExpId);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                  >
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
+                                      <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                                    </svg>
+                                    Detener
+                                  </button>
+                                ) : (
+                                  <button
+                                    onClick={() => {
+                                      setActionsOpen(false);
+                                      onRunExperiment?.(selectedExpId);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                  >
+                                    <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" className="text-primary">
+                                      <path d="M8 5v14l11-7z" />
+                                    </svg>
+                                    Ejecutar
+                                  </button>
+                                )}
+                                
+                                {experiments.find((e) => e.id === selectedExpId)?.status === "completed" && (
+                                  <button
+                                    onClick={() => {
+                                      setActionsOpen(false);
+                                      onJudgeExperiment?.(selectedExpId);
+                                    }}
+                                    className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                  >
+                                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-primary">
+                                      <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                    </svg>
+                                    Re-evaluar
+                                  </button>
+                                )}
+
+                                <button
+                                  onClick={() => {
+                                    setActionsOpen(false);
+                                    onEditExperiment?.(selectedExpId);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-blue-400">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
+                                  </svg>
+                                  Editar
+                                </button>
+                                
+                                <button
+                                  onClick={() => {
+                                    setActionsOpen(false);
+                                    onDeleteExperiment?.(selectedExpId);
+                                  }}
+                                  className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                >
+                                  <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                  </svg>
+                                  Eliminar
+                                </button>
+                              </div>
+                            </>
                           )}
                         </>
-                      );
-                    })()
-                  ) : (
-                    <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                      </svg>
-                      Generador IA
-                    </span>
-                  )
-                ) : (
-                  contextTabs.map((tab) => {
-                    const isActive = route.page === tab.id;
-                    return (
-                      <button
-                        key={tab.id}
-                        onClick={() => onNavigate(tab.path)}
-                        className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                          isActive
-                            ? "text-primary border-primary font-semibold"
-                            : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                        }`}
-                      >
-                        <span className={isActive ? "text-primary" : "text-muted-foreground"}>
-                          {tab.icon}
-                        </span>
-                        {tab.label}
-                      </button>
-                    );
-                  })
-                )}
+                      ) : null
+                    ) : (
+                      <>
+                        <button
+                          onClick={handleQuickCreate}
+                          disabled={quickCreating}
+                          className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10 disabled:opacity-50"
+                          title="Nueva sesion"
+                        >
+                          {quickCreating ? (
+                            <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                          ) : (
+                            <Plus size={14} />
+                          )}
+                        </button>
+                        <button
+                          onClick={() => setSessionPopoverOpen((p) => !p)}
+                          className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
+                          title="Ver sesiones"
+                        >
+                          <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
+                            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
+                          </svg>
+                          <span>Sesiones</span>
+                        </button>
+                        <SessionPopover
+                          isOpen={sessionPopoverOpen}
+                          onClose={() => setSessionPopoverOpen(false)}
+                          activeSessionId={sessionId}
+                          activeProjectName={activeProjectId}
+                          activeProjectFriendlyName={activeProjectName}
+                          activeAgent={activeAgent}
+                          activeChannel={activeChannel}
+                          onSelectSession={handleSelectSession}
+                          onNewSession={handleNewSession}
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+              )}
+              <div className="flex-1 min-h-0 relative">
+                {children}
               </div>
-
-              {/* Botón de sesiones o experimentos pegado a la derecha en la barra de pestañas */}
-              <div className="relative py-1 flex items-center gap-2">
-                {route.page === "laboratory" ? (
-                  selectedExpId ? (
-                    <>
-                      <button
-                        onClick={() => setActionsOpen((p) => !p)}
-                        className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
-                        title="Opciones del Experimento"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                          <circle cx="12" cy="12" r="1.5" />
-                          <circle cx="12" cy="5" r="1.5" />
-                          <circle cx="12" cy="19" r="1.5" />
-                        </svg>
-                        <span>Opciones</span>
-                      </button>
-                      
-                      {actionsOpen && (
-                        <>
-                          <div className="fixed inset-0 z-45 bg-transparent" onClick={() => setActionsOpen(false)} />
-                          <div className="absolute right-0 top-full mt-2 w-40 bg-card border border-input rounded-xl shadow-2xl flex flex-col z-50 py-1 animate-scale-in text-left">
-                            {/* Run/Stop */}
-                            {experiments.find((e) => e.id === selectedExpId)?.status === "running" ? (
-                              <button
-                                onClick={() => {
-                                  setActionsOpen(false);
-                                  onStopExperiment?.(selectedExpId);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24">
-                                  <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
-                                </svg>
-                                Detener
-                              </button>
-                            ) : (
-                              <button
-                                onClick={() => {
-                                  setActionsOpen(false);
-                                  onRunExperiment?.(selectedExpId);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24" className="text-primary">
-                                  <path d="M8 5v14l11-7z" />
-                                </svg>
-                                Ejecutar
-                              </button>
-                            )}
-                            
-                            {/* Re-evaluar con Judge (solo cuando completed) */}
-                            {experiments.find((e) => e.id === selectedExpId)?.status === "completed" && (
-                              <button
-                                onClick={() => {
-                                  setActionsOpen(false);
-                                  onJudgeExperiment?.(selectedExpId);
-                                }}
-                                className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
-                              >
-                                <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-primary">
-                                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                </svg>
-                                Re-evaluar
-                              </button>
-                            )}
-
-                            {/* Edit */}
-                            <button
-                              onClick={() => {
-                                  setActionsOpen(false);
-                                  onEditExperiment?.(selectedExpId);
-                                }}
-                              className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
-                            >
-                              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-blue-400">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L6.832 19.82a4.5 4.5 0 01-1.897 1.13l-2.685.8.8-2.685a4.5 4.5 0 011.13-1.897L16.863 4.487zm0 0L19.5 7.125" />
-                              </svg>
-                              Editar
-                            </button>
-                            
-                            {/* Delete */}
-                            <button
-                              onClick={() => {
-                                  setActionsOpen(false);
-                                  onDeleteExperiment?.(selectedExpId);
-                                }}
-                              className="w-full px-3 py-1.5 text-xs text-destructive hover:bg-destructive/10 transition-colors flex items-center gap-2 font-medium cursor-pointer"
-                            >
-                              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                                <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                              </svg>
-                              Eliminar
-                            </button>
-                          </div>
-                        </>
-                      )}
-                    </>
-                  ) : null
-                ) : (
-                  <>
-                    <button
-                      onClick={handleQuickCreate}
-                      disabled={quickCreating}
-                      className="flex items-center gap-1 px-1.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10 disabled:opacity-50"
-                      title="Nueva sesion"
-                    >
-                      {quickCreating ? (
-                        <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Plus size={14} />
-                      )}
-                    </button>
-                    <button
-                      onClick={() => setSessionPopoverOpen((p) => !p)}
-                      className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
-                      title="Ver sesiones"
-                    >
-                      <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
-                        <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm1-12a1 1 0 10-2 0v4a1 1 0 00.293.707l2.8 2.8a1 1 0 101.414-1.414L11 10.586V6z" clipRule="evenodd" />
-                      </svg>
-                      <span>Sesiones</span>
-                    </button>
-                    <SessionPopover
-                      isOpen={sessionPopoverOpen}
-                      onClose={() => setSessionPopoverOpen(false)}
-                      activeSessionId={sessionId}
-                      activeProjectName={activeProjectId}
-                      activeProjectFriendlyName={activeProjectName}
-                      activeAgent={activeAgent}
-                      activeChannel={activeChannel}
-                      onSelectSession={handleSelectSession}
-                      onNewSession={handleNewSession}
-                    />
-                  </>
-                )}
-              </div>
-            </div>
-          )}
-          <div className="flex-1 min-h-0 relative">
-            {children}
-          </div>
-        </main>
+            </main>
+          </>
+        )}
       </div>
     </div>
   );

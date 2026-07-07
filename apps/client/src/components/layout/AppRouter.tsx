@@ -20,10 +20,14 @@ import { useRouter } from "@/hooks/useRouter";
 import { MainLayout } from "./MainLayout";
 import { apiFetch } from "@/lib/api";
 import type { Experiment } from "@/types/laboratory";
+import { useIsMobile } from "@/hooks/useIsMobile";
+import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";
 
 export function AppRouter() {
   const { token, user, loading } = useAuth();
   const { route, navigate } = useRouter();
+  const isMobileState = useIsMobile();
+  const navigationStack = useNavigationStack();
 
   // Cargar el repo, agente o canal activo y el estado de contexto desde localStorage
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
@@ -140,6 +144,123 @@ export function AppRouter() {
   useEffect(() => {
     fetchExperiments();
   }, [fetchExperiments]);
+
+  const routeToStackItem = useCallback((r: typeof route): NavigationStackItem => {
+    const isLab = r.page === "laboratory";
+    const isWorkspace = r.page === "workspace";
+    const isPreview = r.page === "preview";
+    const isChat = r.page === "chat";
+
+    if (isChat) {
+      if (activeProjectId) {
+        return {
+          type: "context",
+          contextType: "project",
+          contextId: activeProjectId,
+          contextName: activeProjectFriendlyName || activeProjectId,
+          page: "chat",
+          path: r.sessionId ? `/projects/${activeProjectId}/session/${r.sessionId}` : `/projects/${activeProjectId}/chat`,
+        };
+      }
+      if (activeAgent) {
+        return {
+          type: "context",
+          contextType: "agent",
+          contextId: activeAgent.id,
+          contextName: activeAgent.name,
+          page: "chat",
+          path: r.sessionId ? `/agents/${activeAgent.id}/session/${r.sessionId}` : `/agents/${activeAgent.id}/chat`,
+        };
+      }
+      if (activeChannel) {
+        return {
+          type: "context",
+          contextType: "channel",
+          contextId: activeChannel.id,
+          contextName: activeChannel.name,
+          page: "chat",
+          path: r.sessionId ? `/channels/${activeChannel.id}/session/${r.sessionId}` : `/channels/${activeChannel.id}/chat`,
+        };
+      }
+      return {
+        type: "home",
+        page: "chat",
+        path: r.sessionId ? `/session/${r.sessionId}` : "/",
+      };
+    }
+
+    if (isWorkspace) {
+      const cType = activeProjectId ? "project" : activeAgent ? "agent" : activeChannel ? "channel" : undefined;
+      const cId = activeProjectId || activeAgent?.id || activeChannel?.id || undefined;
+      const cName = activeProjectFriendlyName || activeAgent?.name || activeChannel?.name || undefined;
+      return {
+        type: "context",
+        contextType: cType,
+        contextId: cId,
+        contextName: cName,
+        page: "workspace",
+        path: activeProjectId
+          ? `/projects/${activeProjectId}/workspace`
+          : activeAgent
+          ? `/agents/${activeAgent.id}/workspace`
+          : activeChannel
+          ? `/channels/${activeChannel.id}/workspace`
+          : "/workspace",
+      };
+    }
+
+    if (isPreview && activeProjectId) {
+      return {
+        type: "context",
+        contextType: "project",
+        contextId: activeProjectId,
+        contextName: activeProjectFriendlyName || activeProjectId,
+        page: "preview",
+        path: `/projects/${activeProjectId}/preview`,
+      };
+    }
+
+    if (isLab) {
+      return {
+        type: "context",
+        contextType: "project",
+        contextId: r.experimentId || undefined,
+        contextName: "Laboratorio",
+        page: "laboratory",
+        path: r.experimentId ? `/laboratory/${r.experimentId}` : "/laboratory",
+      };
+    }
+
+    return {
+      type: "admin",
+      page: r.page,
+      path: `/${r.page}`,
+    };
+  }, [activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel]);
+
+  useEffect(() => {
+    const item = routeToStackItem(route);
+    const secondToLast = navigationStack.stack[navigationStack.stack.length - 2];
+
+    if (secondToLast && secondToLast.path === item.path) {
+      navigationStack.pop();
+    } else {
+      navigationStack.push(item);
+    }
+  }, [route, routeToStackItem, navigationStack.push, navigationStack.pop, navigationStack.stack]);
+
+  const handleBack = useCallback(() => {
+    if (navigationStack.canGoBack) {
+      const prev = navigationStack.stack[navigationStack.stack.length - 2];
+      if (prev && prev.path) {
+        navigate(prev.path);
+      } else {
+        navigate("/");
+      }
+    } else {
+      navigate("/");
+    }
+  }, [navigationStack.canGoBack, navigationStack.stack, navigate]);
 
   const executeDeleteExp = useCallback(async () => {
     if (!pendingDeleteExpId) return;
@@ -330,6 +451,9 @@ export function AppRouter() {
           }
         }}
         onJudgeExperiment={handleJudgeExp}
+        isMobile={isMobileState.isMobile}
+        canGoBack={navigationStack.canGoBack}
+        onBack={handleBack}
       >
       {route.page === "projects" && (
         <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />

@@ -48,6 +48,7 @@
 - **Filtrado de Salida de Terminal (Bash Output Filter):** Sanitización inteligente y optimizada sobre el stdout/stderr de todos los comandos ejecutados por agentes principales, programmatic agents y subagents para enmascarar automáticamente secretos del usuario con `***hidden***`.
 - **API con Auditoría de Revelado:** Eliminación del revelado masivo de secretos. Incorporación del endpoint seguro `/api/env/reveal/:key` con logs de auditoría dedicados en `/tmp/crewfactory/_audit/{user}/env-access.log`.
 - **Interfaz Masked de Usuario:** Enmascaramiento completo por defecto en la vista de variables de entorno del cliente (`EnvVarsTab`) con botones de revelado individual puntual.
+- **Protección de Procesos de Infraestructura (Anti-Suicidio):** Intercepción en tiempo de ejecución de comandos destructivos en la herramienta `bash` para bloquear de forma preventiva cualquier intento de finalizar procesos asociados a los puertos críticos (`3000`, `3001`, `4104`, `5173`) o el PID del servidor principal.
 
 ### PWA (Progressive Web App)
 - Installable on mobile via manifest.json with `display: standalone`
@@ -57,11 +58,14 @@
 - Offline-capable assets (JS, CSS, HTML, icons)
 - Navigation interception disabled (`navigateFallback: undefined`) to prevent stale content after deployments; server handles all navigation requests directly
 
-### Mobile-First Responsive
-- Breakpoints: 375px (base), 768px (sm), 1280px (lg)
-- Sidebar: hidden by default on mobile, overlay with backdrop when open
-- Header: compact on mobile (h-10 vs h-12)
-- Responsive padding, font sizes, and button sizing throughout
+### Mobile-First Responsive (Slack iOS Style Split-Screen)
+- **Breakpoints**: Mobile (< 768px), Tablet (768px - 1024px), Desktop (> 1024px).
+- **Split-Screen Model (Mobile)**: On screens < 768px, the sidebar functions as the full-screen landing view when no context is active. When a project, agent, channel, or admin page is selected, the content slides in from the right to cover the sidebar.
+- **Mobile Header (MobileTopbar)**: A simplified 48px header on mobile with custom back navigation, context names, quick session creation `[+]`, and overlay menu toggle `[≡]`.
+- **Overlay Drawer**: Toggling the menu `[≡]` from within a context slides the sidebar in from the left over the content, accompanied by a dimming backdrop overlay (`opacity: 0.5`).
+- **Touch-Optimized Styling**: Interactive list elements, accordion headers, and buttons are dynamically resized to 48px heights with larger text sizes (16px) and wider spacing for natural tap targets.
+- **Smooth Animations**: Hardware-accelerated transitions powered by `framer-motion` provide 300ms slide-in/slide-out animations and fade transitions at 60fps.
+- **Navigation Stack Synchronization**: Maintains navigation history stack in `localStorage` (`nav-stack-mobile`) synchronized with browser back/forward and the customized back button.
 
 ### Theme & Localization
 - oklch theme with light and dark mode support (dark by default)
@@ -139,13 +143,15 @@
 - Framework-agnóstico — compatible con React (Vite), HTML estático, Next.js, Nuxt, Astro, etc.
 
 
-### Task Runner (Supervisor Loop)
-- Decompose high-level goals into sequential task steps using active session LLM
-- Persistent runner state saved in session `tasks.json`
-- Start, pause, reset, and manual adjustments (add, reorder, edit, delete steps) of the queue
-- Auto-continuation loop (Supervisor) running asynchronously in server background
-- Premium sliding Tasks side panel with shimmers, pulse spinners, and expanded task execution output logs
-
+### Task Planning & Decomposition (decompose_tasks)
+- Decompose complex high-level objectives into structured, dependency-aware task graphs (DAGs) using the session's active LLM.
+- Autonomous agent execution loop: the agent acts as both planner and executor, driving task completion directly in its ReAct loop.
+- Supports DAG and linear dependencies (`depends_on`, `estimated_steps`) to allow parallel/serial task coordination.
+- Real-time plan visualization: premium `DecomposeResult` card rendered inline in the chat message stream.
+- Task status tools (`update_task_status`, `complete_task_list`) to update task states, write to local `tasks.json` file, and resolve the next ready task in the DAG dynamically.
+- Persistent task state injection: active task details and step-by-step instructions are injected directly into the agent's system prompt to keep it fully aware of the execution plan.
+- Floating Task Accordion UI: premium glassmorphic overlay panel rendered at the top of the chat area, with real-time status indicators, progress bars, and execution controls (Play/Pause).
+- Autonomous error handling and re-planning: if a task fails, the agent re-calls the tool to adjust the remaining steps.
 ### Integrations Hub
 - Dynamic and fully customizable integrations catalog configured per user on the server
 - Automatic integration status detection linked with existing user-level environment variables
@@ -310,7 +316,8 @@ packages/shared/  Shared Zod schemas and types
 ### Key Server Modules
 - `ai/` — Vendored and decoupled core agent runtime, including ModelRegistry, SessionManager (persistence), DefaultResourceLoader, AuthStorage, BashTool, and loadSkills.
 - `pi/session-manager.ts` — Singleton managing local AgentSession lifecycle, authStorage, modelRegistry and workspace CWD per user. Supports `projectName` for hybrid agent instantiation. Persists session metadata in `{sessionDir}/metadata.json`.
-- `pi/task-runner.ts` — Task runner queue storage and supervisor background loop execution.
+- `core/decompose-tool.ts` — Native task decomposition tool factory that constructs structured plans from objectives.
+- `core/update-task-tool.ts` — Native task status update and completion tool definitions maintaining planning state DAGs.
 - `routes/files.ts` — Workspace file CRUD API with `?project=name` scoping and `/workspace-projects` endpoints for project management.
 - `routes/preview.ts` — Preview file serving, config CRUD (`/config`), and build trigger/abort (`/build`)
 - `pi/preview-config.ts` — Auto-detect framework from `package.json`/config files, load/save `.preview.json`
@@ -320,7 +327,7 @@ packages/shared/  Shared Zod schemas and types
 - `routes/providers.ts` — Dynamic provider configuration API
 - `routes/backup.ts` — Backup Hono router for exporting and importing zip archives.
 - `routes/models.ts` — Model listing from SDK's modelRegistry.getAvailable()
-- `routes/sessions.ts` — Session CRUD, tool permissions, and task runner endpoints (awaited on critical reads to prevent race conditions during initialization)
+- `routes/sessions.ts` — Session CRUD, tool permissions, and metadata operations (awaited on critical reads to prevent race conditions during initialization)
 - `agents/create-agent-server.ts` — Factory for isolated agent Hono servers. Inherits user authStorage and modelRegistry.
 - `agents/agent-registry.ts` — Singleton managing programmatic agent lifecycle and filesystem persistence. `get(id, username?)` enforces ownership when username is provided.
 - `channels/channel-store.ts` — Filesystem store for channel definitions and message logs.
@@ -360,10 +367,12 @@ packages/shared/  Shared Zod schemas and types
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/settings/ProvidersTab.tsx` — Tab view managing API credentials. Features an interactive **Sincronizar** action for dynamic model fetching and an **Info** action displaying a premium capability matrix modal.
 - `components/layout/AppRouter.tsx` — Context-aware router supporting Project, Agent, and Channel active modes.
-- `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and a right-side SessionDrawer trigger button.
+- `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and popover actions.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
 - `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos, Agentes, and Canales, and administration links. Active highlight is suppressed when the current page is not a session view (Laboratory, Settings, Agents, Channels, etc.).
-- `components/sidebar/SessionDrawer.tsx` — Sliding right drawer containing session history list, message counts, session statuses, creation, and deletion controls.
+- `components/sidebar/SessionPopover.tsx` — Floating contextual popover menu for session switching, metadata management, and creation.
+- `components/chat/tools/DecomposeResult.tsx` — Premium inline card displaying structured planned objectives and DAG task dependencies inside the chat stream.
+- `components/chat/FloatingTasks.tsx` — Floating interactive accordion card rendered as a chat overlay, featuring play/pause controls and list indicators.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
 - `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.
