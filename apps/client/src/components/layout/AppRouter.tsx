@@ -69,7 +69,7 @@ export function AppRouter() {
   const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
   const [runPromptValue, setRunPromptValue] = useState("");
   const [runningExpId, setRunningExpId] = useState<string | null>(null);
-  const [activeVariantTab, setActiveVariantTab] = useState<"single" | "multiNoLeader" | "multiWithLeader" | "compare">("single");
+  const [activeVariantTab, setActiveVariantTab] = useState<"chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare">("chat");
 
   const [showDeleteExpConfirm, setShowDeleteExpConfirm] = useState(false);
   const [pendingDeleteExpId, setPendingDeleteExpId] = useState<string | null>(null);

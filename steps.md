@@ -721,3 +721,23 @@ crear un plan de despliegue facil en vps
 - [x] 78.10 Verificar compilación exitosa y ejecución de pruebas sin errores
 - [x] 78.11 Actualizar bitácora de desarrollo (`steps.md`) y el documento de arquitectura (`about.md`)
 
+## Phase 79: Laboratorio como Agente Conversacional (Refactorización de Experiencia)
+- [x] 79.1 Extender `SessionSchema` y `CreateSessionSchema` con `experimentId` en `packages/shared/src/schemas.ts` y registrar la tool en `AVAILABLE_TOOLS`
+- [x] 79.2 Crear la tool `create_experiment` en `apps/server/src/laboratory/create-experiment-tool.ts`
+- [x] 79.3 Registrar `create_experiment` en la lista general de tools en `apps/server/src/core/ui-tools.ts`
+- [x] 79.4 Modificar `apps/server/src/core/session-manager.ts` para registrar dinámicamente al agente `lab-architect`, inyectar la configuración del experimento en su prompt de sistema y limitar sus herramientas
+- [x] 79.5 Limpiar el enrutador en `apps/server/src/routes/experiments.ts` eliminando `/generate` e `/instantiate` y agregando `/summary`
+- [x] 79.6 Diseñar e implementar el componente visual de configuración `ExperimentConfigTab.tsx` en `apps/client/src/components/laboratory/ExperimentConfigTab.tsx`
+- [x] 79.7 Actualizar `ToolCallRow.tsx` para renderizar el card detallado del experimento y el botón de redirección de configuración
+- [x] 79.8 Refactorizar `LaboratoryPage.tsx` para renderizar `ChatArea` cargando de forma reactiva la sesión de `lab-architect` y vincular las sub-pestañas
+- [x] 79.9 Eliminar el componente de formulario redundante `IaGenerator.tsx`
+- [x] 79.10 Verificar compilación exitosa sin errores de TypeScript de cliente y servidor
+
+## Phase 80: Skill de Self-Improvement para el Agente Global
+- [x] 80.1 Crear el prompt y la especificación de la skill `factory-self-improvement` en `apps/server/src/core/default-factory-skills.ts`
+- [x] 80.2 Registrar `factory-self-improvement` en la lista global de `DEFAULT_AGENTS_MD` en `apps/server/src/core/default-factory-skills.ts`
+- [x] 80.3 Verificar que el servidor compile y buildee correctamente con Bun
+- [x] 80.4 Documentar el cambio en `about.md` y marcar la bitácora como completada
+
+
+

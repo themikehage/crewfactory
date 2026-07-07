@@ -21,6 +21,7 @@ export const SessionSchema = z.object({
   projectName: z.string().optional(),
   agentId: z.string().optional(),
   channelId: z.string().optional(),
+  experimentId: z.string().optional(),
 });
 
 export const CreateSessionSchema = z.object({
@@ -28,6 +29,7 @@ export const CreateSessionSchema = z.object({
   projectName: z.string().optional(),
   agentId: z.string().optional(),
   channelId: z.string().optional(),
+  experimentId: z.string().optional(),
 });
 
 export const ModelSettingsSchema = z.object({
@@ -40,7 +42,7 @@ export const AVAILABLE_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
   "request_approval", "ask_question", "render_images", "render_chart", "share_file", "refresh_ui",
   "spawn_subagent", "delegate_task", "exa_search", "decompose_tasks", "update_task_status", "complete_task_list",
-  "memory_store", "memory_recall", "memory_forget"
+  "memory_store", "memory_recall", "memory_forget", "create_experiment"
 ] as const;
 export type ToolName = typeof AVAILABLE_TOOLS[number];
 

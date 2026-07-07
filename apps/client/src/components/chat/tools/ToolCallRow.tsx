@@ -296,6 +296,7 @@ function getArgSummary(toolName: string, args: Record<string, unknown>, l: Recor
     case "render_html": return (args.title as string) || l.argHtmlDoc;
     case "render_chart": return (args.title as string) || (args.chartType as string) || l.argChart;
     case "refresh_ui": return `${l.argUiRefresh}: ${String(args.entityType)}`;
+    case "create_experiment": return (args.name as string) || "Experimento";
     case "spawn_subagent": {
       const task = (args.task as string) || "";
       const role = (args.subagentRole as string) || "";
@@ -367,6 +368,7 @@ function getResultSummary(toolName: string, result: ToolResultData, l: Record<st
     case "render_chart": return l.resRendered;
     case "share_file": return l.resShared;
     case "refresh_ui": return l.resRefreshed;
+    case "create_experiment": return "creado/actualizado";
     case "spawn_subagent": return l.resCompleted;
     case "delegate_task": return l.resCompleted;
     case "exa_search": {
@@ -412,6 +414,46 @@ function ToolBody({
   switch (toolName) {
     case "decompose_tasks":
       return <DecomposeResult text={text} details={result?.details} l={l} />;
+    case "create_experiment": {
+      const details = result?.details as any;
+      const expId = details?.experimentId || args.experimentId;
+      const expName = details?.name || args.name || "Experimento";
+      const agentsCount = details?.agentsCount || (Array.isArray(args.agents) ? args.agents.length : 0);
+      const crit = details?.criteria || args.criteria || [];
+      
+      return (
+        <div className="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border/80 shadow-md">
+          <div className="flex items-center justify-between">
+            <div className="flex flex-col gap-0.5">
+              <span className="text-xs text-text-secondary uppercase tracking-wider font-semibold">Experimento Multi-Agente</span>
+              <h4 className="text-sm font-bold text-text-primary">{expName}</h4>
+            </div>
+            {expId && (
+              <button
+                onClick={() => {
+                  window.dispatchEvent(new CustomEvent("select-lab-experiment", { detail: { id: expId } }));
+                }}
+                className="px-3 py-1.5 rounded-lg bg-accent/15 text-accent hover:bg-accent/25 font-bold text-xs transition-colors flex items-center gap-1 cursor-pointer"
+              >
+                Ver Configuración
+              </button>
+            )}
+          </div>
+          <div className="grid grid-cols-2 gap-4 text-xs">
+            <div className="flex flex-col gap-1 p-2 rounded-lg bg-bg/50 border border-border/30">
+              <span className="text-text-secondary font-medium">Agentes Configuradores</span>
+              <span className="text-sm font-bold text-text-primary">{agentsCount} agentes</span>
+            </div>
+            <div className="flex flex-col gap-1 p-2 rounded-lg bg-bg/50 border border-border/30">
+              <span className="text-text-secondary font-medium">Criterios de Evaluación</span>
+              <span className="text-sm font-bold text-text-primary whitespace-nowrap overflow-hidden text-ellipsis">
+                {Array.isArray(crit) ? crit.join(", ") : "-"}
+              </span>
+            </div>
+          </div>
+        </div>
+      );
+    }
     case "spawn_subagent":
       return (
         <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">

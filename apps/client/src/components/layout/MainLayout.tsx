@@ -28,8 +28,8 @@ interface Props {
   selectedExpId?: string | null;
   experiments?: any[];
   onDeleteExperiment?: (id: string) => void;
-  activeVariantTab?: "single" | "multiNoLeader" | "multiWithLeader" | "compare";
-  setActiveVariantTab?: (tab: "single" | "multiNoLeader" | "multiWithLeader" | "compare") => void;
+  activeVariantTab?: "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare";
+  setActiveVariantTab?: (tab: "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare") => void;
   onRunExperiment?: (id: string) => void;
   onStopExperiment?: (id: string) => void;
   onEditExperiment?: (id: string) => void;
@@ -53,7 +53,7 @@ export function MainLayout({
   selectedExpId = null,
   experiments = [],
   onDeleteExperiment,
-  activeVariantTab = "single" as "single" | "multiNoLeader" | "multiWithLeader" | "compare",
+  activeVariantTab = "chat" as "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare",
   setActiveVariantTab,
   onRunExperiment,
   onStopExperiment,
@@ -448,6 +448,8 @@ export function MainLayout({
                               const activeExp = experiments.find((e) => e.id === selectedExpId);
                               const isCompleted = activeExp?.status === "completed";
                               const variantDefs = [
+                                { key: "chat" as const, label: "Chat" },
+                                { key: "config" as const, label: "Config" },
                                 { key: "single" as const, label: "Baseline" },
                                 { key: "multiNoLeader" as const, label: "H. Horizontal" },
                                 { key: "multiWithLeader" as const, label: "H. Jerárquico" },
@@ -702,6 +704,8 @@ export function MainLayout({
                           const activeExp = experiments.find((e) => e.id === selectedExpId);
                           const isCompleted = activeExp?.status === "completed";
                           const variantDefs = [
+                            { key: "chat" as const, label: "Chat" },
+                            { key: "config" as const, label: "Config" },
                             { key: "single" as const, label: "Baseline" },
                             { key: "multiNoLeader" as const, label: "H. Horizontal" },
                             { key: "multiWithLeader" as const, label: "H. Jerárquico" },

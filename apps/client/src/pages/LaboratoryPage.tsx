@@ -7,7 +7,8 @@ import type { Experiment } from "@/types/laboratory";
 
 import { VariantViewer } from "@/components/laboratory/VariantViewer";
 import { JudgeReport } from "@/components/laboratory/JudgeReport";
-import { IaGenerator } from "@/components/laboratory/IaGenerator";
+import { ExperimentConfigTab } from "@/components/laboratory/ExperimentConfigTab";
+import { ChatArea } from "@/components/chat/ChatArea";
 import { ExperimentEditorModal } from "@/components/laboratory/ExperimentEditorModal";
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 
@@ -28,8 +29,8 @@ interface Props {
   setRunPromptValue: (val: string) => void;
   setRunningExpId: (id: string | null) => void;
   handleConfirmRun: () => Promise<void>;
-  activeVariantTab: "single" | "multiNoLeader" | "multiWithLeader" | "compare";
-  setActiveVariantTab: (tab: "single" | "multiNoLeader" | "multiWithLeader" | "compare") => void;
+  activeVariantTab: "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare";
+  setActiveVariantTab: (tab: "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare") => void;
   onJudgeExperiment?: (id: string) => Promise<void>;
 }
 
@@ -59,13 +60,14 @@ export function LaboratoryPage({
   const [editorCriteria, setEditorCriteria] = useState<string[]>([]);
   const [editorVariants, setEditorVariants] = useState<any | null>(null);
 
+  const [labSessionId, setLabSessionId] = useState<string | null>(null);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const lastAutoSwitchedVariantRef = useRef<"single" | "multiNoLeader" | "multiWithLeader" | null>(null);
   const [isJudging, setIsJudging] = useState(false);
 
   const activeExp = experiments.find((e) => e.id === selectedExpId) || null;
 
-  // Initialize translated criteria when literales load
+  // Initialize translated criteria when literals load
   useEffect(() => {
     if (l.workQuality && editorCriteria.length === 0) {
       setEditorCriteria([l.workQuality, l.efficiency, l.negotiation]);
@@ -88,6 +90,85 @@ export function LaboratoryPage({
       setEditorVariants(null);
     }
   }, [isEditorOpen, editingExpId, experiments, l]);
+
+  // Resolve chat session for lab-architect
+  useEffect(() => {
+    let active = true;
+    const resolveLabSession = async () => {
+      try {
+        const res = await apiFetch("/api/sessions");
+        if (!res.ok || !active) return;
+        const data = await res.json();
+        const sessions = data.sessions || [];
+
+        // Search for a matching session
+        const found = sessions.find((s: any) => 
+          s.agentId === "lab-architect" && 
+          (selectedExpId ? s.experimentId === selectedExpId : !s.experimentId)
+        );
+
+        if (found) {
+          setLabSessionId(found.id);
+        } else {
+          // Create new session
+          const sessionName = selectedExpId 
+            ? `Diseño: ${experiments.find(e => e.id === selectedExpId)?.name || "Experimento"}`
+            : "Diseño de Experimento Nuevo";
+
+          const createRes = await apiFetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              name: sessionName,
+              agentId: "lab-architect",
+              experimentId: selectedExpId || undefined,
+            }),
+          });
+
+          if (createRes.ok && active) {
+            const newSession = await createRes.json();
+            setLabSessionId(newSession.id);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to resolve laboratory session:", err);
+      }
+    };
+
+    resolveLabSession();
+    return () => {
+      active = false;
+    };
+  }, [selectedExpId, experiments]);
+
+  // Listen to select-lab-experiment custom event
+  useEffect(() => {
+    const handleSelectExp = (e: any) => {
+      if (e.detail?.id) {
+        setSelectedExpId(e.detail.id);
+        setActiveVariantTab("config"); // Auto navigate to config tab
+      }
+    };
+    window.addEventListener("select-lab-experiment", handleSelectExp);
+    return () => window.removeEventListener("select-lab-experiment", handleSelectExp);
+  }, [setSelectedExpId, setActiveVariantTab]);
+
+  // Listen to entity-updated custom event
+  useEffect(() => {
+    const handleEntityUpdate = (e: any) => {
+      if (e.detail?.type === "experiment" || e.detail?.type === "all") {
+        apiFetch("/api/experiments").then((res) => {
+          if (res.ok) {
+            res.json().then((data) => {
+              setExperiments(data.experiments || []);
+            });
+          }
+        });
+      }
+    };
+    window.addEventListener("entity-updated", handleEntityUpdate);
+    return () => window.removeEventListener("entity-updated", handleEntityUpdate);
+  }, [setExperiments]);
 
   // Poll running experiment status
   useEffect(() => {
@@ -117,7 +198,7 @@ export function LaboratoryPage({
 
   // Reset variant tab on selected experiment change
   useEffect(() => {
-    setActiveVariantTab("single");
+    setActiveVariantTab("chat");
     lastAutoSwitchedVariantRef.current = null;
   }, [selectedExpId, setActiveVariantTab]);
 
@@ -174,11 +255,6 @@ export function LaboratoryPage({
     }
   };
 
-  const handleExperimentCreatedDirect = (saved: Experiment) => {
-    setExperiments((prev) => [saved, ...prev]);
-    setSelectedExpId(saved.id);
-  };
-
   return (
     <div className="flex h-full min-h-0 bg-background text-foreground font-body">
       {/* Area Principal de Contenido */}
@@ -186,13 +262,25 @@ export function LaboratoryPage({
         <AnimatePresence mode="wait">
           {!selectedExpId ? (
             <motion.div
-              key="generator"
+              key="laboratory-design-chat"
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -10 }}
-              className="w-full"
+              className="flex-1 flex flex-col min-h-0"
             >
-              <IaGenerator onExperimentCreated={handleExperimentCreatedDirect} />
+              {labSessionId ? (
+                <ChatArea
+                  key={labSessionId}
+                  sessionId={labSessionId}
+                  activeProjectName={null}
+                  activeAgent={{ id: "lab-architect", name: "Lab Architect" }}
+                />
+              ) : (
+                <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                  <p className="text-xs text-muted-foreground">Iniciando asistente de diseño de laboratorio...</p>
+                </div>
+              )}
             </motion.div>
           ) : activeExp ? (
             <motion.div
@@ -202,7 +290,28 @@ export function LaboratoryPage({
               exit={{ opacity: 0, y: -10 }}
               className="flex-1 min-h-0"
             >
-              {activeVariantTab === "compare" ? (
+              {activeVariantTab === "chat" ? (
+                labSessionId ? (
+                  <ChatArea
+                    key={labSessionId}
+                    sessionId={labSessionId}
+                    activeProjectName={null}
+                    activeAgent={{ id: "lab-architect", name: "Lab Architect" }}
+                  />
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                    <p className="text-xs text-muted-foreground">Cargando conversación del laboratorio...</p>
+                  </div>
+                )
+              ) : activeVariantTab === "config" ? (
+                <ExperimentConfigTab
+                  experiment={activeExp}
+                  onUpdate={(updated) => {
+                    setExperiments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
+                  }}
+                />
+              ) : activeVariantTab === "compare" ? (
                 <JudgeReport
                   exp={activeExp}
                   isJudging={isJudging}
@@ -215,12 +324,12 @@ export function LaboratoryPage({
                       setIsJudging(false);
                     }
                   }}
-                  onNavigate={(tab) => setActiveVariantTab(tab)}
+                  onNavigate={(tab) => setActiveVariantTab(tab as any)}
                 />
               ) : (
                 <VariantViewer
                   experimentId={activeExp.id}
-                  variantKey={activeVariantTab}
+                  variantKey={activeVariantTab as any}
                   activeSessionId={activeExp.variants[activeVariantTab]?.activeSessionId || null}
                   status={
                     activeExp.status === "running"

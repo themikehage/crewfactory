@@ -262,6 +262,12 @@ export function createUiTools(
       parentSessionId: subagentOptions.parentSessionId,
     });
     tools.push(...updateTools);
+
+    const { createExperimentTool } = require("../laboratory/create-experiment-tool");
+    tools.push(createExperimentTool({
+      username: subagentOptions.username,
+      parentSessionId: subagentOptions.parentSessionId,
+    }));
   }
 
   return tools;

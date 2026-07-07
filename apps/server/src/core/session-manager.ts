@@ -333,6 +333,31 @@ class SessionManager {
     let agentDef;
     if (resolvedAgentId) {
       const { agentRegistry } = await import("../agents");
+      if (resolvedAgentId === "lab-architect") {
+        try {
+          if (!agentRegistry.get("lab-architect")) {
+            const userDefaultModel = this.getUserDefaultModel(username);
+            const modelId = userDefaultModel || "anthropic/claude-3-5-sonnet";
+            await agentRegistry.register(username, {
+              id: "lab-architect",
+              name: "Lab Architect",
+              role: "System Architect specialized in multi-agent experiments",
+              systemPrompt: `You are Lab Architect, an expert System Architect. Your main task is to guide the user in designing and refining multi-agent benchmarking experiments.
+Your communication style should be professional, clear, and structured. Always write in Spanish.
+To achieve this, you have access to the tool \`create_experiment\` which allows you to create or update the configuration of an experiment.
+
+When designing a team:
+- Ask clarifying questions if the objective is underspecified.
+- Propose specialist roles with detailed and clear Spanish system prompts following design principles (leader, specialized member, etc.).
+- Call the \`create_experiment\` tool as soon as you have a solid design proposal to save it. If the user suggests tweaks (e.g. adding an agent or modifying criteria), call the tool again with the updated parameters and the same \`experimentId\`.`,
+              model: modelId,
+              skills: []
+            }, false); // don't persist to user's custom agents list on disk
+          }
+        } catch (e) {
+          console.error("Failed to register lab-architect:", e);
+        }
+      }
       const agentEntry = agentRegistry.get(resolvedAgentId);
       agentDef = agentEntry?.server.definition;
     }
@@ -430,6 +455,34 @@ class SessionManager {
 
     if (agentDef?.systemPrompt) {
       appendPrompts.push(`\n\nAgent Instructions (${agentDef.name} - ${agentDef.role}):\n${agentDef.systemPrompt}`);
+    }
+
+    if (resolvedAgentId === "lab-architect") {
+      const expId = updatedMeta.experimentId || (existingMeta ? (existingMeta as any).experimentId : undefined);
+      if (expId) {
+        const { ExperimentStore } = require("../laboratory/experiment-store");
+        const exp = await ExperimentStore.getExperiment(username, expId);
+        if (exp) {
+          const agentsStr = exp.variants.multiWithLeader.agents.map((a: any) => 
+            `  * **${a.name}** (id: \`${a.id}\`, role: \`${a.role}\`)${a.leader ? " [LÍDER]" : ""}\n    Prompt: ${a.systemPrompt}`
+          ).join("\n");
+          appendPrompts.push(
+            `\n\n## Experimento Activo (ID: ${expId})\n` +
+            `Actualmente estás editando el experimento:\n` +
+            `- **Nombre:** ${exp.name}\n` +
+            `- **Objetivo/Task Prompt:** ${exp.taskPrompt}\n` +
+            `- **Criterios de Evaluación:** ${exp.judge.criteria.join(", ")}\n` +
+            `- **Agentes Configurados:**\n${agentsStr}\n\n` +
+            `Cuando llames a \`create_experiment\` para actualizar este experimento, debes pasarle obligatoriamente su \`experimentId\`: \`"${expId}"\`.`
+          );
+        }
+      } else {
+        appendPrompts.push(
+          `\n\n## Sin Experimento Activo\n` +
+          `El usuario está iniciando el diseño de un experimento nuevo. Ayúdalo a diseñar su tripulación de agentes y criterios de evaluación. ` +
+          `Una vez definido, llama a \`create_experiment\` omitiendo el parámetro \`experimentId\` (se le generará uno automáticamente).`
+        );
+      }
     }
 
     const tasksPath = join(sessionDir, "tasks.json");
@@ -557,12 +610,15 @@ class SessionManager {
       "render_chart",
       "share_file",
       "refresh_ui",
-      "spawn_subagent",
-      "delegate_task",
       "decompose_tasks",
       "update_task_status",
       "complete_task_list",
     ];
+    if (resolvedAgentId === "lab-architect") {
+      alwaysOnTools.push("create_experiment");
+    } else {
+      alwaysOnTools.push("spawn_subagent", "delegate_task");
+    }
 
     const definedToolNames = new Set([
       ...systemTools,
