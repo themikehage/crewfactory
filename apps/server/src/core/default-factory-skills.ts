@@ -491,15 +491,17 @@ description: Run a structured self-evaluation suite that exercises each factory 
 
 # Factory Self-Improvement Protocol
 
-This skill runs a full diagnostic evaluation of the Global Factory Director's capabilities. It exercises each factory skill with a concrete test prompt, collects results, and produces a structured improvement report.
+This skill runs a structured evaluation of the Global Factory Director's capabilities. It targets specific factory skills to run test prompts, collects results, and produces an actionable improvement report.
 
-You can run this yourself step by step, or delegate the full execution phase to a subagent and only handle the analysis yourself.
+### Step 0: User Consultation (MANDATORY FIRST STEP)
+Before executing any exercises, you MUST ask the user which capability or area they would like to evaluate and improve (e.g., environment/providers, project management/delegation, subagent spawning, agents, channels, custom skills, or session introspection), or if they prefer to run the full diagnostic suite.
+Only proceed to execute the corresponding exercise(s) after receiving the user's choice.
 
 ---
 
 ## Phase 1 — Execution Suite
 
-Execute each exercise below in order. After each one, record: what happened, whether it succeeded, and any friction or unexpected behavior you encountered. Do NOT skip exercises — a skipped exercise is itself a finding.
+Execute the chosen exercise(s) below. After each one, record: what happened, whether it succeeded, and any friction or unexpected behavior you encountered.
 
 ---
 
