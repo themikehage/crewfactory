@@ -112,6 +112,7 @@ class AgentRegistry {
           createdAt: entry.createdAt,
           skills: entry.server.definition.skills,
           avatarUrl: entry.server.definition.avatarUrl,
+          blueprintId: entry.server.definition.blueprintId,
         });
       }
     }

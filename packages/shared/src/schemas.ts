@@ -194,6 +194,7 @@ export const AgentDefinitionSchema = z.object({
   port: z.number().int().min(1024).max(65535).optional(),
   serialTools: z.array(z.string()).optional(),
   avatarUrl: z.string().optional(),
+  blueprintId: z.string().optional(),
 });
 export type AgentDefinition = z.infer<typeof AgentDefinitionSchema>;
 
@@ -212,6 +213,7 @@ export const AgentInfoSchema = z.object({
   createdAt: z.string(),
   skills: z.array(z.string()).optional(),
   avatarUrl: z.string().optional(),
+  blueprintId: z.string().optional(),
 });
 export type AgentInfo = z.infer<typeof AgentInfoSchema>;
 
@@ -291,6 +293,7 @@ export const ChannelSchema = z.object({
   benchmark: ChannelBenchmarkConfigSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  blueprintId: z.string().optional(),
 });
 export type Channel = z.infer<typeof ChannelSchema>;
 
@@ -305,6 +308,7 @@ export const CreateChannelSchema = z.object({
   scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   benchmark: ChannelBenchmarkConfigSchema.optional(),
+  blueprintId: z.string().optional(),
 });
 export type CreateChannel = z.infer<typeof CreateChannelSchema>;
 
@@ -319,6 +323,7 @@ export const UpdateChannelSchema = z.object({
   scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   benchmark: ChannelBenchmarkConfigSchema.optional(),
+  blueprintId: z.string().optional(),
 });
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;
 
@@ -570,6 +575,36 @@ export const UiActionSchema = z.object({
   payload: z.record(z.unknown()).optional(),
 });
 export type UiAction = z.infer<typeof UiActionSchema>;
+
+// --- Gallery Blueprints ---
+
+export const GalleryMetadataSchema = z.object({
+  title: z.string(),
+  description: z.string(),
+  author: z.string(),
+  avatar: z.string().optional(),
+  rating: z.number().optional(),
+  downloads: z.number().optional(),
+  tags: z.array(z.string()).default([]),
+  created: z.string().optional(),
+  updated: z.string().optional(),
+  version: z.string(),
+  compatibility: z.string().optional(),
+});
+export type GalleryMetadata = z.infer<typeof GalleryMetadataSchema>;
+
+export const BlueprintTypeSchema = z.enum(["agent", "channel"]);
+export type BlueprintType = z.infer<typeof BlueprintTypeSchema>;
+
+export const GalleryItemSchema = z.object({
+  id: z.string(),
+  type: BlueprintTypeSchema,
+  definition: z.union([AgentDefinitionSchema, CreateChannelSchema]),
+  metadata: GalleryMetadataSchema,
+  hasIcon: z.boolean().optional(),
+});
+export type GalleryItem = z.infer<typeof GalleryItemSchema>;
+
 
 
 

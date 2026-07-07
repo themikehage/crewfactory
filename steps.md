@@ -737,7 +737,16 @@ crear un plan de despliegue facil en vps
 - [x] 80.1 Crear el prompt y la especificación de la skill `factory-self-improvement` en `apps/server/src/core/default-factory-skills.ts`
 - [x] 80.2 Registrar `factory-self-improvement` en la lista global de `DEFAULT_AGENTS_MD` en `apps/server/src/core/default-factory-skills.ts`
 - [x] 80.3 Verificar que el servidor compile y buildee correctamente con Bun
-- [x] 80.4 Documentar el cambio en `about.md` y marcar la bitácora como completada
+## Phase 81: Agent & Channel Blueprint Gallery
+- [x] 81.1 Update shared types & schemas to support gallery blueprint metadata and blueprintId mappings
+- [x] 81.2 Create gallery routes inside apps/server/src/routes/gallery.ts with /blueprints, /:id/icon, and /:id/install endpoints
+- [x] 81.3 Register galleryRouter inside apps/server/src/index.ts
+- [x] 81.4 Map blueprintId inside agentRegistry.list() method in agent-registry.ts
+- [x] 81.5 Create the local community/ gallery folder containing blueprint definitions and icons for 4 specialized agents (frontend-designer, cloudflare-deployer, systematic-debugger, tdd-engineer) and 1 channel (full-stack-team)
+- [x] 81.6 Populate community/skills/ with required skills documents cloned from public skills repository
+- [x] 81.7 Implement gallery tab view, search, filter, and detail modal in client React AgentsPage.tsx page
+- [x] 81.8 Verify successful typecheck and client/server compilation build
+
 
 
 

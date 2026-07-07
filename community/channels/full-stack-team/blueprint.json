@@ -1,0 +1,38 @@
+{
+  "definition": {
+    "name": "Full-Stack Web Team",
+    "description": "Equipo colaborativo de 2 agentes especialistas para construir y depurar aplicaciones web completas.",
+    "maxChainDepth": 8,
+    "showThinking": true,
+    "showTools": true,
+    "context": [
+      {
+        "key": "STACK",
+        "value": "React + Hono + Bun + TailwindCSS v4"
+      }
+    ],
+    "members": [
+      {
+        "agentId": "frontend-designer",
+        "replyMode": "broadcast",
+        "role": "lead"
+      },
+      {
+        "agentId": "systematic-debugger",
+        "replyMode": "user-only",
+        "role": "member"
+      }
+    ]
+  },
+  "metadata": {
+    "title": "Full-Stack Web Team",
+    "description": "Equipo multi-agente liderado por el Diseñador Frontend junto al especialista de Depuración Sistémica.",
+    "author": "themikehage",
+    "avatar": "team",
+    "rating": 4.9,
+    "downloads": 74,
+    "tags": ["development", "collaboration", "fullstack", "team"],
+    "version": "1.0.0",
+    "compatibility": ">=1.0.0"
+  }
+}

@@ -20,6 +20,7 @@ import { logsRouter } from "./routes/logs";
 import { mcpRouter } from "./routes/mcp";
 import { experimentsRouter } from "./routes/experiments";
 import { settingsRouter } from "./routes/settings";
+import { galleryRouter } from "./routes/gallery";
 import { memoryRegistry } from "./core/memory/registry";
 import { onOpen, onClose, onMessage } from "./ws/handler";
 import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
@@ -49,6 +50,7 @@ app.route("/api/logs", logsRouter);
 app.route("/api/mcp", mcpRouter);
 app.route("/api/experiments", experimentsRouter);
 app.route("/api/settings", settingsRouter);
+app.route("/api/gallery", galleryRouter);
 
 app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
