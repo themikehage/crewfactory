@@ -3,10 +3,6 @@ set -e
 
 DATA_PATH="${CREWFACTORY_DATA_PATH:-/app/data}"
 
-mkdir -p "$DATA_PATH"
-
-if [ "$(id -u)" = "0" ]; then
-  chown -R crewfactory:crewfactory "$DATA_PATH"
-fi
+mkdir -p "$DATA_PATH" 2>/dev/null || true
 
 exec "$@"

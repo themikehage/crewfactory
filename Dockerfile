@@ -33,6 +33,8 @@ COPY --from=builder /app/apps/client/dist ./public
 COPY --from=builder /app/node_modules ./node_modules
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
+RUN mkdir -p /app/data && chown crewfactory:crewfactory /app/data
+
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
