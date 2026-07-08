@@ -20,7 +20,7 @@ export function MobileSidebarOverlay({
       <AnimatePresence>
         {sidebarOpen && (
           <motion.aside
-            key={isHome ? "sidebar-home" : "sidebar-overlay"}
+            key="mobile-sidebar"
             initial={{ x: isHome ? 0 : "-100%" }}
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}

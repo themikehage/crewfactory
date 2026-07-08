@@ -46,6 +46,7 @@ interface Props {
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
   selectedExpId?: string | null;
   isMobile?: boolean;
+  onCloseSidebar?: () => void;
 }
 
 export function SessionSidebar({
@@ -59,6 +60,7 @@ export function SessionSidebar({
   onSelectChannel,
   selectedExpId = null,
   isMobile = false,
+  onCloseSidebar,
 }: Props) {
   const l = useLiterals(u);
   const [repos, setRepos] = useState<RepoItem[]>([]);
@@ -219,9 +221,10 @@ export function SessionSidebar({
 
   const handleSelectExperimentClick = useCallback(
     (expId: string) => {
+      onCloseSidebar?.();
       if (onNavigate) onNavigate(`/laboratory/${expId}`);
     },
-    [onNavigate]
+    [onNavigate, onCloseSidebar]
   );
 
   const handleGoFactory = useCallback(() => {
@@ -229,27 +232,31 @@ export function SessionSidebar({
     if (onSelectAgent) onSelectAgent(null);
     if (onSelectChannel) onSelectChannel(null);
     if (onNavigate) onNavigate("/");
-  }, [onSelectProject, onSelectAgent, onSelectChannel, onNavigate]);
+    onCloseSidebar?.();
+  }, [onSelectProject, onSelectAgent, onSelectChannel, onNavigate, onCloseSidebar]);
 
   const handleSelectRepoClick = useCallback(
     (projectId: string, projectName: string) => {
       if (onSelectProject) onSelectProject(projectId, projectName);
+      onCloseSidebar?.();
     },
-    [onSelectProject]
+    [onSelectProject, onCloseSidebar]
   );
 
   const handleSelectAgentClick = useCallback(
     (agent: { id: string; name: string; avatarUrl?: string }) => {
       if (onSelectAgent) onSelectAgent(agent);
+      onCloseSidebar?.();
     },
-    [onSelectAgent]
+    [onSelectAgent, onCloseSidebar]
   );
 
   const handleSelectChannelClick = useCallback(
     (channel: { id: string; name: string }) => {
       if (onSelectChannel) onSelectChannel(channel);
+      onCloseSidebar?.();
     },
-    [onSelectChannel]
+    [onSelectChannel, onCloseSidebar]
   );
 
   const adminItems = useMemo(
@@ -352,7 +359,7 @@ export function SessionSidebar({
               <span>{l.sectionProjects} ({repos.length})</span>
             </button>
             <button
-              onClick={() => onNavigate && onNavigate("/projects")}
+              onClick={() => { onCloseSidebar?.(); onNavigate?.("/projects"); }}
               className={actionButtonClass}
               title={l.manageProjects}
             >
@@ -418,7 +425,7 @@ export function SessionSidebar({
               <span>{l.sectionAgents} ({agents.length})</span>
             </button>
             <button
-              onClick={() => onNavigate && onNavigate("/agents")}
+              onClick={() => { onCloseSidebar?.(); onNavigate?.("/agents"); }}
               className={actionButtonClass}
               title={l.manageAgents}
             >
@@ -476,7 +483,7 @@ export function SessionSidebar({
               <span>{l.sectionChannels} ({channels.length})</span>
             </button>
             <button
-              onClick={() => onNavigate && onNavigate("/channels")}
+              onClick={() => { onCloseSidebar?.(); onNavigate?.("/channels"); }}
               className={actionButtonClass}
               title={l.manageChannels}
             >
@@ -534,7 +541,7 @@ export function SessionSidebar({
               <span>{l.sectionExperiments || "Experimentos"} ({experiments.length})</span>
             </button>
             <button
-              onClick={() => onNavigate && onNavigate("/laboratory")}
+              onClick={() => { onCloseSidebar?.(); onNavigate?.("/laboratory"); }}
               className={actionButtonClass}
               title={l.manageExperiments || "Gestionar Experimentos"}
             >

@@ -283,6 +283,7 @@ export function MainLayout({
       onSelectChannel={onSelectChannel}
       selectedExpId={lab?.selectedExpId}
       isMobile={isMobile}
+      onCloseSidebar={() => setSidebarOpen(false)}
     />
   );
 
