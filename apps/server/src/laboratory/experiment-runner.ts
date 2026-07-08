@@ -73,6 +73,9 @@ export class ExperimentRunner {
     this.activeRuns.add(experimentId);
     
     // Limpiar los resultados antiguos antes de marcar el estado como running
+    const runId = crypto.randomUUID();
+    exp.activeRunId = runId;
+    exp.activeVariant = "single";
     exp.status = "running";
     exp.startedAt = new Date().toISOString();
     exp.completedAt = undefined;
@@ -104,6 +107,7 @@ export class ExperimentRunner {
       // 1. Run Single Variant
       const singleSessionId = `lab_run_${crypto.randomUUID()}`;
       exp.variants.single.activeSessionId = singleSessionId;
+      exp.activeVariant = "single";
       await ExperimentStore.saveExperiment(username, exp);
 
       broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "single" });
@@ -121,6 +125,7 @@ export class ExperimentRunner {
       
       const noLeaderSessionId = `lab_run_${crypto.randomUUID()}`;
       exp.variants.multiNoLeader.activeSessionId = noLeaderSessionId;
+      exp.activeVariant = "multiNoLeader";
       await ExperimentStore.saveExperiment(username, exp);
 
       broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "multiNoLeader" });
@@ -133,6 +138,7 @@ export class ExperimentRunner {
 
       const withLeaderSessionId = `lab_run_${crypto.randomUUID()}`;
       exp.variants.multiWithLeader.activeSessionId = withLeaderSessionId;
+      exp.activeVariant = "multiWithLeader";
       await ExperimentStore.saveExperiment(username, exp);
 
       broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "multiWithLeader" });
@@ -142,6 +148,9 @@ export class ExperimentRunner {
 
       // 4. Scoring & Judge Evaluation
       if (exp.judge.autoEvaluate && !signal.aborted) {
+        exp.activeVariant = "judging";
+        await ExperimentStore.saveExperiment(username, exp);
+
         broadcastToUser(username, { type: "experiment_status", experimentId: exp.id, status: "running", activeVariant: "judging" });
         
         // Evaluar con el LLM Judge solo si todas las variantes se completaron exitosamente
@@ -150,11 +159,39 @@ export class ExperimentRunner {
                          withLeaderResult.status === "completed";
 
         if (canJudge) {
+          let judgeModelToUse: string | undefined;
+          try {
+            const sessions = await sessionManager.listSessions(username);
+            const labSession = sessions.find(s => s.agentId === "lab-architect" && s.experimentId === exp.id);
+            if (labSession) {
+              const activeSession = sessionManager.getSession(username, labSession.id);
+              if (activeSession?.model) {
+                judgeModelToUse = `${activeSession.model.provider}/${activeSession.model.id}`;
+              } else {
+                const { join } = require("node:path");
+                const sessionDir = join(sessionManager.ensureUserDir(username), "sessions", labSession.id);
+                const { readdirSync, readFileSync } = require("node:fs");
+                const jsonlFiles = readdirSync(sessionDir)
+                  .filter((f: string) => f.endsWith(".jsonl"))
+                  .sort()
+                  .reverse();
+                if (jsonlFiles.length > 0) {
+                  const context = JSON.parse(readFileSync(join(sessionDir, jsonlFiles[0]), "utf-8").split("\n").filter(Boolean)[0]);
+                  if (context?.model) {
+                    judgeModelToUse = `${context.model.provider}/${context.model.modelId}`;
+                  }
+                }
+              }
+            }
+          } catch (err) {
+            console.error("Failed to resolve fallback lab session model for auto judge:", err);
+          }
+
           const judgeResults = await LabJudge.evaluateRuns(username, exp.taskPrompt, exp.judge.criteria, {
             single: singleResult.finalOutput,
             multiNoLeader: noLeaderResult.finalOutput,
             multiWithLeader: withLeaderResult.finalOutput
-          });
+          }, judgeModelToUse, exp.id);
 
           // Compute final compound scores
           exp.variants.single.result!.scores = calculateVariantScores(
@@ -206,6 +243,8 @@ export class ExperimentRunner {
 
       exp.status = "completed";
       exp.completedAt = new Date().toISOString();
+      exp.activeVariant = undefined;
+      exp.activeRunId = undefined;
       await ExperimentStore.saveExperiment(username, exp);
 
       broadcastToUser(username, {
@@ -218,6 +257,8 @@ export class ExperimentRunner {
     } catch (e: any) {
       console.error(`[ExperimentRunner] Experiment ${exp.id} failed:`, e);
       exp.status = "failed";
+      exp.activeVariant = undefined;
+      exp.activeRunId = undefined;
       await ExperimentStore.saveExperiment(username, exp);
       broadcastToUser(username, {
         type: "experiment_status",

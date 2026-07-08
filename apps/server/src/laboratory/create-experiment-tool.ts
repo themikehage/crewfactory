@@ -82,8 +82,10 @@ It registers the defined specialist agents dynamically in the workspace registry
       }
 
       const { modelRegistry } = sessionManager.getUserContext(username);
+      const parentSession = sessionManager.getSession(username, parentSessionId);
+      const parentModel = parentSession?.model ? `${parentSession.model.provider}/${parentSession.model.id}` : undefined;
       const userDefaultModel = sessionManager.getUserDefaultModel(username);
-      const fallbackModel = userDefaultModel || "anthropic/claude-3-5-sonnet";
+      const fallbackModel = parentModel || userDefaultModel || "anthropic/claude-3-5-sonnet";
 
       // 1. Register agents in workspace registry (if they do not already exist)
       for (const rawAg of rawAgents) {

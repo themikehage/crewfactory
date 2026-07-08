@@ -19,6 +19,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     pillRunTestsPrompt: "Run the project's test suite and report if any checks fail.",
     pillAgentRole: "Describe Role",
     pillAgentRolePrompt: "Explain your system prompt, context, and capabilities.",
+    newMessages: "New messages",
   },
   es: {
     unknownError: "Error desconocido",
@@ -38,5 +39,6 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     pillRunTestsPrompt: "Corré las pruebas del proyecto y reportá si hay fallas.",
     pillAgentRole: "Describir Rol",
     pillAgentRolePrompt: "Explicame cuál es tu prompt del sistema, contexto y capacidades.",
+    newMessages: "Nuevos mensajes",
   },
 };

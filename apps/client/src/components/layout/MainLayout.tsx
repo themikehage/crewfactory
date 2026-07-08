@@ -3,7 +3,8 @@ import { SessionPopover } from "@/components/sidebar/SessionPopover";
 import { Logo } from "@/components/ui/Logo";
 import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import type { ReactNode } from "react";
-import { Plus, Home, Library, Settings, Terminal, Cpu } from "lucide-react";
+import { Plus, Home, Library, Settings, Terminal, Cpu, Clock } from "lucide-react";
+import { PortalPopover } from "@/components/chat/PortalPopover";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { apiFetch } from "@/lib/api";
@@ -37,6 +38,12 @@ interface Props {
   isMobile?: boolean;
   canGoBack?: boolean;
   onBack?: () => void;
+  // Run selector state (for clock icon in tab bar)
+  selectedRunId?: string;
+  pastRuns?: any[];
+  runPopoverOpen?: boolean;
+  setRunPopoverOpen?: (open: boolean) => void;
+  onSelectRun?: (runId: string) => void;
 }
 
 export function MainLayout({
@@ -62,9 +69,16 @@ export function MainLayout({
   isMobile = false,
   canGoBack = false,
   onBack,
+  /* Run selector props */
+  selectedRunId = "latest",
+  pastRuns = [],
+  runPopoverOpen = false,
+  setRunPopoverOpen,
+  onSelectRun,
 }: Props) {
   const l = useLiterals(u);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const localRunTriggerRef = useRef<HTMLButtonElement>(null);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
   const [actionsOpen, setActionsOpen] = useState(false);
   const [quickCreating, setQuickCreating] = useState(false);
@@ -298,6 +312,12 @@ export function MainLayout({
       items = [{ label: l.breadCanales, path: "/channels" }];
       if (activeChannel) {
         items.push({ label: `#${activeChannel.name}` });
+      }
+    } else if (route.page === "laboratory") {
+      items = [{ label: "Laboratorio", path: "/laboratory" }];
+      if (selectedExpId) {
+        const activeExp = experiments.find((e: any) => e.id === selectedExpId);
+        items.push({ label: activeExp?.name || "Experimento" });
       }
     }
 
@@ -534,6 +554,82 @@ export function MainLayout({
                         {route.page === "laboratory" ? (
                           selectedExpId ? (
                             <>
+                              {experiments.find((e: any) => e.id === selectedExpId)?.status === "running" && (
+                                <span className="flex items-center gap-1.5 text-primary text-[10px] font-bold animate-pulse bg-primary/10 border border-primary/20 px-2 py-1 rounded-md">
+                                  <span className="w-1.5 h-1.5 bg-primary rounded-full animate-ping" />
+                                  Ejecutando...
+                                </span>
+                              )}
+
+                              <div className="relative">
+                                <button
+                                  ref={localRunTriggerRef}
+                                  onClick={() => setRunPopoverOpen?.(!runPopoverOpen)}
+                                  className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-colors cursor-pointer"
+                                  title="Historial de ejecuciones"
+                                >
+                                  <Clock size={14} />
+                                </button>
+
+                                <PortalPopover
+                                  triggerRef={localRunTriggerRef as React.RefObject<HTMLElement | null>}
+                                  open={runPopoverOpen}
+                                  onClose={() => setRunPopoverOpen?.(false)}
+                                  matchWidth
+                                >
+                                  <div className="overflow-hidden bg-[#171717] border border-border rounded-xl shadow-xl min-w-[200px]">
+                                    <div className="py-1">
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          onSelectRun?.("latest");
+                                          setRunPopoverOpen?.(false);
+                                        }}
+                                        className={`w-full text-left px-3 py-2 text-xs transition-colors cursor-pointer ${
+                                          selectedRunId === "latest"
+                                            ? "bg-primary/10 text-primary font-semibold"
+                                            : "text-text-primary hover:bg-card-hover"
+                                        }`}
+                                      >
+                                        Última ejecución (Activa)
+                                      </button>
+                                      {pastRuns.map((run: any) => (
+                                        <button
+                                          key={run.activeRunId || run.createdAt}
+                                          type="button"
+                                          onClick={() => {
+                                            onSelectRun?.(run.activeRunId);
+                                            setRunPopoverOpen?.(false);
+                                          }}
+                                          className={`w-full text-left px-3 py-2 text-xs transition-colors cursor-pointer flex items-center justify-between gap-2 ${
+                                            selectedRunId === run.activeRunId
+                                              ? "bg-primary/10 text-primary font-semibold"
+                                              : "text-text-primary hover:bg-card-hover"
+                                          }`}
+                                        >
+                                          <span className="truncate">
+                                            {new Date(
+                                              run.completedAt || run.startedAt || run.createdAt
+                                            ).toLocaleString()}
+                                          </span>
+                                          <span className={`text-[9px] px-1.5 py-0.5 rounded font-semibold uppercase ${
+                                            run.status === "completed"
+                                              ? "bg-success/15 text-success border border-success/20"
+                                              : run.status === "running"
+                                              ? "bg-primary/15 text-primary border border-primary/20"
+                                              : run.status === "failed"
+                                              ? "bg-error/15 text-error border border-error/20"
+                                              : "bg-warning/15 text-warning border border-warning/20"
+                                          }`}>
+                                            {run.status}
+                                          </span>
+                                        </button>
+                                      ))}
+                                    </div>
+                                  </div>
+                                </PortalPopover>
+                              </div>
+
                               <button
                                 onClick={() => setActionsOpen((p) => !p)}
                                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"

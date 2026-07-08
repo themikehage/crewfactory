@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ThinkingBlock, AssistantTextBlock } from "../MessageBlocks";
-import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { MessageList } from "../MessageList";
 
 interface Props {
   parentId: string;
@@ -295,7 +294,7 @@ export function SubagentConsole({
 
           <div className="flex-1 flex min-h-0">
             {activeTab === "execution" ? (
-              <div className="flex-1 flex flex-col min-h-0">
+              <div className="flex-1 flex flex-col min-h-0 min-w-0">
                 {messages.length === 0 ? (
                   <div className="flex-1 flex flex-col items-center justify-center gap-4 text-muted-foreground min-h-0">
                     <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
@@ -304,83 +303,20 @@ export function SubagentConsole({
                 ) : (
                   <div
                     ref={terminalContainerRef}
-                    className="flex-1 overflow-y-auto min-h-0 px-6 py-4 font-mono text-[12px] leading-relaxed text-text-primary flex flex-col gap-3"
+                    className="flex-1 overflow-y-auto min-h-0 px-6 py-4"
                   >
-                      {messages.map((msg, idx) => {
-                        if (msg.role === "user") {
-                          return (
-                            <motion.div
-                              key={idx}
-                              initial={{ opacity: 0, y: 4 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              transition={{ duration: 0.15 }}
-                              className="flex gap-3 items-start"
-                            >
-                              <div className="flex-shrink-0 w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mt-0.5">
-                                <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor" className="text-primary">
-                                  <path fillRule="evenodd" d="M10 9a3 3 0 100-6 3 3 0 000 6zm-7 9a7 7 0 1114 0H3z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <div className="text-[10px] font-semibold text-primary uppercase tracking-wider mb-1">User Prompt</div>
-                                <div className="text-text-secondary leading-relaxed bg-surface/30 rounded-lg px-3 py-2 border border-border/20">
-                                  Prompt recibido por el subagente.
-                                </div>
-                              </div>
-                            </motion.div>
-                          );
-                        }
-
-                        let thinkingText = "";
-                        let outputText = "";
-
-                        if (typeof msg.content === "string") {
-                          outputText = msg.content;
-                        } else if (Array.isArray(msg.content)) {
-                          const thinkingBlock = msg.content.find((c: any) => c.type === "thinking");
-                          const textBlock = msg.content.find((c: any) => c.type === "text");
-                          if (thinkingBlock) thinkingText = thinkingBlock.thinking || "";
-                          if (textBlock) outputText = textBlock.text || "";
-                        }
-
-                        return (
-                          <motion.div
-                            key={idx}
-                            initial={{ opacity: 0, y: 4 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.15 }}
-                            className="flex gap-3 items-start"
-                          >
-                            <div className="flex-shrink-0 mt-0.5">
-                              <AgentAvatar
-                                name={activeAgentName || "Subagent"}
-                                avatarUrl={activeAgentAvatarUrl}
-                                size="sm"
-                              />
-                            </div>
-                            <div className="flex-1 min-w-0 space-y-1.5">
-                              <div className="text-[10px] font-semibold text-text-secondary uppercase tracking-wider">
-                                {activeAgentName || "Subagent"}
-                              </div>
-                              <div className="text-text-primary leading-relaxed">
-                                {thinkingText && <ThinkingBlock thinking={thinkingText} />}
-                                {outputText && (
-                                  <AssistantTextBlock
-                                    text={outputText}
-                                    sessionId={sessionId}
-                                    activeProjectName={activeProjectName}
-                                    activeAgentId={activeAgentId}
-                                    activeChannelId={activeChannelId}
-                                  />
-                                )}
-                              </div>
-                            </div>
-                          </motion.div>
-                        );
-                      })}
-                      <div ref={terminalEndRef} />
-                    </div>
-                  )}
+                    <MessageList
+                      messages={messages}
+                      sessionId={sessionId}
+                      activeProjectName={activeProjectName}
+                      activeAgentId={activeAgentId}
+                      activeAgentName={activeAgentName}
+                      activeAgentAvatarUrl={activeAgentAvatarUrl}
+                      activeChannelId={activeChannelId}
+                    />
+                    <div ref={terminalEndRef} />
+                  </div>
+                )}
 
                 <div className="flex-shrink-0 border-t border-border/40 px-4 py-2.5 flex items-center gap-4 text-[11px] text-muted-foreground font-mono bg-card/50">
                   <div className="flex items-center gap-1.5">
@@ -396,7 +332,7 @@ export function SubagentConsole({
             ) : (
               <div
                 ref={toolsContainerRef}
-                className="flex-1 overflow-y-auto px-6 py-4"
+                className="flex-1 overflow-y-auto min-w-0 px-6 py-4"
               >
                 {steps.length === 0 ? (
                   <div className="flex items-center justify-center h-full text-muted-foreground text-xs font-mono">

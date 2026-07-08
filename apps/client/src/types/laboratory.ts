@@ -64,6 +64,8 @@ export interface Experiment {
   startedAt?: string;
   completedAt?: string;
   blueprintId?: string;
+  activeRunId?: string;
+  activeVariant?: "single" | "multiNoLeader" | "multiWithLeader" | "judging" | null;
 }
 
 export interface Blueprint {

@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import type { Experiment } from "@/types/laboratory";
+import { wsClient } from "@/lib/ws-client";
 
 type VariantKey = "single" | "multiNoLeader" | "multiWithLeader";
 
@@ -10,7 +12,7 @@ const VARIANT_LABELS: Record<VariantKey, string> = {
 
 interface JudgeReportProps {
   exp: Experiment;
-  onJudge?: () => void;
+  onJudge?: (model?: string) => void;
   isJudging: boolean;
   onNavigate: (tab: VariantKey) => void;
 }
@@ -21,6 +23,43 @@ export function JudgeReport({
   isJudging,
   onNavigate,
 }: JudgeReportProps) {
+  const [models, setModels] = useState<Array<{ id: string; name: string; provider: string }>>([]);
+  const [selectedJudgeModel, setSelectedJudgeModel] = useState<string>("");
+  const [streamingText, setStreamingText] = useState("");
+  const [streamingThinking, setStreamingThinking] = useState("");
+
+  useEffect(() => {
+    if (isJudging) {
+      setStreamingText("");
+      setStreamingThinking("");
+    }
+  }, [isJudging]);
+
+  useEffect(() => {
+    const unsub = wsClient.subscribe("judge_streaming", (data: any) => {
+      if (data.experimentId === exp.id) {
+        if (data.textDelta) {
+          setStreamingText((prev) => prev + data.textDelta);
+        }
+        if (data.thinkingDelta) {
+          setStreamingThinking((prev) => prev + data.thinkingDelta);
+        }
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [exp.id]);
+
+  useEffect(() => {
+    const token = localStorage.getItem("token");
+    fetch("/api/models", { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.json())
+      .then((data) => setModels(data.models || []))
+      .catch((e) => console.error("Failed to load models for LLM Judge:", e));
+  }, []);
+
   const variantKeys: VariantKey[] = ["single", "multiNoLeader", "multiWithLeader"];
   const hasScores = variantKeys.some((k) => !!exp.variants[k]?.result?.scores);
 
@@ -40,21 +79,66 @@ export function JudgeReport({
           <h2 className="text-sm font-bold text-foreground">Reporte Comparativo</h2>
           <p className="text-xs text-muted-foreground mt-0.5">Evaluación del LLM-Judge sobre las tres variantes</p>
         </div>
-        <button
-          onClick={onJudge}
-          disabled={isJudging}
-          className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary/10 border border-primary/30 text-primary rounded-lg hover:bg-primary/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
-        >
-          {isJudging ? (
-            <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-          ) : (
-            <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-            </svg>
-          )}
-          {isJudging ? "Evaluando..." : "Re-evaluar"}
-        </button>
+        <div className="flex items-center gap-2">
+          <select
+            value={selectedJudgeModel}
+            onChange={(e) => setSelectedJudgeModel(e.target.value)}
+            disabled={isJudging}
+            className="px-2.5 py-1.5 text-xs bg-background border border-input/60 rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer disabled:opacity-50"
+          >
+            <option value="">Default (Lab Model)</option>
+            {models.map((m) => (
+              <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`}>
+                {m.provider}/{m.name || m.id}
+              </option>
+            ))}
+          </select>
+          <button
+            onClick={() => onJudge?.(selectedJudgeModel || undefined)}
+            disabled={isJudging}
+            className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-primary/10 border border-primary/30 text-primary rounded-lg hover:bg-primary/20 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isJudging ? (
+              <div className="w-3 h-3 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+            ) : (
+              <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 001.946.806 3.42 3.42 0 013.138 3.138 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+              </svg>
+            )}
+            {isJudging ? "Evaluando..." : "Re-evaluar"}
+          </button>
+        </div>
       </div>
+
+      {isJudging && (
+        <div className="space-y-4 bg-surface border border-input/60 rounded-2xl p-5 shadow-xs">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xs uppercase font-bold text-primary tracking-wider flex items-center gap-1.5 font-mono">
+              <span className="w-2 h-2 bg-primary rounded-full animate-ping" />
+              Judge Evaluando en Vivo (Streaming)...
+            </h3>
+          </div>
+          {streamingThinking && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block font-mono">Razonamiento Interno (Pensamientos):</span>
+              <div className="text-xs font-mono bg-background/50 border border-input/30 p-3 rounded-xl max-h-48 overflow-y-auto whitespace-pre-wrap text-muted-foreground leading-relaxed italic">
+                {streamingThinking}
+              </div>
+            </div>
+          )}
+          {streamingText && (
+            <div className="space-y-1.5">
+              <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider block font-mono">Respuesta de Evaluación:</span>
+              <div className="text-xs font-mono bg-background border border-input/30 p-3 rounded-xl max-h-64 overflow-y-auto whitespace-pre-wrap text-foreground leading-relaxed">
+                {streamingText}
+              </div>
+            </div>
+          )}
+          {!streamingThinking && !streamingText && (
+            <p className="text-xs text-muted-foreground italic font-mono">Iniciando el proceso de juicio LLM...</p>
+          )}
+        </div>
+      )}
 
       {/* Score Cards */}
       <div className="grid grid-cols-3 gap-4">

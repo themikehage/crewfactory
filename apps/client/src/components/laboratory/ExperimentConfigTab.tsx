@@ -188,11 +188,11 @@ export function ExperimentConfigTab({ experiment, onUpdate }: Props) {
               initial={{ opacity: 0, y: 10 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: idx * 0.05 }}
-              className="flex flex-col p-4 rounded-xl bg-surface border border-border/60 hover:border-border transition-colors relative"
+              className="flex flex-col p-4 rounded-xl bg-surface border border-border/60 hover:border-border transition-colors relative min-w-0 overflow-hidden"
             >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-bg border border-border flex items-center justify-center font-bold text-sm text-accent uppercase">
+              <div className="flex items-start justify-between gap-2 min-w-0">
+                <div className="flex items-center gap-3 min-w-0 flex-1">
+                  <div className="w-10 h-10 rounded-xl bg-bg border border-border flex items-center justify-center font-bold text-sm text-accent uppercase flex-shrink-0">
                     {ag.name.slice(0, 2)}
                   </div>
                   <div className="flex flex-col min-w-0">

@@ -1,42 +1,30 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./LaboratoryPage.literals";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Experiment } from "@/types/laboratory";
-
-import { VariantViewer } from "@/components/laboratory/VariantViewer";
-import { JudgeReport } from "@/components/laboratory/JudgeReport";
-import { ExperimentConfigTab } from "@/components/laboratory/ExperimentConfigTab";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { ExperimentEditorModal } from "@/components/laboratory/ExperimentEditorModal";
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 
 interface Props {
   onNavigate?: (path: string) => void;
-  selectedExpId: string | null;
-  setSelectedExpId: (id: string | null) => void;
   experiments: Experiment[];
   setExperiments: React.Dispatch<React.SetStateAction<Experiment[]>>;
   isEditorOpen: boolean;
   setIsEditorOpen: (open: boolean) => void;
   editingExpId: string | null;
-  setEditingExpId: (id: string | null) => void;
-
   isRunPromptModalOpen: boolean;
   setIsRunPromptModalOpen: (open: boolean) => void;
   runPromptValue: string;
   setRunPromptValue: (val: string) => void;
   setRunningExpId: (id: string | null) => void;
   handleConfirmRun: () => Promise<void>;
-  activeVariantTab: "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare";
-  setActiveVariantTab: (tab: "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare") => void;
-  onJudgeExperiment?: (id: string) => Promise<void>;
 }
 
 export function LaboratoryPage({
-  selectedExpId,
-  setSelectedExpId,
+  onNavigate,
   experiments,
   setExperiments,
   isEditorOpen,
@@ -48,9 +36,6 @@ export function LaboratoryPage({
   setRunPromptValue,
   setRunningExpId,
   handleConfirmRun,
-  activeVariantTab,
-  setActiveVariantTab,
-  onJudgeExperiment,
 }: Props) {
   const l = useLiterals(u);
 
@@ -62,18 +47,13 @@ export function LaboratoryPage({
 
   const [labSessionId, setLabSessionId] = useState<string | null>(null);
   const labArchitectAgent = useMemo(() => ({ id: "lab-architect" as const, name: "Lab Architect" }), []);
-  const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const lastAutoSwitchedVariantRef = useRef<"single" | "multiNoLeader" | "multiWithLeader" | null>(null);
-  const [isJudging, setIsJudging] = useState(false);
-
-  const activeExp = experiments.find((e) => e.id === selectedExpId) || null;
 
   // Initialize translated criteria when literals load
   useEffect(() => {
     if (l.workQuality && editorCriteria.length === 0) {
       setEditorCriteria([l.workQuality, l.efficiency, l.negotiation]);
     }
-  }, [l]);
+  }, [l, editorCriteria.length]);
 
   useEffect(() => {
     if (isEditorOpen && editingExpId) {
@@ -92,7 +72,7 @@ export function LaboratoryPage({
     }
   }, [isEditorOpen, editingExpId, experiments, l]);
 
-  // Resolve chat session for lab-architect
+  // Resolve chat session for general lab-architect (no experiment ID bound)
   useEffect(() => {
     let active = true;
     const resolveLabSession = async () => {
@@ -102,27 +82,21 @@ export function LaboratoryPage({
         const data = await res.json();
         const sessions = data.sessions || [];
 
-        // Search for a matching session
+        // Search for a session without experimentId
         const found = sessions.find((s: any) => 
-          s.agentId === "lab-architect" && 
-          (selectedExpId ? s.experimentId === selectedExpId : !s.experimentId)
+          s.agentId === "lab-architect" && !s.experimentId
         );
 
         if (found) {
           setLabSessionId(found.id);
         } else {
           // Create new session
-          const sessionName = selectedExpId 
-            ? `Diseño: ${experiments.find(e => e.id === selectedExpId)?.name || "Experimento"}`
-            : "Diseño de Experimento Nuevo";
-
           const createRes = await apiFetch("/api/sessions", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({
-              name: sessionName,
+              name: "Diseño de Experimentos",
               agentId: "lab-architect",
-              experimentId: selectedExpId || undefined,
             }),
           });
 
@@ -140,19 +114,18 @@ export function LaboratoryPage({
     return () => {
       active = false;
     };
-  }, [selectedExpId, experiments]);
+  }, []);
 
   // Listen to select-lab-experiment custom event
   useEffect(() => {
     const handleSelectExp = (e: any) => {
-      if (e.detail?.id) {
-        setSelectedExpId(e.detail.id);
-        setActiveVariantTab("config"); // Auto navigate to config tab
+      if (e.detail?.id && onNavigate) {
+        onNavigate(`/laboratory/${e.detail.id}`);
       }
     };
     window.addEventListener("select-lab-experiment", handleSelectExp);
     return () => window.removeEventListener("select-lab-experiment", handleSelectExp);
-  }, [setSelectedExpId, setActiveVariantTab]);
+  }, [onNavigate]);
 
   // Listen to entity-updated custom event
   useEffect(() => {
@@ -170,54 +143,6 @@ export function LaboratoryPage({
     window.addEventListener("entity-updated", handleEntityUpdate);
     return () => window.removeEventListener("entity-updated", handleEntityUpdate);
   }, [setExperiments]);
-
-  // Poll running experiment status
-  useEffect(() => {
-    if (activeExp && activeExp.status === "running") {
-      pollTimerRef.current = setInterval(async () => {
-        try {
-          const res = await apiFetch(`/api/experiments/${activeExp.id}`);
-          if (res.ok) {
-            const data = await res.json();
-            const updated = data.experiment as Experiment;
-            setExperiments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-            if (updated.status !== "running" && pollTimerRef.current) {
-              clearInterval(pollTimerRef.current);
-            }
-          }
-        } catch {}
-      }, 2000);
-    } else {
-      if (pollTimerRef.current) {
-        clearInterval(pollTimerRef.current);
-      }
-    }
-    return () => {
-      if (pollTimerRef.current) clearInterval(pollTimerRef.current);
-    };
-  }, [activeExp, setExperiments]);
-
-  // Reset variant tab on selected experiment change
-  useEffect(() => {
-    setActiveVariantTab("chat");
-    lastAutoSwitchedVariantRef.current = null;
-  }, [selectedExpId, setActiveVariantTab]);
-
-  // Automatically switch tab to currently running variant
-  useEffect(() => {
-    if (activeExp && activeExp.status === "running") {
-      const runningVariant = (["single", "multiNoLeader", "multiWithLeader"] as const).find((vKey) => {
-        const run = activeExp.variants?.[vKey];
-        return run?.activeSessionId && !run?.result;
-      });
-      if (runningVariant && lastAutoSwitchedVariantRef.current !== runningVariant) {
-        lastAutoSwitchedVariantRef.current = runningVariant;
-        setActiveVariantTab(runningVariant);
-      }
-    } else {
-      lastAutoSwitchedVariantRef.current = null;
-    }
-  }, [activeExp, setActiveVariantTab]);
 
   const handleSaveExperiment = async () => {
     if (!editorName.trim() || !editorPrompt.trim()) return;
@@ -248,8 +173,10 @@ export function LaboratoryPage({
         } else {
           setExperiments((prev) => [saved, ...prev]);
         }
-        setSelectedExpId(saved.id);
         setIsEditorOpen(false);
+        if (onNavigate) {
+          onNavigate(`/laboratory/${saved.id}`);
+        }
       }
     } catch (e) {
       console.error(l.saveExperimentError || "Error al guardar el experimento", e);
@@ -258,109 +185,34 @@ export function LaboratoryPage({
 
   return (
     <div className="flex h-full min-h-0 bg-background text-foreground font-body">
-      {/* Area Principal de Contenido */}
+      {/* Principal Content Area */}
       <div className="flex-1 min-w-0 bg-background flex flex-col overflow-y-auto">
         <AnimatePresence mode="wait">
-          {!selectedExpId ? (
-            <motion.div
-              key="laboratory-design-chat"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex-1 flex flex-col min-h-0"
-            >
-              {labSessionId ? (
-                <ChatArea
-                  key={labSessionId}
-                  sessionId={labSessionId}
-                  activeProjectName={null}
-                  activeAgent={labArchitectAgent}
-                />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-                  <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-                  <p className="text-xs text-muted-foreground">Iniciando asistente de diseño de laboratorio...</p>
-                </div>
-              )}
-            </motion.div>
-          ) : activeExp ? (
-            <motion.div
-              key="experiment-details"
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              className="flex-1 min-h-0"
-            >
-              {activeVariantTab === "chat" ? (
-                labSessionId ? (
-                  <ChatArea
-                    key={labSessionId}
-                    sessionId={labSessionId}
-                    activeProjectName={null}
-                    activeAgent={labArchitectAgent}
-                  />
-                ) : (
-                  <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
-                    <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-                    <p className="text-xs text-muted-foreground">Cargando conversación del laboratorio...</p>
-                  </div>
-                )
-              ) : activeVariantTab === "config" ? (
-                <ExperimentConfigTab
-                  experiment={activeExp}
-                  onUpdate={(updated) => {
-                    setExperiments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
-                  }}
-                />
-              ) : activeVariantTab === "compare" ? (
-                <JudgeReport
-                  exp={activeExp}
-                  isJudging={isJudging}
-                  onJudge={async () => {
-                    if (!onJudgeExperiment) return;
-                    setIsJudging(true);
-                    try {
-                      await onJudgeExperiment(activeExp.id);
-                    } finally {
-                      setIsJudging(false);
-                    }
-                  }}
-                  onNavigate={(tab) => setActiveVariantTab(tab as any)}
-                />
-              ) : (
-                <VariantViewer
-                  experimentId={activeExp.id}
-                  variantKey={activeVariantTab as any}
-                  activeSessionId={activeExp.variants[activeVariantTab]?.activeSessionId || null}
-                  status={
-                    activeExp.status === "running"
-                      ? (activeExp.variants[activeVariantTab]?.result
-                        ? activeExp.variants[activeVariantTab].result.status
-                        : (activeExp.variants[activeVariantTab]?.activeSessionId ? "running" : "pending"))
-                      : (activeExp.variants[activeVariantTab]?.result?.status || "pending")
-                  }
-                  result={activeExp.variants[activeVariantTab]?.result || null}
-                  criteria={activeExp.judge?.criteria}
-                  expName={activeExp.name}
-                  expDescription={activeExp.taskPrompt}
-                />
-              )}
-            </motion.div>
-          ) : (
-            <motion.div
-              key="loading"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex-1 flex flex-col items-center justify-center text-center p-12"
-            >
-              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
-              <p className="text-xs text-muted-foreground">Cargando detalles del experimento...</p>
-            </motion.div>
-          )}
+          <motion.div
+            key="laboratory-design-chat"
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            className="flex-1 flex flex-col min-h-0"
+          >
+            {labSessionId ? (
+              <ChatArea
+                key={labSessionId}
+                sessionId={labSessionId}
+                activeProjectName={null}
+                activeAgent={labArchitectAgent}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-12">
+                <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin mb-4" />
+                <p className="text-xs text-muted-foreground">Iniciando asistente de diseño de laboratorio...</p>
+              </div>
+            )}
+          </motion.div>
         </AnimatePresence>
       </div>
 
-      {/* Modal Editor / Creador de Experimentos */}
+      {/* Modal Editor / Creator of Experiments */}
       {isEditorOpen && (
         <ExperimentEditorModal
           editingExpId={editingExpId}
@@ -375,7 +227,7 @@ export function LaboratoryPage({
         />
       )}
 
-      {/* Modal Prompt de Ejecución Dinámico */}
+      {/* Dynamic Execution Prompt Modal */}
       {isRunPromptModalOpen && (
         <RunExperimentModal
           runPromptValue={runPromptValue}

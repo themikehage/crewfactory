@@ -746,7 +746,26 @@ crear un plan de despliegue facil en vps
 - [x] 81.6 Populate community/skills/ with required skills documents cloned from public skills repository
 - [x] 81.7 Implement gallery tab view, search, filter, and detail modal in client React AgentsPage.tsx page
 - [x] 81.8 Verify successful typecheck and client/server compilation build
+## Phase 82: Refactorización y Desacoplamiento de SessionManager
+- [x] 82.1 Dividir `session-manager.ts` en submódulos especializados en `core/session/` (`user-config`, `metadata-store`, `prompt-builder`, `tool-factory`, `session-lister`)
+- [x] 82.2 Mantener `session-manager.ts` original como fachada unificada garantizando la compatibilidad de API pública
+- [x] 82.3 Validar que el servidor compile y los tipos estrictos de TypeScript pasen sin errores
 
+## Phase 83: Chat Scroll Experience
+- [x] 83.1 Diseñar plan en `plans/chat-scroll-experience.md` y actualizar `plans/_index.md` y `about.md`
+- [x] 83.2 Crear el hook `useChatScroll` en `apps/client/src/hooks/useChatScroll.ts`
+- [x] 83.3 Modificar `ChatArea.tsx` para integrar el hook y renderizar el botón flotante con traducciones
+- [x] 83.4 Validar la compilación exitosa del cliente React con `bun run build`
 
-
+## Phase 84: Independización del Detalle de Experimento y LLM Judge
+- [x] 84.1 Extender esquemas en shared y types en client con activeRunId y activeVariant
+- [x] 84.2 Implementar listado y guardado incremental de runs históricos en ExperimentStore
+- [x] 84.3 Crear endpoints /runs y /runs/:runId, y persistir estado judging en la API
+- [x] 84.4 Suscribirse a la sesión del juez y emitir tokens en streaming vía Websocket
+- [x] 84.5 Adaptar MessageList para soportar system messages y agrupamiento por agente específico
+- [x] 84.6 Refactorizar ChannelMessageList para mapear mensajes/streaming y delegar rendering a MessageList
+- [x] 84.7 Crear el componente independiente ExperimentDetailPage con selector de historial
+- [x] 84.8 Modificar LaboratoryPage para enfocarlo solo en el listado y chat general
+- [x] 84.9 Registrar ruta independiente en AppRouter y separar enrutamiento
+- [x] 84.10 Actualizar about.md y steps.md
 

@@ -9,6 +9,7 @@ import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
 import { LogsConsolePage } from "@/pages/LogsConsolePage";
 import { LaboratoryPage } from "@/pages/LaboratoryPage";
+import { ExperimentDetailPage } from "@/pages/ExperimentDetailPage";
 import { MCPMarketplacePage } from "@/pages/MCPMarketplacePage";
 import { PluginsPage } from "@/pages/PluginsPage";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
@@ -75,6 +76,51 @@ export function AppRouter() {
   const [pendingDeleteExpId, setPendingDeleteExpId] = useState<string | null>(null);
   const [deletingExp, setDeletingExp] = useState(false);
 
+  // --- Run selector state (shared between MainLayout clock icon and ExperimentDetailPage) ---
+  const [selectedRunId, setSelectedRunId] = useState<string>("latest");
+  const [selectedRunData, setSelectedRunData] = useState<Experiment | null>(null);
+  const [pastRuns, setPastRuns] = useState<any[]>([]);
+  const [runPopoverOpen, setRunPopoverOpen] = useState(false);
+
+  const currentExpId = route.page === "laboratory" && route.experimentId ? route.experimentId : null;
+
+  const fetchPastRuns = useCallback(async (expId: string) => {
+    try {
+      const res = await apiFetch(`/api/experiments/${expId}/runs`);
+      if (res.ok) {
+        const data = await res.json();
+        setPastRuns(data.runs || []);
+      }
+    } catch (e) {
+      console.error("Failed to fetch runs:", e);
+    }
+  }, []);
+
+  const handleSelectRun = useCallback(async (runId: string) => {
+    setSelectedRunId(runId);
+    if (runId === "latest" || !currentExpId) {
+      setSelectedRunData(null);
+    } else {
+      try {
+        const res = await apiFetch(`/api/experiments/${currentExpId}/runs/${runId}`);
+        if (res.ok) {
+          const data = await res.json();
+          setSelectedRunData(data.experiment as Experiment);
+        }
+      } catch (e) {
+        console.error("Failed to load run details:", e);
+      }
+    }
+  }, [currentExpId]);
+
+  useEffect(() => {
+    if (currentExpId) {
+      setSelectedRunId("latest");
+      setSelectedRunData(null);
+      fetchPastRuns(currentExpId);
+    }
+  }, [currentExpId, fetchPastRuns]);
+
   const fetchExperiments = useCallback(async () => {
     try {
       const res = await apiFetch("/api/experiments");
@@ -99,9 +145,13 @@ export function AppRouter() {
     }
   }, [runningExpId]);
 
-  const handleJudgeExp = useCallback(async (id: string) => {
+  const handleJudgeExp = useCallback(async (id: string, judgeModel?: string) => {
     try {
-      const res = await apiFetch(`/api/experiments/${id}/judge`, { method: "POST" });
+      const res = await apiFetch(`/api/experiments/${id}/judge`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ judgeModel })
+      });
       if (res.ok) {
         const data = await res.json();
         setExperiments((prev) => prev.map((e) => (e.id === id ? data.experiment : e)));
@@ -460,6 +510,12 @@ export function AppRouter() {
         isMobile={isMobileState.isMobile}
         canGoBack={navigationStack.canGoBack}
         onBack={handleBack}
+        /* Run selector props shared with MainLayout clock icon */
+        selectedRunId={selectedRunId}
+        pastRuns={pastRuns}
+        runPopoverOpen={runPopoverOpen}
+        setRunPopoverOpen={setRunPopoverOpen}
+        onSelectRun={handleSelectRun}
       >
       {route.page === "projects" && (
         <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />
@@ -484,28 +540,39 @@ export function AppRouter() {
           onNavigate={navigate}
         />
       )}
-      {route.page === "laboratory" && (
+      {route.page === "laboratory" && !route.experimentId && (
         <LaboratoryPage
           onNavigate={navigate}
-          selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
-          setSelectedExpId={(id) => {
-            if (id) navigate(`/laboratory/${id}`);
-            else navigate("/laboratory");
-          }}
           experiments={experiments}
           setExperiments={setExperiments}
           isEditorOpen={isLabEditorOpen}
           setIsEditorOpen={setIsLabEditorOpen}
           editingExpId={editingLabExpId}
-          setEditingExpId={setEditingLabExpId}
           isRunPromptModalOpen={isRunPromptModalOpen}
           setIsRunPromptModalOpen={setIsRunPromptModalOpen}
           runPromptValue={runPromptValue}
           setRunPromptValue={setRunPromptValue}
           setRunningExpId={setRunningExpId}
           handleConfirmRun={handleConfirmRun}
+        />
+      )}
+      {route.page === "laboratory" && route.experimentId && (
+        <ExperimentDetailPage
+          experimentId={route.experimentId}
+          experiments={experiments}
+          setExperiments={setExperiments}
           activeVariantTab={activeVariantTab}
           setActiveVariantTab={setActiveVariantTab}
+          onJudgeExperiment={handleJudgeExp}
+          isRunPromptModalOpen={isRunPromptModalOpen}
+          setIsRunPromptModalOpen={setIsRunPromptModalOpen}
+          runPromptValue={runPromptValue}
+          setRunPromptValue={setRunPromptValue}
+          setRunningExpId={setRunningExpId}
+          handleConfirmRun={handleConfirmRun}
+          selectedRunId={selectedRunId}
+          selectedRunData={selectedRunData}
+          onRefreshRuns={() => currentExpId && fetchPastRuns(currentExpId)}
         />
       )}
       {route.page === "mcps" && (

@@ -5,17 +5,6 @@ import { getUserDir, getWorkspaceDir, getMcpServersPath, getMcpConfigOldPath } f
 
 export const MCP_CATALOG: McpCatalogItem[] = [
   {
-    id: "filesystem",
-    name: "Filesystem",
-    description: "Acceso completo al filesystem: leer, escribir y editar archivos de forma segura dentro del workspace",
-    category: "Developer Tools",
-    icon: "📁",
-    command: "bunx",
-    args: ["@modelcontextprotocol/server-filesystem", "$WORKSPACE_DIR"],
-    homepage: "https://github.com/modelcontextprotocol/servers",
-    isHttp: false,
-  },
-  {
     id: "github",
     name: "GitHub",
     description: "Gestión de repositorios, issues, pull requests y búsqueda de código en GitHub",
@@ -52,17 +41,6 @@ export const MCP_CATALOG: McpCatalogItem[] = [
     isHttp: false,
   },
 
-  {
-    id: "memory",
-    name: "Memory Graph",
-    description: "Base de conocimientos y grafo de memoria semántica de larga duración para el agente",
-    category: "Memory & Storage",
-    icon: "🧠",
-    command: "bunx",
-    args: ["@modelcontextprotocol/server-memory"],
-    homepage: "https://github.com/modelcontextprotocol/servers",
-    isHttp: false,
-  },
   {
     id: "brave-search",
     name: "Brave Search",
@@ -179,25 +157,9 @@ export class McpRegistry {
     return getMcpServersPath(username);
   }
 
-  getDefaultConfig(username: string): McpConfig {
-    const userWorkspace = getWorkspaceDir(username);
+  getDefaultConfig(_username: string): McpConfig {
     return {
       mcpServers: {
-        filesystem: {
-          id: "filesystem",
-          name: "Filesystem",
-          description: "Acceso completo al filesystem: leer, escribir y editar archivos de forma segura dentro del workspace",
-          transport: "stdio",
-          command: "bunx",
-          args: ["@modelcontextprotocol/server-filesystem", userWorkspace],
-          installed: true,
-          enabled: true,
-          isBuiltin: true,
-          category: "Developer Tools",
-          icon: "📁",
-          status: "disconnected",
-          tools: [],
-        },
         github: {
           id: "github",
           name: "GitHub",

@@ -1,5 +1,6 @@
 import { sessionManager } from "../core/session-manager";
 import { z } from "zod";
+import { broadcastToUser } from "../ws/handler";
 
 const OutputEvaluationSchema = z.object({
   criteria: z.record(z.object({
@@ -26,7 +27,9 @@ export class LabJudge {
       single: string;
       multiNoLeader: string;
       multiWithLeader: string;
-    }
+    },
+    judgeModel?: string,
+    experimentId?: string
   ): Promise<{
     single: { scores: Record<string, number>; globalScore: number; reasoning: string };
     multiNoLeader: { scores: Record<string, number>; globalScore: number; reasoning: string };
@@ -34,6 +37,44 @@ export class LabJudge {
   }> {
     const sessionId = `judge_${crypto.randomUUID()}`;
     const session = await sessionManager.getOrCreateSession(username, sessionId);
+
+    let unsub: (() => void) | undefined;
+    if (experimentId) {
+      unsub = session.subscribe((event: any) => {
+        if (event.type === "message_update") {
+          const ev = event as any;
+          if (ev.assistantMessageEvent?.type === "text_delta" && ev.assistantMessageEvent.delta) {
+            broadcastToUser(username, {
+              type: "judge_streaming",
+              experimentId,
+              textDelta: ev.assistantMessageEvent.delta
+            });
+          } else if (ev.assistantMessageEvent?.type === "thinking_delta" && ev.assistantMessageEvent.delta) {
+            broadcastToUser(username, {
+              type: "judge_streaming",
+              experimentId,
+              thinkingDelta: ev.assistantMessageEvent.delta
+            });
+          }
+        }
+      });
+    }
+
+    if (judgeModel) {
+      const { modelRegistry } = sessionManager.getUserContext(username);
+      let provider = judgeModel;
+      let modelId = judgeModel;
+      if (judgeModel.includes("/")) {
+        const parts = judgeModel.split("/");
+        provider = parts[0];
+        modelId = parts.slice(1).join("/");
+      }
+      const model = modelRegistry.find(provider, modelId) ||
+                    modelRegistry.getAvailable().find(m => m.id === judgeModel || `${m.provider}/${m.id}` === judgeModel);
+      if (model) {
+        await session.setModel(model);
+      }
+    }
 
     // 1. Double-Blind Shuffling
     const keys = ["single", "multiNoLeader", "multiWithLeader"] as const;
@@ -135,11 +176,11 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
 }
 `;
 
+    let rawJson = "";
     try {
       await session.prompt(judgePrompt);
       const msgs = session.messages;
       const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant");
-      let rawJson = "";
       if (lastMsg) {
         if (typeof lastMsg.content === "string") rawJson = lastMsg.content;
         else if (Array.isArray(lastMsg.content)) {
@@ -148,15 +189,34 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
       }
 
       rawJson = rawJson.trim();
-      if (rawJson.startsWith("```")) {
+      const startIndex = rawJson.indexOf("{");
+      const endIndex = rawJson.lastIndexOf("}");
+      if (startIndex !== -1 && endIndex !== -1 && endIndex > startIndex) {
+        rawJson = rawJson.substring(startIndex, endIndex + 1);
+      } else if (rawJson.startsWith("```")) {
         rawJson = rawJson.replace(/^```[a-zA-Z-]*\n/, "").replace(/\n```$/, "");
       }
 
       // Safe JSON parsing
       const parsedRaw = JSON.parse(rawJson);
+
+      // Normalize case of Alpha, Beta, Gamma keys
+      const normalizedRaw: any = {};
+      const expectedKeys = ["Alpha", "Beta", "Gamma"] as const;
+      for (const key of expectedKeys) {
+        if (parsedRaw[key]) {
+          normalizedRaw[key] = parsedRaw[key];
+        } else {
+          const lowercaseKey = key.toLowerCase();
+          const foundKey = Object.keys(parsedRaw).find((k) => k.toLowerCase() === lowercaseKey);
+          if (foundKey) {
+            normalizedRaw[key] = parsedRaw[foundKey];
+          }
+        }
+      }
       
       // Zod Validation
-      const parsed = JudgeResponseSchema.parse(parsedRaw);
+      const parsed = JudgeResponseSchema.parse(normalizedRaw);
 
       // Inverse Mapping to true variant keys
       const mapResult = (label: "Alpha" | "Beta" | "Gamma") => {
@@ -182,7 +242,7 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
         multiWithLeader: mapResult(keyToLabelMap.get("multiWithLeader")!),
       };
 
-    } catch (e) {
+    } catch (e: any) {
       console.error("[LabJudge] Failed to evaluate runs, fallback to baseline:", e);
       
       const fallbackScores: Record<string, number> = {};
@@ -190,12 +250,16 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
         fallbackScores[crit] = 70;
       }
 
+      const errMsg = e instanceof Error ? e.message : String(e);
+      const reasoning = `Judge Error: ${errMsg}. Raw response: ${rawJson ? rawJson.substring(0, 800) : "No response"}`;
+
       return {
-        single: { scores: fallbackScores, globalScore: 70, reasoning: "Evaluation failed due to parse error." },
-        multiNoLeader: { scores: fallbackScores, globalScore: 70, reasoning: "Evaluation failed due to parse error." },
-        multiWithLeader: { scores: fallbackScores, globalScore: 70, reasoning: "Evaluation failed due to parse error." },
+        single: { scores: fallbackScores, globalScore: 70, reasoning },
+        multiNoLeader: { scores: fallbackScores, globalScore: 70, reasoning },
+        multiWithLeader: { scores: fallbackScores, globalScore: 70, reasoning },
       };
     } finally {
+      if (unsub) unsub();
       await sessionManager.destroySession(username, sessionId);
     }
   }

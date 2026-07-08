@@ -7,7 +7,7 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 1. Read the 3 MDs above
 2. Pick next incomplete task from `steps.md`
 3. Complete task, validate, commit
-4. Update `steps.md` to mark completed
+4. Update `steps.md` to mark completed (dont read complete, only the last entries)
 5. Update `about.md` after each new change to keep documentation current (architecture, features, API endpoints, and modules)
 6. **Ideas**: When the user shares a feature idea, analyze it, create a plan in `plans/{topic}.md`, link it in `plans/_index.md`, and update `about.md` if needed
 

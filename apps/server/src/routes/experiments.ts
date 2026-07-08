@@ -245,14 +245,49 @@ experimentsRouter.post("/:id/judge", async (c) => {
     return c.json({ error: "All variants must have results before judging" }, 409);
   }
 
+  const { judgeModel } = await c.req.json().catch(() => ({}));
+  let finalJudgeModel = judgeModel;
+
+  if (!finalJudgeModel) {
+    try {
+      const sessions = await sessionManager.listSessions(username);
+      const labSession = sessions.find(s => s.agentId === "lab-architect" && s.experimentId === id);
+      if (labSession) {
+        const activeSession = sessionManager.getSession(username, labSession.id);
+        if (activeSession?.model) {
+          finalJudgeModel = `${activeSession.model.provider}/${activeSession.model.id}`;
+        } else {
+          const { join } = require("node:path");
+          const sessionDir = join(sessionManager.ensureUserDir(username), "sessions", labSession.id);
+          const { readdirSync, readFileSync } = require("node:fs");
+          const jsonlFiles = readdirSync(sessionDir)
+            .filter((f: string) => f.endsWith(".jsonl"))
+            .sort()
+            .reverse();
+          if (jsonlFiles.length > 0) {
+            const context = JSON.parse(readFileSync(join(sessionDir, jsonlFiles[0]), "utf-8").split("\n").filter(Boolean)[0]);
+            if (context?.model) {
+              finalJudgeModel = `${context.model.provider}/${context.model.modelId}`;
+            }
+          }
+        }
+      }
+    } catch (err) {
+      console.error("Failed to resolve fallback lab session model for judge:", err);
+    }
+  }
+
   try {
-    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: "running", activeVariant: "judging" });
+    exp.activeVariant = "judging";
+    await ExperimentStore.saveExperiment(username, exp);
+
+    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: exp.status, activeVariant: "judging" });
 
     const judgeResults = await LabJudge.evaluateRuns(username, exp.taskPrompt, exp.judge.criteria, {
       single: single.finalOutput,
       multiNoLeader: noLeader.finalOutput,
       multiWithLeader: withLeader.finalOutput,
-    });
+    }, finalJudgeModel, id);
 
     const baselineStats = {
       durationMs: single.durationMs,
@@ -283,13 +318,36 @@ experimentsRouter.post("/:id/judge", async (c) => {
       { reasoning: judgeResults.multiWithLeader.reasoning, criteriaScores: judgeResults.multiWithLeader.scores }
     );
 
+    exp.activeVariant = undefined;
     await ExperimentStore.saveExperiment(username, exp);
     broadcastToUser(username, { type: "experiment_status", experimentId: id, status: "completed", experiment: exp });
     return c.json({ experiment: exp });
   } catch (e: any) {
-    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: "completed" });
+    exp.activeVariant = undefined;
+    await ExperimentStore.saveExperiment(username, exp);
+    broadcastToUser(username, { type: "experiment_status", experimentId: id, status: exp.status, experiment: exp });
     return c.json({ error: e.message || "Judge evaluation failed" }, 500);
   }
+});
+
+// Get all historical runs of an experiment
+experimentsRouter.get("/:id/runs", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const runs = await ExperimentStore.listRuns(username, id);
+  return c.json({ runs });
+});
+
+// Get a specific historical run
+experimentsRouter.get("/:id/runs/:runId", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const runId = c.req.param("runId");
+  const run = await ExperimentStore.getRun(username, id, runId);
+  if (!run) return c.json({ error: "Run not found" }, 404);
+  return c.json({ experiment: run });
 });
 
 // Delete experiment

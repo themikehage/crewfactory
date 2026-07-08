@@ -23,14 +23,17 @@ function validateWorkspacePath(username: string, relativePath: string, projectNa
     workspaceDir = getProjectWorkspaceDir(username, projectName);
   }
 
-  if (!existsSync(workspaceDir)) {
-    mkdirSync(workspaceDir, { recursive: true });
+  // Resolve the workspace directory to avoid drive letter/case mismatch on Windows
+  const resolvedWorkspaceDir = resolve(workspaceDir);
+
+  if (!existsSync(resolvedWorkspaceDir)) {
+    mkdirSync(resolvedWorkspaceDir, { recursive: true });
   }
 
   const normalized = normalize(relativePath.trim() || ".");
-  const fullPath = resolve(workspaceDir, normalized);
+  const fullPath = resolve(resolvedWorkspaceDir, normalized);
 
-  if (fullPath !== workspaceDir && !fullPath.startsWith(workspaceDir + sep)) {
+  if (fullPath !== resolvedWorkspaceDir && !fullPath.startsWith(resolvedWorkspaceDir + sep)) {
     throw new Error("Path traversal detected");
   }
 

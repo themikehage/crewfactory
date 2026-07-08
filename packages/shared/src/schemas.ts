@@ -508,6 +508,8 @@ export const LabExperimentSchema = z.object({
   completedAt: z.string().optional(),
   blueprintId: z.string().optional(),
   activeRunIndex: z.number().optional(),
+  activeRunId: z.string().optional(),
+  activeVariant: z.enum(["single", "multiNoLeader", "multiWithLeader", "judging"]).nullable().optional(),
 });
 export type LabExperiment = z.infer<typeof LabExperimentSchema>;
 

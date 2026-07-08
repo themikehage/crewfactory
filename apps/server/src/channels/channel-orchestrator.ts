@@ -45,6 +45,7 @@ class ChannelOrchestrator {
   private channelAbortControllers = new Map<string, AbortController>(); // key = channelId:sessionId
   private activeStreams = new Map<string, Map<string, ActiveAgentStream>>();
   private activeChains = new Map<string, { count: number; resolve: () => void }>();
+  private consecutiveSilentRounds = new Map<string, number>(); // key = channelId:sessionId
 
   private incrementChain(key: string) {
     const entry = this.activeChains.get(key);
@@ -167,11 +168,12 @@ class ChannelOrchestrator {
       detail: userContent,
     });
 
-    // Reset negotiation state and task ledger at start of chain
+    // Reset negotiation state, task ledger, and silent round counter at start of chain
     channelStore.resetNegotiationState(username, channelId);
     const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
     const ledger = new TaskLedger(ledgerPath);
     ledger.reset();
+    this.consecutiveSilentRounds.delete(key);
 
     // Create a new AbortController for this dispatch chain
     const controller = new AbortController();
@@ -302,7 +304,17 @@ class ChannelOrchestrator {
       return;
     }
 
-    if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) return;
+    if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) {
+      if (!signal.aborted && !this.abortedDispatches.has(key) && !result.agentMsg) {
+        const silentCount = (this.consecutiveSilentRounds.get(key) ?? 0) + 1;
+        this.consecutiveSilentRounds.set(key, silentCount);
+        if (silentCount >= 2) {
+          console.log(`[ChannelOrchestrator] Equilibrium reached after ${silentCount} silent rounds. Stopping chain for ${key}.`);
+          this.consecutiveSilentRounds.delete(key);
+        }
+      }
+      return;
+    }
 
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) return;
@@ -424,6 +436,9 @@ class ChannelOrchestrator {
       detail: result.agentMsg.content,
     });
 
+    // Real output — reset consecutive silent counter
+    this.consecutiveSilentRounds.set(key, 0);
+
     // Chain to next round if not agreed
     if (!isAgreed) {
       this.incrementChain(key);
@@ -542,7 +557,8 @@ class ChannelOrchestrator {
       recentMessages,
       channel.context || [],
       channel.members,
-      agentNameMap
+      agentNameMap,
+      channel
     );
 
     let fullResponse = "";
@@ -717,7 +733,8 @@ class ChannelOrchestrator {
       }
     }
 
-    const trimmed = fullResponse.trim();
+    const stripped = channel.showThinking ? fullResponse : this.stripThinkBlocks(fullResponse);
+    const trimmed = stripped.trim();
     const isSilent = this.isSilentContent(trimmed);
 
     if (memoryEnabled && userSettings.memoryAutoStore !== false && trimmed && !isSilent) {
@@ -783,7 +800,7 @@ class ChannelOrchestrator {
     }
 
     const agentNameMap2 = this.buildAgentNameMap(channel.members);
-    const agentMentions = parseMentions(fullResponse, channel.members, agentNameMap2);
+    const agentMentions = parseMentions(trimmed, channel.members, agentNameMap2);
 
     const agentMsg: ChannelMessage = {
       id: crypto.randomUUID(),
@@ -792,7 +809,7 @@ class ChannelOrchestrator {
       role: "agent",
       agentId: member.agentId,
       agentName,
-      content: fullResponse,
+      content: trimmed,
       thinking: finalThinking || undefined,
       toolCalls: finalToolCalls.length > 0 ? finalToolCalls : undefined,
       mentions: agentMentions.length > 0 ? agentMentions : undefined,
@@ -849,10 +866,19 @@ class ChannelOrchestrator {
     recentHistory: ChannelMessage[],
     contextItems: { key: string; value: string }[] = [],
     members: ChannelMember[] = [],
-    agentNameMap: Map<string, string> = new Map()
+    agentNameMap: Map<string, string> = new Map(),
+    channel?: Channel
   ): string {
     let rosterBlock = "";
     if (members.length > 0) {
+      const isBroadcast = members.some(m => m.replyMode === "broadcast");
+      const hasLeader = !isBroadcast && members.some(m => m.role === "lead");
+      const modeLabel = isBroadcast
+        ? "multi-agent leaderless (all agents see all messages; there is no coordinator)"
+        : hasLeader
+          ? "multi-agent with leader (the leader coordinates; non-leader agents respond when @mentioned)"
+          : "single agent (you handle the full workflow autonomously)";
+
       const lines = ["- @user (the human user)"];
       for (const m of members) {
         const name = agentNameMap.get(m.agentId) || m.agentId;
@@ -877,6 +903,7 @@ class ChannelOrchestrator {
 
       rosterBlock =
         `Channel Participants & Tagging Protocol:\n` +
+        `Execution mode: ${modeLabel}\n` +
         `The following participants are in this channel. Explicitly mentioning them using @name or @id in your message will trigger them to respond:\n` +
         `${lines.join("\n")}\n\n` +
         rulesBlock;
@@ -915,6 +942,10 @@ class ChannelOrchestrator {
     if (!content) return true;
     const SILENT_REGEX = /^\s*[\(\[\*]*\s*silent(ioso)?\s*[\)\]\*]*[\s\.]*$/i;
     return SILENT_REGEX.test(content.trim());
+  }
+
+  private stripThinkBlocks(content: string): string {
+    return content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
   }
 
   private async runSequentialBroadcastLoop(

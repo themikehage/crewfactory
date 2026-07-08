@@ -12,7 +12,7 @@ import { join, resolve } from "node:path";
 import { streamSSE } from "hono/streaming";
 import { type AgentDefinition, SessionPrefix, getAgentDir } from "shared";
 import type { AgentServer } from "./types";
-import { createUiTools } from "../core/ui-tools";
+import { createUiTools } from "../core/tools/ui-tools";
 import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
 import jwt from "jsonwebtoken";
 import { filterSecretsFromOutput } from "../core/bash-output-filter";
@@ -20,6 +20,13 @@ import { getEnvironmentContext } from "../core/env-check";
 import { memoryRegistry } from "../core/memory/registry";
 import { createMemoryTools } from "../core/memory/memory-tools";
 import { mcpRegistry } from "../core/mcp-registry";
+import {
+  HTML_PREVIEW_INSTRUCTIONS,
+  AG_UI_INSTRUCTIONS,
+  PERSISTENT_MEMORY_INSTRUCTIONS,
+  SUBAGENT_DELEGATION_INSTRUCTIONS,
+  TASK_DELEGATION_INSTRUCTIONS,
+} from "../core/prompts/system-instructions";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = getAgentDir(username, id);
@@ -41,7 +48,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const sessionDir = join(agentDir, "sessions", "main");
 
   const userSettings = coreSessionManager.getUserSettings(username);
-    const memoryEnabled = userSettings.memoryEnabled ?? true;
+  const memoryEnabled = userSettings.memoryEnabled ?? true;
   const memoryDbPath = join(agentDir, "memory", "memory.db");
   const memory = await memoryRegistry.get(`agent:${definition.id}`, memoryDbPath, memoryEnabled);
 
@@ -72,28 +79,11 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     appendSystemPrompt: [
       `\n\nRuntime Environment:\n${envContext}`,
       `\n\n${definition.systemPrompt}`,
-      `\n\nInteractive UI Components (AG-UI Protocol):\n` +
-      `You have native interactive UI tools. Prefer using them over custom scripts or general output formats when suitable:\n` +
-      `- render_chart: Use this tool to display bar, line, area, or pie charts to visualize quantitative data, metrics, or analytical trends. Avoid writing Python/matplotlib scripts or generating image files for charts if they can be represented using this tool.\n` +
-      `- request_approval: Before executing any critical, destructive, or potentially dangerous actions (such as running build/deploy scripts, deleting files, or executing system commands via bash), you MUST call this tool to request explicit user confirmation.\n` +
-      `- ask_question: When you need to ask the user a question to clarify requirements, solicit design feedback, or resolve choices, call this tool to present a clean single/multi-choice form or custom text field.\n` +
-      `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n` +
-      `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n` +
-      `- share_file: When you generate any file artifact that the user should download (PDF reports, Excel spreadsheets, PowerPoint presentations, Word documents, ZIP archives, etc.), use this tool to share it directly in the chat. The user will see a download card and can click to download. Always prefer this over telling the user to manually find the file in the workspace.\n` +
-      `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`,
-      `\n\nPersistent Memory Tools (memory_store, memory_recall, memory_forget):\n` +
-      `You have access to long-term persistent memory tools that help you remember facts, decisions, patterns, and interactions across sessions.\n` +
-      `- memory_store: Save a fact, event, or code/architectural pattern into your long-term persistent memory. Use this to remember user preferences, project conventions, bug fixes, architecture decisions, and important discoveries.\n` +
-      `  * content: The memory text or factual content to store (required).\n` +
-      `  * type: "semantic" (facts/concepts), "episodic" (events/interactions), or "procedural" (patterns/procedures). Default: "semantic".\n` +
-      `  * importance: 0.0 (low) to 1.0 (high). Default: 0.5.\n` +
-      `  * tags: Optional categorization tags for searching later.\n` +
-      `- memory_recall: Search and retrieve query-relevant memories from your long-term memory. Use this before starting work on a topic to check if you have prior knowledge about it.\n` +
-      `  * query: Natural language search term or semantic query (required).\n` +
-      `  * limit: Max number of memories to return (1-20, default: 5).\n` +
-      `- memory_forget: Delete a specific memory by its ID when it's no longer relevant or correct.\n` +
-      `  * id: The unique memory ID to be deleted (required).\n` +
-      `IMPORTANT: Use memory_store proactively after completing significant work (bug fixes, architecture decisions, discoveries, new patterns). Always use memory_recall before starting work on a topic that may have prior context.\n`
+      HTML_PREVIEW_INSTRUCTIONS,
+      AG_UI_INSTRUCTIONS,
+      PERSISTENT_MEMORY_INSTRUCTIONS,
+      SUBAGENT_DELEGATION_INSTRUCTIONS,
+      TASK_DELEGATION_INSTRUCTIONS,
     ],
   });
   await resourceLoader.reload();
@@ -158,7 +148,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     resourceLoader,
     customTools: [customBashTool as any, ...uiTools as any, ...memoryTools as any],
   });
-  
+
   const activeToolNames = [
     "read", "write", "edit", "bash", "grep", "find", "ls",
     "request_approval",
@@ -212,7 +202,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
       }
     }
   }
-  
+
   if (!session.model && available.length > 0) {
     try {
       await session.setModel(available[0]);
@@ -243,7 +233,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     activeObservers++;
     return streamSSE(c, async (sse) => {
       const unsub = session.subscribe((event) => {
-        sse.writeSSE({ data: JSON.stringify(event), event: event.type }).catch(() => {});
+        sse.writeSSE({ data: JSON.stringify(event), event: event.type }).catch(() => { });
       });
       c.req.raw.signal.addEventListener("abort", () => {
         activeObservers = Math.max(0, activeObservers - 1);
@@ -267,7 +257,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
         if (existsSync(summaryPath)) {
           executions.push(JSON.parse(readFileSync(summaryPath, "utf-8")));
         }
-      } catch {}
+      } catch { }
     }
     executions.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
     return c.json({ executions });
@@ -280,7 +270,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
     try {
       const prompt = JSON.parse(readFileSync(join(execDir, "prompt.json"), "utf-8")).prompt;
-      
+
       let messages: any[] = [];
       const msgFile = join(execDir, "messages.jsonl");
       if (existsSync(msgFile)) {
@@ -326,10 +316,10 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     const execId = crypto.randomUUID();
     const execsDir = join(agentDir, "executions");
     if (!existsSync(execsDir)) mkdirSync(execsDir, { recursive: true });
-    
+
     const execDir = join(execsDir, execId);
     mkdirSync(execDir, { recursive: true });
-    
+
     writeFileSync(join(execDir, "prompt.json"), JSON.stringify({ prompt: message, createdAt: new Date().toISOString() }, null, 2));
 
     const toolCalls: any[] = [];
@@ -391,7 +381,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
     return streamSSE(c, async (sse) => {
       const unsub = session.subscribe((event) => {
-        sse.writeSSE({ data: JSON.stringify(event), event: event.type }).catch(() => {});
+        sse.writeSSE({ data: JSON.stringify(event), event: event.type }).catch(() => { });
       });
 
       try {

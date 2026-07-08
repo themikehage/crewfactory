@@ -25,6 +25,49 @@ export class ExperimentStore {
     const dir = this.getExperimentDir(username, experiment.id);
     const filePath = join(dir, "experiment.json");
     writeFileSync(filePath, JSON.stringify(experiment, null, 2), "utf-8");
+
+    if (experiment.activeRunId) {
+      const runsDir = join(dir, "runs");
+      if (!existsSync(runsDir)) {
+        mkdirSync(runsDir, { recursive: true });
+      }
+      writeFileSync(join(runsDir, `${experiment.activeRunId}.json`), JSON.stringify(experiment, null, 2), "utf-8");
+    }
+  }
+
+  static getRunsDir(username: string, experimentId: string): string {
+    const dir = join(this.getExperimentDir(username, experimentId), "runs");
+    if (!existsSync(dir)) {
+      mkdirSync(dir, { recursive: true });
+    }
+    return dir;
+  }
+
+  static async listRuns(username: string, experimentId: string): Promise<LabExperiment[]> {
+    const dir = this.getRunsDir(username, experimentId);
+    try {
+      const files = readdirSync(dir).filter((f) => f.endsWith(".json"));
+      const runs: LabExperiment[] = [];
+      for (const file of files) {
+        const filePath = join(dir, file);
+        const data = readFileSync(filePath, "utf-8");
+        runs.push(JSON.parse(data) as LabExperiment);
+      }
+      return runs.sort((a, b) => (b.completedAt || b.startedAt || "").localeCompare(a.completedAt || a.startedAt || ""));
+    } catch {
+      return [];
+    }
+  }
+
+  static async getRun(username: string, experimentId: string, runId: string): Promise<LabExperiment | null> {
+    const filePath = join(this.getRunsDir(username, experimentId), `${runId}.json`);
+    if (!existsSync(filePath)) return null;
+    try {
+      const data = readFileSync(filePath, "utf-8");
+      return JSON.parse(data) as LabExperiment;
+    } catch {
+      return null;
+    }
   }
 
   static async getExperiment(username: string, experimentId: string): Promise<LabExperiment | null> {

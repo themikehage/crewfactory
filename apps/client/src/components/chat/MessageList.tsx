@@ -47,6 +47,8 @@ interface Message {
   api?: string;
   provider?: string;
   model?: string;
+  agentName?: string;
+  agentAvatarUrl?: string;
   usage?: MessageUsage;
   stopReason?: string;
   timestamp?: number;
@@ -88,11 +90,13 @@ interface Props {
 
 type RenderGroup =
   | { type: "user"; msg: Message }
+  | { type: "system"; msg: Message }
   | { type: "agent"; messages: Message[] };
 
 function buildGroups(messages: Message[]): RenderGroup[] {
   const groups: RenderGroup[] = [];
   let agentBuf: Message[] = [];
+  let currentAgentName: string | undefined = undefined;
 
   const flush = () => {
     if (agentBuf.length > 0) {
@@ -105,7 +109,19 @@ function buildGroups(messages: Message[]): RenderGroup[] {
     if (msg.role === "user") {
       flush();
       groups.push({ type: "user", msg });
+      currentAgentName = undefined;
+    } else if (msg.role === "system") {
+      flush();
+      groups.push({ type: "system", msg });
+      currentAgentName = undefined;
     } else {
+      const msgAgentName = msg.agentName || msg.model || undefined;
+      if (msg.role === "assistant" && currentAgentName !== undefined && currentAgentName !== msgAgentName) {
+        flush();
+      }
+      if (msg.role === "assistant") {
+        currentAgentName = msgAgentName;
+      }
       agentBuf.push(msg);
     }
   }
@@ -187,11 +203,15 @@ function AgentTurn({
     }
   }
 
+  const firstAssistant = assistantMessages[0];
+  const displayName = firstAssistant?.agentName || firstAssistant?.model || activeAgentName || "Agent";
+  const displayAvatar = firstAssistant?.agentAvatarUrl || activeAgentAvatarUrl;
+
   return (
     <div className="flex flex-col gap-2">
       <AgentAvatar
-        name={activeAgentName || "Agent"}
-        avatarUrl={activeAgentAvatarUrl}
+        name={displayName}
+        avatarUrl={displayAvatar}
         size="sm"
       />
 
@@ -443,6 +463,12 @@ export const MessageList: FC<Props> = ({
                 activeAgentId={activeAgentId}
                 activeChannelId={activeChannelId}
               />
+            ) : group.type === "system" ? (
+              <div className="flex justify-center my-2 w-full">
+                <div className="bg-card/30 border border-input/40 text-muted-foreground text-xs px-4 py-2 rounded-full max-w-[85%] text-center font-medium shadow-xs">
+                  {typeof group.msg.content === "string" ? group.msg.content : ""}
+                </div>
+              </div>
             ) : (
               <AgentTurn
                 messages={group.messages}
