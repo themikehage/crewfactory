@@ -46,6 +46,7 @@
 - Model selector below chat input: shows only configured providers, nested dropdown for model selection
 - Model persistence in localStorage, applied to sessions via SDK's setModel()
 - Auth status indicators (configured/not configured per provider)
+- **Resolución Dinámica de Modelos:** No se utilizan modelos por defecto hardcodeados en el cliente ni en el backend. Las vistas del cliente guían al usuario con placeholders descriptivos y la última selección guardada en `localStorage` con la clave `crewfy-selected-model`. El backend realiza una validación y resolución en base a los proveedores configurados del usuario (`getUserDefaultModel`), previniendo caídas por llamadas a modelos inaccesibles o inexistentes.
 
 ### Security & Environment Variables
 - **Cifrado en Reposo:** Cifrado simétrico AES-256-GCM para los archivos de configuración sensibles (`env.json` y `auth.json`) derivando la clave criptográfica a partir del `JWT_SECRET` del servidor. Migración automática de archivos legacy en texto plano.

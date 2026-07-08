@@ -1,5 +1,10 @@
-import { join } from "node:path";
-import { existsSync, mkdirSync } from "node:fs";
+import path from "node:path";
+import fs from "node:fs";
+
+const join = (...args: string[]): string => path.join(...args);
+const existsSync = (p: string): boolean => fs.existsSync(p);
+const mkdirSync = (p: string, options?: { recursive?: boolean }): string | undefined =>
+  fs.mkdirSync(p, options) as string | undefined;
 
 export const CREWFACTORY_DATA_PATH = () =>
   process.env.CREWFACTORY_DATA_PATH || "/app/data";

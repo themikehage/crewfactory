@@ -276,13 +276,14 @@ export class ExperimentRunner {
     let rawOutput = "";
     let runError = "";
 
+    const userDefaultModel = sessionManager.getUserDefaultModel(username) || "";
     // 1. Temporary register agent
     const ag = run.agents[0] || {
       id: "baseline",
       name: "General Agent",
       role: "General Assistant",
       systemPrompt: "Eres un asistente general de IA. Responde en español.",
-      model: "anthropic/claude-3-5-sonnet"
+      model: userDefaultModel
     };
 
     const regId = `lab_${exp.id}_single_${ag.id}`;

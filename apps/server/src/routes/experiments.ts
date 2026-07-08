@@ -82,7 +82,10 @@ experimentsRouter.post("/", async (c) => {
   let experiment: LabExperiment;
 
   const userDefaultModel = sessionManager.getUserDefaultModel(username);
-  const fallbackModel = userDefaultModel || "anthropic/claude-3-5-sonnet";
+  if (!userDefaultModel) {
+    return c.json({ error: "No configured LLM providers or models found. Please configure an API key in settings." }, 400);
+  }
+  const fallbackModel = userDefaultModel;
 
   if (blueprintId) {
     const blueprint = await ExperimentStore.getBlueprint(blueprintId);

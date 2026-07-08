@@ -349,7 +349,7 @@ class SessionManager {
               if (!agentRegistry.get("lab-architect")) {
                 const { LAB_ARCHITECT_DEFINITION } = await import("./prompts/lab-architect");
                 const userDefaultModel = this.getUserDefaultModel(username);
-                const modelId = userDefaultModel || "anthropic/claude-3-5-sonnet";
+                const modelId = userDefaultModel || "";
                 await agentRegistry.register(username, {
                   ...LAB_ARCHITECT_DEFINITION,
                   model: modelId,

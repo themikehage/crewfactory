@@ -786,3 +786,9 @@ crear un plan de despliegue facil en vps
 - [x] 86.5 Implement OrgFlowMobile responsive layout list container
 - [x] 86.6 Update ChannelDetailPage and ChannelChatArea to mount first-level Org Chart tab
 - [x] 86.7 Remove obsolete SVG/static hierarchy files and verify compilation
+
+## Phase 87: Dynamic Default Model Resolution
+- [x] 87.1 Remove hardcoded `DEFAULT_MODEL` constant from shared package and delete `packages/shared/src/model.ts`
+- [x] 87.2 Update client translation literals (`AgentsPage.literals.ts`) to use generic illustrative placeholders instead of `DEFAULT_MODEL`
+- [x] 87.3 Update backend execution scripts, routing fallback handlers, and tool schemas to resolve fallback models using `sessionManager.getUserDefaultModel(username)` dynamically
+- [x] 87.4 Verify successful client/server compilation and TypeScript typecheck build

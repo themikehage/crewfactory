@@ -216,10 +216,15 @@ channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string
 
   // Trigger baseline benchmark if enabled
   if (channel.benchmark?.enabled) {
-    const baselineModel = channel.benchmark.baselineModelId || "anthropic/claude-3-5-sonnet";
-    runBaselineAndCompare(username, id, message, baselineModel, sessionId || `chan_${id}`).catch((err) => {
-      console.error(`[ChannelsRoute] Error running baseline benchmark for channel ${id}:`, err);
-    });
+    const userDefaultModel = sessionManager.getUserDefaultModel(username);
+    const baselineModel = channel.benchmark.baselineModelId || userDefaultModel;
+    if (baselineModel) {
+      runBaselineAndCompare(username, id, message, baselineModel, sessionId || `chan_${id}`).catch((err) => {
+        console.error(`[ChannelsRoute] Error running baseline benchmark for channel ${id}:`, err);
+      });
+    } else {
+      console.warn(`[ChannelsRoute] Cannot run baseline benchmark for channel ${id} because no default model is configured for user ${username}.`);
+    }
   }
 
   return c.json({ success: true });

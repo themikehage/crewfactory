@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "fs";
 import { join } from "path";
 import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH, type AgentDefinition, type ChannelMember } from "shared";
+import { sessionManager } from "../core/session-manager";
 
 const BASE_DIR = CREWFACTORY_DATA_PATH();
 
@@ -175,7 +176,7 @@ export class ExperimentStore {
           name: labAgent.name,
           role: labAgent.role,
           systemPrompt: labAgent.systemPrompt,
-          model: labAgent.model || "anthropic/claude-3-5-sonnet",
+          model: labAgent.model || sessionManager.getUserDefaultModel(username) || "",
           skills: [],
         };
         await agentRegistry.register(username, definition, true);

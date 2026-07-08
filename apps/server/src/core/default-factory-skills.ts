@@ -1,3 +1,4 @@
+
 export const DEFAULT_AGENTS_MD = `# Global Factory Director - AGENTS.md
 
 Welcome to CrewFactory. As the Global Factory Director, you are responsible for orchestrating projects, agents, integrations, and capabilities across the entire platform.
