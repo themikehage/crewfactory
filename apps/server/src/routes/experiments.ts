@@ -386,3 +386,28 @@ experimentsRouter.delete("/:id", async (c) => {
   await ExperimentStore.deleteExperiment(username, id);
   return c.json({ success: true });
 });
+
+// Export experiment variant
+experimentsRouter.post("/:id/export", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const { variantKey, channelName } = await c.req.json();
+
+  if (!variantKey || !["single", "multiNoLeader", "multiWithLeader"].includes(variantKey)) {
+    return c.json({ error: "Invalid variantKey" }, 400);
+  }
+
+  try {
+    const result = await ExperimentStore.exportVariant(username, id, variantKey, { channelName });
+    if (!result) return c.json({ error: "Experiment or variant not found" }, 404);
+
+    // Broadcast UI refresh
+    broadcastToUser(username, { type: "entity-updated", entityType: "all" });
+
+    return c.json(result);
+  } catch (e: any) {
+    return c.json({ error: e.message || "Export failed" }, 500);
+  }
+});
+

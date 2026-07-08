@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "fs";
 import { join } from "path";
-import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH } from "shared";
+import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH, type AgentDefinition, type ChannelMember } from "shared";
 
 const BASE_DIR = CREWFACTORY_DATA_PATH();
 
@@ -135,4 +135,123 @@ export class ExperimentStore {
       return null;
     }
   }
+
+  static async exportVariant(
+    username: string,
+    experimentId: string,
+    variantKey: "single" | "multiNoLeader" | "multiWithLeader",
+    options?: { channelName?: string }
+  ): Promise<any> {
+    const experiment = await this.getExperiment(username, experimentId);
+    if (!experiment) {
+      throw new Error("Experiment not found");
+    }
+    if (experiment.status !== "completed") {
+      throw new Error("Experiment is not completed");
+    }
+
+    const variant = experiment.variants[variantKey];
+    if (!variant || !variant.agents || variant.agents.length === 0) {
+      throw new Error(`Variant ${variantKey} not found or has no agents`);
+    }
+
+    const { agentRegistry } = await import("../agents");
+    const { channelStore } = await import("../channels");
+
+    const exportedAgents: { id: string; name: string; created: boolean }[] = [];
+
+    // 1. Export agents
+    for (const labAgent of variant.agents) {
+      const existing = agentRegistry.get(labAgent.id, username);
+      if (existing) {
+        exportedAgents.push({
+          id: labAgent.id,
+          name: labAgent.name,
+          created: false
+        });
+      } else {
+        const definition: AgentDefinition = {
+          id: labAgent.id,
+          name: labAgent.name,
+          role: labAgent.role,
+          systemPrompt: labAgent.systemPrompt,
+          model: labAgent.model || "anthropic/claude-3-5-sonnet",
+          skills: [],
+        };
+        await agentRegistry.register(username, definition, true);
+        exportedAgents.push({
+          id: labAgent.id,
+          name: labAgent.name,
+          created: true
+        });
+      }
+    }
+
+    // 2. Export channel if multi
+    if (variantKey === "single") {
+      return {
+        variantKey,
+        agents: exportedAgents
+      };
+    }
+
+    const defaultChannelName =
+      options?.channelName ||
+      (variantKey === "multiNoLeader"
+        ? `${experiment.name} (Horizontal)`
+        : `${experiment.name} (Jerárquico)`);
+
+    const channel = channelStore.createChannel(username, {
+      name: defaultChannelName,
+      description: `Canal exportado del experimento: ${experiment.name}`,
+      context: [
+        {
+          key: "TASK_CONTEXT",
+          value: experiment.taskPrompt
+        }
+      ]
+    });
+
+    const members: ChannelMember[] = [];
+    if (variantKey === "multiWithLeader") {
+      const leader = variant.agents.find((a) => a.leader);
+      const leaderId = leader?.id;
+      for (const a of variant.agents) {
+        if (a.leader) {
+          members.push({
+            agentId: a.id,
+            replyMode: "user-only",
+            role: "lead"
+          });
+        } else {
+          members.push({
+            agentId: a.id,
+            replyMode: "targeted",
+            targetAgentIds: leaderId ? [leaderId] : [],
+            role: "member"
+          });
+        }
+      }
+    } else {
+      for (const a of variant.agents) {
+        members.push({
+          agentId: a.id,
+          replyMode: "broadcast",
+          role: "member"
+        });
+      }
+    }
+
+    channelStore.updateMembers(username, channel.id, members);
+
+    return {
+      variantKey,
+      channel: {
+        id: channel.id,
+        name: channel.name
+      },
+      agents: exportedAgents
+    };
+  }
 }
+

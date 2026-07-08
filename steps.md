@@ -769,3 +769,13 @@ crear un plan de despliegue facil en vps
 - [x] 84.9 Registrar ruta independiente en AppRouter y separar enrutamiento
 - [x] 84.10 Actualizar about.md y steps.md
 
+## Phase 85: Exportación de Experimentos a Workspace
+- [x] 85.1 Implementar `ExperimentStore.exportVariant` mapeando agentes y canales con UUIDs limpios
+- [x] 85.2 Registrar ruta `POST /:id/export` y disparar evento `entity-updated` vía WebSocket
+- [x] 85.3 Agregar tipos de exportación en el cliente y crear el archivo `ExportExperimentModal.literals.ts`
+- [x] 85.4 Crear el componente modal premium de exportación `ExportExperimentModal.tsx` con Framer Motion
+- [x] 85.5 Integrar el botón verde de exportación en `MainLayout.tsx` y en el menú de opciones del experimento
+- [x] 85.6 Enlazar la apertura del modal en `AppRouter.tsx` y testear la compilación del backend y frontend
+- [x] 85.7 Actualizar steps.md y about.md con el nuevo feature
+
+

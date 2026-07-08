@@ -35,6 +35,7 @@ interface Props {
   onStopExperiment?: (id: string) => void;
   onEditExperiment?: (id: string) => void;
   onJudgeExperiment?: (id: string) => void;
+  onExportExperiment?: (id: string) => void;
   isMobile?: boolean;
   canGoBack?: boolean;
   onBack?: () => void;
@@ -66,6 +67,7 @@ export function MainLayout({
   onStopExperiment,
   onEditExperiment,
   onJudgeExperiment,
+  onExportExperiment,
   isMobile = false,
   canGoBack = false,
   onBack,
@@ -630,6 +632,19 @@ export function MainLayout({
                                 </PortalPopover>
                               </div>
 
+                              {experiments.find((e: any) => e.id === selectedExpId)?.status === "completed" && (
+                                <button
+                                  onClick={() => onExportExperiment?.(selectedExpId)}
+                                  className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-primary/30 hover:border-primary hover:bg-primary/10 text-primary transition-all cursor-pointer bg-primary/5"
+                                  title="Exportar tripulación a Workspace"
+                                >
+                                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                                  </svg>
+                                  <span>Exportar</span>
+                                </button>
+                              )}
+
                               <button
                                 onClick={() => setActionsOpen((p) => !p)}
                                 className="flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
@@ -676,18 +691,32 @@ export function MainLayout({
                                     )}
                                     
                                     {experiments.find((e) => e.id === selectedExpId)?.status === "completed" && (
-                                      <button
-                                        onClick={() => {
-                                          setActionsOpen(false);
-                                          onJudgeExperiment?.(selectedExpId);
-                                        }}
-                                        className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
-                                      >
-                                        <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-primary">
-                                          <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
-                                        </svg>
-                                        Re-evaluar
-                                      </button>
+                                      <>
+                                        <button
+                                          onClick={() => {
+                                            setActionsOpen(false);
+                                            onJudgeExperiment?.(selectedExpId);
+                                          }}
+                                          className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                        >
+                                          <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24" className="text-primary">
+                                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12l2 2 4-4M7.835 4.697a3.42 3.42 0 001.946-.806 3.42 3.42 0 014.438 0 3.42 3.42 0 00.806 1.946 3.42 3.42 0 010 4.438 3.42 3.42 0 00-.806 1.946 3.42 3.42 0 01-3.138 3.138 3.42 3.42 0 00-1.946.806 3.42 3.42 0 01-4.438 0 3.42 3.42 0 00-1.946-.806 3.42 3.42 0 01-3.138-3.138 3.42 3.42 0 00-.806-1.946 3.42 3.42 0 010-4.438 3.42 3.42 0 00.806-1.946 3.42 3.42 0 013.138-3.138z" />
+                                          </svg>
+                                          Re-evaluar
+                                        </button>
+                                        <button
+                                          onClick={() => {
+                                            setActionsOpen(false);
+                                            onExportExperiment?.(selectedExpId);
+                                          }}
+                                          className="w-full px-3 py-1.5 text-xs text-foreground hover:bg-card-hover transition-colors flex items-center gap-2 font-medium cursor-pointer"
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-primary">
+                                            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M7 10l5 5 5-5M12 15V3"/>
+                                          </svg>
+                                          Exportar
+                                        </button>
+                                      </>
                                     )}
 
                                     <button

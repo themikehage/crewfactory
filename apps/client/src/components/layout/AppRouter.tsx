@@ -23,6 +23,7 @@ import { apiFetch } from "@/lib/api";
 import type { Experiment } from "@/types/laboratory";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";
+import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentModal";
 
 export function AppRouter() {
   const { token, user, loading } = useAuth();
@@ -70,6 +71,7 @@ export function AppRouter() {
   const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
   const [runPromptValue, setRunPromptValue] = useState("");
   const [runningExpId, setRunningExpId] = useState<string | null>(null);
+  const [exportingExpId, setExportingExpId] = useState<string | null>(null);
   const [activeVariantTab, setActiveVariantTab] = useState<"chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare">("chat");
 
   const [showDeleteExpConfirm, setShowDeleteExpConfirm] = useState(false);
@@ -507,6 +509,7 @@ export function AppRouter() {
           }
         }}
         onJudgeExperiment={handleJudgeExp}
+        onExportExperiment={(id) => setExportingExpId(id)}
         isMobile={isMobileState.isMobile}
         canGoBack={navigationStack.canGoBack}
         onBack={handleBack}
@@ -625,6 +628,17 @@ export function AppRouter() {
         destructive
         loading={deletingExp}
       />
+      {exportingExpId && (() => {
+        const exp = experiments.find((e) => e.id === exportingExpId);
+        if (!exp) return null;
+        return (
+          <ExportExperimentModal
+            experiment={exp}
+            onClose={() => setExportingExpId(null)}
+            onNavigate={navigate}
+          />
+        );
+      })()}
     </>
   );
 }

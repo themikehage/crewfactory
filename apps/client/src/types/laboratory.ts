@@ -79,3 +79,15 @@ export interface Blueprint {
     taskPrompt: string;
   }[];
 }
+
+export interface ExportPayload {
+  variantKey: "single" | "multiNoLeader" | "multiWithLeader";
+  channelName?: string;
+}
+
+export interface ExportResult {
+  variantKey: "single" | "multiNoLeader" | "multiWithLeader";
+  channel?: { id: string; name: string };
+  agents: { id: string; name: string; created: boolean }[];
+}
+
