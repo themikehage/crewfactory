@@ -1,5 +1,5 @@
 import { createAgentServer } from "./create-agent-server";
-import { type AgentDefinition, type AgentInfo, type AgentStatus, SessionPrefix, getUserDir, CREWFACTORY_DATA_PATH } from "shared";
+import { type AgentDefinition, type AgentInfo, type AgentStatus, SessionPrefix, getUserDir, CREWFACTORY_DATA_PATH, USERS_DIR } from "shared";
 import type { AgentEntry } from "./types";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
@@ -23,14 +23,14 @@ class AgentRegistry {
   }
 
   async init(): Promise<void> {
-    const parentDir = CREWFACTORY_DATA_PATH();
-    if (!existsSync(parentDir)) return;
+    const usersParentDir = join(CREWFACTORY_DATA_PATH(), USERS_DIR);
+    if (!existsSync(usersParentDir)) return;
     try {
-      const userDirs = readdirSync(parentDir, { withFileTypes: true });
+      const userDirs = readdirSync(usersParentDir, { withFileTypes: true });
       for (const userDir of userDirs) {
         if (userDir.isDirectory()) {
           const username = userDir.name;
-          const agentsDir = join(parentDir, username, "agents");
+          const agentsDir = join(usersParentDir, username, "agents");
           if (existsSync(agentsDir)) {
             const entries = readdirSync(agentsDir, { withFileTypes: true });
             for (const entry of entries) {
@@ -40,7 +40,7 @@ class AgentRegistry {
                   try {
                     const def: AgentDefinition = JSON.parse(readFileSync(defPath, "utf-8"));
                     if (!this.agents.has(def.id)) {
-                      await this.register(username, def, false); // don't re-write file
+                      await this.register(username, def, false);
                     }
                   } catch (err) {
                     console.error(`[AgentRegistry] Failed to load persisted agent ${entry.name} for ${username}:`, err);
