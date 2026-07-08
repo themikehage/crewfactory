@@ -9,6 +9,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@xyflow/react": "^12.11.2",
     "clsx": "^2",
     "framer-motion": "^11",
     "lucide-react": "^1.23.0",

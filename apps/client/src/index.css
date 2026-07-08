@@ -1,6 +1,8 @@
 @import "tailwindcss";
+@import "@xyflow/react/dist/style.css";
 
 @custom-variant dark (&:is(.dark *));
+
 
 :root {
   --background: oklch(0.9911 0 0);
@@ -163,7 +165,8 @@
   --color-text-secondary: var(--text-secondary);
   --color-highlight: var(--highlight);
   --color-bg: var(--bg);
-  --color-card-hover: var(--card-hover);
+  --color-surface: var(--card);
+  --color-surface-hover: var(--card-hover);
 
   --font-sans: var(--font-sans);
   --font-mono: var(--font-mono);

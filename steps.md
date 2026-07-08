@@ -778,4 +778,11 @@ crear un plan de despliegue facil en vps
 - [x] 85.6 Enlazar la apertura del modal en `AppRouter.tsx` y testear la compilación del backend y frontend
 - [x] 85.7 Actualizar steps.md y about.md con el nuevo feature
 
-
+## Phase 86: Rebuild Channel Org Chart with @xyflow/react
+- [x] 86.1 Install @xyflow/react and configure stylesheet in index.css
+- [x] 86.2 Build AgentDetailPanel slide-over/bottom-sheet details configuration
+- [x] 86.3 Create AgentFlowNode custom ReactFlow node displaying streaming activity
+- [x] 86.4 Implement OrgFlowCanvas layered auto-positioning ReactFlow graph
+- [x] 86.5 Implement OrgFlowMobile responsive layout list container
+- [x] 86.6 Update ChannelDetailPage and ChannelChatArea to mount first-level Org Chart tab
+- [x] 86.7 Remove obsolete SVG/static hierarchy files and verify compilation

@@ -6,7 +6,7 @@ import type { MentionTarget } from "@/components/chat/ChatInput";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
-import { ChannelOrgChart } from "./ChannelOrgChart";
+import { ChannelOrgTab } from "./ChannelOrgTab";
 import { ChannelTaskLedger } from "./ChannelTaskLedger";
 import { ChannelBenchmarkPanel } from "./ChannelBenchmarkPanel";
 import { ChannelOptimizePanel } from "./ChannelOptimizePanel";
@@ -238,9 +238,14 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
 
       {/* Messages area, Org Chart or Task Ledger */}
       {currentView === "org" ? (
-        <ChannelOrgChart
+        <ChannelOrgTab
+          channelId={activeChannel.id}
           members={channelMembers}
           registeredAgents={registeredAgents}
+          streamingAgents={streamingAgents}
+          onAddMemberClick={() => setShowMembersModal(true)}
+          onUpdateMember={handleUpdateMember}
+          onRemoveMember={handleRemoveMember}
         />
       ) : currentView === "ledger" ? (
         <ChannelTaskLedger
