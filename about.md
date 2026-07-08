@@ -28,6 +28,7 @@
 - **Virtualized Execution Sessions:** API and CLI executions for Agents, Repositories, and Channels are virtualized as read-only sessions in the chat UI. Toggled via a switch in the session popover, showing historical log messages with distinct "API" / "CLI" badges and locking the chat input to prevent interactive steer inputs.
 - **Rutas Jerárquicas Estructuradas:** El router enruta de forma contextualizada las vistas en la URL (ej: `/projects/{projectName}/session/{sessionId}`, `/projects/{projectName}/workspace`, `/agents/{agentId}/...`). Al recargar la página se mantiene al 100% el estado del contexto de trabajo y las breadcrumbs dinámicas reflejan exactamente la jerarquía del usuario (`Proyectos / got / Files`).
 - **Ubicación de Sesiones:** El popover de gestión de sesiones de chat fue movido de la cabecera global a la barra de navegación de pestañas (Chat, Files, Preview) pegado a la derecha, agrupando el control de las sesiones directamente al espacio donde pertenecen.
+- **Modularización del Layout Shell (Layout Refactoring):** El componente layout principal (`MainLayout.tsx`) ha sido refactorizado en múltiples submódulos específicos dentro de `components/layout/` (agrupados en subcarpetas `header`, `mobile`, `sidebar`, `tabs` y `hooks`), logrando un desacoplamiento limpio del gestor de sesiones de laboratorio y chat, y eliminando toda la duplicación de código e interfaces entre las vistas móviles y de escritorio.
 
 ### Multimedia Support (Images & Documents)
 - **Hybrid Input Strategy**:

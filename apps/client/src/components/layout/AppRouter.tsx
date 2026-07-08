@@ -254,10 +254,10 @@ export function AppRouter() {
         path: activeProjectId
           ? `/projects/${activeProjectId}/workspace`
           : activeAgent
-          ? `/agents/${activeAgent.id}/workspace`
-          : activeChannel
-          ? `/channels/${activeChannel.id}/workspace`
-          : "/workspace",
+            ? `/agents/${activeAgent.id}/workspace`
+            : activeChannel
+              ? `/channels/${activeChannel.id}/workspace`
+              : "/workspace",
       };
     }
 
@@ -487,133 +487,134 @@ export function AppRouter() {
         onSelectProject={handleSelectProject}
         onSelectAgent={handleSelectAgent}
         onSelectChannel={handleSelectChannel}
-        selectedExpId={route.page === "laboratory" && route.experimentId ? route.experimentId : null}
-        experiments={experiments}
-        onDeleteExperiment={handleDeleteExp}
-        activeVariantTab={activeVariantTab}
-        setActiveVariantTab={setActiveVariantTab}
-        onRunExperiment={(id) => {
-          const exp = experiments.find((e) => e.id === id);
-          if (exp) {
-            setRunningExpId(id);
-            setRunPromptValue(exp.taskPrompt);
-            setIsRunPromptModalOpen(true);
-          }
-        }}
-        onStopExperiment={handleStopRun}
-        onEditExperiment={(id) => {
-          const exp = experiments.find((e) => e.id === id);
-          if (exp) {
-            setEditingLabExpId(id);
-            setIsLabEditorOpen(true);
-          }
-        }}
-        onJudgeExperiment={handleJudgeExp}
-        onExportExperiment={(id) => setExportingExpId(id)}
         isMobile={isMobileState.isMobile}
         canGoBack={navigationStack.canGoBack}
         onBack={handleBack}
-        /* Run selector props shared with MainLayout clock icon */
-        selectedRunId={selectedRunId}
-        pastRuns={pastRuns}
-        runPopoverOpen={runPopoverOpen}
-        setRunPopoverOpen={setRunPopoverOpen}
-        onSelectRun={handleSelectRun}
+        lab={{
+          selectedExpId: route.page === "laboratory" && route.experimentId ? route.experimentId : null,
+          experiments: experiments,
+          onDeleteExperiment: handleDeleteExp,
+          activeVariantTab: activeVariantTab,
+          setActiveVariantTab: setActiveVariantTab,
+          onRunExperiment: (id) => {
+            const exp = experiments.find((e) => e.id === id);
+            if (exp) {
+              setRunningExpId(id);
+              setRunPromptValue(exp.taskPrompt);
+              setIsRunPromptModalOpen(true);
+            }
+          },
+          onStopExperiment: handleStopRun,
+          onEditExperiment: (id) => {
+            const exp = experiments.find((e) => e.id === id);
+            if (exp) {
+              setEditingLabExpId(id);
+              setIsLabEditorOpen(true);
+            }
+          },
+          onJudgeExperiment: handleJudgeExp,
+          onExportExperiment: (id) => setExportingExpId(id),
+          selectedRunId: selectedRunId,
+          pastRuns: pastRuns,
+          runPopoverOpen: runPopoverOpen,
+          setRunPopoverOpen: setRunPopoverOpen,
+          onSelectRun: handleSelectRun,
+        }}
       >
-      {route.page === "projects" && (
-        <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />
-      )}
-      {route.page === "settings" && (
-        <SettingsPage />
-      )}
-      {route.page === "skills" && (
-        <SkillsPage />
-      )}
-      {route.page === "agents" && (
-        <AgentsPage onSelectAgent={handleSelectAgent} />
-      )}
-      {route.page === "channels" && (
-        <ChannelsPage onNavigate={navigate} onSelectChannel={handleSelectChannel} />
-      )}
-      {route.page === "logs" && (
-        <LogsConsolePage
-          onSelectProject={handleSelectProject}
-          onSelectAgent={handleSelectAgent}
-          onSelectChannel={handleSelectChannel}
-          onNavigate={navigate}
-        />
-      )}
-      {route.page === "laboratory" && !route.experimentId && (
-        <LaboratoryPage
-          onNavigate={navigate}
-          experiments={experiments}
-          setExperiments={setExperiments}
-          isEditorOpen={isLabEditorOpen}
-          setIsEditorOpen={setIsLabEditorOpen}
-          editingExpId={editingLabExpId}
-          isRunPromptModalOpen={isRunPromptModalOpen}
-          setIsRunPromptModalOpen={setIsRunPromptModalOpen}
-          runPromptValue={runPromptValue}
-          setRunPromptValue={setRunPromptValue}
-          setRunningExpId={setRunningExpId}
-          handleConfirmRun={handleConfirmRun}
-        />
-      )}
-      {route.page === "laboratory" && route.experimentId && (
-        <ExperimentDetailPage
-          experimentId={route.experimentId}
-          experiments={experiments}
-          setExperiments={setExperiments}
-          activeVariantTab={activeVariantTab}
-          setActiveVariantTab={setActiveVariantTab}
-          onJudgeExperiment={handleJudgeExp}
-          isRunPromptModalOpen={isRunPromptModalOpen}
-          setIsRunPromptModalOpen={setIsRunPromptModalOpen}
-          runPromptValue={runPromptValue}
-          setRunPromptValue={setRunPromptValue}
-          setRunningExpId={setRunningExpId}
-          handleConfirmRun={handleConfirmRun}
-          selectedRunId={selectedRunId}
-          selectedRunData={selectedRunData}
-          onRefreshRuns={() => currentExpId && fetchPastRuns(currentExpId)}
-        />
-      )}
-      {route.page === "mcps" && (
-        <MCPMarketplacePage />
-      )}
-      {route.page === "plugins" && (
-        <PluginsPage />
-      )}
-      {route.page === "channel" && (
-        <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
-      )}
-      {route.page === "workspace" && (
-        <WorkspacePanel
-          key={activeProjectId || activeAgent?.id || activeChannel?.id || "global"}
-          activeProjectName={activeProjectId}
-          activeAgentId={activeAgent?.id}
-          activeChannelId={activeChannel?.id}
-        />
-      )}
-      {route.page === "chat" && (
-        activeChannel ? (
-          <ChannelChatArea
-            key={`${route.sessionId}-${activeChannel.id}`}
-            activeChannel={activeChannel}
-            sessionId={route.sessionId}
+        {route.page === "projects" && (
+          <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />
+        )}
+        {route.page === "settings" && (
+          <SettingsPage />
+        )}
+        {route.page === "skills" && (
+          <SkillsPage />
+        )}
+        {route.page === "agents" && (
+          <AgentsPage onSelectAgent={handleSelectAgent} />
+        )}
+        {route.page === "channels" && (
+          <ChannelsPage onNavigate={navigate} onSelectChannel={handleSelectChannel} />
+        )}
+        {route.page === "logs" && (
+          <LogsConsolePage
+            onSelectProject={handleSelectProject}
+            onSelectAgent={handleSelectAgent}
+            onSelectChannel={handleSelectChannel}
+            onNavigate={navigate}
           />
-        ) : (
-          <ChatArea
-            key={`${route.sessionId}-${activeProjectId}-${activeAgent?.id}`}
-            sessionId={route.sessionId}
+        )}
+        {route.page === "laboratory" && !route.experimentId && (
+          <LaboratoryPage
+            onNavigate={navigate}
+            experiments={experiments}
+            setExperiments={setExperiments}
+            isEditorOpen={isLabEditorOpen}
+            setIsEditorOpen={setIsLabEditorOpen}
+            editingExpId={editingLabExpId}
+            isRunPromptModalOpen={isRunPromptModalOpen}
+            setIsRunPromptModalOpen={setIsRunPromptModalOpen}
+            runPromptValue={runPromptValue}
+            setRunPromptValue={setRunPromptValue}
+            setRunningExpId={setRunningExpId}
+            handleConfirmRun={handleConfirmRun}
+          />
+        )}
+        {route.page === "laboratory" && route.experimentId && (
+          <ExperimentDetailPage
+            experimentId={route.experimentId}
+            experiments={experiments}
+            setExperiments={setExperiments}
+            activeVariantTab={activeVariantTab}
+            setActiveVariantTab={setActiveVariantTab}
+            onJudgeExperiment={handleJudgeExp}
+            isRunPromptModalOpen={isRunPromptModalOpen}
+            setIsRunPromptModalOpen={setIsRunPromptModalOpen}
+            runPromptValue={runPromptValue}
+            setRunPromptValue={setRunPromptValue}
+            setRunningExpId={setRunningExpId}
+            handleConfirmRun={handleConfirmRun}
+            selectedRunId={selectedRunId}
+            selectedRunData={selectedRunData}
+            onRefreshRuns={() => currentExpId && fetchPastRuns(currentExpId)}
+          />
+        )}
+        {route.page === "mcps" && (
+          <MCPMarketplacePage />
+        )}
+        {route.page === "plugins" && (
+          <PluginsPage />
+        )}
+        {route.page === "channel" && (
+          <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
+        )}
+        {route.page === "workspace" && (
+          <WorkspacePanel
+            key={activeProjectId || activeAgent?.id || activeChannel?.id || "global"}
             activeProjectName={activeProjectId}
-            activeAgent={activeAgent}
+            activeAgentId={activeAgent?.id}
+            activeChannelId={activeChannel?.id}
           />
-        )
-      )}
-      {route.page === "preview" && (
-        <PreviewPanel activeProjectName={activeProjectId} />
-      )}
+        )}
+        {route.page === "chat" && (
+          activeChannel ? (
+            <ChannelChatArea
+              key={`${route.sessionId}-${activeChannel.id}`}
+              activeChannel={activeChannel}
+              sessionId={route.sessionId}
+            />
+          ) : (
+            <ChatArea
+              key={`${route.sessionId}-${activeProjectId}-${activeAgent?.id}`}
+              sessionId={route.sessionId}
+              activeProjectName={activeProjectId}
+              activeAgent={activeAgent}
+            />
+          )
+        )}
+        {route.page === "preview" && (
+          <PreviewPanel activeProjectName={activeProjectId} />
+        )}
       </MainLayout>
       <ConfirmModal
         open={showDeleteExpConfirm}
