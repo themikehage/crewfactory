@@ -12,7 +12,7 @@
   },
   "volumes": [
     {
-      "path": "/tmp/crewfactory",
+      "path": "/app/data",
       "description": "Persistent workspace: sessions, repos, uploads, memories"
     }
   ],

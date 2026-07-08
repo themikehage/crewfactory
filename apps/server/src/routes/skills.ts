@@ -4,6 +4,7 @@ import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { getResolvedSkillPaths } from "../core/session-manager";
 import { join } from "node:path";
+import { getWorkspaceDir, getUserDir } from "shared";
 
 export const skillsRouter = new Hono();
 
@@ -13,11 +14,11 @@ skillsRouter.get("/", async (c) => {
   const { username } = getAuthPayload(c);
 
   try {
-    const workspaceDir = `/tmp/crewfactory/${username}/workspace`;
+    const workspaceDir = getWorkspaceDir(username);
     const skillPaths = getResolvedSkillPaths(workspaceDir);
     const result = loadSkills({
       cwd: workspaceDir,
-      agentDir: `/tmp/crewfactory/${username}`,
+      agentDir: getUserDir(username),
       skillPaths,
       includeDefaults: true,
     });
@@ -51,7 +52,7 @@ skillsRouter.post("/reset", async (c) => {
   const { username } = getAuthPayload(c);
   try {
     const { DEFAULT_FACTORY_SKILLS } = await import("../core/default-factory-skills");
-    const userDir = `/tmp/crewfactory/${username}`;
+    const userDir = getUserDir(username);
     const workspaceDir = join(userDir, "workspace");
     const skillsBaseDir = join(workspaceDir, ".agents", "skills");
 

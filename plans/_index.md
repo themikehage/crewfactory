@@ -5,6 +5,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ## Pendientes
 
+- [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose: paths configurables via env vars, entrypoint con inicializacion, volumenes nombrados en /app/data, y migracion automatica de datos legacy.
 - [multi-agent-primitives-refactor.md](./multi-agent-primitives-refactor.md) — Refactorizacion a 4 primitivas componibles (spawn, delegate, negotiate, arbitrate). Consolida 7+ flujos multi-agente, elimina duplicacion, extrae protocolos reutilizables.
 - [laboratory-agent-experience.md](./laboratory-agent-experience.md) — Laboratorio como sesion de chat con agente + tool `create_experiment`. Iteracion conversacional sobre experimentos, formulario editable convertido en tab de visualizacion, y eliminacion de IaGenerator (800 lineas).
 - [agent-channel-gallery.md](./agent-channel-gallery.md) — Galería comunitaria de plantillas de agentes y canales, con instalación en 1 clic, exportación, y curación vía PRs.

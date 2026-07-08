@@ -4,7 +4,7 @@ import { join } from "node:path";
 import { authMiddleware } from "../middleware/auth.js";
 import { getUsername } from "../lib/auth-helpers.js";
 import { mcpRegistry, MCP_CATALOG } from "../core/mcp-registry.js";
-import { McpServerConfigSchema, McpConfigSchema } from "shared";
+import { McpServerConfigSchema, McpConfigSchema, getWorkspaceDir } from "shared";
 
 export const mcpRouter = new Hono();
 
@@ -184,7 +184,7 @@ mcpRouter.post("/catalog/:id/install", async (c) => {
   }
   
   const config = mcpRegistry.loadConfig(username);
-  const userWorkspace = join("/tmp/crewfactory", username, "workspace");
+  const userWorkspace = getWorkspaceDir(username);
   const processedArgs = catalogItem.args?.map(arg => 
     arg.replace("$WORKSPACE_DIR", userWorkspace)
   ) || [];

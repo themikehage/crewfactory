@@ -1,7 +1,6 @@
 import { appendFileSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
-
-const AUDIT_DIR = "/tmp/crewfactory/_audit";
+import { getAuditDir } from "shared";
 
 export function auditLog(
   username: string,
@@ -9,7 +8,7 @@ export function auditLog(
   details: Record<string, unknown>
 ): void {
   try {
-    const logDir = join(AUDIT_DIR, username);
+    const logDir = join(getAuditDir(), username);
     mkdirSync(logDir, { recursive: true });
 
     const entry = {

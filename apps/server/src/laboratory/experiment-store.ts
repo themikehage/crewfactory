@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "fs";
 import { join } from "path";
-import { type LabExperiment, type LabBlueprint, LabBlueprintSchema } from "shared";
+import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH } from "shared";
 
-const BASE_DIR = "/tmp/crewfactory";
+const BASE_DIR = CREWFACTORY_DATA_PATH();
 
 export class ExperimentStore {
   static getExperimentsDir(username: string): string {

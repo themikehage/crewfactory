@@ -77,7 +77,7 @@ docker run -d \
   --restart unless-stopped \
   -p 3000:3000 \
   -p 3001:3001 \
-  -v crewfactory-data:/tmp/crewfactory \
+  -v crewfactory-data:/app/data \
   -e JWT_SECRET="your-secret" \
   -e AUTH_USERNAME="admin" \
   -e AUTH_PASSWORD_HASH="your-base64-hash" \

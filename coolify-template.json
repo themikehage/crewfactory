@@ -16,7 +16,7 @@
       "ports": ["3000:3000", "3001:3001"],
       "volumes": [
         {
-          "mountPath": "/tmp/crewfactory",
+          "mountPath": "/app/data",
           "description": "Persistent workspace data (sessions, repos, uploads)"
         }
       ],

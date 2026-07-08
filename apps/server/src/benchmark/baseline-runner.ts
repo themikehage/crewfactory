@@ -27,7 +27,9 @@ export interface AutomaticMetrics {
   baseline: BaselineResult;
 }
 
-const BENCHMARKS_DIR = "/tmp/crewfactory";
+import { CREWFACTORY_DATA_PATH } from "shared";
+
+const BENCHMARKS_DIR = CREWFACTORY_DATA_PATH();
 
 function getBenchDir(username: string, channelId: string): string {
   const dir = join(BENCHMARKS_DIR, username, "benchmarks", channelId);

@@ -1,7 +1,7 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
-import { join } from "node:path";
 import { McpClient } from "./mcp-client.js";
 import type { McpServerConfig, McpConfig, McpCatalogItem } from "shared";
+import { getUserDir, getWorkspaceDir, getMcpServersPath, getMcpConfigOldPath } from "shared";
 
 export const MCP_CATALOG: McpCatalogItem[] = [
   {
@@ -176,11 +176,11 @@ export class McpRegistry {
   private globalClients = new Map<string, McpClient>(); // key = `${username}:${serverId}` for test/manual connections
 
   private getConfigFile(username: string): string {
-    return join("/tmp/crewfactory", username, "mcp-servers.json");
+    return getMcpServersPath(username);
   }
 
   getDefaultConfig(username: string): McpConfig {
-    const userWorkspace = join("/tmp/crewfactory", username, "workspace");
+    const userWorkspace = getWorkspaceDir(username);
     return {
       mcpServers: {
         filesystem: {
@@ -222,7 +222,7 @@ export class McpRegistry {
 
   loadConfig(username: string): McpConfig {
     const path = this.getConfigFile(username);
-    const oldPath = join("/tmp/crewfactory", username, "mcp-config.json");
+    const oldPath = getMcpConfigOldPath(username);
     let config: McpConfig | null = null;
 
     if (existsSync(path)) {
@@ -260,7 +260,7 @@ export class McpRegistry {
       const catalogItem = MCP_CATALOG.find(c => c.id === key);
       if (srv.isBuiltin && srv.command === "npx" && catalogItem) {
         srv.command = "bunx";
-        const userWorkspace = join("/tmp/crewfactory", username, "workspace");
+        const userWorkspace = getWorkspaceDir(username);
         srv.args = catalogItem.args?.map(arg => 
           arg.replace("$WORKSPACE_DIR", userWorkspace)
         ) || [];
@@ -278,7 +278,7 @@ export class McpRegistry {
 
   saveConfig(username: string, config: McpConfig): void {
     const path = this.getConfigFile(username);
-    const dir = join("/tmp/crewfactory", username);
+    const dir = getUserDir(username);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -300,7 +300,7 @@ export class McpRegistry {
 
         // Lazily connect the global server if it isn't running already
         if (!client) {
-          const userWorkspace = join("/tmp/crewfactory", username, "workspace");
+          const userWorkspace = getWorkspaceDir(username);
           const processedArgs = srv.args?.map(arg => 
             arg.replace("$WORKSPACE_DIR", userWorkspace)
           ) || [];
@@ -395,7 +395,7 @@ export class McpRegistry {
   }
 
   async testConnection(username: string, serverConfig: McpServerConfig): Promise<{ success: boolean; tools: string[]; error?: string }> {
-    const userWorkspace = join("/tmp/crewfactory", username, "workspace");
+    const userWorkspace = getWorkspaceDir(username);
     const processedArgs = serverConfig.args?.map(arg => 
       arg.replace("$WORKSPACE_DIR", userWorkspace)
     ) || [];
@@ -446,7 +446,7 @@ export class McpRegistry {
       this.globalClients.delete(key);
     }
 
-    const userWorkspace = join("/tmp/crewfactory", username, "workspace");
+    const userWorkspace = getWorkspaceDir(username);
     const processedArgs = srv.args?.map(arg => 
       arg.replace("$WORKSPACE_DIR", userWorkspace)
     ) || [];

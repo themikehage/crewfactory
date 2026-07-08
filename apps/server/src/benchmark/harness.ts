@@ -1,4 +1,4 @@
-import { type Channel, type ChannelMessage, SessionPrefix } from "shared";
+import { type Channel, type ChannelMessage, SessionPrefix, getChannelBenchmarkDir, getChannelBenchmarkReportPath } from "shared";
 import { channelOrchestrator, channelStore } from "../channels/index.js";
 import { sessionManager } from "../core/session-manager.js";
 import { computeGlobalScore } from "./scoring.js";
@@ -235,7 +235,7 @@ export async function runBenchmarkSuite(
 
   // Generate report
   const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-  const reportDir = join("/tmp/crewfactory", username, "benchmarks", channelId, timestamp);
+  const reportDir = getChannelBenchmarkDir(username, channelId, timestamp);
   mkdirSync(reportDir, { recursive: true });
 
   let md = `# Reporte de Benchmark de Eficiencia: ${channel.name}\n\n`;
@@ -269,7 +269,7 @@ export async function runBenchmarkSuite(
   }
 
   const reportPath = join(reportDir, "report.md");
-  const reportLatestPath = join("/tmp/crewfactory", username, "benchmarks", channelId, "latest-report.md");
+  const reportLatestPath = getChannelBenchmarkReportPath(username, channelId);
   
   writeFileSync(reportPath, md, "utf-8");
   writeFileSync(reportLatestPath, md, "utf-8");

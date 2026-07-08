@@ -6,6 +6,7 @@ import { rmSync, mkdirSync, existsSync } from "node:fs";
 import { readdir } from "node:fs/promises";
 import { join, relative } from "node:path";
 import AdmZip from "adm-zip";
+import { getUserDir } from "shared";
 
 export const backupRouter = new Hono();
 backupRouter.use("/*", authMiddleware);
@@ -68,7 +69,7 @@ async function addFilesRecursively(
 backupRouter.get("/export", async (c) => {
   const { username } = getAuthPayload(c);
   const type = c.req.query("type") === "full" ? "full" : "light";
-  const userDir = `/tmp/crewfactory/${username}`;
+  const userDir = getUserDir(username);
 
   if (!existsSync(userDir)) {
     return c.json({ error: "User directory not found" }, 404);
@@ -104,7 +105,7 @@ backupRouter.post("/import", async (c) => {
     return c.json({ error: "No backup file uploaded" }, 400);
   }
 
-  const userDir = `/tmp/crewfactory/${username}`;
+  const userDir = getUserDir(username);
 
   try {
     // 1. Safe shutdown of active user sessions

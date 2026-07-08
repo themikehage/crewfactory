@@ -1,8 +1,7 @@
 import { spawn } from "node:child_process";
-import { resolve } from "node:path";
 import { broadcastToUser } from "../ws/handler";
 import { getBuildCommand } from "./preview-config";
-import type { PreviewConfig } from "shared";
+import { type PreviewConfig, getProjectWorkspaceDir } from "shared";
 
 const activeBuilds = new Map<string, AbortController>();
 
@@ -31,7 +30,7 @@ export async function runBuild(
     return { success: false, exitCode: null };
   }
 
-  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+  const projectDir = getProjectWorkspaceDir(username, projectName);
   const command = getBuildCommand(config, username, projectName);
 
   if (!command) {

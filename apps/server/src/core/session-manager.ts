@@ -11,7 +11,15 @@ import {
 } from "../ai";
 import { existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { readdir, readFile } from "node:fs/promises";
-import { AVAILABLE_TOOLS, SessionPrefix } from "shared";
+import {
+  AVAILABLE_TOOLS, SessionPrefix,
+  getUserDir, getWorkspaceDir, getWorkspaceSkillsDir, getSessionsDir, getSessionDir, getProjectsDir,
+  ensureUserDir, ensureSessionDir, ensureAllDirs,
+  getEnvPath, getSettingsPath, getCredentialsPath, getAuthPath,
+  getProjectDir, getProjectWorkspaceDir, getChannelDir, getChannelWorkspaceDir, getAgentDir, getAgentWorkspaceDir,
+  getTasksPath, getMemoryDbPath, getSessionMetadataPath,
+  getChannelMessagesPath,
+} from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
 import { eventBroker } from "../lib/event-broker";
 import { join, resolve, dirname } from "node:path";
@@ -32,7 +40,7 @@ export function getResolvedSkillPaths(cwd: string, username?: string): string[] 
 
   // Todas las entidades (proyectos, agentes, canales) ven las factory skills globales
   if (username) {
-    const factorySkillsDir = resolve(`/tmp/crewfactory/${username}`, "workspace", ".agents", "skills");
+    const factorySkillsDir = getWorkspaceSkillsDir(username);
     if (existsSync(factorySkillsDir) && !paths.includes(factorySkillsDir)) {
       paths.push(factorySkillsDir);
     }
@@ -80,12 +88,12 @@ export function ensureWorkspaceSubdirs(workspaceDir: string): void {
 }
 
 export function ensureWorkspaceStructure(username: string): string {
-  const userDir = `/tmp/crewfactory/${username}`;
-  const workspaceDir = join(userDir, "workspace");
+  const userDir = getUserDir(username);
+  const workspaceDir = getWorkspaceDir(username);
   const skillsBaseDir = join(workspaceDir, ".agents", "skills");
 
   ensureWorkspaceSubdirs(workspaceDir);
-  mkdirSync(join(userDir, "projects"), { recursive: true });
+  mkdirSync(getProjectsDir(username), { recursive: true });
 
   const agentsMdPath = join(workspaceDir, "AGENTS.md");
   if (!existsSync(agentsMdPath)) {
@@ -148,7 +156,7 @@ class SessionManager {
   }
 
   ensureUserDir(username: string): string {
-    const dir = `/tmp/crewfactory/${username}`;
+    const dir = getUserDir(username);
     if (!existsSync(dir)) {
       mkdirSync(dir, { recursive: true });
     }
@@ -157,7 +165,7 @@ class SessionManager {
 
   getUserEnv(username: string): Record<string, string> {
     const userDir = this.ensureUserDir(username);
-    const envPath = join(userDir, "env.json");
+    const envPath = getEnvPath(username);
     if (!existsSync(envPath)) return {};
     const raw = readFileSync(envPath, "utf-8");
     if (!raw.trim()) return {};
@@ -187,7 +195,7 @@ class SessionManager {
 
   setUserEnvMap(username: string, env: Record<string, string>): void {
     const userDir = this.ensureUserDir(username);
-    const envPath = join(userDir, "env.json");
+    const envPath = getEnvPath(username);
     const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
     const encrypted = encryptEnv(JSON.stringify(env), jwtSecret);
     writeFileSync(envPath, encrypted, "utf-8");
@@ -201,7 +209,7 @@ class SessionManager {
 
   getUserSettings(username: string): Record<string, any> {
     const userDir = this.ensureUserDir(username);
-    const settingsPath = join(userDir, "settings.json");
+    const settingsPath = getSettingsPath(username);
     if (!existsSync(settingsPath)) return {};
     try {
       const raw = readFileSync(settingsPath, "utf-8");
@@ -214,7 +222,7 @@ class SessionManager {
 
   saveUserSettings(username: string, settings: Record<string, any>): void {
     const userDir = this.ensureUserDir(username);
-    const settingsPath = join(userDir, "settings.json");
+    const settingsPath = getSettingsPath(username);
     const current = this.getUserSettings(username);
     const updated = { ...current, ...settings };
     writeFileSync(settingsPath, JSON.stringify(updated, null, 2), "utf-8");
@@ -225,7 +233,7 @@ class SessionManager {
     if (existing) return existing;
 
     const userDir = this.ensureUserDir(username);
-    const authStorage = AuthStorage.create(`${userDir}/auth.json`);
+    const authStorage = AuthStorage.create(getAuthPath(username));
     const modelRegistry = ModelRegistry.create(authStorage);
 
     modelRegistry.refresh();
@@ -269,7 +277,7 @@ class SessionManager {
     const initPromise = (async () => {
       try {
         const userDir = this.ensureUserDir(username);
-        const sessionDir = `${userDir}/sessions/${sessionId}`;
+        const sessionDir = getSessionDir(username, sessionId);
 
         if (!existsSync(sessionDir)) {
           mkdirSync(sessionDir, { recursive: true });
@@ -305,14 +313,14 @@ class SessionManager {
     ensureWorkspaceStructure(username);
 
     // Asignar cwd dinÃ¡micamente segÃºn el contexto (Repo vs Agent vs Channel vs Global)
-    const workspaceBase = join(userDir, "workspace");
+    const workspaceBase = getWorkspaceDir(username);
     let workspaceDir = workspaceBase;
     if (resolvedChannelId) {
-      workspaceDir = join(userDir, "channels", resolvedChannelId, "workspace");
+      workspaceDir = getChannelWorkspaceDir(username, resolvedChannelId);
     } else if (resolvedAgentId) {
-      workspaceDir = join(userDir, "agents", resolvedAgentId, "workspace");
+      workspaceDir = getAgentWorkspaceDir(username, resolvedAgentId);
     } else if (resolvedProjectName) {
-      workspaceDir = resolve(userDir, "projects", resolvedProjectName, "workspace");
+      workspaceDir = getProjectWorkspaceDir(username, resolvedProjectName);
     }
 
     if (!existsSync(workspaceDir)) {
@@ -516,7 +524,7 @@ When designing a team:
 
     const resourceLoader = new DefaultResourceLoader({
       cwd: workspaceDir,
-      agentDir: userDir,
+      agentDir: getUserDir(username),
       additionalSkillPaths: skillPaths,
       appendSystemPrompt: appendPrompts,
     });
@@ -567,7 +575,7 @@ When designing a team:
     const exaSearchTool = createExaSearchTool({ username });
     const userSettings = this.getUserSettings(username);
     const memoryEnabled = userSettings.memoryEnabled ?? true;
-    const memoryDbPath = join(userDir, "sessions", sessionId, "memory", "memory.db");
+    const memoryDbPath = getMemoryDbPath(username, sessionId);
     const memory = await memoryRegistry.get(`session:${sessionId}`, memoryDbPath, memoryEnabled);
     const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
 
@@ -820,7 +828,7 @@ When designing a team:
     mcpRegistry.stopSessionMcpTools(username, sessionId);
     await memoryRegistry.shutdown(`session:${sessionId}`);
     const userDir = this.ensureUserDir(username);
-    const sessionDir = join(userDir, "sessions", sessionId);
+    const sessionDir = getSessionDir(username, sessionId);
     if (existsSync(sessionDir)) {
       rmSync(sessionDir, { recursive: true, force: true });
     }
@@ -828,7 +836,7 @@ When designing a team:
 
   saveSessionMetadata(username: string, sessionId: string, data: Record<string, unknown>): void {
     const userDir = this.ensureUserDir(username);
-    const sessionDir = join(userDir, "sessions", sessionId);
+    const sessionDir = getSessionDir(username, sessionId);
     if (!existsSync(sessionDir)) {
       mkdirSync(sessionDir, { recursive: true });
     }
@@ -843,7 +851,7 @@ When designing a team:
 
   getSessionMetadata(username: string, sessionId: string): Record<string, any> | null {
     const userDir = this.ensureUserDir(username);
-    const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");
+    const metadataPath = getSessionMetadataPath(username, sessionId);
     if (existsSync(metadataPath)) {
       try {
         return JSON.parse(readFileSync(metadataPath, "utf-8"));
@@ -855,7 +863,7 @@ When designing a team:
 
   async listSessions(username: string): Promise<SessionListItem[]> {
     const userDir = this.ensureUserDir(username);
-    const sessionsDir = join(userDir, "sessions");
+    const sessionsDir = getSessionsDir(username);
     if (!existsSync(sessionsDir)) return [];
 
     try {
@@ -929,7 +937,7 @@ When designing a team:
         const { agentRegistry } = await import("../agents");
         const agentsList = agentRegistry.list(username);
         for (const agent of agentsList) {
-          const execsDir = join(userDir, "agents", agent.id, "executions");
+          const execsDir = join(getAgentDir(username, agent.id), "executions");
           if (existsSync(execsDir)) {
             const execFolders = readdirSync(execsDir);
             for (const f of execFolders) {
@@ -958,12 +966,12 @@ When designing a team:
 
       // 2. Ejecuciones de Proyectos
       try {
-        const projectsDir = join(userDir, "projects");
+        const projectsDir = getProjectsDir(username);
         if (existsSync(projectsDir)) {
           const projectFolders = readdirSync(projectsDir, { withFileTypes: true });
           for (const entry of projectFolders) {
             if (entry.isDirectory()) {
-              const execsDir = join(projectsDir, entry.name, "executions");
+              const execsDir = join(getProjectDir(username, entry.name), "executions");
               if (existsSync(execsDir)) {
                 const execFolders = readdirSync(execsDir);
                 for (const f of execFolders) {
@@ -997,7 +1005,7 @@ When designing a team:
         const { channelStore } = await import("../channels");
         const channelsList = channelStore.listChannels(username);
         for (const channel of channelsList) {
-          const msgsPath = join(userDir, "channels", channel.id, "messages.jsonl");
+          const msgsPath = getChannelMessagesPath(username, channel.id);
           if (existsSync(msgsPath)) {
             const fileContent = readFileSync(msgsPath, "utf-8");
             const lines = fileContent.trim().split("\n");
@@ -1059,7 +1067,7 @@ When designing a team:
 
   persistSessionTools(username: string, sessionId: string, tools: string[]): void {
     const userDir = this.ensureUserDir(username);
-    const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");
+    const metadataPath = getSessionMetadataPath(username, sessionId);
     let metadata: Record<string, unknown> = {};
     if (existsSync(metadataPath)) {
       try { metadata = JSON.parse(readFileSync(metadataPath, "utf-8")); } catch {}
@@ -1070,7 +1078,7 @@ When designing a team:
 
   getSessionTools(username: string, sessionId: string): string[] {
     const userDir = this.ensureUserDir(username);
-    const metadataPath = join(userDir, "sessions", sessionId, "metadata.json");
+    const metadataPath = getSessionMetadataPath(username, sessionId);
     if (!existsSync(metadataPath)) return [...AVAILABLE_TOOLS];
     try {
       const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
@@ -1083,7 +1091,7 @@ When designing a team:
 
   getUserPasswordHash(username: string): string | null {
     const userDir = this.ensureUserDir(username);
-    const credPath = join(userDir, "credentials.json");
+    const credPath = getCredentialsPath(username);
     if (!existsSync(credPath)) return null;
     try {
       const data = JSON.parse(readFileSync(credPath, "utf-8"));
@@ -1095,7 +1103,7 @@ When designing a team:
 
   setUserPasswordHash(username: string, hashB64: string): void {
     const userDir = this.ensureUserDir(username);
-    const credPath = join(userDir, "credentials.json");
+    const credPath = getCredentialsPath(username);
     writeFileSync(credPath, JSON.stringify({ passwordHash: hashB64 }, null, 2), "utf-8");
   }
 

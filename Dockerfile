@@ -31,18 +31,20 @@ WORKDIR /app
 COPY --from=builder /app/apps/server/dist ./dist
 COPY --from=builder /app/apps/client/dist ./public
 COPY --from=builder /app/node_modules ./node_modules
+COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /tmp/crewfactory && chown crewfactory:crewfactory /tmp/crewfactory
+RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
 EXPOSE 3000
 EXPOSE 3001
 
 ENV PORT=3000
 ENV ENGRAM_SQLITE_DRIVER=bun
+ENV CREWFACTORY_DATA_PATH=/app/data
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
 USER crewfactory
-
+ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["bun", "run", "dist/index.js"]

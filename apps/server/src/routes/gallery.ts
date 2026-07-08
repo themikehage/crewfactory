@@ -5,6 +5,7 @@ import { existsSync, readdirSync, readFileSync, writeFileSync, mkdirSync, copyFi
 import { join } from "node:path";
 import { agentRegistry } from "../agents";
 import { channelStore } from "../channels";
+import { getWorkspaceSkillsDir, getAgentDir } from "shared";
 
 export const galleryRouter = new Hono();
 
@@ -142,7 +143,7 @@ galleryRouter.post("/blueprints/:id/install", async (c) => {
 
       // Provision skills if needed
       if (definition.skills && definition.skills.length > 0) {
-        const userWorkspaceSkillsDir = join("/tmp/crewfactory", username, "workspace", ".agents", "skills");
+        const userWorkspaceSkillsDir = getWorkspaceSkillsDir(username);
         const communitySkillsDir = join(communityDir, "skills");
 
         for (const skillName of definition.skills) {
@@ -164,7 +165,7 @@ galleryRouter.post("/blueprints/:id/install", async (c) => {
       // Copy avatar icon if present
       const bpIconPath = join(communityDir, "agents", id, "icon.svg");
       if (existsSync(bpIconPath)) {
-        const agentDir = join("/tmp/crewfactory", username, "agents", definition.id);
+        const agentDir = getAgentDir(username, definition.id);
         mkdirSync(agentDir, { recursive: true });
         copyFileSync(bpIconPath, join(agentDir, "avatar.svg"));
         agentRegistry.setAvatarUrl(username, definition.id, `/api/agents/${definition.id}/avatar`);
@@ -203,7 +204,7 @@ galleryRouter.post("/blueprints/:id/install", async (c) => {
 
               // Provision skills for this agent
               if (agentDef.skills && agentDef.skills.length > 0) {
-                const userWorkspaceSkillsDir = join("/tmp/crewfactory", username, "workspace", ".agents", "skills");
+                const userWorkspaceSkillsDir = getWorkspaceSkillsDir(username);
                 const communitySkillsDir = join(communityDir, "skills");
 
                 for (const skillName of agentDef.skills) {
@@ -224,7 +225,7 @@ galleryRouter.post("/blueprints/:id/install", async (c) => {
               // Copy avatar icon if present
               const bpIconPath = join(communityDir, "agents", m.agentId, "icon.svg");
               if (existsSync(bpIconPath)) {
-                const agentDir = join("/tmp/crewfactory", username, "agents", agentDef.id);
+                const agentDir = getAgentDir(username, agentDef.id);
                 mkdirSync(agentDir, { recursive: true });
                 copyFileSync(bpIconPath, join(agentDir, "avatar.svg"));
                 agentRegistry.setAvatarUrl(username, agentDef.id, `/api/agents/${agentDef.id}/avatar`);

@@ -4,7 +4,7 @@ import { zValidator } from "@hono/zod-validator";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { SaveTemplatesSchema } from "shared";
+import { SaveTemplatesSchema, getIntegrationsPath, getUserDir } from "shared";
 
 const DEFAULT_TEMPLATES = [
   {
@@ -122,13 +122,9 @@ interface IntegrationsFile {
   projectBindings: Record<string, Record<string, string>>;
 }
 
-function getIntegrationsPath(username: string): string {
-  return join("/tmp/crewfactory", username, "integrations.json");
-}
-
 function loadIntegrations(username: string): IntegrationsFile {
   const filePath = getIntegrationsPath(username);
-  const userDir = join("/tmp/crewfactory", username);
+  const userDir = getUserDir(username);
   if (!existsSync(userDir)) {
     mkdirSync(userDir, { recursive: true });
   }

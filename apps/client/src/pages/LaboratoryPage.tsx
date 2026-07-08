@@ -259,7 +259,7 @@ export function LaboratoryPage({
   return (
     <div className="flex h-full min-h-0 bg-background text-foreground font-body">
       {/* Area Principal de Contenido */}
-      <div className="flex-1 min-w-0 bg-background flex flex-col p-6 overflow-y-auto">
+      <div className="flex-1 min-w-0 bg-background flex flex-col overflow-y-auto">
         <AnimatePresence mode="wait">
           {!selectedExpId ? (
             <motion.div

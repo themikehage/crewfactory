@@ -1,7 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, statSync, openSync, fstatSync, readSync, closeSync, renameSync } from "node:fs";
 import { join } from "node:path";
 import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
-import { SessionPrefix } from "shared";
+import { SessionPrefix, getChannelsDir } from "shared";
 
 export interface NegotiationPairState {
   rounds: number;
@@ -13,7 +13,7 @@ export type NegotiationState = Record<string, NegotiationPairState>;
 
 class ChannelStore {
   private getBaseDir(username: string): string {
-    return join("/tmp/crewfactory", username, "channels");
+    return getChannelsDir(username);
   }
 
   private getChannelDir(username: string, id: string): string {

@@ -1,6 +1,6 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
-import type { PreviewConfig, FrameworkPreset } from "shared";
+import { type PreviewConfig, type FrameworkPreset, getProjectWorkspaceDir } from "shared";
 
 interface FrameworkPresetDef {
   framework: FrameworkPreset;
@@ -36,7 +36,7 @@ const FRAMEWORK_PRESETS: Record<string, FrameworkPresetDef[]> = {
 };
 
 function configPath(username: string, projectName: string): string {
-  const base = `/tmp/crewfactory/${username}/projects/${projectName}/workspace`;
+  const base = getProjectWorkspaceDir(username, projectName);
   return resolve(base, ".preview.json");
 }
 
@@ -102,7 +102,7 @@ function detectFromConfigFiles(projectDir: string): FrameworkPresetDef | null {
 }
 
 function autoDetectFramework(username: string, projectName: string): PreviewConfig {
-  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+  const projectDir = getProjectWorkspaceDir(username, projectName);
 
   if (!existsSync(projectDir)) {
     return { framework: "html", buildCommand: undefined, outputDir: undefined, autoDetected: true };
@@ -180,7 +180,7 @@ export function savePreviewConfig(
 }
 
 export function getBuildOutputDir(config: PreviewConfig, username: string, projectName: string): string | null {
-  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+  const projectDir = getProjectWorkspaceDir(username, projectName);
   const dir = config.outputDir || "dist";
   const candidate = resolve(projectDir, dir);
   if (existsSync(candidate)) return candidate;
@@ -189,7 +189,7 @@ export function getBuildOutputDir(config: PreviewConfig, username: string, proje
 }
 
 export function getBuildCommand(config: PreviewConfig, username: string, projectName: string): string | null {
-  const projectDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+  const projectDir = getProjectWorkspaceDir(username, projectName);
   const pkg = readPackageJson(projectDir);
 
   if (config.buildCommand) return config.buildCommand;

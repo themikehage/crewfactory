@@ -3,19 +3,24 @@ import { resolve, normalize, sep, join, basename, dirname } from "node:path";
 import { existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, rmSync, renameSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
 import { sessionManager } from "../core/session-manager";
+import {
+  getWorkspaceDir, getProjectsDir, getProjectWorkspaceDir,
+  getChannelWorkspaceDir, getAgentWorkspaceDir,
+  getSessionDir, getUserDir
+} from "shared";
 
 export const filesRouter = new Hono();
 
 function validateWorkspacePath(username: string, relativePath: string, projectName?: string, agentId?: string, channelId?: string): string {
-  const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
+  const workspaceBase = getWorkspaceDir(username);
   let workspaceDir = workspaceBase;
 
   if (channelId) {
-    workspaceDir = resolve(`/tmp/crewfactory/${username}/channels/${channelId}/workspace`);
+    workspaceDir = getChannelWorkspaceDir(username, channelId);
   } else if (agentId) {
-    workspaceDir = resolve(`/tmp/crewfactory/${username}/agents/${agentId}/workspace`);
+    workspaceDir = getAgentWorkspaceDir(username, agentId);
   } else if (projectName) {
-    workspaceDir = resolve(`/tmp/crewfactory/${username}/projects/${projectName}/workspace`);
+    workspaceDir = getProjectWorkspaceDir(username, projectName);
   }
 
   if (!existsSync(workspaceDir)) {
@@ -48,10 +53,10 @@ filesRouter.get("/sessions/:sessionId/files/*", async (c) => {
     return c.text("Unauthorized", 401);
   }
 
-  const sessionPath = `/tmp/crewfactory/${username}/sessions/${sessionId}/${filePath}`;
+  const sessionPath = join(getSessionDir(username, sessionId), filePath);
   let finalPath = sessionPath;
   if (!existsSync(sessionPath)) {
-    const workspacePath = `/tmp/crewfactory/${username}/workspace/${filePath}`;
+    const workspacePath = join(getWorkspaceDir(username), filePath);
     if (existsSync(workspacePath)) {
       finalPath = workspacePath;
     } else {
@@ -208,7 +213,7 @@ filesRouter.get("/workspace-projects", async (c) => {
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   try {
-    const projectsDir = resolve(`/tmp/crewfactory/${username}/projects`);
+    const projectsDir = getProjectsDir(username);
     if (!existsSync(projectsDir)) {
       mkdirSync(projectsDir, { recursive: true });
     }
@@ -259,7 +264,7 @@ filesRouter.post("/workspace-projects", async (c) => {
       return c.json({ error: "Invalid project name" }, 400);
     }
 
-    const projectsDir = resolve(`/tmp/crewfactory/${username}/projects`);
+    const projectsDir = getProjectsDir(username);
     if (!existsSync(projectsDir)) {
       mkdirSync(projectsDir, { recursive: true });
     }
@@ -316,7 +321,7 @@ filesRouter.delete("/workspace-projects/:id", async (c) => {
   const id = c.req.param("id");
 
   try {
-    const projectsDir = resolve(`/tmp/crewfactory/${username}/projects`);
+    const projectsDir = getProjectsDir(username);
     const projectPath = join(projectsDir, id);
 
     if (!existsSync(projectPath)) {
@@ -350,7 +355,7 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
       return c.json({ error: "Invalid project name" }, 400);
     }
 
-    const projectsDir = resolve(`/tmp/crewfactory/${username}/projects`);
+    const projectsDir = getProjectsDir(username);
     const projectPath = join(projectsDir, id);
     const jsonPath = join(projectPath, "project.json");
 
@@ -473,12 +478,12 @@ const handlePostWorkspace = async (c: any) => {
 
     // Validate the final resolved file save path
     const resolvedSavePath = resolve(savePath);
-    const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
+    const workspaceBase = getWorkspaceDir(username);
     let workspaceDir = workspaceBase;
     if (channelId) {
-      workspaceDir = resolve(`/tmp/crewfactory/${username}/channels/${channelId}/workspace`);
+      workspaceDir = getChannelWorkspaceDir(username, channelId);
     } else if (agentId) {
-      workspaceDir = resolve(`/tmp/crewfactory/${username}/agents/${agentId}/workspace`);
+      workspaceDir = getAgentWorkspaceDir(username, agentId);
     } else if (projectName) {
       workspaceDir = resolve(workspaceBase, "projects", projectName);
     }

@@ -2,7 +2,7 @@ import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { parseMentions } from "./mention-parser";
-import type { Channel, ChannelMember, ChannelMessage } from "shared";
+import { type Channel, type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
 import { eventBroker } from "../lib/event-broker";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
@@ -517,7 +517,7 @@ class ChannelOrchestrator {
 
     const userSettings = sessionManager.getUserSettings(username);
     const memoryEnabled = userSettings.memoryEnabled ?? true;
-    const channelDbPath = `/tmp/crewfactory/${username}/channels/${channelId}/memory/memory.db`;
+    const channelDbPath = getChannelMemoryDbPath(username, channelId);
     const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);
 
     const [agentMemCtx, channelMemCtx] = await Promise.all([

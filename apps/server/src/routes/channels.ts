@@ -10,7 +10,7 @@ import { runBenchmarkSuite } from "../benchmark/harness";
 import { runOptimizationStep } from "../benchmark/optimizer";
 import { runBaselineAndCompare, listBenchmarkRuns, getBenchmarkRun, saveJudgeResult } from "../benchmark/baseline-runner";
 import { runJudge } from "../benchmark/llm-judge";
-import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema } from "shared";
+import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema, getChannelBenchmarkReportPath, getChannelBenchmarkHistoryPath, getBenchmarkDir } from "shared";
 import { eventBroker } from "../lib/event-broker";
 
 export const channelsRouter = new Hono();
@@ -242,7 +242,7 @@ channelsRouter.get("/:id/benchmark", async (c) => {
   const id = c.req.param("id");
   const { existsSync, readFileSync } = require("node:fs");
   const { join } = require("node:path");
-  const latestPath = join("/tmp/crewfactory", username, "benchmarks", id, "latest-report.md");
+  const latestPath = getChannelBenchmarkReportPath(username, id);
 
   if (!existsSync(latestPath)) {
     return c.json({ exists: false });
@@ -309,7 +309,7 @@ channelsRouter.get("/:id/optimize", async (c) => {
   const id = c.req.param("id");
   const { existsSync, readFileSync } = require("node:fs");
   const { join } = require("node:path");
-  const historyPath = join("/tmp/crewfactory", username, "benchmarks", id, "optimization-history.json");
+  const historyPath = getChannelBenchmarkHistoryPath(username, id);
 
   if (!existsSync(historyPath)) {
     return c.json({ exists: false, history: [] });
@@ -333,7 +333,7 @@ channelsRouter.post("/:id/optimize", async (c) => {
 
   const { writeFileSync, existsSync, readFileSync, mkdirSync } = require("node:fs");
   const { join } = require("node:path");
-  const historyDir = join("/tmp/crewfactory", username, "benchmarks", id);
+  const historyDir = getBenchmarkDir(username, id);
 
   const run = async () => {
     try {

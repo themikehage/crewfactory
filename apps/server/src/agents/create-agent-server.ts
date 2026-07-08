@@ -10,7 +10,7 @@ import { Hono } from "hono";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { streamSSE } from "hono/streaming";
-import { type AgentDefinition, SessionPrefix } from "shared";
+import { type AgentDefinition, SessionPrefix, getAgentDir } from "shared";
 import type { AgentServer } from "./types";
 import { createUiTools } from "../core/ui-tools";
 import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
@@ -22,7 +22,7 @@ import { createMemoryTools } from "../core/memory/memory-tools";
 import { mcpRegistry } from "../core/mcp-registry";
 
 function ensureAgentWorkspace(username: string, id: string): string {
-  const dir = `/tmp/crewfactory/${username}/agents/${id}`;
+  const dir = getAgentDir(username, id);
   const subdirs = [
     join(dir, "sessions"),
     join(dir, "workspace"),

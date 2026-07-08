@@ -8,6 +8,7 @@ import {
   savePreviewConfig,
 } from "../core/preview-config";
 import { runBuild, abortBuild } from "../core/preview-builder";
+import { getWorkspaceDir } from "shared";
 
 export const previewRouter = new Hono();
 
@@ -53,7 +54,7 @@ function isAssetPath(path: string): boolean {
 const BUILD_DIRS = ["dist", "build", ".output"] as const;
 
 function resolveBuildDir(username: string, projectName: string): string | null {
-  const workspaceBase = resolve(`/tmp/crewfactory/${username}/workspace`);
+  const workspaceBase = getWorkspaceDir(username);
   const projectDir = resolve(workspaceBase, "projects", projectName);
   for (const dir of BUILD_DIRS) {
     const candidate = resolve(projectDir, dir);

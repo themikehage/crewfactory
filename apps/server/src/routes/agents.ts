@@ -4,7 +4,7 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { agentRegistry } from "../agents";
-import { AgentDefinitionSchema, UpdateAgentDefinitionSchema } from "shared";
+import { AgentDefinitionSchema, UpdateAgentDefinitionSchema, getAgentDir } from "shared";
 import { sessionManager } from "../core/session-manager";
 import { join } from "node:path";
 import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
@@ -221,7 +221,7 @@ agentsRouter.post("/:id/avatar", async (c) => {
   const file = body.file as File | undefined;
   if (!file) return c.json({ error: "No file provided" }, 400);
 
-  const agentDir = join("/tmp/crewfactory", username, "agents", id);
+  const agentDir = getAgentDir(username, id);
   if (!existsSync(agentDir)) {
     // @ts-ignore
     const { mkdirSync } = await import("node:fs");
@@ -255,7 +255,7 @@ agentsRouter.get("/:id/avatar", async (c) => {
   const entry = agentRegistry.get(id, username);
   if (!entry) return c.json({ error: "Agent not found" }, 404);
 
-  const agentDir = join("/tmp/crewfactory", username, "agents", id);
+  const agentDir = getAgentDir(username, id);
   if (!existsSync(agentDir)) return c.notFound();
 
   const files = readdirSync(agentDir);
@@ -273,7 +273,7 @@ agentsRouter.delete("/:id/avatar", async (c) => {
   const entry = agentRegistry.get(id, username);
   if (!entry) return c.json({ error: "Agent not found" }, 404);
 
-  const agentDir = join("/tmp/crewfactory", username, "agents", id);
+  const agentDir = getAgentDir(username, id);
   if (existsSync(agentDir)) {
     try {
       const files = readdirSync(agentDir);

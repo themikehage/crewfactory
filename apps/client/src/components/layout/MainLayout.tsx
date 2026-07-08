@@ -439,96 +439,96 @@ export function MainLayout({
                 transition={{ duration: 0.2, ease: "easeOut" }}
                 className={`absolute inset-x-0 top-0 ${isChatActive && !sidebarOpen ? "bottom-0" : "bottom-14"} z-30 flex flex-col bg-background`}
               >
-                  {isContextView && (
-                    <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
-                      <div className="flex gap-1">
-                        {route.page === "laboratory" ? (
-                          selectedExpId ? (
-                            (() => {
-                              const activeExp = experiments.find((e) => e.id === selectedExpId);
-                              const isCompleted = activeExp?.status === "completed";
-                              const variantDefs = [
-                                { key: "chat" as const, label: "Chat" },
-                                { key: "config" as const, label: "Config" },
-                                { key: "single" as const, label: "Baseline" },
-                                { key: "multiNoLeader" as const, label: "H. Horizontal" },
-                                { key: "multiWithLeader" as const, label: "H. Jerárquico" },
-                              ];
-                              return (
-                                <>
-                                  {variantDefs.map(({ key: vKey, label }) => {
-                                    const runData = activeExp?.variants?.[vKey];
-                                    const hasResult = !!runData?.result;
-                                    const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
-                                    const isActive = activeVariantTab === vKey;
-                                    return (
-                                      <button
-                                        key={vKey}
-                                        onClick={() => setActiveVariantTab?.(vKey)}
-                                        className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                                          isActive
-                                            ? "text-primary border-primary font-semibold"
-                                            : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                                        }`}
-                                      >
-                                        {label}
-                                        {isRunning && (
-                                          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
-                                        )}
-                                        {hasResult && (
-                                          <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
-                                        )}
-                                      </button>
-                                    );
-                                  })}
-                                  {isCompleted && (
-                                    <button
-                                      onClick={() => setActiveVariantTab?.("compare")}
-                                      className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                                        activeVariantTab === "compare"
-                                          ? "text-primary border-primary font-semibold"
-                                          : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                                      }`}
-                                    >
-                                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                        <path d="M18 20V10M12 20V4M6 20v-6" />
-                                      </svg>
-                                      Comparativa
-                                    </button>
-                                  )}
-                                </>
-                              );
-                            })()
-                          ) : (
-                            <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
-                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
-                              </svg>
-                              Generador IA
-                            </span>
-                          )
-                        ) : (
-                          contextTabs.map((tab) => {
-                            const isActive = route.page === tab.id;
-                            return (
-                              <button
-                                key={tab.id}
-                                onClick={() => handleNavigate(tab.path)}
-                                className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
-                                  isActive
-                                    ? "text-primary border-primary font-semibold"
-                                    : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
-                                }`}
-                              >
-                                <span className={isActive ? "text-primary" : "text-muted-foreground"}>
-                                  {tab.icon}
+                    {isContextView && (
+                        <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
+                          <div className="flex gap-1 overflow-x-auto scrollbar-none flex-nowrap">
+                            {route.page === "laboratory" ? (
+                              selectedExpId ? (
+                                (() => {
+                                  const activeExp = experiments.find((e) => e.id === selectedExpId);
+                                  const isCompleted = activeExp?.status === "completed";
+                                  const variantDefs = [
+                                    { key: "chat" as const, label: "Chat" },
+                                    { key: "config" as const, label: "Config" },
+                                    { key: "single" as const, label: "Baseline" },
+                                    { key: "multiNoLeader" as const, label: "H. Horizontal" },
+                                    { key: "multiWithLeader" as const, label: "H. Jerárquico" },
+                                  ];
+                                  return (
+                                    <>
+                                      {variantDefs.map(({ key: vKey, label }) => {
+                                        const runData = activeExp?.variants?.[vKey];
+                                        const hasResult = !!runData?.result;
+                                        const isRunning = activeExp?.status === "running" && runData?.activeSessionId && !hasResult;
+                                        const isActive = activeVariantTab === vKey;
+                                        return (
+                                          <button
+                                            key={vKey}
+                                            onClick={() => setActiveVariantTab?.(vKey)}
+                                            className={`flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                              isActive
+                                                ? "text-primary border-primary font-semibold"
+                                                : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                            }`}
+                                          >
+                                            {label}
+                                            {isRunning && (
+                                              <span className="w-1.5 h-1.5 rounded-full bg-primary animate-ping" />
+                                            )}
+                                            {hasResult && (
+                                              <span className={`w-1.5 h-1.5 rounded-full ${runData.result?.status === "completed" ? "bg-primary" : "bg-destructive"}`} />
+                                            )}
+                                          </button>
+                                        );
+                                      })}
+                                      {isCompleted && (
+                                        <button
+                                          onClick={() => setActiveVariantTab?.("compare")}
+                                          className={`flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                            activeVariantTab === "compare"
+                                              ? "text-primary border-primary font-semibold"
+                                              : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                          }`}
+                                        >
+                                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                            <path d="M18 20V10M12 20V4M6 20v-6" />
+                                          </svg>
+                                          Comparativa
+                                        </button>
+                                      )}
+                                    </>
+                                  );
+                                })()
+                              ) : (
+                                <span className="flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
+                                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
+                                  </svg>
+                                  Generador IA
                                 </span>
-                                {tab.label}
-                              </button>
-                            );
-                          })
-                        )}
-                      </div>
+                              )
+                            ) : (
+                              contextTabs.map((tab) => {
+                                const isActive = route.page === tab.id;
+                                return (
+                                  <button
+                                    key={tab.id}
+                                    onClick={() => handleNavigate(tab.path)}
+                                    className={`flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                      isActive
+                                        ? "text-primary border-primary font-semibold"
+                                        : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
+                                    }`}
+                                  >
+                                    <span className={isActive ? "text-primary" : "text-muted-foreground"}>
+                                      {tab.icon}
+                                    </span>
+                                    {tab.label}
+                                  </button>
+                                );
+                              })
+                            )}
+                          </div>
 
                       <div className="relative py-1 flex items-center gap-2">
                         {route.page === "laboratory" ? (
@@ -697,7 +697,7 @@ export function MainLayout({
             <main className="flex-1 min-w-0 flex flex-col h-full bg-background">
               {isContextView && (
                 <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
-                  <div className="flex gap-1">
+                  <div className="flex gap-1 overflow-x-auto scrollbar-none flex-nowrap">
                     {route.page === "laboratory" ? (
                       selectedExpId ? (
                         (() => {
@@ -721,7 +721,7 @@ export function MainLayout({
                                   <button
                                     key={vKey}
                                     onClick={() => setActiveVariantTab?.(vKey)}
-                                    className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                    className={`flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
                                       isActive
                                         ? "text-primary border-primary font-semibold"
                                         : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
@@ -740,7 +740,7 @@ export function MainLayout({
                               {isCompleted && (
                                 <button
                                   onClick={() => setActiveVariantTab?.("compare")}
-                                  className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                                  className={`flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
                                     activeVariantTab === "compare"
                                       ? "text-primary border-primary font-semibold"
                                       : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"
@@ -756,7 +756,7 @@ export function MainLayout({
                           );
                         })()
                       ) : (
-                        <span className="flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
+                        <span className="flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-semibold text-primary border-b-2 border-primary -mb-[1px]">
                           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                             <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
                           </svg>
@@ -770,7 +770,7 @@ export function MainLayout({
                           <button
                             key={tab.id}
                             onClick={() => handleNavigate(tab.path)}
-                            className={`flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
+                            className={`flex-none flex items-center gap-1.5 px-4 py-2.5 text-xs font-medium transition-all cursor-pointer border-b-2 -mb-[1px] ${
                               isActive
                                 ? "text-primary border-primary font-semibold"
                                 : "text-muted-foreground border-transparent hover:text-foreground hover:border-input"

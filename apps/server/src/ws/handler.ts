@@ -7,10 +7,10 @@ import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
-import { SessionPrefix } from "shared";
+import { SessionPrefix, getSessionMetadataPath } from "shared";
 
 function getProjectNameForSession(username: string, sessionId: string): string | undefined {
-  const p = `/tmp/crewfactory/${username}/sessions/${sessionId}/metadata.json`;
+  const p = getSessionMetadataPath(username, sessionId);
   if (existsSync(p)) {
     try {
       return JSON.parse(readFileSync(p, "utf-8")).projectName;

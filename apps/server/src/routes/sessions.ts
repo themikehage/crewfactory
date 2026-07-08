@@ -6,7 +6,7 @@ import { join } from "node:path";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { sessionManager } from "../core/session-manager";
-import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema, SessionPrefix } from "shared";
+import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissionsSchema, SessionPrefix, getExecutionMessagesPath } from "shared";
 
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
@@ -304,7 +304,7 @@ sessionsRouter.get("/:id/messages", async (c) => {
     const execId = parts.slice(3).join("_");
 
     if (tipo === "agent") {
-      const messagesPath = join("/tmp/crewfactory", username, "agents", entidad, "executions", execId, "messages.jsonl");
+      const messagesPath = getExecutionMessagesPath(username, "agents", entidad, execId);
       if (!existsSync(messagesPath)) {
         return c.json({ messages: [] });
       }
@@ -328,7 +328,7 @@ sessionsRouter.get("/:id/messages", async (c) => {
         return c.json({ messages: [] });
       }
     } else if (tipo === "project") {
-      const messagesPath = join("/tmp/crewfactory", username, "projects", entidad, "executions", execId, "messages.jsonl");
+      const messagesPath = getExecutionMessagesPath(username, "projects", entidad, execId);
       if (!existsSync(messagesPath)) {
         return c.json({ messages: [] });
       }
