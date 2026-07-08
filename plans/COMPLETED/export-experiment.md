@@ -1,3 +1,4 @@
+COMPLETED
 # Exportar Experimento a Entidades Permanentes
 
 ## Objetivo

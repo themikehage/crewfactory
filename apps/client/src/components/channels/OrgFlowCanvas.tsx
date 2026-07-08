@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import {
   ReactFlow,
   MiniMap,
@@ -8,6 +8,8 @@ import {
   useNodesState,
   useEdgesState,
   type Edge,
+  type OnInit,
+  type ReactFlowInstance,
 } from "@xyflow/react";
 import type { ChannelMember, AgentInfo } from "shared";
 import { AgentFlowNode, type AgentNode } from "./AgentFlowNode";
@@ -34,6 +36,18 @@ export function OrgFlowCanvas({ members, registeredAgents, streamingAgents, onEd
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(800);
+  const reactFlowInstanceRef = useRef<ReactFlowInstance<AgentNode, Edge> | null>(null);
+
+  const onInit: OnInit<AgentNode, Edge> = useCallback((instance) => {
+    reactFlowInstanceRef.current = instance;
+  }, []);
+
+  // Re-fit viewport when container gets its real width
+  useEffect(() => {
+    if (containerWidth > 0) {
+      reactFlowInstanceRef.current?.fitView({ padding: 0.3 });
+    }
+  }, [containerWidth]);
 
   useEffect(() => {
     if (!containerRef.current) return;
@@ -156,6 +170,7 @@ export function OrgFlowCanvas({ members, registeredAgents, streamingAgents, onEd
         nodeTypes={nodeTypes}
         fitView
         fitViewOptions={{ padding: 0.3 }}
+        onInit={onInit}
         minZoom={0.2}
         maxZoom={1.5}
         proOptions={{ hideAttribution: true }}

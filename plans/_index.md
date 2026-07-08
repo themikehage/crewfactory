@@ -8,8 +8,10 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose: paths configurables via env vars, entrypoint con inicializacion, volumenes nombrados en /app/data, y migracion automatica de datos legacy.
 - [multi-agent-primitives-refactor.md](./multi-agent-primitives-refactor.md) — Refactorizacion a 4 primitivas componibles (spawn, delegate, negotiate, arbitrate). Consolida 7+ flujos multi-agente, elimina duplicacion, extrae protocolos reutilizables.
 - [laboratory-agent-experience.md](./laboratory-agent-experience.md) — Laboratorio como sesion de chat con agente + tool `create_experiment`. Iteracion conversacional sobre experimentos, formulario editable convertido en tab de visualizacion, y eliminacion de IaGenerator (800 lineas).
+- [laboratory-sessions.md](./laboratory-sessions.md) — Añadir el botón para ver las sesiones del laboratorio y soporte para múltiples sesiones por experimento con historial unificado.
 - [agent-channel-gallery.md](./agent-channel-gallery.md) — Galería comunitaria de plantillas de agentes y canales, con instalación en 1 clic, exportación, y curación vía PRs.
 - [agent-manager-tool.md](./agent-manager-tool.md) — Tool agent_manager para delegar tareas a agentes programáticos persistentes y supervisar su ejecución en tiempo real.
+- [channel-agent-validation.md](./channel-agent-validation.md) — Validacion de agentes en canales: cascade cleanup al eliminar agente, filtrado de miembros ghost en lecturas, e indicadores visuales en el cliente para agentes huerfano.
 - [chat-empty-state.md](./chat-empty-state.md) — Pantalla de bienvenida estilo ChatGPT con input centrado verticalmente cuando la sesion no tiene mensajes.
 - [chat-input-redesign.md](./chat-input-redesign.md) — Rediseño completo del input del chat: card flotante unificada, popovers inline, iconos, animaciones. Estilo ChatGPT/Claude.
 - [chat-scroll-experience.md](./chat-scroll-experience.md) — Experiencia de scroll premium y robusta en el chat: scroll pinning inteligente, ResizeObserver y botón flotante de nuevos mensajes.

@@ -1,4 +1,4 @@
-﻿type EventHandler = (data: unknown) => void;
+type EventHandler = (data: unknown) => void;
 type ConnectionState = "disconnected" | "connecting" | "connected";
 type StateHandler = (state: ConnectionState) => void;
 
@@ -44,10 +44,13 @@ class WsClient {
     if (!this.messageHandlers.has(type)) {
       this.messageHandlers.set(type, new Set());
     }
-    this.messageHandlers.get(type)!.add(handler);
+    const handlers = this.messageHandlers.get(type)!;
+    handlers.add(handler);
+    console.log(`[wsClient] Subscribed to "${type}". Active handlers for "${type}": ${handlers.size}`);
     if (this.state === "disconnected") this.connect();
     return () => {
-      this.messageHandlers.get(type)?.delete(handler);
+      const exists = handlers.delete(handler);
+      console.log(`[wsClient] Unsubscribed from "${type}". Existed: ${exists}. Active handlers for "${type}": ${handlers.size}`);
     };
   }
 

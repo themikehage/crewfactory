@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import type { Experiment } from "@/types/laboratory";
 import { wsClient } from "@/lib/ws-client";
+import { Dropdown } from "@/components/ui/Dropdown";
 
 type VariantKey = "single" | "multiNoLeader" | "multiWithLeader";
 
@@ -80,19 +81,19 @@ export function JudgeReport({
           <p className="text-xs text-muted-foreground mt-0.5">Evaluación del LLM-Judge sobre las tres variantes</p>
         </div>
         <div className="flex items-center gap-2">
-          <select
+          <Dropdown<string>
             value={selectedJudgeModel}
-            onChange={(e) => setSelectedJudgeModel(e.target.value)}
+            onChange={setSelectedJudgeModel}
+            options={[
+              { value: "", label: "Default (Lab Model)" },
+              ...models.map((m) => ({
+                value: `${m.provider}/${m.id}`,
+                label: `${m.provider}/${m.name || m.id}`,
+              })),
+            ]}
             disabled={isJudging}
-            className="px-2.5 py-1.5 text-xs bg-background border border-input/60 rounded-lg text-foreground focus:outline-none focus:ring-1 focus:ring-primary cursor-pointer disabled:opacity-50"
-          >
-            <option value="">Default (Lab Model)</option>
-            {models.map((m) => (
-              <option key={`${m.provider}/${m.id}`} value={`${m.provider}/${m.id}`}>
-                {m.provider}/{m.name || m.id}
-              </option>
-            ))}
-          </select>
+            placeholder="Default (Lab Model)"
+          />
           <button
             onClick={() => onJudge?.(selectedJudgeModel || undefined)}
             disabled={isJudging}

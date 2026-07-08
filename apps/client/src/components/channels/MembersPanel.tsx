@@ -3,6 +3,8 @@ import type { ChannelMember, AgentInfo, ReplyMode } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MembersPanel.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { REPLY_MODE_OPTIONS } from "@/lib/dropdown-options";
 
 interface Props {
   members: ChannelMember[];
@@ -85,16 +87,13 @@ const l = useLiterals(u);
 
         <div className="pt-1 border-t border-input/50 flex flex-col gap-1">
           <span className="text-xs text-muted-foreground font-medium">Reply Mode</span>
-          <select
-            disabled={updatingId === m.agentId}
+          <Dropdown<ReplyMode>
             value={m.replyMode}
-            onChange={(e) => handleModeChange(m.agentId, e.target.value as ReplyMode)}
-            className="bg-card border border-input rounded px-2 py-1 text-[11px] text-foreground focus:outline-none focus:border-primary/50 capitalize cursor-pointer"
-          >
-            <option value="user-only">User-only</option>
-            <option value="broadcast">Broadcast</option>
-            <option value="targeted">Targeted</option>
-          </select>
+            onChange={(val) => handleModeChange(m.agentId, val)}
+            options={[...REPLY_MODE_OPTIONS]}
+            disabled={updatingId === m.agentId}
+            size="xs"
+          />
           {m.replyMode === "targeted" && m.targetAgentIds && m.targetAgentIds.length > 0 && (
             <span className="text-xs text-muted-foreground truncate">
               Targets: {m.targetAgentIds.join(", ")}

@@ -4,6 +4,7 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "./LogsConsolePage.literals";
 import type { GlobalLogEvent } from "shared";
 import { Button } from "@/components/ui/Button";
+import { Dropdown } from "@/components/ui/Dropdown";
 
 interface SessionItem {
   id: string;
@@ -479,15 +480,16 @@ export function LogsConsolePage({
             <div className="flex flex-wrap items-center gap-4">
               <div className="flex items-center gap-1.5">
                 <span className="font-semibold text-foreground">{l.sourceLabel}</span>
-                <select
+                <Dropdown<"all" | "session" | "channel">
                   value={filterSource}
-                  onChange={(e) => setFilterSource(e.target.value as any)}
-                  className="bg-background border border-input rounded px-2.5 py-1 text-foreground outline-none focus:border-primary cursor-pointer"
-                >
-                  <option value="all">{l.filterAll}</option>
-                  <option value="session">{l.filterSession}</option>
-                  <option value="channel">{l.filterChannel}</option>
-                </select>
+                  onChange={setFilterSource}
+                  options={[
+                    { value: "all", label: l.filterAll },
+                    { value: "session", label: l.filterSession },
+                    { value: "channel", label: l.filterChannel },
+                  ]}
+                  size="xs"
+                />
               </div>
 
               <div className="flex items-center gap-3 border-l border-input pl-4 select-none">

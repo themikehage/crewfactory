@@ -48,7 +48,7 @@ It registers the defined specialist agents dynamically in the workspace registry
               name: { type: "string", description: "Human-friendly agent name." },
               role: { type: "string", description: "Specific role description of what this specialist agent does." },
               systemPrompt: { type: "string", description: "Detailed system instructions for the agent (written in Spanish)." },
-              model: { type: "string", description: "Target model ID to bind to this agent (e.g. 'openai/gpt-4o' or 'anthropic/claude-3-5-sonnet')." },
+              model: { type: "string", description: "Target model ID to bind to this agent (e.g. 'Qwen3.7 Plus')." }, 
               skills: { type: "array", items: { type: "string" }, description: "Skills lists. Empty array by default." },
               leader: { type: "boolean", description: "Set to true if this agent coordinates tasks as the leader. Exactly one leader is required." }
             },

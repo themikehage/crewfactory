@@ -35,3 +35,25 @@ This report analyzes the functional gaps between the native **Pi CLI** and the *
 ### Priority 4: Quick Prompt Templates & Skills Explorer
 *   **Why:** Saves developers time by letting them load predefined templates directly in the web editor.
 *   **How:** Fetch local skills and prompts in the backend, expose them via a `/api/resources` endpoint, and build an overlay in the frontend to search and inject them into the text area.
+
+optimizar y lo del benchmark,
+
+
+AdAdAdAdemásemásemásemás de de de de lo lo lo lo que que que que ya ya ya ya te te te te cont cont cont contéééé,,,, también también también también pued pued pued puedoooo:
+
+:
+
+:
+
+:
+
+******DDDDatosatosatosatos y y y y análisis análisis análisis análisis ** ** ** ---- Le Le Le Leerererer,,,, proces proces proces procesarararar y y y y transform transform transform transformarararar arch arch arch archivosivosivosivos ( ( ( (JSONJSONJSONJSON,,,, CSV CSV CSV CSV,,,, logs logs logs logs,,,, lo lo lo lo que que que que sea sea sea sea). ). ). ). ---- H H H Haceraceraceracer análisis análisis análisis análisis explor explor explor exploratorioatorioatorioatorio con con con con Python Python Python Python inline inline inline inline.
+
+.
+
+.
+
+.
+
+******ArchArchArchArchivosivosivosivos y y y y proyecto proyecto proyecto proyecto ** ** ** ---- Cre Cre Cre Crearararar estruct estruct estruct estructurasurasurasuras complet complet complet completasasasas de de de de proyecto proyecto proyecto proyecto ( ( ( (ccccarparparparpetasetasetasetas,,,, config config config configssss,,,, depend depend depend dependenciasenciasenciasencias). ). ). ). ---- Bus Bus Bus Bus
+

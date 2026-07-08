@@ -580,6 +580,7 @@ class ChannelOrchestrator {
               sessionId: incomingMsg.sessionId,
               agentId: member.agentId,
               token: delta,
+              fullText: stream ? stream.text : undefined,
             });
             eventBroker.publishEvent(username, {
               sourceType: "channel",
@@ -603,6 +604,7 @@ class ChannelOrchestrator {
               sessionId: incomingMsg.sessionId,
               agentId: member.agentId,
               token: delta,
+              fullThinking: stream ? stream.thinking : undefined,
             });
             eventBroker.publishEvent(username, {
               sourceType: "channel",

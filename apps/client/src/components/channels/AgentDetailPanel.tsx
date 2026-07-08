@@ -4,6 +4,8 @@ import type { ChannelMember, AgentInfo, ReplyMode, ChannelRole } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./AgentDetailPanel.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { ROLE_OPTIONS, REPLY_MODE_OPTIONS } from "@/lib/dropdown-options";
 
 interface LedgerTask {
   id: string;
@@ -227,30 +229,22 @@ export function AgentDetailPanel({
               <div className="space-y-3.5 pt-1.5">
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground">{l.role}</label>
-                  <select
+                  <Dropdown<ChannelRole>
                     value={role}
-                    onChange={(e) => setRole(e.target.value as ChannelRole)}
-                    className="bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-accent/50 capitalize cursor-pointer font-medium"
-                  >
-                    <option value="lead">Lead</option>
-                    <option value="senior">Senior</option>
-                    <option value="member">Member</option>
-                    <option value="observer">Observer</option>
-                  </select>
+                    onChange={setRole}
+                    options={[...ROLE_OPTIONS]}
+                    matchWidth
+                  />
                 </div>
 
                 <div className="flex flex-col gap-1">
                   <label className="text-xs font-semibold text-muted-foreground">{l.replyMode}</label>
-                  <select
+                  <Dropdown<ReplyMode>
                     value={replyMode}
-                    onChange={(e) => setReplyMode(e.target.value as ReplyMode)}
-                    className="bg-card border border-border rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-accent/50 capitalize cursor-pointer font-medium"
-                  >
-                    <option value="user-only">User-only</option>
-                    <option value="broadcast">Broadcast</option>
-                    <option value="targeted">Targeted</option>
-                    <option value="mention-only">Mention-only</option>
-                  </select>
+                    onChange={setReplyMode}
+                    options={[...REPLY_MODE_OPTIONS]}
+                    matchWidth
+                  />
                 </div>
 
                 {replyMode === "targeted" && (

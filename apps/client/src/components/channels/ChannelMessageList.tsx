@@ -84,8 +84,21 @@ function mapChannelMessagesToStandard(
     }
   }
 
+  // Track the latest content per agent to detect when a channel_message
+  // arrives before its channel_agent_end (race condition)
+  const latestAgentContent = new Map<string, string>();
+  for (const msg of messages) {
+    if (msg.role === "agent" && msg.agentId) {
+      latestAgentContent.set(msg.agentId, msg.content);
+    }
+  }
+
   // Handle active streaming agents
   for (const [agentId, stream] of Object.entries(streamingAgents)) {
+    const finalContent = latestAgentContent.get(agentId);
+    if (finalContent !== undefined && stream.text === finalContent) {
+      continue;
+    }
     const contentBlocks: any[] = [];
 
     if (stream.thinking) {
@@ -161,7 +174,8 @@ export function ChannelMessageList({
   const activeStreamList = Object.values(streamingAgents);
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 space-y-5 min-h-0">
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
+      <div className="max-w-3xl mx-auto space-y-5 w-full">
       {messages.length === 0 && activeStreamList.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-3">
           <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
@@ -180,6 +194,7 @@ export function ChannelMessageList({
         />
       )}
       <div ref={bottomRef} />
+      </div>
     </div>
   );
 }

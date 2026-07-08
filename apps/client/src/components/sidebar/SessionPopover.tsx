@@ -117,10 +117,10 @@ export function SessionPopover({
       const sessionName = activeChannel
         ? `#${activeChannel.name} - Session ${sessionCount + 1}`
         : activeAgent
-        ? `${activeAgent.name} - Session ${sessionCount + 1}`
-        : activeProjectFriendlyName
-        ? `${activeProjectFriendlyName} - Session ${sessionCount + 1}`
-        : `Global Session ${sessionCount + 1}`;
+          ? `${activeAgent.name} - Session ${sessionCount + 1}`
+          : activeProjectFriendlyName
+            ? `${activeProjectFriendlyName} - Session ${sessionCount + 1}`
+            : `Global Session ${sessionCount + 1}`;
 
       const res = await apiFetch("/api/sessions", {
         method: "POST",
@@ -242,7 +242,7 @@ export function SessionPopover({
               </>
             )}
           </button>
-          
+
           <label className="flex items-center justify-between px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none font-medium">
             <span>Ver Ejecuciones API/CLI</span>
             <input
@@ -277,20 +277,18 @@ export function SessionPopover({
                       onSelectSession(s.id);
                       onClose();
                     }}
-                    className={`w-full text-left px-2.5 py-2 pr-8 rounded-lg text-xs transition-all cursor-pointer ${
-                      isActive
+                    className={`w-full text-left px-2.5 py-2 pr-8 rounded-lg text-xs transition-all cursor-pointer ${isActive
                         ? "bg-card-hover/80 text-foreground border border-input"
                         : "text-muted-foreground hover:bg-card-hover/40 hover:text-foreground border border-transparent"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center gap-1.5">
                       {cfg && !isExec && (
                         <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${cfg.color}`} title={cfg.label} />
                       )}
                       {isExec && (
-                        <span className={`text-xs px-1 py-0.2 rounded font-bold uppercase flex-shrink-0 ${
-                          s.id.includes("_channel_") ? "bg-primary/15 text-primary border border-primary/20" : "bg-purple-500/15 text-purple-400 border border-purple-500/20"
-                        }`}>
+                        <span className={`text-xs px-1 py-0.2 rounded font-bold uppercase flex-shrink-0 ${s.id.includes("_channel_") ? "bg-primary/15 text-primary border border-primary/20" : "bg-purple-500/15 text-purple-400 border border-purple-500/20"
+                          }`}>
                           {s.id.includes("_channel_") ? "CLI" : "API"}
                         </span>
                       )}

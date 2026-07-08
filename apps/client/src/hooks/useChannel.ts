@@ -1,4 +1,4 @@
-﻿import { useState, useEffect, useCallback, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import type { Channel, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
 import { wsClient } from "@/lib/ws-client";
 
@@ -138,12 +138,14 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       } else if (data.type === "channel_agent_token") {
         setStreamingAgents((prev) => {
           const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
-          return { ...prev, [data.agentId]: { ...current, text: current.text + data.token } };
+          const newText = data.fullText !== undefined ? data.fullText : (current.text + data.token);
+          return { ...prev, [data.agentId]: { ...current, text: newText } };
         });
       } else if (data.type === "channel_agent_thinking") {
         setStreamingAgents((prev) => {
           const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
-          return { ...prev, [data.agentId]: { ...current, thinking: (current.thinking || "") + data.token } };
+          const newThinking = data.fullThinking !== undefined ? data.fullThinking : ((current.thinking || "") + data.token);
+          return { ...prev, [data.agentId]: { ...current, thinking: newThinking } };
         });
       } else if (data.type === "channel_agent_tool_start") {
         setStreamingAgents((prev) => {

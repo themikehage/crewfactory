@@ -4,6 +4,8 @@ import type { AgentInfo, AddMember, ReplyMode, ChannelRole } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./AddMemberModal.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { ROLE_OPTIONS } from "@/lib/dropdown-options";
 
 interface Props {
   availableAgents: AgentInfo[];
@@ -102,16 +104,12 @@ const l = useLiterals(u);
 
               <div>
                 <label className="text-xs font-medium text-muted-foreground block mb-1.5">Channel Role</label>
-                <select
+                <Dropdown<ChannelRole>
                   value={role}
-                  onChange={(e) => setRole(e.target.value as ChannelRole)}
-                  className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground focus:outline-none focus:border-primary/50 capitalize"
-                >
-                  <option value="lead">Lead</option>
-                  <option value="senior">Senior</option>
-                  <option value="member">Member</option>
-                  <option value="observer">Observer</option>
-                </select>
+                  onChange={setRole}
+                  options={[...ROLE_OPTIONS]}
+                  matchWidth
+                />
               </div>
 
               <div>

@@ -504,6 +504,10 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 />
               ) : (
                 <>
+                  <FloatingTasks
+                    tasksState={tasksState}
+                    onToggleStatus={handleToggleTasksStatus}
+                  />
                   <MessageList
                     messages={messages}
                     onNavigate={handleNavigate}
@@ -527,12 +531,11 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         {showScrollButton && messages.length > 0 && (
           <button
             onClick={() => scrollToBottom("smooth")}
-            className={`absolute ${isReadOnlyExecution ? "bottom-24" : "bottom-[190px]"} left-1/2 -translate-x-1/2 z-20 flex items-center gap-1.5 px-3.5 py-2 rounded-full bg-surface border border-border text-text-primary text-xs shadow-xl hover:bg-surface-hover active:scale-95 transition-all duration-200`}
+            className={`absolute ${isReadOnlyExecution ? "bottom-20" : "bottom-44"} left-1/2 -translate-x-1/2 z-20 flex items-center justify-center w-9 h-9 rounded-full bg-surface border border-border text-accent shadow-xl hover:bg-surface-hover active:scale-95 transition-all duration-200`}
           >
-            <svg className="w-4 h-4 text-accent animate-bounce" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
             </svg>
-            <span>{l.newMessages}</span>
           </button>
         )}
         {messages.length > 0 && (
@@ -567,12 +570,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           </div>
         )}
 
-        {sessionId && (
-          <FloatingTasks
-            tasksState={tasksState}
-            onToggleStatus={handleToggleTasksStatus}
-          />
-        )}
       </div>
 
       <AnimatePresence>

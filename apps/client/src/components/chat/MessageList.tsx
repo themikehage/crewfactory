@@ -209,11 +209,16 @@ function AgentTurn({
 
   return (
     <div className="flex flex-col gap-2">
-      <AgentAvatar
-        name={displayName}
-        avatarUrl={displayAvatar}
-        size="sm"
-      />
+      <div className="flex items-center gap-2">
+        <AgentAvatar
+          name={displayName}
+          avatarUrl={displayAvatar}
+          size="sm"
+        />
+        <span className="text-xs font-semibold text-foreground truncate">
+          {displayName}
+        </span>
+      </div>
 
       <div className="flex-1 min-w-0 space-y-0.5">
         {assistantMessages.map((msg, msgIdx) => {

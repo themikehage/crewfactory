@@ -4,6 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./PreviewPanel.literals";
 import { Button } from "@/components/ui/Button";
+import { Dropdown } from "@/components/ui/Dropdown";
 
 interface Props {
   activeProjectName: string | null;
@@ -429,10 +430,9 @@ const l = useLiterals(u);
                 <label className="block text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5">
                   Framework
                 </label>
-                <select
+                <Dropdown<string>
                   value={configForm.framework}
-                  onChange={(e) => {
-                    const fw = e.target.value;
+                  onChange={(fw) => {
                     const presets: Record<string, { cmd: string; dir: string }> = {
                       vite: { cmd: "npx --yes vite build", dir: "dist" },
                       next: { cmd: "npx --yes next build", dir: ".next" },
@@ -455,14 +455,12 @@ const l = useLiterals(u);
                       setConfigForm((prev) => ({ ...prev, framework: fw }));
                     }
                   }}
-                  className="w-full bg-background border border-input hover:border-primary/40 focus:border-primary outline-none text-foreground px-2.5 py-1.5 rounded text-xs transition-all"
-                >
-                  {Object.entries(FRAMEWORK_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
+                  options={Object.entries(FRAMEWORK_LABELS).map(([value, label]) => ({
+                    value,
+                    label,
+                  }))}
+                  matchWidth
+                />
               </div>
 
               <div>

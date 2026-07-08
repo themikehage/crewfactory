@@ -4,6 +4,8 @@ import type { ChannelMember, AgentInfo, ReplyMode, AddMember, UpdateMember, Chan
 import { AddMemberModal } from "./AddMemberModal";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChannelMembersModal.literals";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { ROLE_OPTIONS, REPLY_MODE_OPTIONS } from "@/lib/dropdown-options";
 
 interface Props {
   channelName: string;
@@ -144,32 +146,24 @@ const l = useLiterals(u);
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-input/50 items-start">
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Reply Mode</label>
-                    <select
-                      disabled={updatingId === m.agentId}
+                    <Dropdown<ReplyMode>
                       value={m.replyMode}
-                      onChange={(e) => handleModeChange(m.agentId, e.target.value as ReplyMode)}
-                      className="w-full bg-card border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary/50 capitalize cursor-pointer"
-                    >
-                      <option value="user-only">User-only</option>
-                      <option value="broadcast">Broadcast</option>
-                      <option value="targeted">Targeted</option>
-                      <option value="mention-only">Mention-only</option>
-                    </select>
+                      onChange={(val) => handleModeChange(m.agentId, val)}
+                      options={[...REPLY_MODE_OPTIONS]}
+                      disabled={updatingId === m.agentId}
+                      matchWidth
+                    />
                   </div>
 
                   <div>
                     <label className="text-xs font-medium text-muted-foreground block mb-1">Role</label>
-                    <select
-                      disabled={updatingId === m.agentId}
+                    <Dropdown<ChannelRole>
                       value={m.role || "member"}
-                      onChange={(e) => handleRoleChange(m.agentId, e.target.value as ChannelRole)}
-                      className="w-full bg-card border border-input rounded-lg px-2.5 py-1.5 text-xs text-foreground focus:outline-none focus:border-primary/50 capitalize cursor-pointer"
-                    >
-                      <option value="lead">Lead</option>
-                      <option value="senior">Senior</option>
-                      <option value="member">Member</option>
-                      <option value="observer">Observer</option>
-                    </select>
+                      onChange={(val) => handleRoleChange(m.agentId, val)}
+                      options={[...ROLE_OPTIONS]}
+                      disabled={updatingId === m.agentId}
+                      matchWidth
+                    />
                   </div>
 
                   {m.replyMode === "targeted" && (

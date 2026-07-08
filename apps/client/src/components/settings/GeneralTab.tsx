@@ -4,6 +4,8 @@ import { LocaleSelector } from "./LocaleSelector";
 import { ThemeToggle } from "./ThemeToggle";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./GeneralTab.literals";
+import { Dropdown } from "@/components/ui/Dropdown";
+import { IMPORT_MODE_OPTIONS } from "@/lib/dropdown-options";
 
 interface GeneralTabProps {
   token: string | null;
@@ -313,14 +315,12 @@ export function GeneralTab({ token }: GeneralTabProps) {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
               <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Import Mode</label>
-              <select
+              <Dropdown<"merge" | "overwrite">
                 value={importMode}
-                onChange={(e) => setImportMode(e.target.value as "merge" | "overwrite")}
-                className="w-full px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary transition-colors text-xs"
-              >
-                <option value="merge">Merge (Keep current, update matching)</option>
-                <option value="overwrite">Overwrite (Wipe all data, restore zip)</option>
-              </select>
+                onChange={setImportMode}
+                options={[...IMPORT_MODE_OPTIONS]}
+                matchWidth
+              />
             </div>
 
             <div className="space-y-1">
