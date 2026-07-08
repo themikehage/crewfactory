@@ -24,6 +24,7 @@ import type { Experiment } from "@/types/laboratory";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";
 import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentModal";
+import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 
 export function AppRouter() {
   const { token, user, loading } = useAuth();
@@ -552,12 +553,6 @@ export function AppRouter() {
             isEditorOpen={isLabEditorOpen}
             setIsEditorOpen={setIsLabEditorOpen}
             editingExpId={editingLabExpId}
-            isRunPromptModalOpen={isRunPromptModalOpen}
-            setIsRunPromptModalOpen={setIsRunPromptModalOpen}
-            runPromptValue={runPromptValue}
-            setRunPromptValue={setRunPromptValue}
-            setRunningExpId={setRunningExpId}
-            handleConfirmRun={handleConfirmRun}
           />
         )}
         {route.page === "laboratory" && route.experimentId && (
@@ -568,12 +563,6 @@ export function AppRouter() {
             activeVariantTab={activeVariantTab}
             setActiveVariantTab={setActiveVariantTab}
             onJudgeExperiment={handleJudgeExp}
-            isRunPromptModalOpen={isRunPromptModalOpen}
-            setIsRunPromptModalOpen={setIsRunPromptModalOpen}
-            runPromptValue={runPromptValue}
-            setRunPromptValue={setRunPromptValue}
-            setRunningExpId={setRunningExpId}
-            handleConfirmRun={handleConfirmRun}
             selectedRunId={selectedRunId}
             selectedRunData={selectedRunData}
             onRefreshRuns={() => currentExpId && fetchPastRuns(currentExpId)}
@@ -640,6 +629,17 @@ export function AppRouter() {
           />
         );
       })()}
+      {isRunPromptModalOpen && (
+        <RunExperimentModal
+          runPromptValue={runPromptValue}
+          setRunPromptValue={setRunPromptValue}
+          onCancel={() => {
+            setIsRunPromptModalOpen(false);
+            setRunningExpId(null);
+          }}
+          onConfirm={handleConfirmRun}
+        />
+      )}
     </>
   );
 }

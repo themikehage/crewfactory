@@ -34,12 +34,51 @@ channelsRouter.post("/", zValidator("json", CreateChannelSchema), (c) => {
   return c.json(channel, 201);
 });
 
-channelsRouter.get("/:id", (c) => {
+channelsRouter.get("/:id", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
-  const channel = channelStore.getChannel(username, id);
+  let channel = channelStore.getChannel(username, id);
+  if (!channel && id.startsWith("lab_")) {
+    const parts = id.split("_");
+    if (parts.length >= 3) {
+      const variantKey = parts[parts.length - 1];
+      const experimentId = parts.slice(1, parts.length - 1).join("_");
+      try {
+        const { ExperimentStore } = await import("../laboratory/experiment-store");
+        const exp = await ExperimentStore.getExperiment(username, experimentId);
+        if (exp) {
+          if (variantKey === "single") {
+            channel = channelStore.createChannel(username, {
+              id: id,
+              name: `${exp.name} (Single)`,
+              description: "Laboratory single agent run",
+              maxChainDepth: 3,
+              showThinking: false,
+              showTools: false
+            } as any);
+          } else {
+            channel = channelStore.createChannel(username, {
+              id: id,
+              name: variantKey === "multiNoLeader" ? `${exp.name} (Horizontal)` : `${exp.name} (Jerárquico)`,
+              description: `Laboratory multi agent run (${variantKey})`,
+              maxChainDepth: 5,
+              showThinking: true,
+              showTools: true,
+              benchmark: {
+                enabled: true,
+                baselineModelId: ""
+              }
+            } as any);
+          }
+        }
+      } catch (err) {
+        console.error(`[ChannelsRoute] Failed to dynamically recreate channel ${id}:`, err);
+      }
+    }
+  }
+
   if (!channel) return c.json({ error: "Channel not found" }, 404);
   return c.json(channel);
 });

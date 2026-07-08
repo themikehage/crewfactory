@@ -6,7 +6,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import type { Experiment } from "@/types/laboratory";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { ExperimentEditorModal } from "@/components/laboratory/ExperimentEditorModal";
-import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 
 interface Props {
   onNavigate?: (path: string) => void;
@@ -15,12 +14,6 @@ interface Props {
   isEditorOpen: boolean;
   setIsEditorOpen: (open: boolean) => void;
   editingExpId: string | null;
-  isRunPromptModalOpen: boolean;
-  setIsRunPromptModalOpen: (open: boolean) => void;
-  runPromptValue: string;
-  setRunPromptValue: (val: string) => void;
-  setRunningExpId: (id: string | null) => void;
-  handleConfirmRun: () => Promise<void>;
 }
 
 export function LaboratoryPage({
@@ -30,12 +23,6 @@ export function LaboratoryPage({
   isEditorOpen,
   setIsEditorOpen,
   editingExpId,
-  isRunPromptModalOpen,
-  setIsRunPromptModalOpen,
-  runPromptValue,
-  setRunPromptValue,
-  setRunningExpId,
-  handleConfirmRun,
 }: Props) {
   const l = useLiterals(u);
 
@@ -224,19 +211,6 @@ export function LaboratoryPage({
           setEditorCriteria={setEditorCriteria}
           onCancel={() => setIsEditorOpen(false)}
           onSave={handleSaveExperiment}
-        />
-      )}
-
-      {/* Dynamic Execution Prompt Modal */}
-      {isRunPromptModalOpen && (
-        <RunExperimentModal
-          runPromptValue={runPromptValue}
-          setRunPromptValue={setRunPromptValue}
-          onCancel={() => {
-            setIsRunPromptModalOpen(false);
-            setRunningExpId(null);
-          }}
-          onConfirm={handleConfirmRun}
         />
       )}
     </div>

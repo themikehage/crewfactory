@@ -158,6 +158,15 @@
 - `fs.watch` sobre el build dir con polling fallback cada 2s para Docker overlay filesystems
 - Framework-agnóstico — compatible con React (Vite), HTML estático, Next.js, Nuxt, Astro, etc.
 
+### Laboratory & Experiments
+- **Análisis Comparativo A/B:** Entorno dedicado para probar y comparar diferentes topologías de agentes sobre una misma tarea:
+  - *Single Agent:* Ejecución de un único agente base.
+  - *Multi-Agent Horizontal (sin líder):* Debate y negociación colaborativa distribuida sin jerarquías.
+  - *Multi-Agent Jerárquico (con líder):* Debate estructurado con mediación y toma de decisiones a cargo de un agente líder/árbitro.
+- **Evaluación Automatizada por LLM-Judge:** Calificación y feedback detallado por criterio a partir de una rúbrica configurable (Calidad, Eficiencia, Negociación, etc.), con cálculo de métricas de tokens consumidos y duración.
+- **Canales Temporales Resilientes:** Generación dinámica y transparente en el backend de los canales asociados a cada variante (`lab_{experimentId}_{variantKey}`). Ante una solicitud GET, si el canal no está en el almacén pero el experimento existe, se recrea al vuelo garantizando la disponibilidad de la interfaz antes y después de las ejecuciones, eliminando errores `404 (Not Found)`.
+- **Historial de Ejecuciones:** Registro y persistencia de corridas históricas con sus respectivas métricas, accesibles desde la barra de herramientas del laboratorio.
+
 
 ### Task Planning & Decomposition (decompose_tasks)
 - Decompose complex high-level objectives into structured, dependency-aware task graphs (DAGs) using the session's active LLM.
