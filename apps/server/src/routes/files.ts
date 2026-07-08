@@ -245,7 +245,7 @@ filesRouter.get("/workspace-projects", async (c) => {
       }
     }
 
-    return c.json({ projects });
+    return c.json({ projects, repos: projects });
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to list projects" }, 500);
   }

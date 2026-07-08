@@ -81,7 +81,7 @@ export function SessionSidebar({
       const res = await apiFetch("/api/workspace-projects");
       if (res.ok) {
         const data = await res.json();
-        setRepos(data.repos || []);
+        setRepos(data.projects || data.repos || []);
       }
     } catch (err) {
       console.error("Failed to fetch repositories:", err);

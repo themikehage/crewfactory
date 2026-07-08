@@ -50,7 +50,7 @@ export function DashboardPage({ onSelectProject }: Props) {
         throw new Error(l.fetchError);
       }
       const data = await res.json();
-      setRepos(data.repos || []);
+      setRepos(data.projects || data.repos || []);
     } catch (err: any) {
       setError(err.message || l.loadError);
     } finally {
