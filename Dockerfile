@@ -42,12 +42,8 @@ COPY --from=builder /app/apps/client/dist ./public
 COPY --from=builder /app/node_modules ./node_modules
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
 
-RUN mkdir -p /app/data /home/crewfactory \
-  && addgroup --system crewfactory \
-  && adduser --system --ingroup crewfactory --home /home/crewfactory --disabled-password --gecos "" crewfactory \
-  && chown crewfactory:crewfactory /home/crewfactory \
-  && echo "crewfactory ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-  && chown crewfactory:crewfactory /app /app/data
+RUN mkdir -p /app/data \
+  && chmod 777 /app/data
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
@@ -60,11 +56,9 @@ ENV CREWFACTORY_DATA_PATH=/app/data
 ENV PLAYWRIGHT_BROWSERS_PATH=/app/data/ms-playwright
 ENV PIP_CACHE_DIR=/app/data/.cache/pip
 ENV CARGO_HOME=/app/data/.cargo
-ENV HOME=/home/crewfactory
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
   CMD wget -qO- http://localhost:3000/api/health || exit 1
 
-USER crewfactory
 ENTRYPOINT ["docker-entrypoint.sh"]
 CMD ["bun", "run", "dist/index.js"]
