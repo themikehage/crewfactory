@@ -5,10 +5,11 @@ services:
       dockerfile: Dockerfile
     restart: unless-stopped
     init: true
-    ports:
-      - "3000:3000"
-      - "3001:3001"
+    expose:
+      - "3000"
+      - "3001"
     environment:
+      - SERVICE_FQDN_CREWFACTORY_3000
       - JWT_SECRET=${JWT_SECRET:?Must set JWT_SECRET (openssl rand -base64 32)}
       - AUTH_USERNAME=${AUTH_USERNAME:?Must set AUTH_USERNAME}
       - AUTH_PASSWORD_HASH=${AUTH_PASSWORD_HASH:?Must set AUTH_PASSWORD_HASH}
