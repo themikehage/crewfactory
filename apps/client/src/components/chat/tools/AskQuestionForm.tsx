@@ -34,6 +34,9 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
     allowCustom = true,
   } = args || {};
 
+  const noOptions = options.length === 0;
+  const showCustom = allowCustom || noOptions;
+
   const isResolved = !!result;
   const resolvedPayload = result?.details?.payload;
 
@@ -63,7 +66,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
 
   const handleSubmit = () => {
     if (isResolved || submitting || !sessionId) return;
-    if (selected.size === 0 && allowCustom && !customText.trim()) {
+    if (selected.size === 0 && (!showCustom || !customText.trim())) {
       addToast("warning", "Por favor selecciona al menos una opción o escribe una respuesta personalizada.");
       return;
     }
@@ -133,7 +136,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
           </div>
         )}
 
-        {allowCustom && !isResolved && (
+        {showCustom && !isResolved && (
           <textarea
             disabled={submitting}
             value={customText}
@@ -144,7 +147,7 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
           />
         )}
 
-        {isResolved && allowCustom && customText && (
+        {isResolved && showCustom && customText && (
           <div className="text-xs text-muted-foreground leading-relaxed select-all bg-background/20 rounded-md px-2.5 py-1.5">
             {customText}
           </div>

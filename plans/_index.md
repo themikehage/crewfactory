@@ -5,10 +5,14 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ## Pendientes
 
-- [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose: paths configurables via env vars, entrypoint con inicializacion, volumenes nombrados en /app/data, y migracion automatica de datos legacy.
+- [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose
+- [remove-channel-features.md](./remove-channel-features.md) — Eliminar Tasks/Optimize/Benchmark de canales sin dejar codigo muerto
+- [info-edit-button.md](./info-edit-button.md) — Boton de informacion en proyectos y agentes para ver/editar todos los datos disponibles
+- [mobile-bottom-bar-redesign.md](./mobile-bottom-bar-redesign.md) — La bottombar de mobile solo se muestra cuando el drawer del menu esta abierto
+- [audit-slow-operations.md](./audit-slow-operations.md) — Auditoria de rendimiento: decompose tasks, LLM judge, y export experiment: paths configurables via env vars, entrypoint con inicializacion, volumenes nombrados en /app/data, y migracion automatica de datos legacy.
 - [multi-agent-primitives-refactor.md](./multi-agent-primitives-refactor.md) — Refactorizacion a 4 primitivas componibles (spawn, delegate, negotiate, arbitrate). Consolida 7+ flujos multi-agente, elimina duplicacion, extrae protocolos reutilizables.
 - [laboratory-agent-experience.md](./laboratory-agent-experience.md) — Laboratorio como sesion de chat con agente + tool `create_experiment`. Iteracion conversacional sobre experimentos, formulario editable convertido en tab de visualizacion, y eliminacion de IaGenerator (800 lineas).
-- [laboratory-sessions.md](./laboratory-sessions.md) — Añadir el botón para ver las sesiones del laboratorio y soporte para múltiples sesiones por experimento con historial unificado.
+- [laboratory-sessions.md](./laboratory-sessions.md) — Filtrar sesiones `lab_run_*` de la lista principal y mostrar las sesiones del experimento en una vista dedicada con soporte de solo lectura.
 - [agent-channel-gallery.md](./agent-channel-gallery.md) — Galería comunitaria de plantillas de agentes y canales, con instalación en 1 clic, exportación, y curación vía PRs.
 - [agent-manager-tool.md](./agent-manager-tool.md) — Tool agent_manager para delegar tareas a agentes programáticos persistentes y supervisar su ejecución en tiempo real.
 - [channel-agent-validation.md](./channel-agent-validation.md) — Validacion de agentes en canales: cascade cleanup al eliminar agente, filtrado de miembros ghost en lecturas, e indicadores visuales en el cliente para agentes huerfano.
@@ -28,6 +32,8 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [mcp-marketplace.md](./mcp-marketplace.md) — Marketplace de MCPs estilo Windsurf: galeria de servidores populares, MCPs custom, conexion y exposicion de tools al agente.
 - [mobile-navigation-redesign.md](./mobile-navigation-redesign.md) — Rediseño de navegación mobile estilo Slack iOS: sidebar full-screen, transiciones split-screen, topbar simplificada, touch targets optimizados.
 - [subagent-live-console.md](./subagent-live-console.md) — Consola de subagentes en tiempo real: retransmisión de eventos a través del WebSocket padre, APIs de mensajes históricos y panel React premium (terminal + steps).
+- [thinking-preview-line.md](./thinking-preview-line.md) — Linea animada de preview del thinking del agente cuando el acordeon esta cerrado.
+- [layered-prompt-system.md](./layered-prompt-system.md) — Sistema de composicion de prompts en 4 capas (identidad, rol, instancia, protocolo) con inyeccion condicional segun deployment context. Desacopla identidad de agente del experimento y simplifica buildAgentPrompt.
 - [tool-visualization-exa-memory.md](./tool-visualization-exa-memory.md) — Rendering estructurado para tools `exa_search` y `engram_store/recall/forget`: iconos, resumen de args/resultado, componentes dedicados con cards para resultados de búsqueda y memorias.
 
 

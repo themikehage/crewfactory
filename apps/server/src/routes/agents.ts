@@ -11,6 +11,26 @@ import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 
 export const agentsRouter = new Hono();
 
+// Avatar GET must be before authMiddleware so browser <img> tags can authenticate
+// via ?token= query param (supported by getUsername())
+agentsRouter.get("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const entry = agentRegistry.get(id, username);
+  if (!entry) return c.json({ error: "Agent not found" }, 404);
+
+  const agentDir = getAgentDir(username, id);
+  if (!existsSync(agentDir)) return c.notFound();
+
+  const files = readdirSync(agentDir);
+  const avatarFile = files.find((f) => f.startsWith("avatar."));
+  if (!avatarFile) return c.notFound();
+
+  const file = Bun.file(join(agentDir, avatarFile));
+  return c.body(file.stream());
+});
+
 agentsRouter.use("/*", authMiddleware);
 
 agentsRouter.get("/", (c) => {
@@ -246,24 +266,6 @@ agentsRouter.post("/:id/avatar", async (c) => {
   agentRegistry.setAvatarUrl(username, id, avatarUrl);
 
   return c.json({ avatarUrl });
-});
-
-agentsRouter.get("/:id/avatar", async (c) => {
-  const username = getUsername(c);
-  if (!username) return c.json({ error: "Unauthorized" }, 401);
-  const id = c.req.param("id");
-  const entry = agentRegistry.get(id, username);
-  if (!entry) return c.json({ error: "Agent not found" }, 404);
-
-  const agentDir = getAgentDir(username, id);
-  if (!existsSync(agentDir)) return c.notFound();
-
-  const files = readdirSync(agentDir);
-  const avatarFile = files.find((f) => f.startsWith("avatar."));
-  if (!avatarFile) return c.notFound();
-
-  const file = Bun.file(join(agentDir, avatarFile));
-  return c.body(file.stream());
 });
 
 agentsRouter.delete("/:id/avatar", async (c) => {

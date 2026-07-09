@@ -111,21 +111,22 @@ You can inspect configured providers and set API keys for Anthropic, OpenAI, Goo
 
 ### List Providers
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/providers
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/providers
 \`\`\`
 
 ### Set Provider API Key
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/providers/anthropic/key \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"apiKey": "sk-ant-api03-..."}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"apiKey": "sk-ant-api03-..."}' \
+  http://localhost:3000/api/providers/anthropic/key
 \`\`\`
 
 ### Revoke Provider Key
 \`\`\`bash
-curl -s -X DELETE http://localhost:3000/api/providers/anthropic/key \\
-  -H "Authorization: Bearer $TOKEN"
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --method=DELETE \
+  http://localhost:3000/api/providers/anthropic/key
 \`\`\`
 `
   },
@@ -144,29 +145,30 @@ Environment variables are stored securely per user and made available to agent s
 ### List Environment Variables
 \`\`\`bash
 # List variables (values will be masked as ••••••••)
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/env
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/env
 \`\`\`
 
 ### Reveal a Specific Variable
 \`\`\`bash
 # Reveal the value of a specific environment variable (logged for audit)
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/env/reveal/GITHUB_TOKEN
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/env/reveal/GITHUB_TOKEN
 \`\`\`
 
 ### Set a Single Environment Variable
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/env \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"key": "GITHUB_TOKEN", "value": "ghp_xxxxxxxxxxxx"}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"key": "GITHUB_TOKEN", "value": "ghp_xxxxxxxxxxxx"}' \
+  http://localhost:3000/api/env
 \`\`\`
 
 ### Bulk Update Environment Variables
 \`\`\`bash
-curl -s -X PUT http://localhost:3000/api/env \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"variables": {"COOLIFY_API_KEY": "secret", "NEON_API_KEY": "secret"}}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --method=PUT \
+  --body-data='{"variables": {"COOLIFY_API_KEY": "secret", "NEON_API_KEY": "secret"}}' \
+  http://localhost:3000/api/env
 \`\`\`
 `
   },
@@ -184,20 +186,20 @@ Integrations bind specific projects to deployment targets like GitHub, Coolify, 
 
 ### Fetch Integration Templates
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/integrations/templates
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/integrations/templates
 \`\`\`
 
 ### Get Bindings for a Project
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/integrations/bindings/my-app
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/integrations/bindings/my-app
 \`\`\`
 
 ### Bind Project to Deployment Variables
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/integrations/bindings/my-app \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"coolifyAppUuid": "app-uuid-1234", "githubRepo": "owner/my-app"}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"coolifyAppUuid": "app-uuid-1234", "githubRepo": "owner/my-app"}' \
+  http://localhost:3000/api/integrations/bindings/my-app
 \`\`\`
 `
   },
@@ -221,18 +223,18 @@ To reference projects from your CWD, use the relative path \`../projects/<projec
 
 ### Create or Clone a Project via API (REQUIRED — do NOT use mkdir/git init manually)
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/files/workspace-projects \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"name": "my-new-app", "cloneUrl": "https://github.com/example/repo.git"}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"name": "my-new-app", "cloneUrl": "https://github.com/example/repo.git"}' \
+  http://localhost:3000/api/workspace-projects
 \`\`\`
 
 To create an empty project (no cloneUrl):
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/files/workspace-projects \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"name": "my-new-app"}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"name": "my-new-app"}' \
+  http://localhost:3000/api/workspace-projects
 \`\`\`
 
 ### Delegating Work to a Project (CRITICAL)
@@ -256,21 +258,21 @@ Programmatic agents are independent AI workers with isolated workspaces. You can
 
 ### List Active Agents
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/agents
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/agents
 \`\`\`
 
 ### Register a New Agent
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/agents \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{
     "id": "code-reviewer",
     "name": "Code Reviewer Agent",
     "role": "reviewer",
     "systemPrompt": "You are a senior code reviewer enforcing clean architecture.",
     "model": "anthropic/claude-3-5-sonnet-20241022"
-  }'
+  }' \
+  http://localhost:3000/api/agents
 \`\`\`
 
 ### Delegate Task to Agent (Recommended)
@@ -280,8 +282,9 @@ DO NOT use curl or bash command scripts to communicate with other agents.
 
 ### Stop an Agent
 \`\`\`bash
-curl -s -X DELETE http://localhost:3000/api/agents/code-reviewer \\
-  -H "Authorization: Bearer $TOKEN"
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --method=DELETE \
+  http://localhost:3000/api/agents/code-reviewer
 \`\`\`
 `
   },
@@ -299,23 +302,23 @@ Channels enable autonomous coordination among multiple programmatic agents.
 
 ### List Channels
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/channels
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/channels
 \`\`\`
 
 ### Create a Collaboration Channel
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/channels \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"id": "dev-team", "name": "Development Team", "description": "Channel for frontend and backend agents."}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"id": "dev-team", "name": "Development Team", "description": "Channel for frontend and backend agents."}' \
+  http://localhost:3000/api/channels
 \`\`\`
 
 ### Add Member Agent to Channel
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/channels/dev-team/members \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"agentId": "code-reviewer", "replyMode": "auto"}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"agentId": "code-reviewer", "replyMode": "auto"}' \
+  http://localhost:3000/api/channels/dev-team/members
 \`\`\`
 
 ### Delegate Task to Channel (Recommended)
@@ -339,19 +342,19 @@ You can observe active agent runs and inspect completed execution logs to debug 
 ### Observe an Active Agent (SSE Stream)
 To observe an agent in real-time, fetch its live SSE event stream:
 \`\`\`bash
-curl -N -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/agents/<agentId>/observe
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/agents/<agentId>/observe
 \`\`\`
 
 ### List Executions for an Agent
 To see a history of all executed prompts:
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/agents/<agentId>/executions
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/agents/<agentId>/executions
 \`\`\`
 
 ### Get Execution Details
 To inspect a specific execution's tool calls, errors, and message log:
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/agents/<agentId>/executions/<execId>
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/agents/<agentId>/executions/<execId>
 \`\`\`
 `
   },
@@ -373,10 +376,9 @@ Save a script under \`workspace/assets/scripts/<name>.sh\` or inside the repo.
 ### 2. Register/Update Quick Action Template
 Fetch current templates, then write an updated definition to integrations catalog:
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/integrations/templates \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{
     "templates": [
       {
         "id": "my-custom-integration",
@@ -391,7 +393,8 @@ curl -s -X POST http://localhost:3000/api/integrations/templates \\
         ]
       }
     ]
-  }'
+  }' \
+  http://localhost:3000/api/integrations/templates
 \`\`\`
 `
   },
@@ -413,13 +416,36 @@ All actions are performed via Hono REST endpoints and require the \`Authorizatio
 
 ### List All Sessions
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions
 \`\`\`
 
-### Filter Sessions by Entity Type (using jq)
-- **By Project:** \`jq '.sessions[] | select(.projectName == "my-repo")'\`
-- **By Programmatic Agent:** \`jq '.sessions[] | select(.agentId == "deploy-bot")'\`
-- **By Channel:** \`jq '.sessions[] | select(.channelId == "dev-room")'\`
+### Filter Sessions by Entity Type (using bun's JSON parser)
+\`\`\`bash
+# By Project:
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions | bun -e "
+const data = await Bun.stdin.text();
+const sessions = JSON.parse(data).sessions || [];
+sessions.filter(s => s.projectName).forEach(s => console.log(s.id, s.name));
+"
+\`\`\`
+
+\`\`\`bash
+# By Programmatic Agent:
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions | bun -e "
+const data = await Bun.stdin.text();
+const sessions = JSON.parse(data).sessions || [];
+sessions.filter(s => s.agentId).forEach(s => console.log(s.id, s.name));
+"
+\`\`\`
+
+\`\`\`bash
+# By Channel:
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions | bun -e "
+const data = await Bun.stdin.text();
+const sessions = JSON.parse(data).sessions || [];
+sessions.filter(s => s.channelId).forEach(s => console.log(s.id, s.name));
+"
+\`\`\`
 
 ---
 
@@ -427,10 +453,10 @@ curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions
 
 ### Send prompt to a Session (Awaited REST)
 \`\`\`bash
-curl -s -X POST http://localhost:3000/api/sessions/<session-id>/prompt \\
-  -H "Authorization: Bearer $TOKEN" \\
-  -H "Content-Type: application/json" \\
-  -d '{"message": "Please run typecheck on apps/server"}'
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --header="Content-Type: application/json" \
+  --post-data='{"message": "Please run typecheck on apps/server"}' \
+  http://localhost:3000/api/sessions/<session-id>/prompt
 \`\`\`
 
 ### Send prompt with Real-time Streaming (CLI)
@@ -447,7 +473,7 @@ bun run scripts/delegate.ts --channel <channelId> --message "<prompt>"
 
 ### Fetch Message History
 \`\`\`bash
-curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions/<session-id>/messages
+wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/sessions/<session-id>/messages
 \`\`\`
 
 ### Troubleshooting Patterns
@@ -463,7 +489,7 @@ To inspect debates and variants in laboratory simulations:
 
 1. **List all experiments:**
    \`\`\`bash
-   curl -s -H "Authorization: Bearer $TOKEN" http://localhost:3000/api/experiments
+   wget -qO- --header="Authorization: Bearer $TOKEN" http://localhost:3000/api/experiments
    \`\`\`
 2. **Fetch active sessions from variants:**
    Filter the experiment JSON to find:
@@ -477,8 +503,9 @@ To inspect debates and variants in laboratory simulations:
 ## 5. Session Cleanup
 Delete any stalled or redundant session:
 \`\`\`bash
-curl -s -X DELETE http://localhost:3000/api/sessions/<session-id> \\
-  -H "Authorization: Bearer $TOKEN"
+wget -qO- --header="Authorization: Bearer $TOKEN" \
+  --method=DELETE \
+  http://localhost:3000/api/sessions/<session-id>
 \`\`\`
 `
   },
@@ -533,7 +560,7 @@ Execute the chosen exercise(s) below. After each one, record: what happened, whe
 **Prompt to execute:**
 > "Create an empty project named 'self-eval-test' in my workspace."
 
-**Expected outcome:** The agent calls \`POST /api/files/workspace-projects\` with \`name: "self-eval-test"\` (no cloneUrl). Returns the new project's ID.
+**Expected outcome:** The agent calls \`POST /api/workspace-projects\` with \`name: "self-eval-test"\` (no cloneUrl). Returns the new project's ID.
 
 **What to check:** Did the agent use the API correctly instead of running \`mkdir\` or \`git init\` in bash? Did it confirm the project was created and provide the ID?
 

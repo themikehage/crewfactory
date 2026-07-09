@@ -1,51 +1,64 @@
-# Laboratory Sessions Plan
+# Laboratory Sessions
 
-Este plan detalla los cambios necesarios para añadir soporte de sesiones en el Laboratorio de CrewFactory. Esto permitirá a los usuarios tener múltiples sesiones de chat con el agente `lab-architect` por cada experimento, tal como ya se hace con Proyectos, Agentes y Canales.
+Mostrar las sesiones de ejecucion del laboratorio en una vista dedicada y evitar que se filtren en la lista de sesiones del agente principal.
 
-## Objetivos
-1. Permitir que cada experimento del laboratorio tenga múltiples sesiones de diseño/chat.
-2. Añadir los botones "Nueva Sesión" (+) y "Sesiones" en la barra superior cuando se esté visualizando un experimento.
-3. Mostrar el historial de sesiones del experimento a través del componente común `SessionPopover`.
-4. Soporte para URL enrutables del tipo `/laboratory/:experimentId/session/:sessionId`.
-5. Al alternar o crear una sesión, redirigir automáticamente a la pestaña de "Chat" del experimento.
+## Problema
 
-## Arquitectura de la Solución
+### 1. Fuga de sesiones `lab_run_*`
 
-```mermaid
-graph TD
-    Router[useRouter / AppRouter] -->|Ruta: /laboratory/:id/session/:sid| ExpDetail[ExperimentDetailPage]
-    ExpDetail -->|Carga sessionId| Chat[ChatArea with lab-architect]
-    MainLayout[MainLayout] -->|Renderiza| Popover[SessionPopover]
-    Popover -->|Filtra por| activeExperimentId
-    Popover -->|Post /api/sessions| Backend[hono Router]
+El laboratorio crea sesiones con IDs como `lab_run_<uuid>` para cada variante (Baseline, Multi No Leader, Multi With Leader). Estas sesiones son reales (con directorio en disco en `/tmp/crewfactory/{username}/sessions/`), pero actualmente:
+
+- **Session lister** (`session-lister.ts`) no filtra el prefijo `lab_`. Filtra `plan_`, `del_`, `sub_`, pero no `lab_run_*`, causando que aparezcan en la lista principal de sesiones.
+- **SessionPopover** (frontend) las oculta parcialmente porque tienen `channelId` (las sesiones con `channelId` se filtran en el contexto global), pero en el contexto de canal o proyecto pueden aparecer.
+- **LogsConsolePage** las muestra sin ningun filtro.
+
+### 2. Sin interfaz dedicada
+
+No hay forma de ver las sesiones de un experimento desde la interfaz del laboratorio. Cuando un usuario ejecuta un experimento y quiere revisar los mensajes de una variante especifica, no puede hacerlo facilmente.
+
+## Solucion Propuesta
+
+### Fase 1: Filtrar `lab_run_*` de la lista principal
+
+En `session-lister.ts`, anadir el filtro para excluir directorios que empiecen con `lab_` (usando `SessionPrefix.LAB`):
+
+```typescript
+.filter((entry) =>
+  entry.isDirectory() &&
+  !entry.name.startsWith("plan_") &&
+  !entry.name.startsWith(SessionPrefix.DELEGATE) &&
+  !entry.name.startsWith(SessionPrefix.SUBAGENT) &&
+  !entry.name.startsWith(SessionPrefix.LAB)  // <-- nuevo filtro
+)
 ```
 
-## Cambios Propuestos
+Ademas, propagar el campo `isExecution` desde el metadata de la sesion en el `SessionListItem` para que el frontend pueda identificar correctamente sesiones de ejecucion.
 
-### Cliente (Frontend)
+### Fase 2: Vista de sesiones del experimento
 
-1. **`apps/client/src/hooks/useRouter.ts`**
-   - Extender el tipo `Route` para admitir `sessionId` opcional en la página de laboratorio: `{ page: "laboratory"; experimentId?: string | null; sessionId?: string | null }`.
-   - Modificar la función `parseRoute` para detectar rutas con el formato `/laboratory/:experimentId/session/:sessionId`.
+En la pagina de detalle del experimento (`ExperimentDetailPage`), anadir un tab "Sesiones" que muestre las 3 sesiones asociadas (una por variante):
 
-2. **`apps/client/src/components/layout/AppRouter.tsx`**
-   - Extraer `sessionId` cuando la página es `laboratory`.
-   - Pasar `sessionId` y la función `navigate` (`onNavigate`) como propiedades al componente `ExperimentDetailPage`.
+1. **Backend**: Endpoint `GET /api/experiments/:id/sessions` que devuelva las sesiones `lab_run_*` asociadas al experimento.
+2. **Frontend**: Tab "Sesiones" en `ExperimentDetailPage` con lista de las 3 variantes, mostrando:
+   - Nombre de la variante (Baseline, Multi No Leader, Multi With Leader)
+   - Cantidad de mensajes
+   - Fecha de creacion
+   - Boton para abrir la sesion en el chat (como solo lectura)
+3. **Acceso**: Al abrir una sesion de laboratorio, debe ser en modo solo lectura (sin poder enviar prompts).
 
-3. **`apps/client/src/components/layout/MainLayout.tsx`**
-   - Actualizar `getSessionPath` para generar la ruta correcta de sesiones de laboratorio: `/laboratory/${selectedExpId}/session/${id}`.
-   - En `handleSelectSession`, cambiar la pestaña activa de variante (`activeVariantTab`) a `"chat"` cuando se navegue dentro del laboratorio.
-   - Refactorizar las secciones de cabecera (escritorio y móvil) para mostrar el botón de crear sesión (+) y el botón de abrir historial de sesiones cuando un experimento esté seleccionado.
-   - Mover el componente `SessionPopover` fuera de la condicional y pasarle `activeExperimentId` y `activeProjectFriendlyName` adaptados al experimento.
+### Archivos a modificar
 
-4. **`apps/client/src/pages/ExperimentDetailPage.tsx`**
-   - Recibir las propiedades `sessionId` y `onNavigate`.
-   - Modificar el efecto de inicialización de la sesión:
-     - Si `sessionId` viene en las propiedades, utilizarlo directamente como sesión activa.
-     - Si no viene, buscar la sesión más reciente del experimento o crear una nueva si no existe, y redirigir a `/laboratory/:experimentId/session/:resolvedSessionId`.
+| Archivo | Cambio |
+|---------|--------|
+| `apps/server/src/core/session/session-lister.ts` | Anadir filtro `SessionPrefix.LAB` y propagar `isExecution` |
+| `apps/server/src/laboratory/experiment-runner.ts` | Guardar `experimentId` en metadata de sesiones `lab_run_*` (ya se hace parcialmente) |
+| `apps/server/src/routes/experiments.ts` | Nuevo endpoint `GET /:id/sessions` |
+| `apps/server/src/laboratory/experiment-store.ts` | Metodo `getExperimentSessions(username, expId)` |
+| `apps/client/src/pages/experiments/ExperimentDetailPage.tsx` | Anadir tab "Sesiones" |
+| `apps/client/src/components/chat/ChatArea.tsx` | Soporte para modo solo lectura en sesiones de laboratorio |
 
-5. **`apps/client/src/components/sidebar/SessionPopover.tsx` & `.literals.ts`**
-   - Añadir soporte para la propiedad `activeExperimentId`.
-   - Filtrar la lista de sesiones usando `experimentId === activeExperimentId`.
-   - Ajustar el payload de creación en `createSession` para incluir `experimentId` y forzar `agentId: "lab-architect"`.
-   - Traducir literales y evitar hardcoding.
+### Consideraciones
+
+- No romper la suscripcion WebSocket: `ws/handler.ts` ya bloquea `lab_*` sessions en `subscribeWsToSession`, pero la vista de solo lectura deberia permitir ver mensajes historicos sin streaming.
+- El filtro en el lister debe ser consistente con los otros filtros (`DELETAGE`, `SUBAGENT`) para mantener el codigo limpio.
+- Las sesiones de laboratorio no deben aparecer en el popover de sesiones del chat principal bajo ninguna circunstancia.

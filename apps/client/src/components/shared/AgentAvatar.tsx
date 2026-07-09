@@ -1,6 +1,10 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import type { FC } from "react";
 import { getAvatarComponent, isDefaultAvatar } from "@/lib/defaultAvatars";
+
+function getToken() {
+  return localStorage.getItem("token") || "";
+}
 
 interface AgentAvatarProps {
   name: string;
@@ -32,6 +36,14 @@ export const AgentAvatar: FC<AgentAvatarProps> = ({
   const [imgError, setImgError] = useState(false);
   const px = SIZE_MAP[size];
 
+  const authedUrl = useMemo(() => {
+    if (!avatarUrl) return "";
+    if (isDefaultAvatar(avatarUrl)) return avatarUrl;
+    const token = getToken();
+    if (!token || !avatarUrl.startsWith("/api/")) return avatarUrl;
+    return `${avatarUrl}?token=${encodeURIComponent(token)}`;
+  }, [avatarUrl]);
+
   if (avatarUrl && !isDefaultAvatar(avatarUrl) && !imgError) {
     return (
       <div
@@ -39,7 +51,7 @@ export const AgentAvatar: FC<AgentAvatarProps> = ({
         style={{ width: px, height: px }}
       >
         <img
-          src={avatarUrl}
+          src={authedUrl}
           alt={name}
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}
