@@ -73,7 +73,7 @@ export function RichMarkdown({ content }: Props) {
                     </svg>
                     <span>File Tree</span>
                   </div>
-                  <pre className="m-0 p-3 bg-muted whitespace-pre">{codeString}</pre>
+                  <pre className="m-0 p-3 bg-muted whitespace-pre-wrap break-all">{codeString}</pre>
                 </div>
               );
             }

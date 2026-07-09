@@ -327,6 +327,29 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       window.dispatchEvent(new CustomEvent("workspaceUpdated"));
     });
 
+    const unsubToolEnd = subscribe("tool_execution_end", (data: unknown) => {
+      const evt = data as Record<string, unknown>;
+      const toolCallId = evt.toolCallId as string | undefined;
+      if (!toolCallId) return;
+      const result = evt.result as any;
+      const isError = evt.isError as boolean | undefined;
+      setMessages((prev) => {
+        const alreadyExists = prev.some(
+          m => m.role === "tool_result" && (m as any).toolCallId === toolCallId
+        );
+        if (alreadyExists) return prev;
+        const toolResultMsg: any = {
+          role: "tool_result",
+          toolCallId,
+          content: (result && typeof result === "object" && result.content)
+            ? result.content
+            : [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result || "") }],
+          isError: !!isError,
+        };
+        return [...prev, toolResultMsg];
+      });
+    });
+
     const unsubError = subscribe("agent_error", (data: unknown) => {
       const evt = data as Record<string, unknown>;
       setError(String(evt.error ?? l.unknownError));
@@ -350,6 +373,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubMsgStart();
       unsubMsg();
       unsubMsgEnd();
+      unsubToolEnd();
       unsubError();
       unsubTasks();
       unsubSubagent();
