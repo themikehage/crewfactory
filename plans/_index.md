@@ -35,6 +35,9 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [thinking-preview-line.md](./thinking-preview-line.md) — Linea animada de preview del thinking del agente cuando el acordeon esta cerrado.
 - [layered-prompt-system.md](./layered-prompt-system.md) — Sistema de composicion de prompts en 4 capas (identidad, rol, instancia, protocolo) con inyeccion condicional segun deployment context. Desacopla identidad de agente del experimento y simplifica buildAgentPrompt.
 - [tool-visualization-exa-memory.md](./tool-visualization-exa-memory.md) — Rendering estructurado para tools `exa_search` y `engram_store/recall/forget`: iconos, resumen de args/resultado, componentes dedicados con cards para resultados de búsqueda y memorias.
+- [mobile-ws-reconnect-token-ui.md](./mobile-ws-reconnect-token-ui.md) — Reconexion WS al reanudar de suspenso mobile + mostrar tokens reales en UI
+- [image-vision-and-generation.md](./image-vision-and-generation.md) — Soporte completo de vision de imagen (input multimodal) y generacion de imagen (output) para agentes
+- [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
 
 
 ## Completados (25)

@@ -34,6 +34,8 @@
 - **Hybrid Input Strategy**:
   - **Images**: converted to base64 on client and sent inline via WebSocket using the vendored agent runtime's native vision parameters (`images?: ImageContent[]`). Image grid in chat supports click-to-expand modal with fullscreen overlay, Escape to close, and authenticated image loading.
   - **Documents (PDF, Office, etc.)**: uploaded via Multipart HTTP POST directly to the workspace storage folder (`assets/uploads`), auto-appending workspace paths to the prompt so agents can read them.
+- **Vision (Image Understanding) — Planned**: The vendored AI SDK has full `ImageContent` type support, `Model.input: ("text"|"image")[]` capability detection, automatic image downgrade for non-vision models, and client-side base64 conversion + WS transport. The `AgentSession.prompt()` bridge currently does not forward images to the agent loop — this is the single remaining gap for full multimodal vision (see `plans/image-vision-and-generation.md`).
+- **Image Generation — Planned**: The vendored SDK has complete `ImagesModel` / `ImagesProvider` / `ImagesModels` type infrastructure and `ProviderImages` contract, but the concrete `openrouterImagesProvider` implementation file is missing from the vendored providers. A `generate_image` tool will bridge agents to image generation APIs, saving results to `assets/generated/` and displaying them via the existing `render_images` tool (see `plans/image-vision-and-generation.md`).
 - **Visual Preview Templates (Premium UI)**:
   - **PDFs**: rendered inline via authenticated iframe viewers with "Open in New Tab" controls.
   - **Audio & Video**: embedded natively using HTML5 `<audio>` and `<video>` players with customizable layouts.
@@ -177,6 +179,7 @@
 - Persistent task state injection: active task details and step-by-step instructions are injected directly into the agent's system prompt to keep it fully aware of the execution plan.
 - Floating Task Accordion UI: premium glassmorphic overlay panel rendered at the top of the chat area, with real-time status indicators, progress bars, and execution controls (Play/Pause).
 - Autonomous error handling and re-planning: if a task fails, the agent re-calls the tool to adjust the remaining steps.
+- **Performance Issue — Planned**: `decompose_tasks` is currently slow because it spawns a full secondary agent session (`plan_*`) with complete agent loop to generate the task JSON. Plan `fast-decompose-tasks.md` proposes replacing this with a direct `streamSimple()` call to the LLM, eliminating session creation, resource loading, and tool lifecycle overhead (~40-60% faster).
 ### Integrations Hub
 - Dynamic and fully customizable integrations catalog configured per user on the server
 - Automatic integration status detection linked with existing user-level environment variables
