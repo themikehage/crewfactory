@@ -47,7 +47,7 @@ RUN mkdir -p /app/data /home/crewfactory \
   && adduser --system --ingroup crewfactory --home /home/crewfactory --disabled-password --gecos "" crewfactory \
   && chown crewfactory:crewfactory /home/crewfactory \
   && echo "crewfactory ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers \
-  && chown crewfactory:crewfactory /app/data
+  && chown crewfactory:crewfactory /app /app/data
 
 RUN chmod +x /usr/local/bin/docker-entrypoint.sh
 
