@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { LocaleSelector } from "./LocaleSelector";
 import { ThemeToggle } from "./ThemeToggle";
@@ -32,6 +32,211 @@ export function GeneralTab({ token }: GeneralTabProps) {
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [overwriteConfirmation, setOverwriteConfirmation] = useState("");
   const [exporting, setExporting] = useState(false);
+
+  const [visionModel, setVisionModel] = useState("");
+  const [imageGenModel, setImageGenModel] = useState("");
+  const [visionModels, setVisionModels] = useState<Array<{ id: string; name: string; provider: string }>>([]);
+  const [imageGenModels, setImageGenModels] = useState<Array<{ id: string; name: string; provider: string; description?: string; cost?: number; rpm?: number; concurrency?: number | null }>>([]);
+  const [settingsLoading, setSettingsLoading] = useState(true);
+
+  // Vision Diagnostic Test State
+  const [visionTestPrompt, setVisionTestPrompt] = useState("Describe this image in one word");
+  const [visionTestFile, setVisionTestFile] = useState<File | null>(null);
+  const [visionTestBase64, setVisionTestBase64] = useState<string | null>(null);
+  const [visionTestMime, setVisionTestMime] = useState<string | null>(null);
+  const [testingVision, setTestingVision] = useState(false);
+  const [visionResult, setVisionResult] = useState<string | null>(null);
+  const [visionError, setVisionError] = useState<string | null>(null);
+
+  // Image Generation Diagnostic Test State
+  const [imageTestPrompt, setImageTestPrompt] = useState("A cute coding robot logo, clean futuristic green theme");
+  const [testingImage, setTestingImage] = useState(false);
+  const [imageResult, setImageResult] = useState<string | null>(null);
+  const [imageBlobUrl, setImageBlobUrl] = useState<string | null>(null);
+  const [imageError, setImageError] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (imageBlobUrl) {
+        window.URL.revokeObjectURL(imageBlobUrl);
+      }
+    };
+  }, [imageBlobUrl]);
+
+  const handleVisionFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files;
+    if (files && files.length > 0) {
+      const file = files[0];
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        const base64 = result.split(",")[1];
+        setVisionTestFile(file);
+        setVisionTestBase64(base64);
+        setVisionTestMime(file.type);
+        setVisionResult(null);
+        setVisionError(null);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleTestVision = async () => {
+    setTestingVision(true);
+    setVisionResult(null);
+    setVisionError(null);
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch("/api/settings/test-vision", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          modelId: visionModel,
+          prompt: visionTestPrompt,
+          image: visionTestBase64 || undefined,
+          mimeType: visionTestMime || undefined,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      if (data.ok) {
+        setVisionResult(data.response);
+      } else {
+        setVisionError(data.error || "Unknown diagnostic error");
+      }
+    } catch (err: any) {
+      setVisionError(err.message || String(err));
+    } finally {
+      setTestingVision(false);
+    }
+  };
+
+  const handleTestImageGen = async () => {
+    setTestingImage(true);
+    setImageResult(null);
+    setImageError(null);
+    if (imageBlobUrl) {
+      window.URL.revokeObjectURL(imageBlobUrl);
+      setImageBlobUrl(null);
+    }
+    try {
+      const headers: HeadersInit = {
+        "Content-Type": "application/json",
+      };
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+
+      const res = await fetch("/api/settings/test-image-gen", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({
+          modelId: imageGenModel,
+          prompt: imageTestPrompt,
+          size: "1024x1024",
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
+
+      if (data.ok && data.imageUrl) {
+        setImageResult(data.imageUrl);
+
+        const imgHeaders: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        const fileRes = await fetch(data.imageUrl + "?raw=true", { headers: imgHeaders });
+        if (!fileRes.ok) {
+          throw new Error("Failed to download generated image for preview.");
+        }
+        const blob = await fileRes.blob();
+        const objUrl = window.URL.createObjectURL(blob);
+        setImageBlobUrl(objUrl);
+      } else {
+        setImageError(data.error || "Unknown image generation error");
+      }
+    } catch (err: any) {
+      setImageError(err.message || String(err));
+    } finally {
+      setTestingImage(false);
+    }
+  };
+
+  useEffect(() => {
+    const loadData = async () => {
+      try {
+        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
+        
+        const settingsRes = await fetch("/api/settings", { headers });
+        if (settingsRes.ok) {
+          const settingsData = await settingsRes.json();
+          setVisionModel(settingsData.visionModel || "");
+          setImageGenModel(settingsData.imageGenModel || "");
+        }
+
+        const modelsRes = await fetch("/api/models", { headers });
+        if (modelsRes.ok) {
+          const modelsData = await modelsRes.json();
+          const filtered = (modelsData.models || []).filter((m: any) => m.input?.includes("image"));
+          setVisionModels(filtered);
+        }
+
+        const imgModelsRes = await fetch("/api/models/images", { headers });
+        if (imgModelsRes.ok) {
+          const imgModelsData = await imgModelsRes.json();
+          setImageGenModels(imgModelsData.models || []);
+        }
+      } catch (err) {
+        console.error("Failed to load settings models:", err);
+      } finally {
+        setSettingsLoading(false);
+      }
+    };
+    loadData();
+  }, [token]);
+
+  const handleUpdateVisionModel = async (model: string) => {
+    setVisionModel(model);
+    try {
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ visionModel: model }),
+      });
+    } catch (err) {
+      console.error("Failed to update vision model settings:", err);
+    }
+  };
+
+  const handleUpdateImageGenModel = async (model: string) => {
+    setImageGenModel(model);
+    try {
+      await fetch("/api/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ imageGenModel: model }),
+      });
+    } catch (err) {
+      console.error("Failed to update image generation model settings:", err);
+    }
+  };
 
   const handleExportBackup = async () => {
     setExporting(true);
@@ -135,6 +340,210 @@ export function GeneralTab({ token }: GeneralTabProps) {
             <LocaleSelector />
           </div>
         </div>
+      </div>
+
+      <div className="bg-card rounded-lg p-4 border border-input/30 space-y-4">
+        <h3 className="text-foreground font-semibold text-sm">AI Tools Configuration</h3>
+        <p className="text-muted-foreground text-[11px]">
+          Configure dedicated models for vision analysis and image generation tools.
+        </p>
+        {settingsLoading ? (
+          <div className="text-xs text-muted-foreground animate-pulse">Loading model configurations...</div>
+        ) : (
+          <div className="space-y-4">
+            <div className="flex flex-col gap-1.5 border-b border-input/10 pb-4">
+              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+                Vision Model (for programmatic vision tool)
+              </label>
+              <select
+                value={visionModel}
+                onChange={(e) => handleUpdateVisionModel(e.target.value)}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary transition-colors text-sm cursor-pointer"
+              >
+                <option value="">-- Select Vision Model --</option>
+                {visionModels.map(m => (
+                  <option key={m.id} value={`${m.provider}/${m.id}`}>
+                    {m.name} ({m.provider})
+                  </option>
+                ))}
+              </select>
+
+              {visionModel && (
+                <div className="mt-2 bg-background/50 p-3 rounded-lg border border-input/20 space-y-3 text-xs">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                    Diagnose Vision Model
+                  </span>
+                  
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={visionTestPrompt}
+                        onChange={(e) => setVisionTestPrompt(e.target.value)}
+                        placeholder="Prompt to analyze the image..."
+                        className="flex-1 px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary text-xs"
+                      />
+                      <div className="flex gap-2">
+                        <label className="flex items-center justify-center px-3 py-1.5 bg-background hover:bg-card-hover/20 border border-input rounded-lg cursor-pointer transition-colors text-muted-foreground hover:text-foreground text-[11px] font-semibold">
+                          <span>{visionTestFile ? "Image Loaded" : "Upload Image"}</span>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleVisionFileChange}
+                            className="hidden"
+                          />
+                        </label>
+                        {visionTestFile && (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setVisionTestFile(null);
+                              setVisionTestBase64(null);
+                              setVisionTestMime(null);
+                            }}
+                            className="px-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors border border-destructive/25 text-[11px] font-semibold"
+                          >
+                            Clear
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                    
+                    {visionTestFile && visionTestBase64 && (
+                      <div className="flex items-center gap-2 bg-background p-2 rounded-lg border border-input/10">
+                        <img src={`data:${visionTestMime};base64,${visionTestBase64}`} alt="preview" className="w-10 h-10 object-cover rounded-md border border-input/30" />
+                        <div className="text-[10px] text-muted-foreground truncate flex-1">{visionTestFile.name}</div>
+                      </div>
+                    )}
+
+                    <button
+                      type="button"
+                      disabled={testingVision}
+                      onClick={handleTestVision}
+                      className="w-full text-center text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 cursor-pointer"
+                    >
+                      {testingVision ? "Analyzing Image..." : "Run Diagnostic Vision Test"}
+                    </button>
+                  </div>
+
+                  {visionResult && (
+                    <div className="p-2.5 bg-success/5 border border-success/20 text-success rounded-md whitespace-pre-wrap leading-relaxed select-all font-mono text-[11px]">
+                      <span className="font-bold block mb-1">Response:</span>
+                      {visionResult}
+                    </div>
+                  )}
+
+                  {visionError && (
+                    <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-all select-all">
+                      <span className="font-bold block mb-1">Diagnostic Failure:</span>
+                      {visionError}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div className="flex flex-col gap-1.5">
+              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
+                Image Generation Model
+              </label>
+              <select
+                value={imageGenModel}
+                onChange={(e) => handleUpdateImageGenModel(e.target.value)}
+                className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary transition-colors text-sm cursor-pointer"
+              >
+                <option value="">-- Select Image Generation Model --</option>
+                {imageGenModels.map(m => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+
+              {(() => {
+                const selected = imageGenModels.find(m => m.id === imageGenModel);
+                if (!selected) return null;
+                return (
+                  <div className="mt-2 bg-background p-3 rounded-lg border border-input/20 space-y-2 text-xs">
+                    {selected.description && (
+                      <p className="text-muted-foreground leading-relaxed">
+                        {selected.description}
+                      </p>
+                    )}
+                    <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2.5 border-t border-input/10">
+                      {selected.cost !== undefined && (
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Cost</span>
+                          <span className="text-foreground font-semibold">${selected.cost} / image</span>
+                        </div>
+                      )}
+                      {selected.rpm !== undefined && (
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Rate Limit</span>
+                          <span className="text-foreground font-semibold">{selected.rpm} RPM</span>
+                        </div>
+                      )}
+                      {selected.concurrency !== undefined && selected.concurrency !== null && (
+                        <div>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Concurrency</span>
+                          <span className="text-foreground font-semibold">{selected.concurrency} concurrent</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              {imageGenModel && (
+                <div className="mt-2 bg-background/50 p-3 rounded-lg border border-input/20 space-y-3 text-xs">
+                  <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
+                    Diagnose Image Generation Model
+                  </span>
+
+                  <div className="flex flex-col gap-2">
+                    <div className="flex flex-col sm:flex-row gap-2">
+                      <input
+                        type="text"
+                        value={imageTestPrompt}
+                        onChange={(e) => setImageTestPrompt(e.target.value)}
+                        placeholder="Prompt to generate image..."
+                        className="flex-1 px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary text-xs"
+                      />
+                      <button
+                        type="button"
+                        disabled={testingImage || !imageTestPrompt.trim()}
+                        onClick={handleTestImageGen}
+                        className="px-4 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 rounded-lg font-semibold transition-all disabled:opacity-50 cursor-pointer text-[11px]"
+                      >
+                        {testingImage ? "Generating..." : "Generate Test Image"}
+                      </button>
+                    </div>
+                  </div>
+
+                  {imageResult && (
+                    <div className="p-2.5 bg-success/5 border border-success/20 text-success rounded-md space-y-2">
+                      <span className="font-bold block text-[11px]">Image Generated Successfully!</span>
+                      <div className="relative group max-w-sm rounded-lg overflow-hidden border border-input/40 bg-card p-1">
+                        {imageBlobUrl ? (
+                          <img src={imageBlobUrl} alt="Generated Test" className="w-full h-auto object-contain rounded-md" />
+                        ) : (
+                          <div className="w-full h-32 flex items-center justify-center bg-card text-[11px] text-muted-foreground">Loading image preview...</div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {imageError && (
+                    <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-all select-all">
+                      <span className="font-bold block mb-1">Diagnostic Failure:</span>
+                      {imageError}
+                    </div>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30 space-y-2">
