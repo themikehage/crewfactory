@@ -10,8 +10,8 @@ import { useLiterals, type MessageUsage, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatArea.literals";
 import { useRouter } from "@/hooks/useRouter";
 import { WelcomeChatInput } from "./WelcomeChatInput";
+import { useToast } from "@/contexts/ToastContext";
 
-import { SubagentConsole } from "./tools/SubagentConsole";
 import { FloatingTasks } from "./FloatingTasks";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
@@ -44,6 +44,7 @@ interface Props {
 export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeChannel = null }: Props) {
   const l = useLiterals(u);
   const { navigate } = useRouter();
+  const { addToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);
   const [streaming, setStreaming] = useState(false);
@@ -69,6 +70,24 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     else if (activeProjectName) sessionName = `${activeProjectName} - Session`;
 
     try {
+      let finalText = messageText;
+      let imagesToSave: Array<{ type: "image"; data: string; mimeType: string }> = [];
+
+      if (attachments && attachments.length > 0) {
+        try {
+          const result = await processAttachments(attachments, {
+            activeProjectName,
+            activeAgentId: activeAgent?.id,
+            activeChannelId: activeChannel?.id,
+          });
+          finalText = messageText + result.extraText;
+          imagesToSave = result.images;
+        } catch (attachErr) {
+          addToast("error", attachErr instanceof Error ? attachErr.message : String(attachErr));
+          return;
+        }
+      }
+
       const createRes = await fetch("/api/sessions", {
         method: "POST",
         headers: {
@@ -87,17 +106,17 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         const session = await createRes.json();
         const path = getSessionPath(session.id);
 
-        let finalText = messageText;
-        if (attachments && attachments.length > 0) {
-          const result = await processAttachments(attachments, { activeProjectName, activeAgentId: activeAgent?.id, activeChannelId: activeChannel?.id });
-          finalText = messageText + result.extraText;
-        }
-
         localStorage.setItem(`pending-prompt-${session.id}`, finalText);
+        if (imagesToSave.length > 0) {
+          localStorage.setItem(`pending-images-${session.id}`, JSON.stringify(imagesToSave));
+        }
         navigate(path);
+      } else {
+        addToast("error", "Error al crear la sesión");
       }
     } catch (e) {
       console.error("Failed to auto-create session for prompt:", e);
+      addToast("error", "Error inesperado al crear la sesión");
     }
   };
 
@@ -146,7 +165,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     ];
   };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
-  const [subagentDrawer, setSubagentDrawer] = useState<{ toolCallId: string; task: string; role?: string } | null>(null);
+  const [sessionMetadata, setSessionMetadata] = useState<any>(null);
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
@@ -195,6 +214,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     if (!sessionId) {
       setMessages([]);
       setLoadingMessages(false);
+      setSessionMetadata(null);
       return;
     }
     if (!silent) {
@@ -209,6 +229,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         const data = await res.json();
         const msgs = data.messages ?? [];
         setMessages(msgs);
+        setSessionMetadata(data.metadata ?? null);
         if (msgs.length > 0) {
           firstMessageSentRef.current = true;
         }
@@ -364,6 +385,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       }
     });
 
+    const unsubDelCompleted = subscribe("delegation_completed", (data: any) => {
+      if (sessionId === data.parentSessionId) {
+        loadMessages(true);
+      }
+    });
+
     return () => {
       unsubStart();
       unsubEnd();
@@ -375,8 +402,9 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubTasks();
       unsubSubagent();
       unsubContext();
+      unsubDelCompleted();
     };
-  }, [sessionId, subscribe]);
+  }, [sessionId, subscribe, loadMessages, navigate, getSessionPath]);
 
   useEffect(() => {
     if (connected && !wasConnected && sessionId) {
@@ -441,10 +469,21 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     if (!sessionId) return;
     const pendingKey = `pending-prompt-${sessionId}`;
     const pendingPrompt = localStorage.getItem(pendingKey);
+    const pendingImagesKey = `pending-images-${sessionId}`;
+    const pendingImagesStr = localStorage.getItem(pendingImagesKey);
+    let pendingImages: Array<{ type: "image"; data: string; mimeType: string }> | undefined = undefined;
+    if (pendingImagesStr) {
+      try {
+        pendingImages = JSON.parse(pendingImagesStr);
+      } catch (e) {
+        console.error("Failed to parse pending images:", e);
+      }
+    }
     if (pendingPrompt) {
       localStorage.removeItem(pendingKey);
+      localStorage.removeItem(pendingImagesKey);
       setTimeout(() => {
-        handleSend(pendingPrompt);
+        handleSend(pendingPrompt, undefined, undefined, pendingImages);
       }, 500);
     }
   }, [sessionId, handleSend]);
@@ -486,7 +525,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           onSend={(msg, attachments) => createSessionAndSend(msg, attachments)}
           suggestions={getSuggestions()}
           showModelSelector={true}
-          allowAttachments={false}
+          allowAttachments={!activeChannel}
           disabled={streaming}
           loading={streaming}
         />
@@ -497,6 +536,26 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   return (
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
+        {(sessionId.startsWith("sub_") || sessionId.startsWith("del_")) && (
+          <div className="px-4 py-2.5 bg-surface border-b border-border flex items-center justify-between flex-shrink-0 z-10">
+            <div className="flex items-center gap-2">
+              <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent font-medium text-[10px] font-mono uppercase tracking-wider">
+                {sessionId.startsWith("sub_") ? "Subagent Session" : "Delegated Session"}
+              </span>
+            </div>
+            {sessionMetadata?.parentSessionId && (
+              <button
+                onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId))}
+                className="text-xs text-accent hover:underline flex items-center gap-1.5 transition-all duration-150 cursor-pointer"
+              >
+                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                </svg>
+                Volver a la Sesión Padre
+              </button>
+            )}
+          </div>
+        )}
 
         {error && (
           <div className="px-3 sm:px-4 py-2 bg-destructive/10 border-b border-error/20 text-destructive text-xs flex-shrink-0">
@@ -550,8 +609,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     activeAgentAvatarUrl={activeAgent?.avatarUrl}
                     activeChannelId={activeChannel?.id}
                     serialTools={serialTools}
-                    onOpenSubagentConsole={(toolCallId: string, task: string, role?: string) => {
-                      setSubagentDrawer({ toolCallId, task, role });
+                    onOpenSubagentConsole={(toolCallId: string) => {
+                      navigate(getSessionPath(`sub_${toolCallId}`));
                     }}
                   />
                   {!isReadOnlyExecution && <div className="h-[176px] flex-shrink-0" />}
@@ -611,24 +670,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
             activeProjectName={activeProjectName}
             onClose={() => setRightDrawerOpen(false)}
             onSendPrompt={(prompt) => handleSend(prompt)}
-          />
-        )}
-      </AnimatePresence>
-
-      <AnimatePresence>
-        {subagentDrawer && (
-          <SubagentConsole
-            parentId={sessionId}
-            toolCallId={subagentDrawer.toolCallId}
-            task={subagentDrawer.task}
-            subagentRole={subagentDrawer.role}
-            onClose={() => setSubagentDrawer(null)}
-            sessionId={sessionId}
-            activeProjectName={activeProjectName}
-            activeAgentId={activeAgent?.id}
-            activeAgentName={activeAgent?.name}
-            activeAgentAvatarUrl={activeAgent?.avatarUrl}
-            activeChannelId={activeChannel?.id}
           />
         )}
       </AnimatePresence>

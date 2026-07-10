@@ -1,29 +1,56 @@
 import { useState } from "react";
+import { useLiterals } from "@/lib";
 import { RichMarkdown } from "./RichMarkdown";
 import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher } from "./ToolResultInspector";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
+import { literals as ml } from "./MessageBlocks.literals";
 
-export function ThinkingBlock({ thinking }: { thinking: string }) {
+function LightningIcon({ className }: { className?: string }) {
+  return (
+    <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className={`flex-shrink-0 ${className ?? ""}`}>
+      <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
+    </svg>
+  );
+}
+
+function ChevronIcon({ open }: { open: boolean }) {
+  return (
+    <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform flex-shrink-0 ${open ? "rotate-180" : ""}`}>
+      <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
+    </svg>
+  );
+}
+
+export function ThinkingBlock({ thinking, isStreaming }: { thinking: string; isStreaming?: boolean }) {
   const [open, setOpen] = useState(false);
+  const l = useLiterals(ml);
+  const previewText = thinking.trim().replace(/\n/g, " ");
+
   return (
     <div className="my-1.5">
-      <button
-        onClick={() => setOpen(!open)}
-        className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer select-none"
-      >
-        <svg width="11" height="11" viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
-          <path fillRule="evenodd" d="M11.3 1.046A1 1 0 0112 2v5h4a1 1 0 01.82 1.573l-7 10A1 1 0 018 18v-5H4a1 1 0 01-.82-1.573l7-10a1 1 0 011.12-.38z" clipRule="evenodd" />
-        </svg>
-        <span className="font-sans">{open ? "Hide" : "Show"} reasoning</span>
-        <svg width="9" height="9" viewBox="0 0 20 20" fill="currentColor" className={`transition-transform ${open ? "rotate-180" : ""}`}>
-          <path fillRule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clipRule="evenodd" />
-        </svg>
-      </button>
-      {open && (
-        <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
-          {thinking}
-        </div>
+      {!open ? (
+        <button
+          onClick={() => setOpen(true)}
+          className={`flex items-center gap-1.5 w-full text-left pl-2 pr-2 py-1 rounded-r cursor-pointer select-none transition-colors hover:bg-primary/10 text-[11px] font-mono text-muted-foreground/70 border-l-2 min-w-0 ${isStreaming ? "border-primary animate-pulse" : "border-primary/20"}`}
+        >
+          <LightningIcon className={isStreaming ? "text-primary" : ""} />
+          <span className="truncate">{previewText}</span>
+        </button>
+      ) : (
+        <>
+          <button
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-1.5 text-[11px] text-muted-foreground hover:text-muted-foreground transition-colors cursor-pointer select-none"
+          >
+            <LightningIcon />
+            <span className="font-sans">{l.hideReasoning}</span>
+            <ChevronIcon open={open} />
+          </button>
+          <div className="mt-1.5 pl-4 border-l-2 border-primary/20 text-[11px] text-muted-foreground font-mono whitespace-pre-wrap leading-relaxed max-h-48 overflow-y-auto">
+            {thinking}
+          </div>
+        </>
       )}
     </div>
   );

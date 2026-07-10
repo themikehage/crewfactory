@@ -4,10 +4,11 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { agentRegistry } from "../agents";
-import { AgentDefinitionSchema, UpdateAgentDefinitionSchema, getAgentDir } from "shared";
+import { AgentDefinitionSchema, UpdateAgentDefinitionSchema, getAgentDir, getChannelsDir } from "shared";
 import { sessionManager } from "../core/session-manager";
 import { join } from "node:path";
 import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { channelStore } from "../channels";
 
 export const agentsRouter = new Hono();
 
@@ -104,6 +105,47 @@ agentsRouter.delete("/:id", async (c) => {
         console.error(`[AgentsRoute] Failed to destroy session ${s.id}:`, err)
       );
     }
+  }
+
+  // Cascading delete: clean membership in user channels
+  try {
+    const baseDir = getChannelsDir(username);
+    if (existsSync(baseDir)) {
+      const channelEntries = readdirSync(baseDir, { withFileTypes: true });
+      for (const chEntry of channelEntries) {
+        if (chEntry.isDirectory()) {
+          const channelId = chEntry.name;
+          const channel = channelStore.getChannel(username, channelId);
+          if (channel && channel.members) {
+            let hasDeletedAgent = false;
+            const cleanedMembers = channel.members
+              .filter((m) => {
+                if (m.agentId === id) {
+                  hasDeletedAgent = true;
+                  return false;
+                }
+                return true;
+              })
+              .map((m) => {
+                if (m.targetAgentIds && m.targetAgentIds.includes(id)) {
+                  hasDeletedAgent = true;
+                  return {
+                    ...m,
+                    targetAgentIds: m.targetAgentIds.filter((tid) => tid !== id),
+                  };
+                }
+                return m;
+              });
+
+            if (hasDeletedAgent) {
+              channelStore.updateMembers(username, channelId, cleanedMembers);
+            }
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.error("[AgentsRoute] Failed to cascade clean agent from channels:", err);
   }
 
   await agentRegistry.stop(id);

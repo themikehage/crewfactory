@@ -5,7 +5,6 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./GeneralTab.literals";
 import { Dropdown } from "@/components/ui/Dropdown";
-import { IMPORT_MODE_OPTIONS } from "@/lib/dropdown-options";
 
 interface GeneralTabProps {
   token: string | null;
@@ -260,7 +259,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
       a.remove();
       window.URL.revokeObjectURL(url);
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Error exporting backup";
+      const errMsg = err instanceof Error ? err.message : l.errorExporting;
       setImportError(errMsg);
     } finally {
       setExporting(false);
@@ -294,7 +293,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
         throw new Error(data.error || "Failed to import backup");
       }
 
-      setImportSuccess(`Backup imported successfully via ${importMode} mode.`);
+      setImportSuccess(l.backupImported.replace("{mode}", importMode));
       setImportFile(null);
       setShowOverwriteModal(false);
 
@@ -302,7 +301,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
         window.location.reload();
       }, 1500);
     } catch (err: unknown) {
-      const errMsg = err instanceof Error ? err.message : "Error importing backup";
+      const errMsg = err instanceof Error ? err.message : l.errorImporting;
       setImportError(errMsg);
     } finally {
       setImporting(false);
@@ -318,14 +317,14 @@ export function GeneralTab({ token }: GeneralTabProps) {
           </div>
           <div>
             <div className="text-foreground text-sm font-medium">{user?.username}</div>
-            <div className="text-muted-foreground text-[11px]">Active Session</div>
+            <div className="text-muted-foreground text-[11px]">{l.activeSession}</div>
           </div>
         </div>
         <button
           onClick={logout}
           className="text-xs bg-destructive/10 text-destructive hover:bg-destructive/20 border border-error/20 px-3.5 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
         >
-          Sign Out
+          {l.signOut}
         </button>
       </div>
 
@@ -343,17 +342,17 @@ export function GeneralTab({ token }: GeneralTabProps) {
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30 space-y-4">
-        <h3 className="text-foreground font-semibold text-sm">AI Tools Configuration</h3>
+        <h3 className="text-foreground font-semibold text-sm">{l.aiToolsConfig}</h3>
         <p className="text-muted-foreground text-[11px]">
-          Configure dedicated models for vision analysis and image generation tools.
+          {l.aiToolsDesc}
         </p>
         {settingsLoading ? (
-          <div className="text-xs text-muted-foreground animate-pulse">Loading model configurations...</div>
+          <div className="text-xs text-muted-foreground animate-pulse">{l.loadingModels}</div>
         ) : (
           <div className="space-y-4">
             <div className="flex flex-col gap-1.5 border-b border-input/10 pb-4">
               <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
-                Vision Model (for programmatic vision tool)
+                {l.visionModel}
               </label>
               <Dropdown<string>
                 value={visionModel}
@@ -362,14 +361,14 @@ export function GeneralTab({ token }: GeneralTabProps) {
                   value: `${m.provider}/${m.id}`,
                   label: `${m.name} (${m.provider})`,
                 }))}
-                placeholder="-- Select Vision Model --"
+                placeholder={l.selectVisionModel}
                 matchWidth
               />
 
               {visionModel && (
                 <div className="mt-2 bg-background/50 p-3 rounded-lg border border-input/20 space-y-3 text-xs">
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
-                    Diagnose Vision Model
+                    {l.diagnoseVision}
                   </span>
                   
                   <div className="flex flex-col gap-2">
@@ -378,12 +377,12 @@ export function GeneralTab({ token }: GeneralTabProps) {
                         type="text"
                         value={visionTestPrompt}
                         onChange={(e) => setVisionTestPrompt(e.target.value)}
-                        placeholder="Prompt to analyze the image..."
+                        placeholder={l.promptAnalyzeImage}
                         className="flex-1 px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary text-xs"
                       />
                       <div className="flex gap-2">
                         <label className="flex items-center justify-center px-3 py-1.5 bg-background hover:bg-card-hover/20 border border-input rounded-lg cursor-pointer transition-colors text-muted-foreground hover:text-foreground text-[11px] font-semibold">
-                          <span>{visionTestFile ? "Image Loaded" : "Upload Image"}</span>
+                          <span>{visionTestFile ? l.imageLoaded : l.uploadImage}</span>
                           <input
                             type="file"
                             accept="image/*"
@@ -401,7 +400,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                             }}
                             className="px-2 text-destructive hover:bg-destructive/10 rounded-lg transition-colors border border-destructive/25 text-[11px] font-semibold"
                           >
-                            Clear
+                            {l.clear}
                           </button>
                         )}
                       </div>
@@ -420,20 +419,20 @@ export function GeneralTab({ token }: GeneralTabProps) {
                       onClick={handleTestVision}
                       className="w-full text-center text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 py-2 rounded-lg font-semibold transition-all disabled:opacity-50 cursor-pointer"
                     >
-                      {testingVision ? "Analyzing Image..." : "Run Diagnostic Vision Test"}
+                      {testingVision ? l.analyzingImage : l.runVisionTest}
                     </button>
                   </div>
 
                   {visionResult && (
                     <div className="p-2.5 bg-success/5 border border-success/20 text-success rounded-md whitespace-pre-wrap leading-relaxed select-all font-mono text-[11px]">
-                      <span className="font-bold block mb-1">Response:</span>
+                      <span className="font-bold block mb-1">{l.response}</span>
                       {visionResult}
                     </div>
                   )}
 
                   {visionError && (
                     <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-all select-all">
-                      <span className="font-bold block mb-1">Diagnostic Failure:</span>
+                      <span className="font-bold block mb-1">{l.diagnosticFailure}</span>
                       {visionError}
                     </div>
                   )}
@@ -443,7 +442,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
 
             <div className="flex flex-col gap-1.5">
               <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
-                Image Generation Model
+                {l.imageGenModel}
               </label>
               <Dropdown<string>
                 value={imageGenModel}
@@ -452,7 +451,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                   value: m.id,
                   label: m.name,
                 }))}
-                placeholder="-- Select Image Generation Model --"
+                placeholder={l.selectImageGenModel}
                 matchWidth
               />
 
@@ -469,20 +468,20 @@ export function GeneralTab({ token }: GeneralTabProps) {
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3 pt-2.5 border-t border-input/10">
                       {selected.cost !== undefined && (
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Cost</span>
-                          <span className="text-foreground font-semibold">${selected.cost} / image</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">{l.cost}</span>
+                          <span className="text-foreground font-semibold">${selected.cost}{l.perImage}</span>
                         </div>
                       )}
                       {selected.rpm !== undefined && (
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Rate Limit</span>
-                          <span className="text-foreground font-semibold">{selected.rpm} RPM</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">{l.rateLimit}</span>
+                          <span className="text-foreground font-semibold">{selected.rpm} {l.rpm}</span>
                         </div>
                       )}
                       {selected.concurrency !== undefined && selected.concurrency !== null && (
                         <div>
-                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">Concurrency</span>
-                          <span className="text-foreground font-semibold">{selected.concurrency} concurrent</span>
+                          <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">{l.concurrency}</span>
+                          <span className="text-foreground font-semibold">{selected.concurrency} {l.concurrent}</span>
                         </div>
                       )}
                     </div>
@@ -493,7 +492,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
               {imageGenModel && (
                 <div className="mt-2 bg-background/50 p-3 rounded-lg border border-input/20 space-y-3 text-xs">
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
-                    Diagnose Image Generation Model
+                    {l.diagnoseImageGen}
                   </span>
 
                   <div className="flex flex-col gap-2">
@@ -502,7 +501,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                         type="text"
                         value={imageTestPrompt}
                         onChange={(e) => setImageTestPrompt(e.target.value)}
-                        placeholder="Prompt to generate image..."
+                        placeholder={l.promptGenerateImage}
                         className="flex-1 px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary text-xs"
                       />
                       <button
@@ -511,19 +510,19 @@ export function GeneralTab({ token }: GeneralTabProps) {
                         onClick={handleTestImageGen}
                         className="px-4 py-1.5 bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 rounded-lg font-semibold transition-all disabled:opacity-50 cursor-pointer text-[11px]"
                       >
-                        {testingImage ? "Generating..." : "Generate Test Image"}
+                        {testingImage ? l.generating : l.generateTestImage}
                       </button>
                     </div>
                   </div>
 
                   {imageResult && (
                     <div className="p-2.5 bg-success/5 border border-success/20 text-success rounded-md space-y-2">
-                      <span className="font-bold block text-[11px]">Image Generated Successfully!</span>
+                      <span className="font-bold block text-[11px]">{l.imageGenerated}</span>
                       <div className="relative group max-w-sm rounded-lg overflow-hidden border border-input/40 bg-card p-1">
                         {imageBlobUrl ? (
                           <img src={imageBlobUrl} alt="Generated Test" className="w-full h-auto object-contain rounded-md" />
                         ) : (
-                          <div className="w-full h-32 flex items-center justify-center bg-card text-[11px] text-muted-foreground">Loading image preview...</div>
+                          <div className="w-full h-32 flex items-center justify-center bg-card text-[11px] text-muted-foreground">{l.loadingImagePreview}</div>
                         )}
                       </div>
                     </div>
@@ -531,7 +530,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
 
                   {imageError && (
                     <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-all select-all">
-                      <span className="font-bold block mb-1">Diagnostic Failure:</span>
+                      <span className="font-bold block mb-1">{l.diagnosticFailure}</span>
                       {imageError}
                     </div>
                   )}
@@ -549,13 +548,13 @@ export function GeneralTab({ token }: GeneralTabProps) {
           onClick={() => window.dispatchEvent(new CustomEvent("navigate", { detail: { path: "/mcps" } }))}
           className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
         >
-          Open MCP Marketplace
+          {l.openMCP}
         </button>
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="text-foreground font-semibold text-sm">Password</h3>
+          <h3 className="text-foreground font-semibold text-sm">{l.password}</h3>
           {!showPasswordForm && (
             <button
               onClick={() => {
@@ -565,7 +564,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
               }}
               className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
             >
-              Change
+              {l.change}
             </button>
           )}
         </div>
@@ -573,27 +572,27 @@ export function GeneralTab({ token }: GeneralTabProps) {
           <div className="space-y-3">
             <input
               type="password"
-              placeholder="Current password"
+              placeholder={l.currentPassword}
               value={pwCurrent}
               onChange={(e) => setPwCurrent(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder-text-secondary outline-none focus:border-primary transition-colors text-sm"
             />
             <input
               type="password"
-              placeholder="New password"
+              placeholder={l.newPassword}
               value={pwNew}
               onChange={(e) => setPwNew(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder-text-secondary outline-none focus:border-primary transition-colors text-sm"
             />
             <input
               type="password"
-              placeholder="Confirm new password"
+              placeholder={l.confirmPassword}
               value={pwConfirm}
               onChange={(e) => setPwConfirm(e.target.value)}
               className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground placeholder-text-secondary outline-none focus:border-primary transition-colors text-sm"
             />
             {pwError && <p className="text-destructive text-xs">{pwError}</p>}
-            {pwSuccess && <p className="text-primary text-xs">Password updated successfully.</p>}
+            {pwSuccess && <p className="text-primary text-xs">{l.passwordUpdated}</p>}
             <div className="flex gap-2 justify-end">
               <button
                 onClick={() => {
@@ -606,20 +605,20 @@ export function GeneralTab({ token }: GeneralTabProps) {
                 }}
                 className="text-xs bg-card-hover/20 text-muted-foreground hover:text-foreground border border-input/30 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer"
               >
-                Cancel
+                {l.cancel}
               </button>
               <button
                 onClick={async () => {
                   if (!pwCurrent || !pwNew || !pwConfirm) {
-                    setPwError("All fields are required");
+                    setPwError(l.allFieldsRequired);
                     return;
                   }
                   if (pwNew !== pwConfirm) {
-                    setPwError("New passwords do not match");
+                    setPwError(l.passwordsDoNotMatch);
                     return;
                   }
                   if (pwNew.length < 8) {
-                    setPwError("New password must be at least 8 characters");
+                    setPwError(l.passwordMinLength);
                     return;
                   }
                   setPwSaving(true);
@@ -632,7 +631,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                     setPwNew("");
                     setPwConfirm("");
                   } catch (err: unknown) {
-                    const errMsg = err instanceof Error ? err.message : "Failed to change password";
+                    const errMsg = err instanceof Error ? err.message : l.failedChangePassword;
                     setPwError(errMsg);
                   } finally {
                     setPwSaving(false);
@@ -641,7 +640,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                 disabled={pwSaving}
                 className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-3 py-1.5 rounded-lg font-semibold transition-all cursor-pointer disabled:opacity-50"
               >
-                {pwSaving ? "Saving..." : "Save"}
+                {pwSaving ? l.saving : l.save}
               </button>
             </div>
           </div>
@@ -649,25 +648,25 @@ export function GeneralTab({ token }: GeneralTabProps) {
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30 space-y-4">
-        <h3 className="text-foreground font-semibold text-sm">System Status</h3>
+        <h3 className="text-foreground font-semibold text-sm">{l.systemStatus}</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div className="space-y-0.5">
-            <div className="text-muted-foreground font-medium">API Base URL</div>
+            <div className="text-muted-foreground font-medium">{l.apiBaseUrl}</div>
             <div className="text-foreground font-mono break-all">/api/v1</div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-muted-foreground font-medium">Session Storage</div>
-            <div className="text-foreground">JWT + Server Filesystem</div>
+            <div className="text-muted-foreground font-medium">{l.sessionStorage}</div>
+            <div className="text-foreground">{l.jwtFilesystem}</div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-muted-foreground font-medium">Workspace Context</div>
+            <div className="text-muted-foreground font-medium">{l.workspaceContext}</div>
             <div className="text-foreground font-mono break-all">themikehage/crewfactory</div>
           </div>
           <div className="space-y-0.5">
-            <div className="text-muted-foreground font-medium">Health Status</div>
+            <div className="text-muted-foreground font-medium">{l.healthStatus}</div>
             <div className="text-primary flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-              Online
+              {l.online}
             </div>
           </div>
         </div>
@@ -675,14 +674,14 @@ export function GeneralTab({ token }: GeneralTabProps) {
 
       <div className="bg-card rounded-lg p-4 border border-input/30 space-y-4">
         <div>
-          <h3 className="text-foreground font-semibold text-sm">Backup & Portability</h3>
+          <h3 className="text-foreground font-semibold text-sm">{l.backupPortability}</h3>
           <p className="text-muted-foreground text-[11px] mt-0.5">
-            Export your configuration and workspaces or import a zip backup.
+            {l.backupDesc}
           </p>
         </div>
 
         <div className="border-t border-input/30 pt-3 space-y-3">
-          <div className="text-xs font-semibold text-foreground">Export Options</div>
+          <div className="text-xs font-semibold text-foreground">{l.exportOptions}</div>
           <div className="flex flex-col gap-2 text-xs">
             <label className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground">
               <input
@@ -692,7 +691,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                 onChange={() => setExportType("light")}
                 className="accent-accent"
               />
-              <span>Lightweight (Configs, custom skills, agent/channel definitions)</span>
+              <span>{l.lightweight}</span>
             </label>
             <label className="flex items-center gap-2 cursor-pointer text-muted-foreground hover:text-foreground">
               <input
@@ -702,7 +701,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                 onChange={() => setExportType("full")}
                 className="accent-accent"
               />
-              <span>Full Backup (Includes repos & uploads, skips node_modules)</span>
+              <span>{l.fullBackup}</span>
             </label>
           </div>
           <button
@@ -710,26 +709,29 @@ export function GeneralTab({ token }: GeneralTabProps) {
             disabled={exporting}
             className="text-xs bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25 px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer disabled:opacity-50"
           >
-            {exporting ? "Generating Backup..." : "Export & Download"}
+            {exporting ? l.generatingBackup : l.exportDownload}
           </button>
         </div>
 
         <div className="border-t border-input/30 pt-3 space-y-3">
-          <div className="text-xs font-semibold text-foreground">Import Backup</div>
+          <div className="text-xs font-semibold text-foreground">{l.importBackup}</div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Import Mode</label>
+              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">{l.importMode}</label>
               <Dropdown<"merge" | "overwrite">
                 value={importMode}
                 onChange={setImportMode}
-                options={[...IMPORT_MODE_OPTIONS]}
+                options={[
+                  { value: "merge" as const, label: l.mergeMode },
+                  { value: "overwrite" as const, label: l.overwriteMode },
+                ]}
                 matchWidth
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">Select ZIP File</label>
+              <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">{l.selectZipFile}</label>
               <input
                 type="file"
                 accept=".zip"
@@ -768,7 +770,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
                   : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25"
               }`}
             >
-              {importing ? "Importing Backup..." : importMode === "overwrite" ? "Restore Backup (Wipe & Write)" : "Import & Merge"}
+              {importing ? l.importingBackup : importMode === "overwrite" ? l.restoreOverwrite : l.importMerge}
             </button>
           )}
         </div>
@@ -781,16 +783,16 @@ export function GeneralTab({ token }: GeneralTabProps) {
               <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
               </svg>
-              Destructive Overwrite Action
+              {l.destructiveOverwrite}
             </h3>
             <p className="text-muted-foreground text-xs leading-relaxed">
-              You are about to restore a backup using <strong className="text-foreground">Overwrite</strong> mode. This will permanently delete all your existing configuration, credentials, agents, channels, and projects.
+              {l.overwriteWarning1} <strong className="text-foreground">{l.overwriteModeLabel}</strong> {l.overwriteWarning2}
             </p>
 
             <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 space-y-2">
-              <div className="text-primary font-semibold text-xs">Safe Recommendation:</div>
+              <div className="text-primary font-semibold text-xs">{l.safeRecommendation}</div>
               <p className="text-muted-foreground text-[11px] leading-relaxed">
-                We highly recommend exporting and downloading a backup of your current setup before overwriting.
+                {l.backupRecommendation}
               </p>
               <button
                 onClick={() => {
@@ -801,19 +803,19 @@ export function GeneralTab({ token }: GeneralTabProps) {
                 }}
                 className="w-full text-center text-[11px] font-semibold text-primary hover:text-primary/80 border border-primary/25 hover:bg-primary/5 py-1.5 rounded-md transition-all cursor-pointer"
               >
-                Download Backup Now
+                {l.downloadBackupNow}
               </button>
             </div>
 
             <div className="space-y-1.5">
               <label className="text-muted-foreground text-xs uppercase font-bold tracking-wider">
-                Type "OVERWRITE" to confirm
+                {l.typeOverwriteConfirm}
               </label>
               <input
                 type="text"
                 value={overwriteConfirmation}
                 onChange={(e) => setOverwriteConfirmation(e.target.value)}
-                placeholder="OVERWRITE"
+                placeholder={l.overwritePlaceholder}
                 className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-error transition-colors text-sm uppercase"
               />
             </div>
@@ -823,14 +825,14 @@ export function GeneralTab({ token }: GeneralTabProps) {
                 onClick={() => setShowOverwriteModal(false)}
                 className="text-xs bg-card-hover/20 text-muted-foreground hover:text-foreground border border-input/30 px-3.5 py-2 rounded-lg font-semibold transition-all cursor-pointer"
               >
-                Cancel
+                {l.cancel}
               </button>
               <button
                 disabled={overwriteConfirmation.toUpperCase() !== "OVERWRITE"}
                 onClick={() => handleImportBackup(true)}
                 className="text-xs bg-destructive/10 text-destructive hover:bg-destructive/20 border border-error/25 px-3.5 py-2 rounded-lg font-semibold transition-all cursor-pointer disabled:opacity-30 disabled:cursor-not-allowed"
               >
-                Confirm & Wipe
+                {l.confirmWipe}
               </button>
             </div>
           </div>

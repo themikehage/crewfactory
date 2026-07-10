@@ -70,7 +70,7 @@ interface Props {
   activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
-  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string) => void;
 }
 
 type RenderGroup =
@@ -161,7 +161,7 @@ function AgentTurn({
   activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
-  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string) => void;
 }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
@@ -215,7 +215,7 @@ function AgentTurn({
             <div key={msgIdx}>
               {blocks.map((block, i) => {
                 if (block.type === "thinking" && block.thinking) {
-                  return <ThinkingBlock key={i} thinking={block.thinking} />;
+                  return <ThinkingBlock key={i} thinking={block.thinking} isStreaming={isStreaming} />;
                 }
                 if (block.type === "text" && block.text) {
                   return (
@@ -363,7 +363,7 @@ function UserBubble({
         )}
         
         {images.length > 0 && (
-          <div className="max-w-[400px] w-full">
+          <div className="max-w-[550px] w-full">
             <ImageGrid
               images={images.map(img => ({ url: img.path, title: img.name }))}
               sessionId={sessionId}

@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from "react";
 import { useLiterals, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
+import { useToast } from "@/contexts/ToastContext";
 import { InputCard } from "./InputCard";
 import { InputToolbar } from "./InputToolbar";
 import { AutocompletePopover } from "./AutocompletePopover";
@@ -46,6 +47,56 @@ export function fileToBase64(file: File): Promise<string> {
   });
 }
 
+function isTextFile(file: File): boolean {
+  if (file.type.startsWith("text/")) return true;
+  const textExtensions = [
+    ".js", ".ts", ".jsx", ".tsx", ".py", ".go", ".rs", ".java", ".c", ".cpp",
+    ".h", ".hpp", ".cs", ".sh", ".bash", ".sql", ".yaml", ".yml", ".json",
+    ".md", ".txt", ".ini", ".conf", ".cfg", ".xml", ".css", ".html", ".htm"
+  ];
+  const name = file.name.toLowerCase();
+  return textExtensions.some((ext) => name.endsWith(ext));
+}
+
+function readFileAsText(file: File): Promise<string> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result);
+      } else {
+        resolve("");
+      }
+    };
+    reader.onerror = () => resolve("");
+    reader.readAsText(file);
+  });
+}
+
+function getMarkdownLanguage(fileName: string): string {
+  const ext = fileName.slice(fileName.lastIndexOf(".")).toLowerCase();
+  const map: Record<string, string> = {
+    ".js": "javascript",
+    ".jsx": "javascript",
+    ".ts": "typescript",
+    ".tsx": "typescript",
+    ".py": "python",
+    ".go": "go",
+    ".rs": "rust",
+    ".json": "json",
+    ".md": "markdown",
+    ".yml": "yaml",
+    ".yaml": "yaml",
+    ".html": "html",
+    ".css": "css",
+    ".sql": "sql",
+    ".sh": "bash",
+    ".bash": "bash",
+    ".xml": "xml",
+  };
+  return map[ext] || "";
+}
+
 export async function processAttachments(
   files: File[],
   scope: AttachmentScope
@@ -87,9 +138,12 @@ export async function processAttachments(
       if (res.ok) {
         const data = await res.json();
         extraPromptText += `\n[Attached File: ${data.path}] (I have uploaded this image to your workspace at: ${data.path})`;
+      } else {
+        throw new Error(`Failed to upload image ${file.name}: ${res.statusText}`);
       }
     } catch (err) {
       console.error("Error processing image:", err);
+      throw err;
     }
   }
 
@@ -113,12 +167,20 @@ export async function processAttachments(
 
       if (res.ok) {
         const data = await res.json();
-        extraPromptText += `\n[Attached File: ${data.path}] (I have uploaded this file to your workspace at: ${data.path})`;
+        let textContent = "";
+        if (isTextFile(file) && file.size < 100 * 1024) {
+          const content = await readFileAsText(file);
+          const lang = getMarkdownLanguage(file.name);
+          textContent = `\n[File Content of ${file.name}]:\n\`\`\`${lang}\n${content}\n\`\`\``;
+        }
+        extraPromptText += `\n[Attached File: ${data.path}] (I have uploaded this file to your workspace at: ${data.path})${textContent}`;
       } else {
         console.error("Failed to upload file", file.name);
+        throw new Error(`Failed to upload file ${file.name}: ${res.statusText}`);
       }
     } catch (err) {
       console.error("Error uploading file:", err);
+      throw err;
     }
   }
 
@@ -158,6 +220,7 @@ export function ChatInput({
   contextUsage = null,
 }: Props) {
   const l = useLiterals(u);
+  const { addToast } = useToast();
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
   const [toolStatus, setToolStatus] = useState<Record<string, "available" | "missing_key">>({});
@@ -274,18 +337,22 @@ export function ChatInput({
   const handleSend = async (option?: "steer" | "follow_up") => {
     if ((!input.trim() && attachments.length === 0) || runnerActive) return;
 
-    const files = attachments.map((a) => a.file);
-    const result = await processAttachments(files, { activeProjectName, activeAgentId, activeChannelId });
+    try {
+      const files = attachments.map((a) => a.file);
+      const result = await processAttachments(files, { activeProjectName, activeAgentId, activeChannelId });
 
-    const finalMessage = input + result.extraText;
-    onSend(finalMessage, option, activeTools, result.images.length > 0 ? result.images : undefined);
+      const finalMessage = input + result.extraText;
+      onSend(finalMessage, option, activeTools, result.images.length > 0 ? result.images : undefined);
 
-    attachments.forEach((a) => {
-      if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
-    });
-    setAttachments([]);
-    setInput("");
-    setAutocompleteMode(null);
+      attachments.forEach((a) => {
+        if (a.previewUrl) URL.revokeObjectURL(a.previewUrl);
+      });
+      setAttachments([]);
+      setInput("");
+      setAutocompleteMode(null);
+    } catch (err) {
+      addToast("error", err instanceof Error ? err.message : String(err));
+    }
   };
 
   const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {

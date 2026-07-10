@@ -13,12 +13,36 @@ export const channelsRouter = new Hono();
 
 channelsRouter.use("/*", authMiddleware);
 
+function cleanChannelGhostMembers(channel: any, username: string): any {
+  if (!channel || !channel.members) return channel;
+
+  const validAgents = agentRegistry.list(username);
+  const validAgentIds = new Set(validAgents.map((a) => a.id));
+
+  const cleanedMembers = channel.members.filter((m: any) => validAgentIds.has(m.agentId));
+  const finalMembers = cleanedMembers.map((m: any) => {
+    if (m.targetAgentIds) {
+      return {
+        ...m,
+        targetAgentIds: m.targetAgentIds.filter((tid: string) => validAgentIds.has(tid)),
+      };
+    }
+    return m;
+  });
+
+  return {
+    ...channel,
+    members: finalMembers,
+  };
+}
+
 channelsRouter.get("/", (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const channels = channelStore.listChannels(username);
-  return c.json({ channels });
+  const cleanedChannels = channels.map((ch) => cleanChannelGhostMembers(ch, username));
+  return c.json({ channels: cleanedChannels });
 });
 
 channelsRouter.post("/", zValidator("json", CreateChannelSchema), (c) => {
@@ -72,7 +96,7 @@ channelsRouter.get("/:id", async (c) => {
   }
 
   if (!channel) return c.json({ error: "Channel not found" }, 404);
-  return c.json(channel);
+  return c.json(cleanChannelGhostMembers(channel, username));
 });
 
 channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {

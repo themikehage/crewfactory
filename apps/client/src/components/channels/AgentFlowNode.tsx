@@ -59,7 +59,8 @@ export function AgentFlowNode({ data }: NodeProps<AgentNode>) {
   const role = member.role || "member";
   const theme = ROLE_THEME[role] ?? ROLE_THEME.member;
   const name = agentInfo?.name || member.agentId;
-  const agentRole = agentInfo?.role || "agent";
+  const isOrphan = !agentInfo;
+  const agentRole = agentInfo ? (agentInfo.role || "agent") : "Deleted Agent";
   const skills = agentInfo?.skills || [];
 
   const isStreaming = !!streamingState;
@@ -74,17 +75,27 @@ export function AgentFlowNode({ data }: NodeProps<AgentNode>) {
       <div
         onClick={onEdit}
         className={`w-[220px] rounded-xl border p-3 cursor-pointer transition-all duration-300 ${
-          isStreaming ? theme.glowStyle : theme.cardStyle
+          isOrphan
+            ? "border-dashed border-destructive/30 bg-destructive/5 opacity-85 shadow-[0_0_10px_rgba(239,68,68,0.05)]"
+            : isStreaming
+            ? theme.glowStyle
+            : theme.cardStyle
         } hover:scale-[1.02] hover:-translate-y-0.5`}
       >
         {/* Header */}
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
             <AgentAvatar name={name} avatarUrl={agentInfo?.avatarUrl} size="xs" />
-            <span className="font-semibold text-foreground text-xs truncate">{name}</span>
+            <span className={`font-semibold text-xs truncate ${isOrphan ? "text-destructive" : "text-foreground"}`}>
+              {isOrphan ? `⚠️ ${name}` : name}
+            </span>
           </div>
-          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border flex-shrink-0 ${theme.badgeStyle}`}>
-            {theme.label}
+          <span className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider border flex-shrink-0 ${
+            isOrphan
+              ? "bg-destructive/15 border-destructive/30 text-destructive"
+              : theme.badgeStyle
+          }`}>
+            {isOrphan ? "missing" : theme.label}
           </span>
         </div>
 

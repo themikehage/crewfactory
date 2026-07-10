@@ -4,7 +4,8 @@ import { channelStore } from "../../channels/channel-store";
 import { channelOrchestrator } from "../../channels/channel-orchestrator";
 import type { ModelRegistry, AuthStorage, DefaultResourceLoader } from "../../ai";
 import { SessionPrefix } from "shared";
-import { parseEnvelope, forwardSubagentEvents, getLastAssistantText } from "../agent-utils";
+import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
+import { delegationRegistry } from "../delegation-registry";
 
 export interface DelegateTaskOptions {
   workspaceDir: string;
@@ -49,11 +50,7 @@ Allows keeping parent context clean by returning a structured summary instead of
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
       const { targetType, targetId, task, includeFullHistory = false } = args;
       const delegateSessionId = `${SessionPrefix.DELEGATE}${toolCallId}`;
-      let status = "success";
-      let executionResultText = "";
-      let parsedEnvelope: any = null;
 
-      // Handle Abort Signal propagation
       const abortControllers: any[] = [];
       const onAbort = () => {
         for (const ac of abortControllers) {
@@ -64,176 +61,230 @@ Allows keeping parent context clean by returning a structured summary instead of
         parentSignal.addEventListener("abort", onAbort, { once: true });
       }
 
-      try {
-        if (targetType === "agent") {
-          const entry = agentRegistry.get(targetId, username);
-          if (!entry) {
-            throw new Error(`Programmatic Agent "${targetId}" not found for user "${username}"`);
-          }
+      // Guardar metadata inicial para la sesion delegada para persistir parentSessionId
+      sessionManager.saveSessionMetadata(username, delegateSessionId, {
+        name: `Delegation: ${targetType} - ${targetId}`,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        parentSessionId,
+        targetType,
+        targetId,
+        task: task.slice(0, 500),
+      });
 
-          // Create isolated session for this agent target
-          const session = await sessionManager.getOrCreateSession(
-            username,
-            delegateSessionId,
-            undefined,
-            targetId
-          );
+      const runPromise = async () => {
+        let status = "success";
+        let executionResultText = "";
+        let parsedEnvelope: any = null;
+        let lastText = "";
 
-          if (parentSignal) {
+        try {
+          if (targetType === "agent") {
+            const entry = agentRegistry.get(targetId, username);
+            if (!entry) {
+              throw new Error(`Programmatic Agent "${targetId}" not found for user "${username}"`);
+            }
+
+            const session = await sessionManager.getOrCreateSession(
+              username,
+              delegateSessionId,
+              undefined,
+              targetId
+            );
+
             abortControllers.push({
               abort: () => session.abort(),
             });
-          }
 
-          // Forward parent websocket event notifications for streaming logging
-          const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
+            const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
-          try {
-            await session.prompt(task);
-          } finally {
-            unsub();
-          }
+            try {
+              await session.prompt(task);
+            } finally {
+              unsub();
+            }
 
-          // Read the output and parse
-          const lastText = getLastAssistantText(session.messages);
+            lastText = getLastAssistantText(session.messages);
+            parsedEnvelope = parseEnvelope(lastText);
+            if (includeFullHistory) {
+              executionResultText = session.messages
+                .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+                .join("\n\n");
+            }
 
-          parsedEnvelope = parseEnvelope(lastText);
-          if (includeFullHistory) {
-            executionResultText = session.messages
-              .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
-              .join("\n\n");
-          }
+          } else if (targetType === "project") {
+            const session = await sessionManager.getOrCreateSession(
+              username,
+              delegateSessionId,
+              targetId
+            );
 
-        } else if (targetType === "project") {
-          // Create isolated project-scoped session
-          const session = await sessionManager.getOrCreateSession(
-            username,
-            delegateSessionId,
-            targetId
-          );
-
-          if (parentSignal) {
             abortControllers.push({
               abort: () => session.abort(),
             });
-          }
 
-          const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
+            const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
-          try {
-            await session.prompt(task);
-          } finally {
-            unsub();
-          }
+            try {
+              await session.prompt(task);
+            } finally {
+              unsub();
+            }
 
-          // Read and parse output
-          const lastText = getLastAssistantText(session.messages);
+            lastText = getLastAssistantText(session.messages);
+            parsedEnvelope = parseEnvelope(lastText);
+            if (includeFullHistory) {
+              executionResultText = session.messages
+                .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+                .join("\n\n");
+            }
 
-          parsedEnvelope = parseEnvelope(lastText);
-          if (includeFullHistory) {
-            executionResultText = session.messages
-              .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
-              .join("\n\n");
-          }
+          } else if (targetType === "channel") {
+            const channel = channelStore.getChannel(username, targetId);
+            if (!channel) {
+              throw new Error(`Channel "${targetId}" not found for user "${username}"`);
+            }
 
-        } else if (targetType === "channel") {
-          const channel = channelStore.getChannel(username, targetId);
-          if (!channel) {
-            throw new Error(`Channel "${targetId}" not found for user "${username}"`);
-          }
-
-          if (parentSignal) {
             abortControllers.push({
               abort: () => channelOrchestrator.abortDispatch(username, targetId, delegateSessionId),
             });
-          }
 
-          // Await completion of channel execution chain
-          await channelOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
+            await channelOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
 
-          // Get channel messages for the session
-          const channelMessages = channelStore.getMessages(username, targetId, 100, delegateSessionId);
-          const lastAgentMsg = [...channelMessages].reverse().find(m => m.role === "agent");
-          const lastText = lastAgentMsg?.content || "";
+            const channelMessages = channelStore.getMessages(username, targetId, 100, delegateSessionId);
+            const lastAgentMsg = [...channelMessages].reverse().find(m => m.role === "agent");
+            lastText = lastAgentMsg?.content || "";
 
-          parsedEnvelope = parseEnvelope(lastText);
-          if (includeFullHistory) {
-            executionResultText = channelMessages
-              .map(m => `[${m.role === "agent" ? m.agentName || "Agent" : "User"}]: ${m.content}`)
-              .join("\n\n");
-          }
+            parsedEnvelope = parseEnvelope(lastText);
+            if (includeFullHistory) {
+              executionResultText = channelMessages
+                .map(m => `[${m.role === "agent" ? m.agentName || "Agent" : "User"}]: ${m.content}`)
+                .join("\n\n");
+            }
 
-        } else if (targetType === "session") {
-          // Use/continue an existing session
-          const session = await sessionManager.getOrCreateSession(username, targetId);
+          } else if (targetType === "session") {
+            const session = await sessionManager.getOrCreateSession(username, targetId);
 
-          if (parentSignal) {
             abortControllers.push({
               abort: () => session.abort(),
             });
+
+            const unsub = forwardSubagentEvents(session, parentSessionId, targetId, toolCallId);
+
+            try {
+              await session.prompt(task);
+            } finally {
+              unsub();
+            }
+
+            lastText = getLastAssistantText(session.messages);
+            parsedEnvelope = parseEnvelope(lastText);
+            if (includeFullHistory) {
+              executionResultText = session.messages
+                .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
+                .join("\n\n");
+            }
+          } else {
+            throw new Error(`Unsupported target type: ${targetType}`);
           }
-
-          const unsub = forwardSubagentEvents(session, parentSessionId, targetId, toolCallId);
-
-          try {
-            await session.prompt(task);
-          } finally {
-            unsub();
+        } catch (err: any) {
+          status = "error";
+          parsedEnvelope = {
+            status: "blocked",
+            executive_summary: `Delegation execution failed: ${err.message || err}`,
+            artifacts: "none",
+            risks: "Execution encountered an error.",
+          };
+        } finally {
+          if (parentSignal) {
+            parentSignal.removeEventListener("abort", onAbort);
           }
-
-          const lastText = getLastAssistantText(session.messages);
-
-          parsedEnvelope = parseEnvelope(lastText);
-          if (includeFullHistory) {
-            executionResultText = session.messages
-              .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
-              .join("\n\n");
-          }
-        } else {
-          throw new Error(`Unsupported target type: ${targetType}`);
         }
-      } catch (err: any) {
-        status = "error";
-        parsedEnvelope = {
-          status: "blocked",
-          executive_summary: `Delegation execution failed: ${err.message || err}`,
-          artifacts: "none",
-          risks: "Execution encountered an error.",
-        };
-      } finally {
-        if (parentSignal) {
-          parentSignal.removeEventListener("abort", onAbort);
+
+        if (parentSignal?.aborted) {
+          status = "blocked";
+          parsedEnvelope = {
+            status: "blocked",
+            executive_summary: "Delegation execution was aborted by the parent orchestrator.",
+            artifacts: "none",
+            risks: "Execution aborted.",
+          };
         }
-      }
 
-      if (parentSignal?.aborted) {
-        status = "blocked";
-        parsedEnvelope = {
-          status: "blocked",
-          executive_summary: "Delegation execution was aborted by the parent orchestrator.",
-          artifacts: "none",
-          risks: "Execution aborted.",
-        };
-      }
+        // Complete delegation in registry
+        delegationRegistry.complete(username, parentSessionId, toolCallId, status as any, parsedEnvelope);
 
-      // Format final envelope response
-      const envelopeStr = [
-        "---",
-        `status: ${parsedEnvelope.status}`,
-        `executive_summary: ${parsedEnvelope.executive_summary}`,
-        `artifacts: ${parsedEnvelope.artifacts}`,
-        `risks: ${parsedEnvelope.risks}`,
-        "---",
-      ].join("\n");
+        // Format final envelope response
+        const envelopeStr = [
+          "---",
+          `status: ${parsedEnvelope.status}`,
+          `executive_summary: ${parsedEnvelope.executive_summary}`,
+          `artifacts: ${parsedEnvelope.artifacts}`,
+          `risks: ${parsedEnvelope.risks}`,
+          "---",
+        ].join("\n");
 
-      let finalResultContent = envelopeStr;
-      if (includeFullHistory && executionResultText) {
-        finalResultContent = `${envelopeStr}\n\n=== FULL CONVERSATION HISTORY ===\n\n${executionResultText}`;
-      }
+        let finalResultContent = envelopeStr;
+        if (includeFullHistory && executionResultText) {
+          finalResultContent = `${envelopeStr}\n\n=== FULL CONVERSATION HISTORY ===\n\n${executionResultText}`;
+        }
+
+        const parent = sessionManager.getSession(username, parentSessionId);
+        if (parent) {
+          const toolResultMsg = formatDelegationResultMessage(toolCallId, "delegate_task", parsedEnvelope, delegateSessionId, lastText);
+          if (includeFullHistory && executionResultText) {
+            toolResultMsg.content = [{ type: "text", text: finalResultContent }];
+          }
+          parent.addDelegationResult(toolResultMsg);
+
+          if (!parent.isStreaming) {
+            const wakeMessage = [
+              `Delegation result received for ${targetType} ${targetId}:`,
+              `status: ${parsedEnvelope.status}`,
+              `executive_summary: ${parsedEnvelope.executive_summary}`,
+              `artifacts: ${parsedEnvelope.artifacts}`,
+              `risks: ${parsedEnvelope.risks}`,
+              `Respuesta final del delegado:`,
+              `"""`,
+              lastText,
+              `"""`
+            ].join("\n");
+            
+            parent.prompt(wakeMessage).catch((e) => {
+              console.error("[Delegate Async Return] Parent prompt fail:", e);
+            });
+          }
+        }
+      };
+
+      // Register the active delegation
+      delegationRegistry.register(
+        username,
+        parentSessionId,
+        {
+          toolCallId,
+          parentSessionId,
+          targetType: "delegate",
+          targetLabel: `Delegated Task (${targetType}: ${targetId})`,
+          task,
+          status: "running",
+          startedAt: new Date().toISOString(),
+          subagentSessionId: delegateSessionId,
+        },
+        () => {
+          onAbort();
+        }
+      );
+
+      // Start the background process
+      runPromise().catch((err) => {
+        console.error(`[Delegate Tool Async Error] toolCallId=${toolCallId}:`, err);
+      });
 
       return {
-        content: [{ type: "text", text: finalResultContent }],
-        details: { ...parsedEnvelope, subagentSessionId: delegateSessionId },
+        content: [{ type: "text", text: `Delegation started for target ${targetType}:${targetId}. Session ID: ${delegateSessionId}` }],
+        details: { status: "delegated", subagentSessionId: delegateSessionId, task },
+        terminate: true,
       };
     },
   };

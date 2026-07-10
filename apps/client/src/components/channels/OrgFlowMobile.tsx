@@ -45,7 +45,8 @@ export function OrgFlowMobile({ members, registeredAgents, streamingAgents, onEd
           {groupMembers.map((m) => {
             const info = getAgentInfo(m.agentId);
             const name = info?.name || m.agentId;
-            const role = info?.role || "agent";
+            const isOrphan = !info;
+            const role = info ? (info.role || "agent") : "Deleted Agent";
             const isStreaming = !!streamingAgents[m.agentId];
             const streaming = streamingAgents[m.agentId];
 
@@ -53,17 +54,27 @@ export function OrgFlowMobile({ members, registeredAgents, streamingAgents, onEd
               <div
                 key={m.agentId}
                 onClick={() => onEditAgent(m)}
-                className={`bg-card border rounded-xl p-3.5 flex items-center justify-between gap-3 active:scale-[0.99] transition-transform ${
-                  isStreaming ? "border-accent/40 shadow-sm shadow-accent/5" : "border-border"
+                className={`bg-card border rounded-xl p-3.5 flex items-center justify-between gap-3 active:scale-[0.99] transition-all ${
+                  isOrphan
+                    ? "border-dashed border-destructive/30 bg-destructive/5 opacity-85"
+                    : isStreaming
+                    ? "border-accent/40 shadow-sm shadow-accent/5"
+                    : "border-border"
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
                   <AgentAvatar name={name} avatarUrl={info?.avatarUrl} size="sm" />
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
-                      <p className="font-semibold text-foreground text-xs truncate">{name}</p>
-                      <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold border uppercase ${config.badgeStyle}`}>
-                        {m.role || "member"}
+                      <p className={`font-semibold text-xs truncate ${isOrphan ? "text-destructive" : "text-foreground"}`}>
+                        {isOrphan ? `⚠️ ${name}` : name}
+                      </p>
+                      <span className={`px-1.5 py-0.2 rounded text-[8px] font-bold border uppercase ${
+                        isOrphan
+                          ? "bg-destructive/10 border-destructive/20 text-destructive"
+                          : config.badgeStyle
+                      }`}>
+                        {isOrphan ? "missing" : (m.role || "member")}
                       </span>
                     </div>
                     <p className="text-[10px] text-muted-foreground font-mono truncate">{role}</p>

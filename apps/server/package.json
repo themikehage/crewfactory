@@ -9,6 +9,7 @@
     "@hono/zod-validator": "^0.4",
     "adm-zip": "^0.5.18",
     "bcryptjs": "^2.4",
+    "diff": "^9.0.0",
     "hono": "^4",
     "ignore": "^7.0.5",
     "jsonwebtoken": "^9",
@@ -23,6 +24,7 @@
     "@types/adm-zip": "^0.5.8",
     "@types/bcryptjs": "^2.4",
     "@types/bun": "latest",
+    "@types/diff": "^8.0.0",
     "@types/jsonwebtoken": "^9",
     "typescript": "^5"
   }

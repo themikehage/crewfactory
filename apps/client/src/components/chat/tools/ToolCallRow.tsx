@@ -59,7 +59,7 @@ interface Props {
   activeChannelId?: string | null;
   disabled?: boolean;
   serialTools?: string[];
-  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string) => void;
 }
 
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
@@ -406,7 +406,7 @@ function ToolBody({
   activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
-  onOpenSubagentConsole?: (toolCallId: string, task: string, role?: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string) => void;
   l: Record<string, string>;
 }) {
   const text = result?.content.find(b => b.type === "text")?.text ?? "";
@@ -461,8 +461,8 @@ function ToolBody({
             <span className="text-xs font-semibold text-text-primary">{l.bodySubagentConsole}</span>
             {onOpenSubagentConsole && (
               <button
-                onClick={() => onOpenSubagentConsole(toolCallId || "", args.task as string, args.subagentRole as string)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30 animate-pulse"
+                onClick={() => onOpenSubagentConsole(toolCallId || "")}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="4 17 10 11 4 5" />
@@ -488,8 +488,8 @@ function ToolBody({
             </span>
             {onOpenSubagentConsole && (
               <button
-                onClick={() => onOpenSubagentConsole(toolCallId || "", args.task as string)}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30 animate-pulse"
+                onClick={() => onOpenSubagentConsole(toolCallId || "")}
+                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="4 17 10 11 4 5" />
@@ -565,6 +565,7 @@ function ToolBody({
         <HtmlPreview
           html={(args.html as string) || ""}
           title={args.title as string | undefined}
+          fullBleed
         />
       );
     case "render_chart":
@@ -675,6 +676,7 @@ export function ToolCallRow({
   const hasError = result?.isError ?? false;
   const argSummary = getArgSummary(toolName, args, l);
   const resultSummary = result ? getResultSummary(toolName, result, l) : "";
+  const isFullBleed = toolName === "render_html" || toolName === "render_chart";
 
   return (
     <div className={`my-1.5 rounded-lg border overflow-hidden transition-all ${
@@ -737,7 +739,7 @@ export function ToolCallRow({
       </button>
 
       {(!running || isInteractive) && expanded && (
-        <div className="border-t border-border bg-card-hover/20 p-3">
+        <div className={`border-t border-border bg-card-hover/20 ${isFullBleed ? "p-0" : "p-3"}`}>
           <ToolBody
             toolName={toolName}
             args={args}

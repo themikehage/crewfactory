@@ -5,7 +5,9 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ## Pendientes
 
+- [manage-factory-tool.md](./manage-factory-tool.md) — Tool `manage_factory`: operaciones CRUD de fabrica en una sola tool con contrato auto-documentado. Reemplaza skills factory-x + curl por tool nativa.
 - [async-delegation-spawn.md](./async-delegation-spawn.md) — Delegacion y spawn asincronos sin bloqueo del agente padre, con redireccion a sesion del subagente y tracker de delegaciones tipo FloatingTasks
+- [delegation-spawn-improvements.md](./delegation-spawn-improvements.md) — Solucionar la navegacion automatica al iniciar delegaciones, boton de volver atras en subagentes y mover listado de delegaciones a una tab dedicada al lado de chat/files.
 - [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose
 - [info-edit-button.md](./info-edit-button.md) — Boton de informacion en proyectos y agentes para ver/editar todos los datos disponibles
 - [mobile-bottom-bar-redesign.md](./mobile-bottom-bar-redesign.md) — La bottombar de mobile solo se muestra cuando el drawer del menu esta abierto
@@ -19,6 +21,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [chat-empty-state.md](./chat-empty-state.md) — Pantalla de bienvenida estilo ChatGPT con input centrado verticalmente cuando la sesion no tiene mensajes.
 - [chat-input-redesign.md](./chat-input-redesign.md) — Rediseño completo del input del chat: card flotante unificada, popovers inline, iconos, animaciones. Estilo ChatGPT/Claude.
 - [chat-scroll-experience.md](./chat-scroll-experience.md) — Experiencia de scroll premium y robusta en el chat: scroll pinning inteligente, ResizeObserver y botón flotante de nuevos mensajes.
+- [provider-sync-persistence.md](./provider-sync-persistence.md) — Auto-sync de modelos dinámicos al añadir API key y persistencia de modelos sincronizados para que sobrevivan al reinicio del servidor.
 - [delegate-script-improvements.md](./delegate-script-improvements.md) — Mejoras al script delegate.ts: soporte para sesiones, listado de recursos, errores contextuales, modo verbose, timeouts.
 - [engram-agent-memory.md](./engram-agent-memory.md) — Memoria persistente para agentes vía `@engram-ai-memory/core` con SQLite, embeddings ONNX locales, decay Ebbinghaus y knowledge graph.
 - [env-var-obfuscation.md](./env-var-obfuscation.md) — Cifrado AES-256-GCM de env.json en reposo, filtrado de secrets en output bash, y API de revelado individual con auditoría.
@@ -38,6 +41,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [mobile-ws-reconnect-token-ui.md](./mobile-ws-reconnect-token-ui.md) — Reconexion WS al reanudar de suspenso mobile + mostrar tokens reales en UI
 - [image-vision-and-generation.md](./image-vision-and-generation.md) — Soporte completo de vision de imagen (input multimodal) y generacion de imagen (output) para agentes
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
+- [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
 
 
 ## Completados (26)

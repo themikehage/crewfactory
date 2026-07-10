@@ -113,22 +113,34 @@ const l = useLiterals(u);
           {members.map((m) => {
             const info = getAgentInfo(m.agentId);
             const name = info?.name || m.agentId;
-            const role = info?.role || "agente";
+            const role = info ? (info.role || "agente") : l.agentNotFound;
+            const isOrphan = !info;
             const isEditingTargets = editingTargetsAgentId === m.agentId;
 
             return (
               <div
                 key={m.agentId}
-                className="bg-background border border-input rounded-xl p-4 flex flex-col gap-3"
+                className={`border rounded-xl p-4 flex flex-col gap-3 transition-all ${
+                  isOrphan
+                    ? "bg-destructive/5 border-dashed border-destructive/30 opacity-85"
+                    : "bg-background border-input"
+                }`}
               >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
-                    <div className="w-8 h-8 rounded-lg bg-purple-400/10 border border-purple-400/20 flex items-center justify-center text-purple-400 font-bold text-xs flex-shrink-0">
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center font-bold text-xs flex-shrink-0 ${
+                      isOrphan
+                        ? "bg-destructive/10 border border-destructive/20 text-destructive"
+                        : "bg-purple-400/10 border border-purple-400/20 text-purple-400"
+                    }`}>
                       AG
                     </div>
                     <div className="min-w-0">
-                      <h4 className="font-semibold text-foreground text-sm truncate">{name}</h4>
-                      <p className="text-xs text-muted-foreground font-mono truncate">{role}</p>
+                      <h4 className={`font-semibold text-sm truncate flex items-center gap-1.5 ${isOrphan ? "text-destructive" : "text-foreground"}`}>
+                        {isOrphan && <span>⚠️</span>}
+                        <span>{name}</span>
+                      </h4>
+                      <p className="text-[10px] text-muted-foreground font-mono truncate">{role}</p>
                     </div>
                   </div>
 
@@ -150,7 +162,7 @@ const l = useLiterals(u);
                       value={m.replyMode}
                       onChange={(val) => handleModeChange(m.agentId, val)}
                       options={[...REPLY_MODE_OPTIONS]}
-                      disabled={updatingId === m.agentId}
+                      disabled={updatingId === m.agentId || isOrphan}
                       matchWidth
                     />
                   </div>
@@ -161,7 +173,7 @@ const l = useLiterals(u);
                       value={m.role || "member"}
                       onChange={(val) => handleRoleChange(m.agentId, val)}
                       options={[...ROLE_OPTIONS]}
-                      disabled={updatingId === m.agentId}
+                      disabled={updatingId === m.agentId || isOrphan}
                       matchWidth
                     />
                   </div>

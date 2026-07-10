@@ -119,3 +119,44 @@ export function resolveModelWithFallback(
   }
   return modelId;
 }
+
+/**
+ * Formats the delegation final output into a structured toolResult message.
+ */
+export function formatDelegationResultMessage(
+  toolCallId: string,
+  toolName: string,
+  envelope: EnvelopeResult,
+  subagentSessionId: string,
+  outputText?: string
+): any {
+  const sections = [
+    `[NOTIFICACIÓN DE SISTEMA: DELEGACIÓN FINALIZADA]`,
+    `La tarea delegada mediante '${toolName}' (ID: ${toolCallId}) en la sesión '${subagentSessionId}' ha completado su ejecución.`,
+    `Resultado de la tarea:`,
+    `---`,
+    `status: ${envelope.status}`,
+    `executive_summary: ${envelope.executive_summary}`,
+    `artifacts: ${envelope.artifacts}`,
+    `risks: ${envelope.risks}`,
+    `---`,
+  ];
+
+  if (outputText && outputText.trim()) {
+    sections.push(
+      `Respuesta final del delegado:`,
+      `"""`,
+      outputText.trim(),
+      `"""`
+    );
+  }
+
+  const envelopeStr = sections.join("\n");
+
+  return {
+    role: "user",
+    content: [{ type: "text", text: envelopeStr }],
+    timestamp: Date.now(),
+  };
+}
+

@@ -14,7 +14,8 @@ import { sessionManager } from "../session-manager";
 import { filterSecretsFromOutput } from "../bash-output-filter";
 import { getEnvironmentContext } from "../env-check";
 import { SessionPrefix } from "shared";
-import { parseEnvelope, forwardSubagentEvents, getLastAssistantText } from "../agent-utils";
+import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
+import { delegationRegistry } from "../delegation-registry";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -186,54 +187,119 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       // Subscribe to subagent session logs and forward them via parent session WebSocket
       const subagentUnsub = forwardSubagentEvents(subSession, parentSessionId, subagentSessionId, toolCallId);
 
-      // 5. Execute subagent prompt loop
-      let status = "success";
-      try {
-        await subSession.prompt(args.task);
-      } catch (err: any) {
-        status = "error";
-        console.error(`[Subagent Execution Error] ${subagentSessionId}:`, err);
-      } finally {
-        subagentUnsub();
-        if (parentSignal) {
-          parentSignal.removeEventListener("abort", onAbort);
+      // Register the delegation in memory and disk
+      delegationRegistry.register(
+        username,
+        parentSessionId,
+        {
+          toolCallId,
+          parentSessionId,
+          targetType: "spawn",
+          targetLabel: `Subagent (${args.subagentRole || "executor"})`,
+          task: args.task,
+          status: "running",
+          startedAt: metadata.startedAt,
+          subagentSessionId,
+        },
+        () => {
+          subSession.abort();
         }
-      }
+      );
 
-      // 6. Finalize, parse response, and update session tracking
-      const lastText = getLastAssistantText(subSession.messages);
+      // 5. Execute subagent prompt loop in background
+      subSession.prompt(args.task)
+        .then(async () => {
+          let status = "success";
+          const lastText = getLastAssistantText(subSession.messages);
+          const envelope = parseEnvelope(lastText);
 
-      const envelope = parseEnvelope(lastText);
+          if (parentSignal?.aborted) {
+            status = "blocked";
+            envelope.status = "blocked";
+            envelope.executive_summary = "Subagent execution was aborted by the parent orchestrator.";
+          } else {
+            status = envelope.status;
+          }
 
-      if (parentSignal?.aborted) {
-        status = "blocked";
-        envelope.status = "blocked";
-        envelope.executive_summary = "Subagent execution was aborted by the parent orchestrator.";
-      } else if (status === "error") {
-        envelope.status = "blocked";
-        envelope.executive_summary = `Subagent execution encountered an error.`;
-        envelope.risks = "Execution failed before completion.";
-      } else {
-        status = envelope.status;
-      }
+          // Update completion metadata
+          metadata.status = status;
+          metadata.completedAt = new Date().toISOString();
+          try {
+            writeFileSync(join(subagentDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
+          } catch (e) {
+            console.error("Failed to write subagent metadata.json", e);
+          }
 
-      // Update completion metadata
-      metadata.status = status;
-      metadata.completedAt = new Date().toISOString();
-      writeFileSync(join(subagentDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
+          // Complete in registry
+          delegationRegistry.complete(username, parentSessionId, toolCallId, status as any, envelope);
 
-      const envelopeStr = [
-        "---",
-        `status: ${envelope.status}`,
-        `executive_summary: ${envelope.executive_summary}`,
-        `artifacts: ${envelope.artifacts}`,
-        `risks: ${envelope.risks}`,
-        "---",
-      ].join("\n");
+          // Add to parent session's result queue
+          const parent = sessionManager.getSession(username, parentSessionId);
+          if (parent) {
+            const toolResultMsg = formatDelegationResultMessage(toolCallId, "spawn_subagent", envelope, subagentSessionId, lastText);
+            parent.addDelegationResult(toolResultMsg);
 
+            // If parent is not active streaming, prompt it to wake up
+            if (!parent.isStreaming) {
+              const wakeMessage = [
+                `Delegation result received for subagent session ${subagentSessionId}:`,
+                `status: ${envelope.status}`,
+                `executive_summary: ${envelope.executive_summary}`,
+                `artifacts: ${envelope.artifacts}`,
+                `risks: ${envelope.risks}`,
+                `Respuesta final del delegado:`,
+                `"""`,
+                lastText,
+                `"""`
+              ].join("\n");
+              
+              parent.prompt(wakeMessage).catch((e) => {
+                console.error("[Subagent Async Return] Parent prompt fail:", e);
+              });
+            }
+          }
+        })
+        .catch(async (err) => {
+          console.error(`[Subagent Execution Error] ${subagentSessionId}:`, err);
+          const envelope = {
+            status: "error" as const,
+            executive_summary: `Subagent execution failed: ${err.message || err}`,
+            artifacts: "none",
+            risks: "Execution encountered an error.",
+          };
+
+          metadata.status = "error";
+          metadata.completedAt = new Date().toISOString();
+          try {
+            writeFileSync(join(subagentDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
+          } catch (e) {}
+
+          delegationRegistry.complete(username, parentSessionId, toolCallId, "error", envelope);
+
+          const parent = sessionManager.getSession(username, parentSessionId);
+          if (parent) {
+            const toolResultMsg = formatDelegationResultMessage(toolCallId, "spawn_subagent", envelope, subagentSessionId);
+            parent.addDelegationResult(toolResultMsg);
+
+            if (!parent.isStreaming) {
+              parent.prompt(`Delegation error for subagent session ${subagentSessionId}:\n${envelope.executive_summary}`).catch((e) => {
+                console.error("[Subagent Async Return] Parent prompt fail on error:", e);
+              });
+            }
+          }
+        })
+        .finally(() => {
+          subagentUnsub();
+          if (parentSignal) {
+            parentSignal.removeEventListener("abort", onAbort);
+          }
+        });
+
+      // Return immediately
       return {
-        content: [{ type: "text", text: envelopeStr }],
-        details: { ...envelope, subagentSessionId },
+        content: [{ type: "text", text: `Subagent delegation started. Subagent session ID: ${subagentSessionId}` }],
+        details: { status: "delegated", subagentSessionId, task: args.task },
+        terminate: true,
       };
     },
   };

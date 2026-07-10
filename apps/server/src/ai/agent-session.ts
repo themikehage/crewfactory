@@ -36,6 +36,23 @@ export class AgentSession {
   private allToolsMap: Map<string, AgentTool> = new Map();
   private eventListeners: Set<(evt: any) => void> = new Set();
   private abortController: AbortController | null = null;
+  private delegationResultQueue: any[] = [];
+
+  addDelegationResult(resultMessage: any): void {
+    this.delegationResultQueue.push(resultMessage);
+  }
+
+  private drainSteeringMessages(): Promise<any[]> {
+    const msgs = [...this.delegationResultQueue];
+    this.delegationResultQueue = [];
+    return Promise.resolve(msgs);
+  }
+
+  private drainFollowUpMessages(): Promise<any[]> {
+    const msgs = [...this.delegationResultQueue];
+    this.delegationResultQueue = [];
+    return Promise.resolve(msgs);
+  }
 
   constructor(options: CreateAgentSessionOptions) {
     this.cwd = options.cwd;
@@ -224,6 +241,8 @@ export class AgentSession {
         return result.ok ? result.apiKey : undefined;
       },
       convertToLlm,
+      getSteeringMessages: () => this.drainSteeringMessages(),
+      getFollowUpMessages: () => this.drainFollowUpMessages(),
     };
 
     try {
@@ -325,6 +344,14 @@ export class AgentSession {
   async abort(): Promise<void> {
     if (this.abortController) {
       this.abortController.abort();
+    }
+    const sId = this.sessionManager.getSessionId();
+    try {
+      const { delegationRegistry } = await import("../core/delegation-registry");
+      delegationRegistry.abortBySubagentSessionId(sId);
+      delegationRegistry.abortAll(sId);
+    } catch (err) {
+      console.error("[AgentSession.abort] Failed to propagate abort to delegation registry:", err);
     }
   }
 

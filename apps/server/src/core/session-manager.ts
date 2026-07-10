@@ -18,6 +18,7 @@ import {
   getChannelWorkspaceDir,
   getAgentWorkspaceDir,
   getMemoryDbPath,
+  SessionPrefix,
 } from "shared";
 import { DEFAULT_AGENTS_MD, DEFAULT_FACTORY_SKILLS } from "./default-factory-skills";
 import { eventBroker } from "../lib/event-broker";
@@ -288,7 +289,21 @@ class SessionManager {
 
     const initPromise = (async () => {
       try {
-        const sessionDir = getSessionDir(username, sessionId);
+        let sessionDir = getSessionDir(username, sessionId);
+        if (sessionId.startsWith(SessionPrefix.SUBAGENT)) {
+          const userDir = this.ensureUserDir(username);
+          const sessionsDir = join(userDir, "sessions");
+          if (existsSync(sessionsDir)) {
+            const sessionFolders = readdirSync(sessionsDir);
+            for (const parentId of sessionFolders) {
+              const candidateDir = join(sessionsDir, parentId, "subagents", sessionId);
+              if (existsSync(candidateDir)) {
+                sessionDir = candidateDir;
+                break;
+              }
+            }
+          }
+        }
         if (!existsSync(sessionDir)) {
           mkdirSync(sessionDir, { recursive: true });
         }
@@ -464,6 +479,7 @@ class SessionManager {
           "complete_task_list",
           "vision",
           "generate_image",
+          "manage_factory",
         ];
         if (resolvedAgentId === "lab-architect") {
           alwaysOnTools.push("create_experiment");

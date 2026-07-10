@@ -42,7 +42,7 @@ export const AVAILABLE_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
   "request_approval", "ask_question", "render_images", "render_chart", "share_file", "refresh_ui",
   "spawn_subagent", "delegate_task", "exa_search", "decompose_tasks", "update_task_status", "complete_task_list",
-  "memory_store", "memory_recall", "memory_forget", "create_experiment"
+  "memory_store", "memory_recall", "memory_forget", "create_experiment", "vision", "generate_image", "manage_factory"
 ] as const;
 export type ToolName = typeof AVAILABLE_TOOLS[number];
 
@@ -574,6 +574,21 @@ export const GalleryItemSchema = z.object({
   hasIcon: z.boolean().optional(),
 });
 export type GalleryItem = z.infer<typeof GalleryItemSchema>;
+
+export const PendingDelegationSchema = z.object({
+  toolCallId: z.string(),
+  parentSessionId: z.string(),
+  targetType: z.enum(["spawn", "delegate"]),
+  targetLabel: z.string(),
+  task: z.string(),
+  status: z.enum(["running", "success", "error", "blocked"]),
+  startedAt: z.string(),
+  completedAt: z.string().optional(),
+  result: z.any().optional(),
+  subagentSessionId: z.string(),
+});
+export type PendingDelegation = z.infer<typeof PendingDelegationSchema>;
+
 
 
 

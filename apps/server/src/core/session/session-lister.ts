@@ -39,7 +39,7 @@ export class SessionLister {
     try {
       const entries = await readdir(sessionsDir, { withFileTypes: true });
       const sessionPromises = entries
-        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("plan_") && !entry.name.startsWith(SessionPrefix.DELEGATE) && !entry.name.startsWith(SessionPrefix.SUBAGENT))
+        .filter((entry) => entry.isDirectory() && !entry.name.startsWith("plan_") && !entry.name.startsWith(SessionPrefix.SUBAGENT))
         .map(async (entry) => {
           const sessionId = entry.name;
           const sessionSubdir = join(sessionsDir, sessionId);

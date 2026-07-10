@@ -81,3 +81,41 @@
 - [x] 97.3 Implement backend diagnostic testing API endpoints (`/api/settings/test-vision` and `/api/settings/test-image-gen`)
 - [x] 97.4 Implement Vision and Image Generation Diagnostic UI panels in `GeneralTab.tsx` with upload/default image selection and live previews
 - [x] 97.5 Verify successful client and server compilation build
+
+## Phase 99: Thinking Preview Line
+- [x] 99.1 Create MessageBlocks.literals.ts with localized "hideReasoning" strings (en/es)
+- [x] 99.2 Refactor ThinkingBlock to show compact single-line preview when closed (icon + truncated text, border-l-2 pulse during streaming)
+- [x] 99.3 Pass isStreaming prop from MessageList.tsx to ThinkingBlock for live streaming state
+- [x] 99.4 Verify successful client and server compilation build
+
+## Phase 98: Robust Chat Attachments Flow
+- [x] 98.1 Implement image/document storage persistence in localStorage and recovery upon session creation inside ChatArea.tsx
+- [x] 98.2 Configure allowAttachments inside ChatArea's WelcomeChatInput when !sessionId
+- [x] 98.3 Propagate upload errors in processAttachments and handle inline reading of small text/code attachments inside ChatInput.tsx
+- [x] 98.4 Wrap processAttachments with try-catch and show Toast notifications inside ChatInput and ChatArea components
+- [x] 98.5 Adjust ImageGrid max-width to 550px inside MessageList.tsx for better layouts
+- [x] 98.6 Fix manual project workspace directory calculation inconsistency in upload route, and append safe filename if destination resolves to a directory inside files.ts
+- [x] 98.7 Verify compilation build of client and server apps
+
+## Phase 100: Recover File System Tools (read, write, edit, grep, find, ls)
+- [x] 100.1 Install npm `diff` dependency in apps/server for precise file patch diffing
+- [x] 100.2 Implement directory traversal safety guard in `path-safety.ts` to secure agent operations
+- [x] 100.3 Create `edit-diff.ts` utility supporting normalized smart-replacements and diff format generation
+- [x] 100.4 Port filesystem tools (`read`, `write`, `edit`, `grep`, `find`, `ls`) with hybrid execution support (system tools + pure Node fallbacks)
+- [x] 100.5 Export tool definitions in `ai/index.ts` and register them inside `SessionToolFactory.createSessionTools`
+- [x] 100.6 Verify successful Bun server bundling and clean compilation
+
+## Phase 101: Unified Factory Operations Tool
+- [x] 101.1 Implement automated schema validation using FACTORY_CONTRACTS inside apps/server/src/core/tools/factory-tool.ts
+- [x] 101.2 Implement automatic websocket entity updates broadcast on state mutations
+- [x] 101.3 Create unit and integration test coverage for contracts and tools execution and verify clean build
+
+## Phase 102: Fast Task Decomposition & Channel Agent Validation
+- [x] 102.1 Replace plan session creation in `decompose_tasks` tool execution with direct `streamSimple` call
+- [x] 102.2 Implement cascade cleanup of deleted agent IDs from user channels in DELETE /api/agents/:id
+- [x] 102.3 Implement ghost members filter on channel read (GET / and GET /:id) in backend
+- [x] 102.4 Implement visual warning styles, warning labels, and badges for missing agents in the frontend (canvas flow, mobile list, members panel, detail panel, modals)
+- [x] 102.5 Verify successful compilation and builds for server and client
+
+
+

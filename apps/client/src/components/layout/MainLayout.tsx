@@ -134,7 +134,7 @@ export function MainLayout({
     onNavigate,
   });
 
-  const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview" || route.page === "laboratory" || route.page === "org";
+  const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview" || route.page === "laboratory" || route.page === "org" || route.page === "delegations";
   const showNewSessionButton = !isHome && isContextView && route.page !== "laboratory";
 
   const contextTabs = useMemo(() => {
@@ -151,6 +151,19 @@ export function MainLayout({
         icon: (
           <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
             <path fillRule="evenodd" d="M18 10c0 3.866-3.582 7-8 7a8.841 8.841 0 01-4.083-.98L2 17l1.338-3.123C2.493 12.767 2 11.434 2 10c0-3.866 3.582-7 8-7s8 3.134 8 7zM7 9H5v2h2V9zm8 0h-2v2h2V9zM9 9h2v2H9V9z" clipRule="evenodd" />
+          </svg>
+        ),
+      },
+      {
+        id: "delegations",
+        label: l.tabDelegations || "Delegations",
+        path: sessionId ? `${basePath}/session/${sessionId}/delegations` : (basePath ? `${basePath}/delegations` : "/delegations"),
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+            <circle cx="9" cy="7" r="4" />
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
           </svg>
         ),
       },

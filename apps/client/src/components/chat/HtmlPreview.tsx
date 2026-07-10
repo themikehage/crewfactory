@@ -4,9 +4,10 @@ import { motion } from "framer-motion";
 interface Props {
   html: string;
   title?: string;
+  fullBleed?: boolean;
 }
 
-export function HtmlPreview({ html, title }: Props) {
+export function HtmlPreview({ html, title, fullBleed = false }: Props) {
   const [showHtml, setShowHtml] = useState(true);
   const extractedTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1]?.trim();
   const displayTitle = extractedTitle || title || "HTML Preview";
@@ -33,7 +34,11 @@ export function HtmlPreview({ html, title }: Props) {
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25, ease: "easeOut" }}
-      className="my-4 rounded-xl overflow-hidden border border-border shadow-xl bg-card font-sans w-full"
+      className={`overflow-hidden font-sans w-full ${
+        fullBleed
+          ? ""
+          : "my-4 rounded-xl border border-border shadow-xl bg-card"
+      }`}
     >
       <div className="flex items-center gap-2 px-4 py-2.5 bg-card-hover/30 border-b border-border">
         <div className="flex gap-1.5 flex-shrink-0">
@@ -85,7 +90,7 @@ export function HtmlPreview({ html, title }: Props) {
       </div>
 
       {showHtml ? (
-        <div className="bg-white h-[70vh] min-h-[30rem] w-full">
+        <div className={`bg-white w-full ${fullBleed ? "h-[85vh] min-h-[35rem]" : "h-[70vh] min-h-[30rem]"}`}>
           <iframe
             srcDoc={html}
             title={displayTitle}
@@ -94,7 +99,7 @@ export function HtmlPreview({ html, title }: Props) {
           />
         </div>
       ) : (
-        <pre className="p-4 h-[70vh] min-h-[30rem] overflow-y-auto overflow-x-auto text-xs text-muted-foreground font-mono leading-relaxed bg-muted whitespace-pre-wrap">
+        <pre className={`p-4 overflow-y-auto overflow-x-auto text-xs text-muted-foreground font-mono leading-relaxed bg-muted whitespace-pre-wrap ${fullBleed ? "h-[85vh] min-h-[35rem]" : "h-[70vh] min-h-[30rem]"}`}>
           {html}
         </pre>
       )}

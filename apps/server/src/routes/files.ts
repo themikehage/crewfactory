@@ -477,7 +477,13 @@ const handlePostWorkspace = async (c: any) => {
     }
 
     const fileRelativePath = body.relativePath as string | undefined;
-    const savePath = fileRelativePath ? join(fullPath, fileRelativePath) : fullPath;
+    let savePath = fileRelativePath ? join(fullPath, fileRelativePath) : fullPath;
+
+    // If destination path exists and is a directory, save file inside it
+    if (existsSync(savePath) && statSync(savePath).isDirectory()) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      savePath = join(savePath, safeName);
+    }
 
     // Validate the final resolved file save path
     const resolvedSavePath = resolve(savePath);
@@ -488,9 +494,10 @@ const handlePostWorkspace = async (c: any) => {
     } else if (agentId) {
       workspaceDir = getAgentWorkspaceDir(username, agentId);
     } else if (projectName) {
-      workspaceDir = resolve(workspaceBase, "projects", projectName);
+      workspaceDir = getProjectWorkspaceDir(username, projectName);
     }
-    if (!resolvedSavePath.startsWith(workspaceDir + sep) && resolvedSavePath !== workspaceDir) {
+    const resolvedWorkspaceDir = resolve(workspaceDir);
+    if (!resolvedSavePath.startsWith(resolvedWorkspaceDir + sep) && resolvedSavePath !== resolvedWorkspaceDir) {
       return c.json({ error: "Forbidden path traversal in upload" }, 403);
     }
 

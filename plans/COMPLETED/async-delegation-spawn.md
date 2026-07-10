@@ -1,3 +1,4 @@
+COMPLETED
 # Async Delegation & Spawn with Session Navigation
 
 ## Problem

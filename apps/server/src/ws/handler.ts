@@ -370,6 +370,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "complete_task_list",
             "vision",
             "generate_image",
+            "manage_factory",
           ])
         )
       );

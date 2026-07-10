@@ -10,6 +10,7 @@ import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissions
 
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
+import { delegationRegistry } from "../core/delegation-registry";
 
 const STORAGE_KEY = "crewfactory-sessions";
 
@@ -406,7 +407,8 @@ sessionsRouter.get("/:id/messages", async (c) => {
     };
   });
 
-  return c.json({ messages: enrichedMessages });
+  const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
+  return c.json({ messages: enrichedMessages, metadata });
 });
 
 sessionsRouter.post(
@@ -617,6 +619,9 @@ sessionsRouter.post(
           "decompose_tasks",
           "update_task_status",
           "complete_task_list",
+          "vision",
+          "generate_image",
+          "manage_factory",
         ])
       )
     );
@@ -769,6 +774,24 @@ sessionsRouter.post("/:parentId/subagents/:subagentId/abort", async (c) => {
   }
 
   return c.json({ success: true, message: "Session not running" });
+});
+
+sessionsRouter.get("/:id/delegations", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  const list = delegationRegistry.getAll(username, sessionId);
+  return c.json({ delegations: list });
+});
+
+sessionsRouter.get("/:id/delegations/:toolCallId", async (c) => {
+  const sessionId = c.req.param("id");
+  const toolCallId = c.req.param("toolCallId");
+  const { username } = getAuthPayload(c);
+  const delegation = delegationRegistry.getByToolCallId(username, sessionId, toolCallId);
+  if (!delegation) {
+    return c.json({ error: "Delegation not found" }, 404);
+  }
+  return c.json({ delegation });
 });
 
 

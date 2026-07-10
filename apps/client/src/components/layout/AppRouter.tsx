@@ -15,6 +15,7 @@ import { MCPMarketplacePage } from "@/pages/MCPMarketplacePage";
 import { PluginsPage } from "@/pages/PluginsPage";
 import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { ChatArea } from "@/components/chat/ChatArea";
+import { DelegationsPanel } from "@/components/chat/DelegationsPanel";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { DashboardPage } from "@/pages/DashboardPage";
@@ -592,6 +593,15 @@ export function AppRouter() {
         )}
         {route.page === "org" && (
           <ChannelOrgPage channelId={route.channelId} onNavigate={navigate} />
+        )}
+        {route.page === "delegations" && (
+          <DelegationsPanel
+            key={`${route.sessionId}-${activeProjectId}-${activeAgent?.id}-${activeChannel?.id}`}
+            sessionId={route.sessionId}
+            activeProjectName={activeProjectId}
+            activeAgent={activeAgent}
+            activeChannel={activeChannel}
+          />
         )}
         {route.page === "workspace" && (
           <WorkspacePanel

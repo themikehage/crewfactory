@@ -71,7 +71,8 @@ export function AgentDetailPanel({
   };
 
   const name = agentInfo?.name || member.agentId;
-  const agentRole = agentInfo?.role || "agent";
+  const isOrphan = !agentInfo;
+  const agentRole = agentInfo ? (agentInfo.role || "agent") : l.deletedAgent;
   const skills = agentInfo?.skills || [];
 
   const panelVariants = {
@@ -139,10 +140,15 @@ export function AgentDetailPanel({
             {/* Content Scroll Area */}
             <div className="flex-1 overflow-y-auto p-4 space-y-5">
               {/* Profile Card */}
-              <div className="flex items-center gap-3 bg-background/50 border border-border p-3.5 rounded-xl">
+              <div className={`flex items-center gap-3 border p-3.5 rounded-xl ${
+                isOrphan ? "bg-destructive/5 border-destructive/20 animate-pulse-slow" : "bg-background/50 border-border"
+              }`}>
                 <AgentAvatar name={name} avatarUrl={agentInfo?.avatarUrl} size="lg" />
                 <div className="min-w-0 flex-1">
-                  <h4 className="font-bold text-foreground text-sm truncate font-display">{name}</h4>
+                  <h4 className={`font-bold text-sm truncate font-display ${isOrphan ? "text-destructive flex items-center gap-1.5" : "text-foreground"}`}>
+                    {isOrphan && <span>⚠️</span>}
+                    <span>{name}</span>
+                  </h4>
                   <p className="text-xs text-muted-foreground font-mono truncate">{agentRole}</p>
                   {streamingState && (
                     <span className="inline-flex items-center gap-1.5 mt-1 px-2 py-0.5 rounded-full bg-accent/15 border border-accent/20 text-[10px] text-accent font-semibold animate-pulse">
@@ -152,6 +158,16 @@ export function AgentDetailPanel({
                   )}
                 </div>
               </div>
+
+              {isOrphan && (
+                <div className="p-3.5 bg-yellow-500/10 border border-yellow-500/30 text-yellow-500 rounded-xl space-y-1.5 text-xs">
+                  <div className="flex items-center gap-1.5 font-bold">
+                    <span>⚠️</span>
+                    <span>{l.agentNotFound}</span>
+                  </div>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">{l.agentNotFoundDesc}</p>
+                </div>
+              )}
 
               {/* Streaming state detail */}
               {streamingState && (
@@ -193,6 +209,7 @@ export function AgentDetailPanel({
                     value={role}
                     onChange={setRole}
                     options={[...ROLE_OPTIONS]}
+                    disabled={isOrphan}
                     matchWidth
                   />
                 </div>
@@ -203,6 +220,7 @@ export function AgentDetailPanel({
                     value={replyMode}
                     onChange={setReplyMode}
                     options={[...REPLY_MODE_OPTIONS]}
+                    disabled={isOrphan}
                     matchWidth
                   />
                 </div>
@@ -229,6 +247,7 @@ export function AgentDetailPanel({
                                   }
                                 }}
                                 className="rounded border-border text-accent focus:ring-accent bg-card"
+                                disabled={isOrphan}
                               />
                               <span>{agentName}</span>
                             </label>
@@ -241,7 +260,7 @@ export function AgentDetailPanel({
                 <div className="flex gap-2 pt-1.5">
                   <button
                     onClick={handleSave}
-                    disabled={isSaving}
+                    disabled={isSaving || isOrphan}
                     className="flex-1 bg-accent/90 hover:bg-accent text-background font-bold text-xs py-2 px-3 rounded-lg transition-colors flex items-center justify-center gap-1.5 disabled:opacity-50"
                   >
                     {isSaving && <div className="w-3 h-3 border border-background border-t-transparent rounded-full animate-spin" />}

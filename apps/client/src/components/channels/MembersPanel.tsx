@@ -45,17 +45,23 @@ const l = useLiterals(u);
   const renderMember = (m: ChannelMember) => {
     const info = getAgentInfo(m.agentId);
     const name = info?.name || m.agentId;
-    const role = info?.role || "agent";
+    const role = info ? (info.role || "agent") : l.agentNotFound;
+    const isOrphan = !info;
 
     let badgeStyle = "border-input bg-background text-muted-foreground";
-    if (m.role === "lead") badgeStyle = "border-primary/30 bg-primary/10 text-primary";
+    if (isOrphan) badgeStyle = "border-destructive/30 bg-destructive/10 text-destructive";
+    else if (m.role === "lead") badgeStyle = "border-primary/30 bg-primary/10 text-primary";
     else if (m.role === "senior") badgeStyle = "border-purple-400/30 bg-purple-400/10 text-purple-400";
-    else if (m.role === "observer") badgeStyle = "border-dashed border-text-secondary/20 bg-background/50 text-muted-foreground";
+    else if (m.role === "observer") badgeStyle = "border-dashed border-text-secondary/20 bg-background/50 text-muted-foreground/60";
 
     return (
       <div
         key={m.agentId}
-        className="bg-background border border-input rounded-xl p-3 flex flex-col gap-2"
+        className={`border rounded-xl p-3 flex flex-col gap-2 transition-all ${
+          isOrphan
+            ? "bg-destructive/5 border-dashed border-destructive/30 opacity-85"
+            : "bg-background border-input"
+        }`}
       >
         <div className="flex items-start justify-between gap-2">
           <div className="min-w-0 flex-1">
@@ -66,13 +72,15 @@ const l = useLiterals(u);
                   avatarUrl={info?.avatarUrl}
                   size="xs"
                 />
-                <p className="font-medium text-foreground text-xs truncate">{name}</p>
+                <p className={`font-medium text-xs truncate ${isOrphan ? "text-destructive" : "text-foreground"}`}>
+                  {isOrphan ? `⚠️ ${name}` : name}
+                </p>
               </div>
-              <span className={`px-1.5 py-0.5 rounded text-xs font-semibold border tracking-wider uppercase flex-shrink-0 ${badgeStyle}`}>
-                {m.role || "member"}
+              <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold border tracking-wider uppercase flex-shrink-0 ${badgeStyle}`}>
+                {isOrphan ? "missing" : (m.role || "member")}
               </span>
             </div>
-            <p className="text-xs text-muted-foreground font-mono truncate pl-3.5">{role}</p>
+            <p className="text-[10px] text-muted-foreground font-mono truncate pl-3.5">{role}</p>
           </div>
           <button
             onClick={() => onRemoveMember(m.agentId)}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 export type Route =
   | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
+  | { page: "delegations"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
   | { page: "projects" }
   | { page: "settings" }
   | { page: "skills" }
@@ -26,8 +27,16 @@ function parseRoute(): Route {
     const subPage = parts[1];
 
     if (subPage === "session") {
-      const sessionId = parts.slice(2).join("/");
+      const remaining = parts.slice(2);
+      if (remaining[remaining.length - 1] === "delegations") {
+        const sessionId = remaining.slice(0, -1).join("/");
+        return { page: "delegations", sessionId: sessionId || null, projectName };
+      }
+      const sessionId = remaining.join("/");
       return { page: "chat", sessionId: sessionId || null, projectName };
+    }
+    if (subPage === "delegations") {
+      return { page: "delegations", sessionId: null, projectName };
     }
     if (subPage === "workspace") {
       return { page: "workspace", projectName };
@@ -46,8 +55,16 @@ function parseRoute(): Route {
     const subPage = parts[1];
 
     if (subPage === "session") {
-      const sessionId = parts.slice(2).join("/");
+      const remaining = parts.slice(2);
+      if (remaining[remaining.length - 1] === "delegations") {
+        const sessionId = remaining.slice(0, -1).join("/");
+        return { page: "delegations", sessionId: sessionId || null, agentId };
+      }
+      const sessionId = remaining.join("/");
       return { page: "chat", sessionId: sessionId || null, agentId };
+    }
+    if (subPage === "delegations") {
+      return { page: "delegations", sessionId: null, agentId };
     }
     if (subPage === "workspace") {
       return { page: "workspace", agentId };
@@ -63,8 +80,16 @@ function parseRoute(): Route {
     const subPage = parts[1];
 
     if (subPage === "session") {
-      const sessionId = parts.slice(2).join("/");
+      const remaining = parts.slice(2);
+      if (remaining[remaining.length - 1] === "delegations") {
+        const sessionId = remaining.slice(0, -1).join("/");
+        return { page: "delegations", sessionId: sessionId || null, channelId };
+      }
+      const sessionId = remaining.join("/");
       return { page: "chat", sessionId: sessionId || null, channelId };
+    }
+    if (subPage === "delegations") {
+      return { page: "delegations", sessionId: null, channelId };
     }
     if (subPage === "workspace") {
       return { page: "workspace", channelId };
@@ -78,7 +103,12 @@ function parseRoute(): Route {
 
   // Formato global heredado y otras páginas fijas
   if (path.startsWith("/session/")) {
-    const id = path.slice("/session/".length);
+    const remaining = path.slice("/session/".length);
+    if (remaining.endsWith("/delegations")) {
+      const id = remaining.slice(0, -"/delegations".length);
+      return { page: "delegations", sessionId: id || null };
+    }
+    const id = remaining;
     return { page: "chat", sessionId: id || null };
   }
   if (path.startsWith("/channel/")) {

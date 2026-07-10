@@ -331,7 +331,7 @@ export function DashboardPage({ onSelectProject }: Props) {
                   {l.cancel}
                 </Button>
                 <Button type="submit" disabled={submitting}>
-                  {submitting ? "{l.creating}" : "{l.createProject}"}
+                  {submitting ? l.creating : l.createProject}
                 </Button>
               </div>
             </form>

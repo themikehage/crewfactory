@@ -1,3 +1,4 @@
+COMPLETED
 # Thinking Preview Line
 
 Mostrar una linea animada con el contenido del thinking del agente cuando el acordeon de pensamiento esta cerrado, para que el usuario pueda ver al menos un preview de lo que el agente esta razonando sin tener que abrir el bloque completo.

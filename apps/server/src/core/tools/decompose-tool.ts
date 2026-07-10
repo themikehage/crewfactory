@@ -1,7 +1,8 @@
-import { existsSync, rmSync, readFileSync, writeFileSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sessionManager } from "../session-manager";
 import { broadcastToSession } from "../../ws/handler";
+import { streamSimple } from "../../ai/vendor/ai/src/compat.ts";
 
 export interface DecomposeTasksOptions {
   username: string;
@@ -15,12 +16,10 @@ function buildDecomposePrompt(objective: string, context: string, maxTasks: numb
       : "Tasks must be strictly sequential — each depends on the previous one completing first.";
 
   return [
-    `You are a meticulous software architect and project planner. Your ONLY job right now is to decompose the following high-level objective into a structured, actionable task list.`,
-    ``,
     `Objective: "${objective}"`,
     context ? `\nAdditional context:\n${context}` : "",
     ``,
-    `Analyze the workspace/repository context and decompose this objective into at most ${maxTasks} tasks. ${modeInstruction}`,
+    `Decompose this objective into a structured task list of at most ${maxTasks} tasks. ${modeInstruction}`,
     ``,
     `CRITICAL: Your response must end with ONLY a valid JSON array wrapped in a \`\`\`json block. No prose after the JSON block.`,
     ``,
@@ -30,26 +29,18 @@ function buildDecomposePrompt(objective: string, context: string, maxTasks: numb
     `  {`,
     `    "id": "t1",`,
     `    "title": "Short, action-oriented title",`,
-    `    "prompt": "Complete, self-contained instructions for this task. Include file paths, tools to use, exact requirements, and acceptance criteria. Write as if the executor has no prior context.",`,
+    `    "prompt": "Complete, self-contained instructions for this task. Include file paths, tools, requirements, and acceptance criteria.",`,
     `    "depends_on": [],`,
     `    "estimated_steps": 3`,
-    `  },`,
-    `  {`,
-    `    "id": "t2",`,
-    `    "title": "Next step title",`,
-    `    "prompt": "...",`,
-    `    "depends_on": ["t1"],`,
-    `    "estimated_steps": 5`,
     `  }`,
     `]`,
     "```",
     ``,
     `Rules:`,
-    `- IDs must be simple strings like "t1", "t2", etc.`,
+    `- IDs must be "t1", "t2", etc.`,
     `- For linear mode: each task's depends_on should contain the ID of the previous task (except the first).`,
-    `- "prompt" must be fully self-contained — the executor has no memory of this conversation.`,
-    `- "estimated_steps" is a rough count of LLM iterations this task will need (1-20).`,
-    `- Output ONLY the JSON block. No text after it.`,
+    `- "prompt" must be fully self-contained.`,
+    `- Output ONLY the JSON block.`,
   ]
     .filter((l) => l !== null)
     .join("\n");
@@ -143,59 +134,83 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
       }
 
       const parentSession = sessionManager.getSession(username, parentSessionId);
-      const parentMeta = parentSession ? sessionManager.getSessionMetadata(username, parentSessionId) || {} : {};
-      const projectName = parentMeta.projectName as string | undefined;
-      const agentId = parentMeta.agentId as string | undefined;
-      const channelId = parentMeta.channelId as string | undefined;
       const parentModel = parentSession?.model;
 
-      const planSessionId = `plan_${toolCallId}`;
-      const planSession = await sessionManager.getOrCreateSession(
-        username,
-        planSessionId,
-        projectName,
-        agentId,
-        channelId
-      );
-      if (parentModel) {
-        await planSession.setModel(parentModel);
+      const { modelRegistry } = sessionManager.getUserContext(username);
+      const available = modelRegistry.getAvailable();
+
+      let activeModel = parentModel;
+      if (!activeModel) {
+        const defaultModelId = sessionManager.getUserDefaultModel(username);
+        if (defaultModelId) {
+          activeModel = available.find(
+            (m) => m.id === defaultModelId || `${m.provider}/${m.id}` === defaultModelId
+          );
+        }
+      }
+
+      if (!activeModel) {
+        activeModel = available[0];
+      }
+
+      if (!activeModel) {
+        return {
+          content: [{ type: "text", text: "Error: No active or default models configured." }],
+          isError: true,
+        };
       }
 
       const promptText = buildDecomposePrompt(objective, context, maxTasks, mode);
 
-      const planDir = join(userDir, "sessions", planSessionId);
       let responseText = "";
       try {
-        await planSession.prompt(promptText);
-        const messages = planSession.messages;
-        const lastMsg = messages[messages.length - 1];
-        if (lastMsg?.role === "assistant") {
-          if (typeof lastMsg.content === "string") {
-            responseText = lastMsg.content;
-          } else if (Array.isArray(lastMsg.content)) {
-            responseText = lastMsg.content
-              .filter((c: any) => c.type === "text")
-              .map((c: any) => c.text)
-              .join("\n");
+        const apiKeyResult = await modelRegistry.getApiKeyAndHeaders(activeModel);
+        if (!apiKeyResult.ok) {
+          throw new Error(
+            `Error resolving API key for model ${activeModel.name}: ${(apiKeyResult as any).error}`
+          );
+        }
+
+        const modelObj = {
+          id: activeModel.id,
+          name: activeModel.name,
+          provider: activeModel.provider,
+          api: activeModel.api,
+          baseUrl: activeModel.baseUrl,
+          apiKey: apiKeyResult.apiKey,
+          contextWindow: activeModel.contextWindow || 128000,
+          maxTokens: activeModel.maxTokens || 4096,
+          compat: activeModel.compat,
+          input: (activeModel as any).input || ["text"],
+        };
+
+        const stream = streamSimple(
+          modelObj as any,
+          {
+            systemPrompt: "You are a task decomposition engine. Output ONLY JSON.",
+            messages: [{ role: "user" as const, content: promptText }],
+          },
+          {
+            signal: _parentSignal,
+            apiKey: apiKeyResult.apiKey,
+          }
+        );
+
+        for await (const event of stream) {
+          if (event.type === "text_delta") {
+            responseText += event.delta;
+          } else if (event.type === "error") {
+            throw new Error(event.error);
           }
         }
       } catch (err: any) {
-        await sessionManager.destroySession(username, planSessionId);
-        try {
-          rmSync(planDir, { recursive: true, force: true });
-        } catch { }
-
         return {
-          content: [{ type: "text", text: `Failed to decompose objective: ${err.message || String(err)}` }],
+          content: [
+            { type: "text", text: `Failed to decompose objective: ${err.message || String(err)}` },
+          ],
           isError: true,
         };
       }
-      await sessionManager.destroySession(username, planSessionId);
-      try {
-        if (existsSync(planDir)) {
-          rmSync(planDir, { recursive: true, force: true });
-        }
-      } catch { }
 
       const parsed = parseTasksFromText(responseText);
       if (!parsed || parsed.length === 0) {
