@@ -1,3 +1,4 @@
+DISCARDED
 # Audit: Slow Operations
 
 Analisis de rendimiento de tres operaciones que los usuarios perciben como lentas: dividir tareas en subtareas, ejecutar el judge del laboratorio, y exportar un experimento como equipo de agentes.

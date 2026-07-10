@@ -34,6 +34,7 @@
 
 ## Phase 92: Plan (Mobile Bottom Bar Redesign)
 - [x] 92.1 Created `plans/mobile-bottom-bar-redesign.md` — Bottom bar only visible when drawer is open
+- [x] 92.2 Implemented: simplified MobileBottomBar visibility to `{sidebarOpen && ...}`, adjusted `<main>` positioning to `sidebarOpen ? "bottom-14" : "bottom-0"`, removed unused `isChatActive` variable
 
 ## Phase 94: Remove Channel Features (Tasks, Optimize, Benchmark)
 - [x] 94.1 Remove shared types (ScoringMetric, ScoringRubric, ChannelBenchmarkConfig from schemas.ts; benchmark paths from paths.ts)

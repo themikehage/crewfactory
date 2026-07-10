@@ -107,7 +107,6 @@ export function MainLayout({
   }, [onBack]);
 
   const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && route.page === "chat";
-  const isChatActive = route.page === "chat" && !isHome;
 
   const mobileTitle = useMemo(() => {
     if (activeProjectId) return activeProjectName || activeProjectId;
@@ -349,14 +348,14 @@ export function MainLayout({
 
             <main
               className={`absolute inset-x-0 top-0 ${
-                isChatActive && !sidebarOpen ? "bottom-0" : "bottom-14"
+                sidebarOpen ? "bottom-14" : "bottom-0"
               } z-30 flex flex-col bg-background`}
             >
               {isContextView && sharedTabBar}
               <div className="flex-1 min-h-0 relative">{children}</div>
             </main>
 
-            {(!isChatActive || sidebarOpen) && (
+            {sidebarOpen && (
               <MobileBottomBar
                 currentPage={route.page}
                 isHome={isHome}
