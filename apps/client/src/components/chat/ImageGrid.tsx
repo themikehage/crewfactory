@@ -246,72 +246,137 @@ export function ImageGrid({
           </button>
         </div>
       )}
-      <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-w-full">
-        {images.map((img, i) => {
-          const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
-          const isDownloading = downloading === resolved;
-          return (
-            <div
-              key={i}
-              onClick={() => setPreviewUrl(resolved)}
-              className="group relative rounded-lg overflow-hidden border border-input bg-card hover:border-primary/40 shadow-sm transition-all cursor-pointer"
-            >
-              <div className="aspect-square w-full overflow-hidden bg-black/10 flex items-center justify-center">
-                <AuthenticatedImage
-                  src={resolved}
-                  alt={img.title || "Image content"}
-                  loading="lazy"
-                  onError={(e) => {
-                    (e.target as HTMLElement).style.display = "none";
-                  }}
-                  className="w-full h-full object-cover transition-transform group-hover:scale-105"
-                />
-              </div>
-
-              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    downloadImage(resolved, img.title);
-                  }}
-                  disabled={isDownloading}
-                  className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors disabled:opacity-50 cursor-pointer"
-                  title="Download image"
-                >
-                  {isDownloading ? (
-                    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="animate-spin text-white">
-                      <path fillRule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clipRule="evenodd" />
-                    </svg>
-                  ) : (
-                    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
-                      <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
-                    </svg>
-                  )}
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    openImageInNewTab(resolved);
-                  }}
-                  className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
-                  title="Open in new tab"
-                >
-                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
-                    <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
-                    <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
-                  </svg>
-                </button>
-              </div>
-
-              {img.title && (
-                <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-xs text-foreground truncate">
-                  {img.title}
-                </div>
-              )}
+      {images.length === 1 ? (() => {
+        const img = images[0];
+        const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+        const isDownloading = downloading === resolved;
+        return (
+          <div
+            onClick={() => setPreviewUrl(resolved)}
+            className="group relative rounded-lg overflow-hidden border border-input bg-card hover:border-primary/40 shadow-sm transition-all cursor-pointer max-w-full"
+          >
+            <div className="w-full overflow-hidden bg-black/10 flex items-center justify-center">
+              <AuthenticatedImage
+                src={resolved}
+                alt={img.title || "Image content"}
+                loading="lazy"
+                onError={(e) => {
+                  (e.target as HTMLElement).style.display = "none";
+                }}
+                className="w-full h-auto object-contain max-h-[70vh] transition-transform group-hover:scale-[1.02]"
+              />
             </div>
-          );
-        })}
-      </div>
+
+            <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  downloadImage(resolved, img.title);
+                }}
+                disabled={isDownloading}
+                className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors disabled:opacity-50 cursor-pointer"
+                title="Download image"
+              >
+                {isDownloading ? (
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="animate-spin text-white">
+                    <path fillRule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clipRule="evenodd" />
+                  </svg>
+                ) : (
+                  <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
+                    <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                )}
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  openImageInNewTab(resolved);
+                }}
+                className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
+                title="Open in new tab"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
+                  <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                  <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                </svg>
+              </button>
+            </div>
+
+            {img.title && (
+              <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-xs text-foreground truncate">
+                {img.title}
+              </div>
+            )}
+          </div>
+        );
+      })() : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-w-full">
+          {images.map((img, i) => {
+            const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+            const isDownloading = downloading === resolved;
+            return (
+              <div
+                key={i}
+                onClick={() => setPreviewUrl(resolved)}
+                className="group relative rounded-lg overflow-hidden border border-input bg-card hover:border-primary/40 shadow-sm transition-all cursor-pointer"
+              >
+                <div className="aspect-square w-full overflow-hidden bg-black/10 flex items-center justify-center">
+                  <AuthenticatedImage
+                    src={resolved}
+                    alt={img.title || "Image content"}
+                    loading="lazy"
+                    onError={(e) => {
+                      (e.target as HTMLElement).style.display = "none";
+                    }}
+                    className="w-full h-full object-cover transition-transform group-hover:scale-105"
+                  />
+                </div>
+
+                <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      downloadImage(resolved, img.title);
+                    }}
+                    disabled={isDownloading}
+                    className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors disabled:opacity-50 cursor-pointer"
+                    title="Download image"
+                  >
+                    {isDownloading ? (
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="animate-spin text-white">
+                        <path fillRule="evenodd" d="M4 10a1 1 0 011-1h10a1 1 0 110 2H5a1 1 0 01-1-1z" clipRule="evenodd" />
+                      </svg>
+                    ) : (
+                      <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
+                        <path fillRule="evenodd" d="M3 17a1 1 0 011-1h12a1 1 0 110 2H4a1 1 0 01-1-1zm3.293-7.707a1 1 0 011.414 0L9 10.586V3a1 1 0 112 0v7.586l1.293-1.293a1 1 0 111.414 1.414l-3 3a1 1 0 01-1.414 0l-3-3a1 1 0 010-1.414z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      openImageInNewTab(resolved);
+                    }}
+                    className="p-1.5 bg-white/20 rounded-full hover:bg-white/40 transition-colors cursor-pointer"
+                    title="Open in new tab"
+                  >
+                    <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor" className="text-white">
+                      <path d="M11 3a1 1 0 100 2h2.586l-6.293 6.293a1 1 0 101.414 1.414L15 6.414V9a1 1 0 102 0V4a1 1 0 00-1-1h-5z" />
+                      <path d="M5 5a2 2 0 00-2 2v8a2 2 0 002 2h8a2 2 0 002-2v-3a1 1 0 10-2 0v3H5V7h3a1 1 0 000-2H5z" />
+                    </svg>
+                  </button>
+                </div>
+
+                {img.title && (
+                  <div className="absolute bottom-0 left-0 right-0 bg-black/60 px-2 py-1 text-xs text-foreground truncate">
+                    {img.title}
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {previewUrl && (
         <div

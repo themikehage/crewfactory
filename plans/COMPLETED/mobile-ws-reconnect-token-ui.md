@@ -1,3 +1,4 @@
+COMPLETED
 # Plan: Mobile WS Reconnect + Token Usage in UI
 
 ## Problema 1: Streaming perdido al reanudar de suspenso mobile

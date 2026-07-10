@@ -1,3 +1,4 @@
+COMPLETED
 # Layered Prompt System
 
 Rediseno del sistema de composicion de prompts para agentes, pasando de un modelo monolitico a uno de capas desacopladas, componibles y condicionales.
