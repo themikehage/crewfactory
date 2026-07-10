@@ -333,12 +333,26 @@ export class AgentSession {
     }
   }
 
-  async steer(messageText: string): Promise<any> {
-    return this.prompt(messageText);
+  steer(messageText: string): void {
+    const steeringMsg = {
+      role: "user" as const,
+      content: messageText,
+      timestamp: Date.now(),
+    };
+    this.delegationResultQueue.push(steeringMsg);
+    this.sessionManager.appendMessage(steeringMsg);
+    this.messages = this.sessionManager.buildSessionContext().messages;
   }
 
-  async followUp(messageText: string): Promise<any> {
-    return this.prompt(messageText);
+  followUp(messageText: string): void {
+    const followUpMsg = {
+      role: "user" as const,
+      content: messageText,
+      timestamp: Date.now(),
+    };
+    this.delegationResultQueue.push(followUpMsg);
+    this.sessionManager.appendMessage(followUpMsg);
+    this.messages = this.sessionManager.buildSessionContext().messages;
   }
 
   async abort(): Promise<void> {

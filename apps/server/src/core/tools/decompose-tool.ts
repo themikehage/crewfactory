@@ -196,12 +196,14 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
           }
         );
 
-        for await (const event of stream) {
-          if (event.type === "text_delta") {
-            responseText += event.delta;
-          } else if (event.type === "error") {
-            throw new Error(event.error);
-          }
+        const resultMessage = await stream.result();
+        if (typeof resultMessage.content === "string") {
+          responseText = resultMessage.content;
+        } else if (Array.isArray(resultMessage.content)) {
+          responseText = resultMessage.content
+            .filter((c: any) => c.type === "text")
+            .map((c: any) => c.text)
+            .join("\n");
         }
       } catch (err: any) {
         return {

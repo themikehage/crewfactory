@@ -14,7 +14,7 @@ interface Props {
   l: Record<string, string>;
 }
 
-export function DecomposeResult({ details, l }: Props) {
+export function DecomposeResult({ text, details, l }: Props) {
   const objective = details?.objective ?? "";
   const mode = details?.mode ?? "linear";
   const tasks = (details?.tasks as TaskItem[]) ?? [];
@@ -22,8 +22,8 @@ export function DecomposeResult({ details, l }: Props) {
 
   if (tasks.length === 0) {
     return (
-      <div className="text-muted-foreground text-xs italic">
-        {l.bodyNoResults}
+      <div className="text-muted-foreground text-xs italic bg-destructive/5 border border-destructive/20 p-3 rounded-lg text-destructive">
+        {text ? text : l.bodyNoResults}
       </div>
     );
   }

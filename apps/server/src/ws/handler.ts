@@ -378,7 +378,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
     if (session.isStreaming) {
       try {
-        await session.prompt(message, { streamingBehavior: "followUp", images });
+        session.followUp(message);
       } catch (error) {
         safeSend(ws, JSON.stringify({ type: "agent_error", sessionId, error: String(error) }));
       }
