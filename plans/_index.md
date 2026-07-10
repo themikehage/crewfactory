@@ -5,6 +5,21 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ## Pendientes
 
+### Production Readiness (Audit 2026-07-10)
+
+- **10 Critical** → [fix-critical.md](./fix-critical.md) — Catch block mata sesion, steer/followUp mismo queue, JWT sin re-verify, AgentSession bypassa Agent class, solo 1 provider, all.ts roto, 0 tests, node.ts roto, auth import roto, types.ts imports rotos
+- **12 High** → [fix-high.md](./fix-high.md) — Pre-loop throw, navigateTree corrupts messages, steer duplicado, sendContextUsage mata pipe, out-of-order WS messages, tool_execution_update dropped, AgentHarness no usado, compact stub, message_update filtering, vendor sync
+- **30 Medium** → [fix-medium.md](./fix-medium.md) — emit() traga errores, race abortController, dispose sin await, constructor inseguro, session dir race, authStorage any, dynamic import, bash hardcode, persist sin rollback, rewrite full file, image tokens, WS jitter/retries/queue, channel_join cleanup
+- **15 Low** → [fix-low.md](./fix-low.md) — Context type mismatch, token naming, steer warning, undefined return, compact stub, auth error feedback, EXEC/LAB silent, TOCTOU race, disconnect feedback, network errors, turn events, unknown event log, barrel export
+
+### Technical Debt
+
+- [debt-agentsession.md](./debt-agentsession.md) — AgentSession no usa la clase `Agent` de pi: pierde state machine, colas separadas, waitForIdle, errores estructurados, compaction, tool_execution_update
+- [debt-websocket.md](./debt-websocket.md) — WebSocket sin dedup en reconnect, sin indicador de conexion, sin ping de cliente, degradacion silenciosa, race en pending-prompt
+- [debt-vendor-fork.md](./debt-vendor-fork.md) — Fork sin version tracking, 33 imports rotos, 8 dead types, @ts-nocheck en 5 archivos, sin proceso de sync
+
+### Features
+
 - [manage-factory-tool.md](./manage-factory-tool.md) — Tool `manage_factory`: operaciones CRUD de fabrica en una sola tool con contrato auto-documentado. Reemplaza skills factory-x + curl por tool nativa.
 - [async-delegation-spawn.md](./async-delegation-spawn.md) — Delegacion y spawn asincronos sin bloqueo del agente padre, con redireccion a sesion del subagente y tracker de delegaciones tipo FloatingTasks
 - [api-error-detection.md](./api-error-detection.md) — Detectar errores silenciosos de la API cuando el LLM devuelve error en lugar de texto, mostrando mensajes de error visibles en el chat
