@@ -450,6 +450,10 @@ class SessionManager {
           resourceLoader,
         });
 
+        const meta = sessionMetadataStore.getSessionMetadata(username, sessionId) || {};
+        const entityId = meta.channelId || meta.agentId || meta.projectName || undefined;
+        const entityType = meta.channelId ? "channel" : meta.agentId ? "agent" : meta.projectName ? "project" : "global";
+
         const { session } = await createAgentSession({
           cwd: workspaceDir,
           sessionManager,
@@ -457,6 +461,10 @@ class SessionManager {
           modelRegistry,
           resourceLoader,
           customTools,
+          username,
+          sessionId,
+          entityId,
+          entityType,
         });
 
         const systemTools = this.getSessionTools(username, sessionId);

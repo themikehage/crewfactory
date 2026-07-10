@@ -6,6 +6,7 @@ import type { SessionManager } from "./session-persistence";
 import type { DefaultResourceLoader } from "./resource-loader";
 import { convertToLlm } from "./messages";
 import { estimateContextTokens } from "./vendor/ai/src/utils/estimate.ts";
+import { llmLogger } from "../lib/llm-logger";
 
 export interface CreateAgentSessionOptions {
   cwd: string;
@@ -14,6 +15,10 @@ export interface CreateAgentSessionOptions {
   modelRegistry: ModelRegistry;
   resourceLoader: DefaultResourceLoader;
   customTools?: any[];
+  username?: string;
+  sessionId?: string;
+  entityId?: string;
+  entityType?: "global" | "channel" | "agent" | "project";
 }
 
 export type AgentSessionEvent = any;
@@ -26,6 +31,10 @@ export class AgentSession {
   resourceLoader: DefaultResourceLoader;
   customTools: any[];
   _customTools: any[];
+  username?: string;
+  sessionId?: string;
+  entityId?: string;
+  entityType?: "global" | "channel" | "agent" | "project";
 
   messages: any[] = [];
   model: AvailableModel | null = null;
@@ -62,6 +71,10 @@ export class AgentSession {
     this.resourceLoader = options.resourceLoader;
     this.customTools = options.customTools || [];
     this._customTools = this.customTools;
+    this.username = options.username;
+    this.sessionId = options.sessionId;
+    this.entityId = options.entityId;
+    this.entityType = options.entityType;
 
     this.initializeTools();
     this.restoreSessionState();
@@ -323,6 +336,18 @@ export class AgentSession {
         streamSimple
       );
     } catch (err: any) {
+      if (this.username) {
+        llmLogger.logError({
+          username: this.username,
+          sessionId: this.sessionId,
+          entityId: this.entityId,
+          entityType: this.entityType || "global",
+          model: this.model?.id,
+          provider: this.model?.provider,
+          error: err.message || String(err),
+          stack: err.stack,
+        });
+      }
       this.emit({ type: "agent_error", error: err.message });
       this.emit({ type: "agent_end", messages: [], willRetry: false });
     } finally {

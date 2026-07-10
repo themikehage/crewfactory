@@ -16,6 +16,7 @@ import { getEnvironmentContext } from "../env-check";
 import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
+import { llmLogger } from "../../lib/llm-logger";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -261,6 +262,17 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         })
         .catch(async (err) => {
           console.error(`[Subagent Execution Error] ${subagentSessionId}:`, err);
+          llmLogger.logError({
+            username,
+            sessionId: subagentSessionId,
+            parentSessionId,
+            entityId: parentEntityId || undefined,
+            entityType: "subagent",
+            model: subSession.model?.id,
+            provider: subSession.model?.provider,
+            error: err.message || String(err),
+            stack: err.stack,
+          });
           const envelope = {
             status: "error" as const,
             executive_summary: `Subagent execution failed: ${err.message || err}`,

@@ -25,25 +25,96 @@ interface LogsConsolePageProps {
   onNavigate: (path: string) => void;
 }
 
+function ErrorCard({ err, l }: { err: any; l: Record<string, string> }) {
+  const [expanded, setExpanded] = useState(false);
+
+  const getEntityBadge = () => {
+    let text = err.entityType || "global";
+    let style = "bg-text-secondary/10 text-muted-foreground border-text-secondary/20";
+
+    if (err.entityType === "project") {
+      text = `${l.badgeProject} ${err.entityId}`;
+      style = "bg-blue-400/10 text-blue-400 border-blue-400/20";
+    } else if (err.entityType === "channel") {
+      text = `${l.badgeChannel} #${err.entityId}`;
+      style = "bg-purple-400/10 text-purple-400 border-purple-400/20";
+    } else if (err.entityType === "agent") {
+      text = `${l.badgeAgent} ${err.entityId}`;
+      style = "bg-amber-400/10 text-amber-400 border-amber-400/20";
+    } else if (err.entityType === "subagent") {
+      text = `${l.badgeSubagent} ${err.sessionId}`;
+      style = "bg-pink-400/10 text-pink-400 border-pink-400/20";
+    }
+
+    return (
+      <span className={`text-[10px] uppercase font-bold px-2 py-0.5 rounded-md border border-solid ${style}`}>
+        {text}
+      </span>
+    );
+  };
+
+  const formattedTime = new Date(err.timestamp).toLocaleString();
+
+  return (
+    <div className="bg-card border border-destructive/30 rounded-xl p-4 flex flex-col gap-3 shadow-md hover:border-destructive/50 transition-colors">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-input/30 pb-2 text-xs">
+        <div className="flex items-center gap-2 flex-wrap">
+          {getEntityBadge()}
+          {err.model && (
+            <span className="bg-bg/80 text-muted-foreground border border-input/40 px-2 py-0.5 rounded-md font-mono text-[10px]">
+              {err.provider ? `${err.provider}/` : ""}{err.model}
+            </span>
+          )}
+        </div>
+        <span className="text-[10px] font-mono text-muted-foreground shrink-0 select-none">
+          {formattedTime}
+        </span>
+      </div>
+
+      <div className="bg-destructive/5 border border-destructive/20 text-destructive text-xs p-3 rounded-lg font-mono whitespace-pre-wrap leading-relaxed">
+        {err.error}
+      </div>
+
+      {err.stack && (
+        <div className="text-xs">
+          <button
+            onClick={() => setExpanded(!expanded)}
+            className="text-text-secondary hover:text-foreground font-semibold flex items-center gap-1 cursor-pointer"
+          >
+            {expanded ? l.labelCollapseTrace : l.labelExpandTrace}
+          </button>
+          {expanded && (
+            <pre className="mt-2 p-3 bg-bg/90 border border-input/35 rounded-lg text-[10px] font-mono text-muted-foreground overflow-x-auto leading-relaxed max-h-48 overflow-y-auto">
+              {err.stack}
+            </pre>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
 // Agrupador de deltas de tokens para la consola de logs
 function groupConsecutiveDeltas(events: GlobalLogEvent[]): GlobalLogEvent[] {
   const result: GlobalLogEvent[] = [];
-  for (const ev of events) {
-    if (result.length > 0) {
-      const last = result[result.length - 1];
-      if (
-        last.sourceId === ev.sourceId &&
-        last.sourceType === ev.sourceType &&
-        last.eventType === ev.eventType &&
-        (ev.eventType === "text_delta" || ev.eventType === "thinking_delta")
-      ) {
-        last.detail = (last.detail || "") + (ev.detail || "");
-        last.timestamp = ev.timestamp;
-        continue;
+  let currentGroup: GlobalLogEvent | null = null;
+  for (const log of events) {
+    if (log.eventType === "text_delta" || log.eventType === "thinking_delta") {
+      if (currentGroup && currentGroup.eventType === log.eventType && currentGroup.sourceId === log.sourceId) {
+        currentGroup.detail = (currentGroup.detail || "") + (log.detail || "");
+      } else {
+        if (currentGroup) result.push(currentGroup);
+        currentGroup = { ...log };
       }
+    } else {
+      if (currentGroup) {
+        result.push(currentGroup);
+        currentGroup = null;
+      }
+      result.push(log);
     }
-    result.push({ ...ev });
   }
+  if (currentGroup) result.push(currentGroup);
   return result;
 }
 
@@ -54,7 +125,7 @@ export function LogsConsolePage({
   onNavigate,
 }: LogsConsolePageProps) {
   const l = useLiterals(u);
-  const [activeTab, setActiveTab] = useState<"sessions" | "logs">("sessions");
+  const [activeTab, setActiveTab] = useState<"sessions" | "logs" | "errors">("sessions");
   
   // Estados para pestaña de Sesiones
   const [sessions, setSessions] = useState<SessionItem[]>([]);
@@ -67,6 +138,10 @@ export function LogsConsolePage({
   const [logsLoading, setLogsLoading] = useState(true);
   const [wsConnected, setWsConnected] = useState(false);
   const [pauseScroll, setPauseScroll] = useState(false);
+
+  // Estados para pestaña de Errores LLM
+  const [llmErrors, setLlmErrors] = useState<any[]>([]);
+  const [errorsLoading, setErrorsLoading] = useState(true);
 
   // Filtros de Logs
   const [filterSource, setFilterSource] = useState<"all" | "session" | "channel">("all");
@@ -121,6 +196,30 @@ export function LogsConsolePage({
     }
   };
 
+  const fetchLlmErrors = async () => {
+    try {
+      setErrorsLoading(true);
+      const token = localStorage.getItem("token");
+      const res = await fetch("/api/logs/llm-errors", {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setLlmErrors(data.errors || []);
+      }
+    } catch (err) {
+      console.error("Failed to load LLM errors:", err);
+    } finally {
+      setErrorsLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeTab === "errors") {
+      fetchLlmErrors();
+    }
+  }, [activeTab]);
+
   useEffect(() => {
     fetchSessionsData();
   }, []);
@@ -167,6 +266,23 @@ export function LogsConsolePage({
       try {
         const data = JSON.parse(event.data);
         if (data.type === "global_log" && data.event) {
+          if (data.event.eventType === "llm_error") {
+            setLlmErrors((prev) => {
+              const newErr = {
+                timestamp: data.event.timestamp,
+                sessionId: data.event.payload?.sessionId,
+                parentSessionId: data.event.payload?.parentSessionId,
+                entityId: data.event.sourceId,
+                entityType: data.event.sourceType,
+                model: data.event.payload?.model,
+                provider: data.event.payload?.provider,
+                error: data.event.payload?.error,
+                stack: data.event.payload?.stack,
+              };
+              return [newErr, ...prev];
+            });
+          }
+
           setLogs((prev) => {
             const next = [...prev, data.event];
             if (next.length > 500) next.shift();
@@ -378,6 +494,16 @@ export function LogsConsolePage({
         >
           {l.tabLogs}
         </button>
+        <button
+          onClick={() => setActiveTab("errors")}
+          className={`px-4 py-2 text-xs font-semibold cursor-pointer border-b-2 transition-all ${
+            activeTab === "errors"
+              ? "border-primary text-primary"
+              : "border-transparent text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {l.tabErrors}
+        </button>
       </div>
 
       {activeTab === "sessions" ? (
@@ -569,6 +695,27 @@ export function LogsConsolePage({
               </div>
             )}
           </div>
+        </div>
+      )}
+
+      {activeTab === "errors" && (
+        <div className="flex-1 overflow-y-auto min-h-0">
+          {errorsLoading ? (
+            <div className="flex flex-col items-center justify-center py-20 space-y-2 text-muted-foreground">
+              <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="text-xs">{l.loadingErrors}</span>
+            </div>
+          ) : llmErrors.length === 0 ? (
+            <div className="text-center text-muted-foreground text-xs py-20">
+              {l.noErrorsFound}
+            </div>
+          ) : (
+            <div className="flex flex-col gap-4">
+              {llmErrors.map((err, idx) => (
+                <ErrorCard key={idx} err={err} l={l} />
+              ))}
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -332,12 +332,13 @@ export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;
 
 export interface GlobalLogEvent {
   timestamp: string;
-  sourceType: "session" | "channel";
+  sourceType: "session" | "channel" | "global" | "agent" | "project" | "subagent";
   sourceId: string;
-  sourceName: string;
-  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error";
+  sourceName?: string;
+  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error" | "llm_error";
   agentName?: string;
   detail?: any;
+  payload?: any;
 }
 
 export const AgentExecutionSchema = z.object({

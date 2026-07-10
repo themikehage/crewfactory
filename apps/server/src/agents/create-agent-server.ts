@@ -147,6 +147,10 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     modelRegistry,
     resourceLoader,
     customTools: [customBashTool as any, ...uiTools as any, ...memoryTools as any],
+    username,
+    sessionId: sessionManager.getSessionId(),
+    entityId: definition.id,
+    entityType: "agent",
   });
 
   const activeToolNames = [

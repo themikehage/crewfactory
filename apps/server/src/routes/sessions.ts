@@ -11,6 +11,7 @@ import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissions
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
 import { delegationRegistry } from "../core/delegation-registry";
+import { llmLogger } from "../lib/llm-logger";
 
 const STORAGE_KEY = "crewfactory-sessions";
 
@@ -129,7 +130,15 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   try {
     await session.prompt(message);
     return c.json({ success: true });
-  } catch (error) {
+  } catch (error: any) {
+    llmLogger.logError({
+      username,
+      sessionId,
+      entityId: projectName || undefined,
+      entityType: "project",
+      error: `REST run failed: ${error.message || String(error)}`,
+      stack: error.stack,
+    });
     errors.push(String(error));
     return c.json({ success: false, error: String(error) }, 500);
   } finally {
@@ -214,7 +223,15 @@ sessionsRouter.post(
 
       try {
         await session.prompt(message);
-      } catch (err) {
+      } catch (err: any) {
+        llmLogger.logError({
+          username,
+          sessionId,
+          entityId: projectName || undefined,
+          entityType: "project",
+          error: `SSE run failed: ${err.message || String(err)}`,
+          stack: err.stack,
+        });
         errors.push(String(err));
         await sse.writeSSE({ data: JSON.stringify({ type: "agent_error", error: String(err) }), event: "agent_error" });
       } finally {
