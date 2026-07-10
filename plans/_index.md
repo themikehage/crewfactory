@@ -7,6 +7,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [manage-factory-tool.md](./manage-factory-tool.md) — Tool `manage_factory`: operaciones CRUD de fabrica en una sola tool con contrato auto-documentado. Reemplaza skills factory-x + curl por tool nativa.
 - [async-delegation-spawn.md](./async-delegation-spawn.md) — Delegacion y spawn asincronos sin bloqueo del agente padre, con redireccion a sesion del subagente y tracker de delegaciones tipo FloatingTasks
+- [api-error-detection.md](./api-error-detection.md) — Detectar errores silenciosos de la API cuando el LLM devuelve error en lugar de texto, mostrando mensajes de error visibles en el chat
 - [delegation-spawn-improvements.md](./delegation-spawn-improvements.md) — Solucionar la navegacion automatica al iniciar delegaciones, boton de volver atras en subagentes y mover listado de delegaciones a una tab dedicada al lado de chat/files.
 - [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose
 - [info-edit-button.md](./info-edit-button.md) — Boton de informacion en proyectos y agentes para ver/editar todos los datos disponibles
