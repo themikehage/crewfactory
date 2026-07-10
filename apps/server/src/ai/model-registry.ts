@@ -49,13 +49,15 @@ export class ModelRegistry {
   private authStorage: AuthStorage;
   private providers: Map<string, ProviderConfig> = new Map();
   private available: AvailableModel[] = [];
+  private userEnvGetter?: () => Record<string, string>;
 
-  private constructor(authStorage: AuthStorage) {
+  private constructor(authStorage: AuthStorage, userEnvGetter?: () => Record<string, string>) {
     this.authStorage = authStorage;
+    this.userEnvGetter = userEnvGetter;
   }
 
-  static create(authStorage: AuthStorage): ModelRegistry {
-    return new ModelRegistry(authStorage);
+  static create(authStorage: AuthStorage, userEnvGetter?: () => Record<string, string>): ModelRegistry {
+    return new ModelRegistry(authStorage, userEnvGetter);
   }
 
   registerProvider(name: string, config: ProviderConfig): void {
@@ -65,6 +67,7 @@ export class ModelRegistry {
 
   refresh(): void {
     const result: AvailableModel[] = [];
+    const userEnv = this.userEnvGetter ? this.userEnvGetter() : {};
 
     for (const [providerName, config] of this.providers.entries()) {
       const apiKeyVar = config.apiKey.startsWith("$")
@@ -72,7 +75,7 @@ export class ModelRegistry {
         : config.apiKey;
 
       const storedKey = this.authStorage.getApiKey(providerName);
-      const envKey = process.env[apiKeyVar];
+      const envKey = userEnv[apiKeyVar] ?? process.env[apiKeyVar];
       const resolvedKey = storedKey ?? envKey;
 
       if (!resolvedKey) continue;
@@ -142,7 +145,14 @@ export class ModelRegistry {
   async getApiKeyAndHeaders(
     model: AvailableModel
   ): Promise<{ ok: true; apiKey: string; headers?: Record<string, string> } | { ok: false; error: string }> {
-    const key = model.apiKey ?? this.authStorage.getApiKey(model.provider);
+    const userEnv = this.userEnvGetter ? this.userEnvGetter() : {};
+    const config = this.providers.get(model.provider);
+    const apiKeyVar = config?.apiKey.startsWith("$")
+      ? config.apiKey.slice(1)
+      : config?.apiKey;
+    const envKey = apiKeyVar ? (userEnv[apiKeyVar] ?? process.env[apiKeyVar]) : undefined;
+
+    const key = model.apiKey ?? this.authStorage.getApiKey(model.provider) ?? envKey;
     if (!key) {
       return { ok: false, error: `No API key found for provider: ${model.provider}` };
     }

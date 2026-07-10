@@ -97,7 +97,7 @@ export class UserConfigManager {
 
     this.ensureUserDir(username);
     const authStorage = AuthStorage.create(getAuthPath(username));
-    const modelRegistry = ModelRegistry.create(authStorage);
+    const modelRegistry = ModelRegistry.create(authStorage, () => this.getUserEnv(username));
 
     modelRegistry.refresh();
     registerQwenProvider(modelRegistry);

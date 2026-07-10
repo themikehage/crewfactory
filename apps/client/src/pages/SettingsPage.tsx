@@ -15,7 +15,7 @@ interface EnvVar {
 export function SettingsPage() {
   const l = useLiterals(u);
   const [activeTab, setActiveTab] = useState<"general" | "providers" | "env" | "integrations" | "mcp">(() => {
-    return (localStorage.getItem("settings-active-tab") as any) || "providers";
+    return (localStorage.getItem("settings-active-tab") as any) || "general";
   });
   const [envVars, setEnvVars] = useState<EnvVar[]>([]);
   const [envLoading, setEnvLoading] = useState(true);
@@ -49,11 +49,11 @@ export function SettingsPage() {
   };
 
   const tabs = [
+    { id: "general", label: l.tabGeneral },
+    { id: "integrations", label: l.tabIntegrations },
     { id: "providers", label: l.tabProviders },
     { id: "env", label: l.tabEnv },
-    { id: "integrations", label: l.tabIntegrations },
     { id: "mcp", label: l.tabMcp || "MCP Servers" },
-    { id: "general", label: l.tabGeneral },
   ] as const;
 
   return (

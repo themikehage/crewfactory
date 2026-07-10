@@ -355,18 +355,16 @@ export function GeneralTab({ token }: GeneralTabProps) {
               <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
                 Vision Model (for programmatic vision tool)
               </label>
-              <select
+              <Dropdown<string>
                 value={visionModel}
-                onChange={(e) => handleUpdateVisionModel(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary transition-colors text-sm cursor-pointer"
-              >
-                <option value="">-- Select Vision Model --</option>
-                {visionModels.map(m => (
-                  <option key={m.id} value={`${m.provider}/${m.id}`}>
-                    {m.name} ({m.provider})
-                  </option>
-                ))}
-              </select>
+                onChange={handleUpdateVisionModel}
+                options={visionModels.map(m => ({
+                  value: `${m.provider}/${m.id}`,
+                  label: `${m.name} (${m.provider})`,
+                }))}
+                placeholder="-- Select Vision Model --"
+                matchWidth
+              />
 
               {visionModel && (
                 <div className="mt-2 bg-background/50 p-3 rounded-lg border border-input/20 space-y-3 text-xs">
@@ -447,18 +445,16 @@ export function GeneralTab({ token }: GeneralTabProps) {
               <label className="text-xs text-muted-foreground uppercase font-bold tracking-wider">
                 Image Generation Model
               </label>
-              <select
+              <Dropdown<string>
                 value={imageGenModel}
-                onChange={(e) => handleUpdateImageGenModel(e.target.value)}
-                className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary transition-colors text-sm cursor-pointer"
-              >
-                <option value="">-- Select Image Generation Model --</option>
-                {imageGenModels.map(m => (
-                  <option key={m.id} value={m.id}>
-                    {m.name}
-                  </option>
-                ))}
-              </select>
+                onChange={handleUpdateImageGenModel}
+                options={imageGenModels.map(m => ({
+                  value: m.id,
+                  label: m.name,
+                }))}
+                placeholder="-- Select Image Generation Model --"
+                matchWidth
+              />
 
               {(() => {
                 const selected = imageGenModels.find(m => m.id === imageGenModel);
