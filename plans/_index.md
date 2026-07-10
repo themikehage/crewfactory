@@ -5,6 +5,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ## Pendientes
 
+- [async-delegation-spawn.md](./async-delegation-spawn.md) — Delegacion y spawn asincronos sin bloqueo del agente padre, con redireccion a sesion del subagente y tracker de delegaciones tipo FloatingTasks
 - [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose
 - [info-edit-button.md](./info-edit-button.md) — Boton de informacion en proyectos y agentes para ver/editar todos los datos disponibles
 - [mobile-bottom-bar-redesign.md](./mobile-bottom-bar-redesign.md) — La bottombar de mobile solo se muestra cuando el drawer del menu esta abierto
