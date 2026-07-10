@@ -24,6 +24,8 @@ export async function runImageGenModel(
     }
 
     const servicePath = modelId.startsWith("wan") ? "image-generation" : "multimodal-generation";
+    const qwenSize = (size || "1024x1024").replace("x", "*");
+
     const endpoints = [
       `https://dashscope-intl.aliyuncs.com/api/v1/services/aigc/${servicePath}/generation`,
       `https://dashscope.aliyuncs.com/api/v1/services/aigc/${servicePath}/generation`
@@ -54,7 +56,7 @@ export async function runImageGenModel(
               ]
             },
             parameters: {
-              size: size || "1024x1024",
+              size: qwenSize,
               n: 1
             }
           })
@@ -66,20 +68,32 @@ export async function runImageGenModel(
 
         let errorMsg = `HTTP ${res.status}`;
         try {
-          const errData = await res.json();
-          if (errData && typeof errData === "object") {
-            errorMsg = errData.error?.message || errData.message || JSON.stringify(errData);
-          } else if (errData) {
-            errorMsg = String(errData);
+          const rawText = await res.text();
+          if (rawText) {
+            try {
+              const errData = JSON.parse(rawText);
+              if (errData && typeof errData === "object") {
+                errorMsg = errData.error?.message || errData.message || JSON.stringify(errData);
+              } else {
+                errorMsg = rawText.substring(0, 300);
+              }
+            } catch {
+              errorMsg = rawText.substring(0, 300);
+            }
           }
-        } catch {
-          try {
-            const rawText = await res.text();
-            if (rawText) errorMsg = rawText.substring(0, 300);
-          } catch {}
+        } catch {}
+
+        // If it's a client error (e.g. 400, 401, 429), throw immediately and do not try the other endpoint.
+        if (res.status >= 400 && res.status < 500) {
+          throw new Error(errorMsg);
         }
+
         lastErrorMsg = errorMsg;
       } catch (err: any) {
+        // If it's our own thrown 4xx error, rethrow it
+        if (res && res.status >= 400 && res.status < 500) {
+          throw err;
+        }
         lastErrorMsg = err.message || String(err);
       }
     }

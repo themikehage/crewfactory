@@ -102,12 +102,18 @@ settingsRouter.post("/test-image-gen", async (c) => {
       return c.json({ error: "Missing prompt" }, 400);
     }
 
+    const { authStorage } = sessionManager.getUserContext(username);
+    const userEnv = sessionManager.getUserEnv(username);
+    const apiKey = authStorage.getApiKey("qwen") || userEnv.DASHSCOPE_API_KEY || process.env.DASHSCOPE_API_KEY || "";
+    console.log(`[DIAGNOSTIC TEST-IMAGE-GEN] Resolved key length: ${apiKey.length}. Start: '${apiKey.substring(0, 15)}' End: '${apiKey.substring(apiKey.length - 15)}'`);
+
     const workspaceDir = getWorkspaceDir(username);
     const size = body.size || "1024x1024";
 
     const localPath = await runImageGenModel(username, body.modelId, body.prompt, size, workspaceDir);
     return c.json({ ok: true, imageUrl: `/api/workspace/${localPath.replace(/\\/g, "/")}` });
   } catch (err: any) {
+    console.error(`[DIAGNOSTIC TEST-IMAGE-GEN] Error: ${err.message || String(err)}`);
     return c.json({ error: err.message || String(err) }, 500);
   }
 });
