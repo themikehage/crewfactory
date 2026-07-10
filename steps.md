@@ -35,5 +35,49 @@
 ## Phase 92: Plan (Mobile Bottom Bar Redesign)
 - [x] 92.1 Created `plans/mobile-bottom-bar-redesign.md` — Bottom bar only visible when drawer is open
 
-## Phase 93: Plan (Audit Slow Operations)
-- [x] 93.1 Created `plans/audit-slow-operations.md` — Performance audit of decompose tasks, LLM judge, and export experiment
+## Phase 94: Remove Channel Features (Tasks, Optimize, Benchmark)
+- [x] 94.1 Remove shared types (ScoringMetric, ScoringRubric, ChannelBenchmarkConfig from schemas.ts; benchmark paths from paths.ts)
+- [x] 94.2 Delete server benchmark module (apps/server/src/benchmark/)
+- [x] 94.3 Remove Task Ledger (task-ledger.ts, channel-store, orchestrator, index exports)
+- [x] 94.4 Remove benchmark/optimize/ledger routes and auto-trigger from channels.ts
+- [x] 94.5 Delete client components (ChannelTaskLedger, ChannelBenchmarkPanel, ChannelOptimizePanel, BenchmarkLiveTab)
+- [x] 94.6 Clean client integrations (ChannelChatArea, AgentDetailPanel, ChannelSettingsModal, ChannelOrgTab)
+- [x] 94.7 Delete CLI script (scripts/benchmark.ts)
+- [x] 94.8 Clean about.md references and verify compilation
+
+## Phase 94: Layered Prompt System Implementation
+- [x] 94.1 Create prompt layer fragments under `core/prompts/fragments/` (identity, role, instance, protocol)
+- [x] 94.2 Build `PromptFragmentRegistry` and `PromptComposer` to layer prompts conditionally
+- [x] 94.3 Integrate `PromptComposer` in `SessionPromptBuilder` and `ChannelOrchestrator`, making prompt composition dynamic
+- [x] 94.4 Refactor `ChannelOrchestrator.buildAgentPrompt` to only build chronology text
+- [x] 94.5 Refactor Lab Architect system prompt for identity-only guidelines
+- [x] 94.6 Implement `layered-prompt.test.ts` unit tests and verify successful project builds
+- [x] 94.7 Fix `ReferenceError` by declaring `workspaceDir` from `agentEntry.server.session.cwd` in `ChannelOrchestrator.runAgentPrompt`
+
+## Phase 95: WebSocket Reconnect & Token Usage UI
+- [x] 95.1 Implement server-side ping-pong interval and immediate context stats sync on ws subscription
+- [x] 95.2 Refactor backend `getContextUsage` to use `estimateContextTokens` for accurate LLM counts
+- [x] 95.3 Add `MessageUsage` and `ContextUsage` to client shared types and re-export them from index.ts
+- [x] 95.4 Implement offline message queue in client `WsClient`, reply to server pings, and clear queue on disconnect
+- [x] 95.5 Destructure connection status in `ChatArea.tsx` and implement silent auto-refresh of messages on reconnect
+- [x] 95.6 Display provider, model, tokens, and cost on all completed assistant messages in `MessageList.tsx`
+- [x] 95.7 Render `ContextIndicator` and `ContextProgressLine` props using real tokens in `InputToolbar.tsx` and `InputCard.tsx`
+- [x] 95.8 Verify clean compilation build of apps/server and apps/client
+
+## Phase 96: Image Vision & Generation Tools
+- [x] 96.1 Copy vendored AI packages from scratch workspace (image-models, openrouter-images, api loaders) to apps/server/src/ai/vendor/ai
+- [x] 96.2 Propagate `input` property in `model-registry.ts` and set it inside `modelObj` in `agent-session.ts`
+- [x] 96.3 Support base64 image decoding and parsing inside `AgentSession.prompt()` to enable multimodal vision input in chat
+- [x] 96.4 Create new official `vision` and `generate_image` tools using user settings-based configurations
+- [x] 96.5 Integrate tools in `ui-tools.ts`, `session-manager.ts`, `spawn-subagent-tool.ts`, and `ws/handler.ts`
+- [x] 96.6 Add UI selectors for Vision and Image Gen Models in settings `GeneralTab.tsx` and save to `/api/settings`
+- [x] 96.7 Render visual "Vision" badges in `ModelSelector.tsx` for vision-capable models
+- [x] 96.8 Support inline image rendering for `generate_image` results in `ToolCallRow.tsx`
+- [x] 96.9 Verify clean compilation build of apps/server and apps/client
+
+## Phase 97: Model Diagnostic Testing Tools
+- [x] 97.1 Refactor `vision-tool.ts` to extract `runVisionModel` and prevent code duplication
+- [x] 97.2 Refactor `image-gen-tool.ts` to extract `runImageGenModel` and prevent code duplication
+- [x] 97.3 Implement backend diagnostic testing API endpoints (`/api/settings/test-vision` and `/api/settings/test-image-gen`)
+- [x] 97.4 Implement Vision and Image Generation Diagnostic UI panels in `GeneralTab.tsx` with upload/default image selection and live previews
+- [x] 97.5 Verify successful client and server compilation build

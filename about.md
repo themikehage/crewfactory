@@ -15,16 +15,16 @@
 
 ### Chat & Streaming
 - Multi-session chat (create, switch, delete sessions)
-- Real-time streaming via a **single shared WebSocket connection** (`wsClient` singleton) with automatic exponential-backoff reconnect
+- Real-time streaming via a **single shared WebSocket connection** (`wsClient` singleton) with automatic exponential-backoff reconnect, server-initiated 30s ping-pong keepalive checks to prune dead sockets, and an offline message queue on the client to prevent losing prompts.
 - Message rendering: user, assistant, tool calls, thinking blocks
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
 - **Experiencia de Scroll Robusta:** Implementación de scroll pinning inteligente mediante un hook customizado, `ResizeObserver` reactivo para mantener anclaje ante cargas tardías de imágenes o tarjetas, y un botón flotante dinámico con indicador de "Nuevos mensajes" cuando el usuario está arriba del viewport.
 - **Premium Floating Chat Input & Popovers:** Replaces the legacy 2-row chat input and fullscreen modals with a premium, unified floating card (`ChatInput`). It integrates:
   - **Inline Popovers:** Checkbox-based tool selectors (`ToolsPopover`) and searchable skills lists (`SkillsPopover`) directly above the action bar.
-  - **Context Usage Indicator:** Compact token display (e.g. `12k / 128k`) and a 2px dynamic, color-coded progress meter at the bottom edge of the input card.
+  - **Context Usage Indicator:** Compact token display (e.g. `12k / 128k`) using accurate LLM token counts with trailing estimation (`estimateContextTokens`) and a 2px dynamic, color-coded progress meter (`ContextProgressLine`) at the bottom edge of the input card.
   - **Send/Stop Button:** Circular interactive button that morphs smoothly between sending and aborting streaming.
-- **Streaming Reconnection & Session Persistence:** Resolves page refresh issues during active streaming (e.g., waiting for long-running tools). Real-time message synchronization updates the session's active messages on every append, while the WebSocket handler immediately pushes current streaming states (`agent_start`) and token context meters upon client reconnection, marking the last assistant message as active.
+- **Streaming Reconnection & Session Persistence:** Resolves page refresh issues during active streaming (e.g., waiting for long-running tools). Real-time message synchronization updates the session's active messages on every append. Upon client reconnection, the WebSocket handler immediately pushes current streaming states (`agent_start`) and token context meters, and the client performs a silent, background auto-refresh of the message list to recover any messages streamed during the disconnected period.
 - **Virtualized Execution Sessions:** API and CLI executions for Agents, Repositories, and Channels are virtualized as read-only sessions in the chat UI. Toggled via a switch in the session popover, showing historical log messages with distinct "API" / "CLI" badges and locking the chat input to prevent interactive steer inputs.
 - **Rutas Jerárquicas Estructuradas:** El router enruta de forma contextualizada las vistas en la URL (ej: `/projects/{projectName}/session/{sessionId}`, `/projects/{projectName}/workspace`, `/agents/{agentId}/...`). Al recargar la página se mantiene al 100% el estado del contexto de trabajo y las breadcrumbs dinámicas reflejan exactamente la jerarquía del usuario (`Proyectos / got / Files`).
 - **Ubicación de Sesiones:** El popover de gestión de sesiones de chat fue movido de la cabecera global a la barra de navegación de pestañas (Chat, Files, Preview) pegado a la derecha, agrupando el control de las sesiones directamente al espacio donde pertenecen.
@@ -34,8 +34,8 @@
 - **Hybrid Input Strategy**:
   - **Images**: converted to base64 on client and sent inline via WebSocket using the vendored agent runtime's native vision parameters (`images?: ImageContent[]`). Image grid in chat supports click-to-expand modal with fullscreen overlay, Escape to close, and authenticated image loading.
   - **Documents (PDF, Office, etc.)**: uploaded via Multipart HTTP POST directly to the workspace storage folder (`assets/uploads`), auto-appending workspace paths to the prompt so agents can read them.
-- **Vision (Image Understanding) — Planned**: The vendored AI SDK has full `ImageContent` type support, `Model.input: ("text"|"image")[]` capability detection, automatic image downgrade for non-vision models, and client-side base64 conversion + WS transport. The `AgentSession.prompt()` bridge currently does not forward images to the agent loop — this is the single remaining gap for full multimodal vision (see `plans/image-vision-and-generation.md`).
-- **Image Generation — Planned**: The vendored SDK has complete `ImagesModel` / `ImagesProvider` / `ImagesModels` type infrastructure and `ProviderImages` contract, but the concrete `openrouterImagesProvider` implementation file is missing from the vendored providers. A `generate_image` tool will bridge agents to image generation APIs, saving results to `assets/generated/` and displaying them via the existing `render_images` tool (see `plans/image-vision-and-generation.md`).
+- **Vision (Image Understanding) & Programmatic Tool (`vision`)**: Multimodal image input is natively supported in chat when a vision-enabled model (e.g. Claude 3.5 Sonnet, Gemini 2.5 Flash) is selected, displaying a visual "Vision" badge in the model selector. Additionally, a dedicated `vision` tool allows any agent or subagent to programmatically inspect and analyze image files located in the workspace, using a dedicated vision model configured in Settings > General Tab.
+- **Image Generation (`generate_image`)**: Generates graphics and designs via OpenRouter's modality image endpoints. Enabled by configuring a dedicated image generation model in Settings > General Tab. Generated image files are saved to the workspace (`assets/generated/`) and rendered inline in the chat stream.
 - **Visual Preview Templates (Premium UI)**:
   - **PDFs**: rendered inline via authenticated iframe viewers with "Open in New Tab" controls.
   - **Audio & Video**: embedded natively using HTML5 `<audio>` and `<video>` players with customizable layouts.
@@ -186,6 +186,15 @@
 - Project-specific context variables linked dynamically to resources (GitHub repos, Coolify applications, Neon databases, Vercel projects)
 - Dynamic Quick Action buttons triggering custom workflows with variable replacements sent as chat prompts to the agent
 
+### Layered Prompt System
+- **Dynamic Composition**: Splits the agent's prompt into 4 decoupled, conditional, and prioritized layers resolved at runtime based on the deployment context:
+  1. **Identity**: Pure agent definition (name, role, and main expertise system prompt).
+  2. **Role**: Injected conditionally based on the agent's channel role (e.g., Lead coordinates utilizing @mentions, while Members participate in silent mode with chronology controls).
+  3. **Instance**: Injected conditionally depending on the execution mode (individual Solo mode instructions or Channel roster participants and mode details).
+  4. **Protocol**: Injected conditionally based on channel settings (Negotiation rules or Arbitration decision-making).
+- **Registry & Composer**: Powered by `PromptFragmentRegistry` resolving default system fragments and overrides from `prompt-overrides.json`, combined with `PromptComposer` to assemble the final unified system prompt.
+- **Agent Server Dynamic Mutator**: Integrated with `DefaultResourceLoader.setAppendSystemPrompt` to update active session system instructions dynamically before executing prompts in `ChannelOrchestrator` or standard chats.
+
 ### Dynamic Model Sourcing & Capabilities Matrix
 - **Hot-Reloading Catalog**: Supports the `POST /api/providers/:id/refresh` endpoint to query dynamic models in real-time from endpoints (like OpenCode Go or Qwen) with credentials.
 - **AI Capability Inference**: Automatically evaluates returned model naming patterns (heuristics) to resolve and bind critical engine flags (`reasoning`, `multimodal` vision, context sizes) dynamically.
@@ -208,7 +217,7 @@
 - **Execution Abort Mechanism**: Instant server-side cancellation (`abortDispatch`) triggered via WS `channel_abort`, REST `/api/channels/:id/abort`, or the UI Stop button.
 - **Environmental Context Variables**: Structured key-value context array per channel (`context: ChannelContextItem[]`), dynamically injected into agent prompts.
 - **Clean Sub-header & Modal Management**: Floating `ChannelMembersModal`, `ChannelContextModal`, and `ChannelSettingsModal` accessible via subtle header icon buttons with numeric counter badges.
-- **Hierarchical Roles & Interactive Org Chart (@xyflow/react)**: Channel members can be assigned hierarchical roles (`lead`, `senior`, `member`, `observer`). Displays Lead indicators in card previews and handles visualization as a primary first-level tab next to Chat. It features an interactive, high-performance visual canvas powered by `@xyflow/react` with custom node configurations, dynamic edge routing animations, fit-view/zoom controls, and minimap navigation on desktop. In mobile viewports, it falls back to a clean grouping card list layout. Clicking/tapping any agent node opens a sliding panel (desktop) or a bottom-sheet (mobile) containing editing selectors (role, replyMode, targeted partners), skills tags, active delegated tasks (task ledger integration), and real-time streaming of current agent activity (thinking logs, output tokens, and active tool calls).
+- **Hierarchical Roles & Interactive Org Chart (@xyflow/react)**: Channel members can be assigned hierarchical roles (`lead`, `senior`, `member`, `observer`). Displays Lead indicators in card previews and handles visualization as a primary first-level tab next to Chat. It features an interactive, high-performance visual canvas powered by `@xyflow/react` with custom node configurations, dynamic edge routing animations, fit-view/zoom controls, and minimap navigation on desktop. In mobile viewports, it falls back to a clean grouping card list layout. Clicking/tapping any agent node opens a sliding panel (desktop) or a bottom-sheet (mobile) containing editing selectors (role, replyMode, targeted partners), skills tags, and real-time streaming of current agent activity (thinking logs, output tokens, and active tool calls).
 
 ### Multi-Variant Agent Benchmarking Laboratory (`experimentId`)
 - **Decoupled Architecture**: No hardcoding or concrete project coupling. Standardized blueprints loaded dynamically from JSON configurations (`apps/server/src/laboratory/blueprints/`).
@@ -227,7 +236,7 @@
 - **Tab de Configuración Reactivo**: Una pestaña de configuración dedicada (`ExperimentConfigTab`) muestra en tarjetas estructuradas los agentes, prompts de sistema, modelos y criterios de evaluación del experimento. Soporta edición inline reactiva del nombre, prompt del debate y criterios de evaluación mediante inputs asíncronos que conectan con la API `PATCH /api/experiments/:id`.
 - **Arquitectura de Componentes Modulares**: Refactorización de la vista del Laboratorio dividiéndola en subcomponentes especializados (`VariantViewer`, `JudgeReport`, `ExperimentConfigTab`, `ExperimentEditorModal`, `RunExperimentModal`) para reducir complejidad y optimizar el rendimiento.
 - **Bypass Autónomo No-Blocking**: Las herramientas interactivas del protocolo AG-UI (`request_approval` y `ask_question`) se auto-resuelven de forma instantánea y autónoma cuando el agente corre dentro de una simulación de laboratorio (`isLaboratory` flag), permitiendo que el Baseline y demás tracks finalicen de principio a fin sin interrupciones.
-- **Cálculo Exacto de Tokens Consumidos**: Se corrigió el cálculo de tokens consumidos en corridas de variantes e hilos de comparación (benchmarks/harness). Al finalizar cada ejecución, los tokens consumidos por mensaje en el prompt del LLM se estampan como metadatos (`tokensIn` y `tokensOut`) en cada `ChannelMessage` del canal virtual. El cálculo agrega estos valores directamente y cuenta con un fallback dinámico que consulta los estados acumulados de las sesiones persistentes en `agentRegistry`.
+- **Cálculo Exacto de Tokens Consumidos**: Se corrigió el cálculo de tokens consumidos en corridas de variantes del laboratorio. Al finalizar cada ejecución, los tokens consumidos por mensaje en el prompt del LLM se estampan como metadatos (`tokensIn` y `tokensOut`) en cada `ChannelMessage` del canal virtual. El cálculo agrega estos valores directamente y cuenta con un fallback dinámico que consulta los estados acumulados de las sesiones persistentes en `agentRegistry`.
 - **Judge Management UI — Scores por Criterio + Evaluación On-Demand**: Los scores per-criterio (`criteriaScores` como `Record<string, number>`) y el `judgeReasoning` del LLM-Judge ahora se **persisten** en `VariantRunResultSchema.scores` (campos opcionales, no rompen datos existentes). El motor de scoring (`scoring.ts`) acepta un `judgeDetail` opcional y lo propaga al resultado. El runner pasa reasoning + criteriaScores del judge para las 3 variantes. Nuevo endpoint **`POST /api/experiments/:id/judge`** para re-evaluar (on-demand) un experimento ya `completed` con las tres variantes con `finalOutput`: corre `LabJudge.evaluateRuns()`, recalcula scores, guarda el experimento y hace `broadcastToUser` con `experiment_status` (`running -> activeVariant: "judging"`, `completed -> experiment`). La UI agrega un **tab "Comparativa"** en el header (visible solo cuando `status === "completed"`) con cards side-by-side de las 3 variantes, `globalScore` con corona para la ganadora, tabla de desglose por criterio en columnas (top score destacado en `primary`), y reasoning del judge en cards colapsables por variante. Botón **"Re-evaluar con Judge"** disponible tanto dentro de la vista comparativa (con spinner) como en el popover de opciones del header (entre Ejecutar y Editar, solo cuando `completed`). Estado `isJudging` local gestionado por el botón on-demand. Nota: el cliente infener `VariantRunResult` desde un tipo espejo local en `apps/client/src/types/laboratory.ts` (no desde el Zod schema de `packages/shared`), sincronizado también con los campos nuevos.
 - **Exportación de Variantes a Workspace**: Posibilidad de exportar los agentes y canales de una variante completada a entidades permanentes del espacio de trabajo. Si los agentes ya existen en el registro, se reutilizan de forma autónoma. El canal se crea con un UUID limpio y los miembros se configuran preservando la jerarquía (liderazgo del agente con replyMode 'user-only' y rol 'lead', y targeted replyMode para miembros normales).
 
@@ -324,7 +333,7 @@
 | POST | /api/sessions/:id/prompt/stream | Stream prompts (SSE) for standard project-scoped sessions |
 | GET | /api/sessions/projects/:projectName/executions | List saved execution logs for the project |
 | GET | /api/sessions/projects/:projectName/executions/:execId | Retrieve detail logs of a specific project execution |
-| GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), message dispatch (`/send`), benchmark suite (`/benchmark`), and prompt optimization (`/optimize`) |
+| GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), message dispatch (`/send`) |
 | GET/POST | /api/mcp | Retrieve and update the full Model Context Protocol (MCP) server configuration settings |
 | GET | /api/mcp/catalog | Retrieve the official marketplace pre-curated collection of servers |
 | GET | /api/mcp/servers | Retrieve the list of all configured user servers |
@@ -340,6 +349,9 @@
 | POST | /api/backup/import | Import zip backup (supports ?mode=merge|overwrite) |
 | POST | /api/skills/reset | Reset default manager skills (prefixed with factory-) |
 | POST | /api/experiments/:id/export | Export selected completed experiment variant as permanent workspace agents and channel |
+| GET/PATCH | /api/settings | Get or update general user settings |
+| POST | /api/settings/test-vision | Perform diagnostic vision model test call |
+| POST | /api/settings/test-image-gen | Perform diagnostic image generation model test call |
 | GET | /api/health | Health check |
 
 
@@ -370,13 +382,11 @@ packages/shared/  Shared Zod schemas and types
 - `agents/agent-registry.ts` — Singleton managing programmatic agent lifecycle and filesystem persistence. `get(id, username?)` enforces ownership when username is provided.
 - `channels/channel-store.ts` — Filesystem store for channel definitions and message logs.
 - `channels/channel-orchestrator.ts` — Sequential multi-agent message dispatch and recipient resolution.
-- `benchmark/harness.ts` — Background benchmark harness runner comparing Conditions A vs B.
-- `benchmark/optimizer.ts` — Meta-Agent loop refining prompts based on benchmark metrics.
 - `pi/mcp-client.ts` — Stdio and HTTP/SSE JSON-RPC Client for MCP Server integrations with Bun (with 5-second request timeouts).
 - `pi/mcp-registry.ts` — Manager for MCP server lifecycle, catalog definitions, connection preflights, and dynamic tool injection (with parallel server startup).
 - `routes/mcp.ts` — REST endpoints for MCP catalog, server configs management, manual connections, testing, and status queries.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
-- `routes/channels.ts` — REST endpoints for channel CRUD, member administration, benchmarks, and optimization.
+- `routes/channels.ts` — REST endpoints for channel CRUD, member administration, and message dispatch.
 - `ws/handler.ts` — Single WebSocket endpoint handling auth (JWT), session subscription (`session_subscribe`), channel dispatch, and event broadcasting. Uses `wsSocketMeta` reverse index for O(1) cleanup on disconnect. Wires `channelOrchestrator` and `eventBroker` broadcasters via injected functions (`setChannelBroadcastHandler`, `setEventBroadcaster`) to avoid circular dependencies.
 - `lib/event-broker.ts` — Singleton buffering recent global log events per user (up to 150) and broadcasting to user WS sockets via injected `setEventBroadcaster()` (no dynamic require).
 - `middleware/auth.ts` — JWT verification middleware for REST routes
@@ -392,8 +402,6 @@ packages/shared/  Shared Zod schemas and types
 - `components/ui/Toast.tsx` — Reusable premium Toast and ToastContainer components with Framer Motion animations.
 - `components/channels/ChannelChatArea.tsx` — Dedicated container for channel WS streaming and multi-agent execution.
 - `components/channels/ChannelMessageList.tsx` — Multi-agent message list with agent badges, avatars, and RichMarkdown.
-- `components/channels/ChannelBenchmarkPanel.tsx` — Panel view rendering efficiency benchmark comparison reports (Condition A vs B).
-- `components/channels/ChannelOptimizePanel.tsx` — Panel view managing prompt optimization auto-loops and timelines.
 - `components/channels/ChannelMembersModal.tsx` — Floating modal for member management and targeted agent selection.
 - `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
 - `lib/ws-client.ts` — **Singleton WebSocket client** shared across the entire app. Handles auth handshake, type-keyed event dispatch, exponential-backoff reconnect, and `session_subscribe` protocol. Replaces the per-hook WS connections that previously caused 3 simultaneous connections.
