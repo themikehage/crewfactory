@@ -53,7 +53,8 @@ export function Dropdown<T extends string>({
     <>
       <button
         ref={triggerRef}
-        onClick={() => {
+        onClick={(e) => {
+          e.stopPropagation();
           if (disabled) return;
           setOpen(!open);
         }}
