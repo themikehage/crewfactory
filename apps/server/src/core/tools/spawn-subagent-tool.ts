@@ -166,6 +166,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         "read", "write", "edit", "bash", "grep", "find", "ls",
         "request_approval", "ask_question", "render_images",
         "render_html", "render_chart", "share_file", "refresh_ui",
+        "vision", "generate_image",
       ]);
 
       // Inherit model from parent session

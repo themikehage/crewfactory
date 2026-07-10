@@ -10,6 +10,7 @@ class WsClient {
   private reconnectTimeout: ReturnType<typeof setTimeout> | null = null;
   private reconnectAttempts = 0;
   private intentionalClose = false;
+  private offlineQueue: Array<Record<string, unknown>> = [];
 
   getState(): ConnectionState {
     return this.state;
@@ -29,15 +30,26 @@ class WsClient {
     }
     this.ws?.close();
     this.ws = null;
+    this.offlineQueue = [];
     this.setState("disconnected");
   }
 
   send(data: Record<string, unknown>): boolean {
-    if (this.ws?.readyState === WebSocket.OPEN) {
+    if (this.ws?.readyState === WebSocket.OPEN && this.state === "connected") {
       this.ws.send(JSON.stringify(data));
       return true;
     }
+    this.offlineQueue.push(data);
     return false;
+  }
+
+  private flushOfflineQueue(): void {
+    while (this.offlineQueue.length > 0 && this.ws?.readyState === WebSocket.OPEN && this.state === "connected") {
+      const data = this.offlineQueue.shift();
+      if (data) {
+        this.ws.send(JSON.stringify(data));
+      }
+    }
   }
 
   subscribe(type: string, handler: EventHandler): () => void {
@@ -84,8 +96,14 @@ class WsClient {
       try {
         const data = JSON.parse(event.data as string);
 
+        if (data.type === "ping") {
+          this.send({ type: "pong" });
+          return;
+        }
+
         if (data.type === "auth_success") {
           this.setState("connected");
+          this.flushOfflineQueue();
           return;
         }
 

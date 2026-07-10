@@ -246,37 +246,11 @@ export const NegotiationProtocolSchema = z.object({
 });
 export type NegotiationProtocol = z.infer<typeof NegotiationProtocolSchema>;
 
-export const ScoringMetricSchema = z.object({
-  id: z.string(),
-  name: z.string(),
-  weight: z.number().min(0).max(1),
-  type: z.enum(["numeric-deviation", "llm-judge", "custom-script"]),
-  config: z.object({
-    targetField: z.string().optional(),
-    referenceField: z.string().optional(),
-    tolerance: z.number().optional(),
-    judgePrompt: z.string().optional(),
-    scriptPath: z.string().optional(),
-  }).optional(),
-});
-export type ScoringMetric = z.infer<typeof ScoringMetricSchema>;
-
-export const ScoringRubricSchema = z.object({
-  metrics: z.array(ScoringMetricSchema),
-});
-export type ScoringRubric = z.infer<typeof ScoringRubricSchema>;
-
 export const DelegationPatternSchema = z.object({
   token: z.string().default("DELEGATE: @(\\w+) — (.+)"),
   applyToRole: z.string().optional().default("lead"),
 });
 export type DelegationPattern = z.infer<typeof DelegationPatternSchema>;
-
-export const ChannelBenchmarkConfigSchema = z.object({
-  enabled: z.boolean().default(false),
-  baselineModelId: z.string().optional(),
-});
-export type ChannelBenchmarkConfig = z.infer<typeof ChannelBenchmarkConfigSchema>;
 
 export const ChannelSchema = z.object({
   id: z.string(),
@@ -288,9 +262,7 @@ export const ChannelSchema = z.object({
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
-  scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
-  benchmark: ChannelBenchmarkConfigSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   blueprintId: z.string().optional(),
@@ -305,9 +277,7 @@ export const CreateChannelSchema = z.object({
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
-  scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
-  benchmark: ChannelBenchmarkConfigSchema.optional(),
   blueprintId: z.string().optional(),
 });
 export type CreateChannel = z.infer<typeof CreateChannelSchema>;
@@ -320,9 +290,7 @@ export const UpdateChannelSchema = z.object({
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
-  scoringRubric: ScoringRubricSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
-  benchmark: ChannelBenchmarkConfigSchema.optional(),
   blueprintId: z.string().optional(),
 });
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;
@@ -367,7 +335,7 @@ export interface GlobalLogEvent {
   sourceType: "session" | "channel";
   sourceId: string;
   sourceName: string;
-  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error" | "benchmark_start" | "benchmark_token" | "benchmark_complete" | "benchmark_error" | "judge_start" | "judge_complete" | "judge_error";
+  eventType: "agent_start" | "agent_end" | "text_delta" | "thinking_delta" | "tool_start" | "tool_end" | "user_message" | "agent_message" | "error";
   agentName?: string;
   detail?: any;
 }

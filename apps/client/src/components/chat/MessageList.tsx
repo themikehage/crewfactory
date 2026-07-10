@@ -1,7 +1,7 @@
 import { type FC } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import clsx from "clsx";
-import { useLiterals } from "@/lib";
+import { useLiterals, type MessageUsage } from "@/lib";
 import { literals as u } from "./MessageList.literals";
 import { ToolCallRow, type ToolResultData } from "./tools/ToolCallRow";
 import { resolveFileUrl, getFileType, type MediaType } from "./ToolResultInspector";
@@ -20,21 +20,6 @@ interface ContentBlock {
   data?: string;
   mimeType?: string;
   image?: { url: string; title?: string };
-}
-
-interface MessageUsage {
-  input: number;
-  output: number;
-  cacheRead?: number;
-  cacheWrite?: number;
-  totalTokens?: number;
-  cost?: {
-    input?: number;
-    output?: number;
-    cacheRead?: number;
-    cacheWrite?: number;
-    total?: number;
-  };
 }
 
 interface Message {
@@ -286,7 +271,7 @@ function AgentTurn({
                 <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse rounded-sm" />
               )}
 
-              {isLast && (msg.provider || msg.model || msg.usage) && !isStreaming && (
+              {(msg.provider || msg.model || msg.usage) && !isStreaming && (
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs text-muted-foreground font-mono">
                   {msg.provider && <span>provider: <span className="text-muted-foreground">{msg.provider}</span></span>}
                   {msg.model && <span>• model: <span className="text-muted-foreground">{msg.model}</span></span>}

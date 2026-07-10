@@ -27,7 +27,7 @@ providersRouter.get("/", (c) => {
     {
       name: string;
       authStatus: ReturnType<typeof buildAuthStatus>;
-      models: Array<{ id: string; name: string; reasoning: boolean }>;
+      models: Array<{ id: string; name: string; reasoning: boolean; input?: string[] }>;
     }
   >();
 
@@ -44,6 +44,7 @@ providersRouter.get("/", (c) => {
       id: model.id,
       name: model.name,
       reasoning: model.reasoning,
+      input: model.input || ["text"],
     });
   }
 

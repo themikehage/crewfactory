@@ -74,6 +74,8 @@ export function Breadcrumbs({
     if (activeChannel) {
       items.push({ label: `#${activeChannel.name}` });
     }
+  } else if (route.page === "org") {
+    items.push({ label: l.tabOrgChart || "Org Chart" });
   } else if (route.page === "laboratory") {
     items = [{ label: "Laboratorio", path: "/laboratory" }];
     if (selectedExpId) {

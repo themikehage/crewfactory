@@ -2,6 +2,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { SessionPrefix } from "shared";
 import { getEnvironmentContext } from "../env-check";
+import { promptComposer } from "../prompts/composer";
 
 import {
   HTML_PREVIEW_INSTRUCTIONS,
@@ -69,7 +70,9 @@ export class SessionPromptBuilder {
     }
 
     if (agentDef?.systemPrompt) {
-      appendPrompts.push(`\n\nAgent Instructions (${agentDef.name} - ${agentDef.role}):\n${agentDef.systemPrompt}`);
+      const deployment = await this.resolveDeploymentContext(params);
+      const layered = promptComposer.compose(agentDef, deployment, workspaceDir);
+      appendPrompts.push(`\n\n${layered.composed}`);
     }
 
     if (resolvedAgentId === "lab-architect") {
@@ -137,6 +140,50 @@ export class SessionPromptBuilder {
     }
 
     return appendPrompts;
+  }
+
+  private async resolveDeploymentContext(params: BuildPromptsParams): Promise<any> {
+    const { username, sessionId } = params;
+    try {
+      const { sessionManager } = await import("../session-manager");
+      const meta = sessionManager.getSessionMetadata(username, sessionId);
+      const channelId = meta?.channelId;
+
+      if (channelId) {
+        const { channelStore } = await import("../../channels/channel-store");
+        const channel = channelStore.getChannel(username, channelId);
+        if (channel) {
+          const isBroadcast = channel.members.some(m => m.replyMode === "broadcast");
+          const agentId = params.resolvedAgentId;
+          const selfMember = channel.members.find(m => m.agentId === agentId);
+          const hasLeader = channel.members.some(m => m.role === "lead");
+          const isArbiter = selfMember?.role === "lead";
+
+          const members = [];
+          const { agentRegistry } = await import("../../agents");
+          for (const m of channel.members) {
+            const agentEntry = agentRegistry.get(m.agentId);
+            members.push({
+              agentId: m.agentId,
+              agentName: agentEntry?.server.definition.name || m.agentId,
+              role: m.role || "member",
+            });
+          }
+
+          return {
+            mode: isBroadcast ? "broadcast" : (hasLeader ? "targeted" : "broadcast"),
+            channelId,
+            agentRole: selfMember?.role || "member",
+            members,
+            negotiationProtocol: !!channel.negotiationProtocol,
+            isArbiter,
+          };
+        }
+      }
+    } catch (e) {
+      console.error("Error resolving deployment context in PromptBuilder:", e);
+    }
+    return { mode: "solo" };
   }
 }
 

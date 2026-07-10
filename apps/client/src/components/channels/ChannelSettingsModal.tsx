@@ -1,7 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ModelSelector } from "@/components/chat/ModelSelector";
-import type { Channel, ChannelBenchmarkConfig } from "shared";
+import type { Channel } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChannelSettingsModal.literals";
 
@@ -15,9 +14,7 @@ interface Props {
     showThinking?: boolean;
     showTools?: boolean;
     negotiationProtocol?: any;
-    scoringRubric?: any;
     delegationPattern?: any;
-    benchmark?: ChannelBenchmarkConfig;
   }) => Promise<void>;
 }
 
@@ -28,14 +25,9 @@ const l = useLiterals(u);
   const [maxChainDepth, setMaxChainDepth] = useState(channel.maxChainDepth ?? 5);
   const [showThinking, setShowThinking] = useState(channel.showThinking ?? false);
   const [showTools, setShowTools] = useState(channel.showTools ?? false);
-  const [benchmarkEnabled, setBenchmarkEnabled] = useState(channel.benchmark?.enabled ?? false);
-  const [benchmarkModel, setBenchmarkModel] = useState(channel.benchmark?.baselineModelId || "");
   
   const [negotiationRaw, setNegotiationRaw] = useState(
     channel.negotiationProtocol ? JSON.stringify(channel.negotiationProtocol, null, 2) : ""
-  );
-  const [scoringRaw, setScoringRaw] = useState(
-    channel.scoringRubric ? JSON.stringify(channel.scoringRubric, null, 2) : ""
   );
   const [delegationRaw, setDelegationRaw] = useState(
     channel.delegationPattern ? JSON.stringify(channel.delegationPattern, null, 2) : ""
@@ -51,7 +43,6 @@ const l = useLiterals(u);
     setSaving(true);
 
     let negotiationProtocol: any = undefined;
-    let scoringRubric: any = undefined;
     let delegationPattern: any = undefined;
 
     try {
@@ -60,16 +51,6 @@ const l = useLiterals(u);
       }
     } catch {
       setError(l.invalidJsonNegotiation);
-      setSaving(false);
-      return;
-    }
-
-    try {
-      if (scoringRaw.trim()) {
-        scoringRubric = JSON.parse(scoringRaw);
-      }
-    } catch {
-      setError(l.invalidJsonRubric);
       setSaving(false);
       return;
     }
@@ -92,9 +73,7 @@ const l = useLiterals(u);
         showThinking,
         showTools,
         negotiationProtocol,
-        scoringRubric,
         delegationPattern,
-        benchmark: { enabled: benchmarkEnabled, baselineModelId: benchmarkModel || undefined },
       });
       onClose();
     } catch (err: any) {
@@ -202,34 +181,6 @@ const l = useLiterals(u);
               </label>
             </div>
 
-            <div className="pt-2 border-t border-input/40 space-y-3">
-              <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
-                <input
-                  type="checkbox"
-                  checked={benchmarkEnabled}
-                  onChange={(e) => setBenchmarkEnabled(e.target.checked)}
-                  className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
-                />
-                <span>Enable inline benchmarking</span>
-              </label>
-
-              {benchmarkEnabled && (
-                <div className="pl-6 space-y-1">
-                  <span className="text-xs text-muted-foreground block">
-                    A single-agent baseline session runs in parallel with every message to compare performance.
-                  </span>
-                  <div className="flex items-center gap-2 pt-1">
-                    <span className="text-xs text-muted-foreground flex-shrink-0">Baseline model:</span>
-                    <ModelSelector
-                      sessionId={null}
-                      value={benchmarkModel}
-                      onChange={setBenchmarkModel}
-                    />
-                  </div>
-                </div>
-              )}
-            </div>
-
             <div className="pt-2 border-t border-input/40">
               <button
                 type="button"
@@ -258,19 +209,6 @@ const l = useLiterals(u);
                       value={negotiationRaw}
                       onChange={(e) => setNegotiationRaw(e.target.value)}
                       placeholder='{ "agreementPattern": "ACUERDO ALCANZADO:", "maxRounds": 3 }'
-                      rows={3}
-                      className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-xs outline-none focus:border-primary"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs text-muted-foreground font-semibold mb-1">
-                      Scoring Rubric (Zod JSON)
-                    </label>
-                    <textarea
-                      value={scoringRaw}
-                      onChange={(e) => setScoringRaw(e.target.value)}
-                      placeholder='{ "metrics": [] }'
                       rows={3}
                       className="w-full px-2 py-1.5 bg-background border border-input rounded-lg text-foreground font-mono text-xs outline-none focus:border-primary"
                     />

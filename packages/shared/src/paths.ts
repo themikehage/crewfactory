@@ -16,7 +16,6 @@ export const PROJECTS_DIR = "projects";
 export const AGENTS_DIR = "agents";
 export const CHANNELS_DIR = "channels";
 export const SESSIONS_DIR = "sessions";
-export const BENCHMARKS_DIR = "benchmarks";
 export const EXPERIMENTS_DIR = "experiments";
 export const MEMORIES_DIR = "memories";
 export const ASSETS_DIR = "assets";
@@ -97,14 +96,6 @@ export function getSessionMetadataPath(username: string, sessionId: string): str
   return join(getSessionDir(username, sessionId), "metadata.json");
 }
 
-export function getBenchmarksDir(username: string): string {
-  return join(getUserDir(username), BENCHMARKS_DIR);
-}
-
-export function getBenchmarkDir(username: string, channelId: string): string {
-  return join(getBenchmarksDir(username), channelId);
-}
-
 export function getExperimentsDir(username: string): string {
   return join(getUserDir(username), EXPERIMENTS_DIR);
 }
@@ -167,18 +158,6 @@ export function getChannelMessagesPath(username: string, channelId: string): str
   return join(getChannelDir(username, channelId), "messages.jsonl");
 }
 
-export function getChannelBenchmarkReportPath(username: string, channelId: string): string {
-  return join(getBenchmarkDir(username, channelId), "latest-report.md");
-}
-
-export function getChannelBenchmarkHistoryPath(username: string, channelId: string): string {
-  return join(getBenchmarkDir(username, channelId), "optimization-history.json");
-}
-
-export function getChannelBenchmarkDir(username: string, channelId: string, timestamp: string): string {
-  return join(getBenchmarkDir(username, channelId), timestamp);
-}
-
 export function getChannelMemoryDbPath(username: string, channelId: string): string {
   return join(getChannelMemoriesDir(username, channelId), "memory.db");
 }
@@ -217,7 +196,6 @@ export function ensureAllDirs(username: string): void {
     getSessionsDir(username),
     getChannelsDir(username),
     getExperimentsDir(username),
-    getBenchmarksDir(username),
     getWorkspaceSkillsDir(username),
     join(getWorkspaceDir(username), ASSETS_DIR, UPLOADS_DIR),
     join(getWorkspaceDir(username), ASSETS_DIR, GENERATED_DIR),

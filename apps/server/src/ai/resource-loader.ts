@@ -119,6 +119,10 @@ export class DefaultResourceLoader {
     return this.systemPrompt;
   }
 
+  setAppendSystemPrompt(prompts: string[]): void {
+    this.appendSystemPrompt = prompts;
+  }
+
   getAppendSystemPrompt(): string[] {
     return this.appendSystemPrompt;
   }

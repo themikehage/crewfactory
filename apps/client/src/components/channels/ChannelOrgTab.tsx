@@ -9,7 +9,6 @@ import { AgentDetailPanel } from "./AgentDetailPanel";
 import type { StreamingAgentState } from "@/hooks/useChannel";
 
 interface Props {
-  channelId: string;
   members: ChannelMember[];
   registeredAgents: AgentInfo[];
   streamingAgents: Record<string, StreamingAgentState>;
@@ -19,7 +18,6 @@ interface Props {
 }
 
 export function ChannelOrgTab({
-  channelId,
   members,
   registeredAgents,
   streamingAgents,
@@ -105,7 +103,6 @@ export function ChannelOrgTab({
           agentInfo={selectedAgentInfo}
           allMembers={members}
           registeredAgents={registeredAgents}
-          channelId={channelId}
           streamingState={selectedStreamingState}
           onUpdateMember={onUpdateMember}
           onRemoveMember={onRemoveMember}

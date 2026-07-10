@@ -47,9 +47,7 @@ class ChannelStore {
       showThinking: data.showThinking ?? false,
       showTools: data.showTools ?? false,
       negotiationProtocol: data.negotiationProtocol,
-      scoringRubric: data.scoringRubric,
       delegationPattern: data.delegationPattern,
-      benchmark: data.benchmark,
       createdAt: now,
       updatedAt: now,
     };
@@ -71,7 +69,6 @@ class ChannelStore {
         maxChainDepth: parsed.maxChainDepth ?? 5,
         showThinking: parsed.showThinking ?? false,
         showTools: parsed.showTools ?? false,
-        benchmark: parsed.benchmark || undefined,
       };
     } catch {
       return null;
@@ -113,9 +110,7 @@ class ChannelStore {
     if (updates.showThinking !== undefined) channel.showThinking = updates.showThinking;
     if (updates.showTools !== undefined) channel.showTools = updates.showTools;
     if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
-    if (updates.scoringRubric !== undefined) channel.scoringRubric = updates.scoringRubric;
     if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
-    if (updates.benchmark !== undefined) channel.benchmark = updates.benchmark;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
@@ -257,10 +252,6 @@ class ChannelStore {
   resetNegotiationState(username: string, channelId: string): void {
     const path = this.getNegotiationStatePath(username, channelId);
     if (existsSync(path)) writeFileSync(path, "{}", "utf-8");
-  }
-
-  getTaskLedgerPath(username: string, channelId: string): string {
-    return join(this.getChannelDir(username, channelId), "task-ledger.json");
   }
 }
 

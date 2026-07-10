@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from "react";
-import { useLiterals } from "@/lib";
+import { useLiterals, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
 import { InputCard } from "./InputCard";
 import { InputToolbar } from "./InputToolbar";
@@ -141,6 +141,7 @@ interface Props {
   activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  contextUsage?: ContextUsage | null;
 }
 
 export function ChatInput({
@@ -154,6 +155,7 @@ export function ChatInput({
   activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
+  contextUsage = null,
 }: Props) {
   const l = useLiterals(u);
   const [input, setInput] = useState("");
@@ -470,6 +472,7 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholderText}
           textareaRef={textareaRef}
+          contextUsage={contextUsage}
           toolbar={
             <InputToolbar
               sessionId={sessionId}
@@ -486,6 +489,7 @@ export function ChatInput({
               toolStatus={toolStatus}
               onSend={() => handleSend()}
               onStop={onAbort}
+              contextUsage={contextUsage}
             />
           }
         />

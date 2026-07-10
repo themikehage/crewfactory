@@ -1,17 +1,12 @@
 import { useMemo } from "react";
-
-interface ContextUsage {
-  tokens: number | null;
-  contextWindow: number | null;
-  percent: number | null;
-}
+import { type ContextUsage } from "@/lib";
 
 interface ContextIndicatorProps {
   contextUsage: ContextUsage | null;
 }
 
 export function ContextIndicator({ contextUsage }: ContextIndicatorProps) {
-  const show = contextUsage && contextUsage.tokens !== null && contextUsage.contextWindow !== null;
+  const show = contextUsage && contextUsage.totalTokens !== null && contextUsage.limit !== null;
 
   const formattedText = useMemo(() => {
     if (!show) return "";
@@ -19,15 +14,15 @@ export function ContextIndicator({ contextUsage }: ContextIndicatorProps) {
       notation: "compact",
       maximumFractionDigits: 1,
     });
-    return `${formatter.format(contextUsage.tokens!)} / ${formatter.format(contextUsage.contextWindow!)}`;
+    return `${formatter.format(contextUsage.totalTokens!)} / ${formatter.format(contextUsage.limit!)}`;
   }, [contextUsage, show]);
 
   if (!show) return null;
 
   return (
     <span
-      className="text-xs font-mono text-muted-foreground select-none"
-      aria-label={`${contextUsage.tokens} of ${contextUsage.contextWindow} tokens used`}
+      className="text-xs font-mono text-text-secondary select-none"
+      aria-label={`${contextUsage.totalTokens} of ${contextUsage.limit} tokens used`}
     >
       {formattedText}
     </span>
@@ -35,18 +30,20 @@ export function ContextIndicator({ contextUsage }: ContextIndicatorProps) {
 }
 
 export function ContextProgressLine({ contextUsage }: ContextIndicatorProps) {
-  const show = contextUsage && contextUsage.percent !== null;
+  const show = contextUsage && contextUsage.totalTokens !== null && contextUsage.limit !== null;
 
   if (!show) return null;
 
-  const pct = contextUsage.percent!;
+  const total = contextUsage.totalTokens!;
+  const limit = contextUsage.limit!;
+  const pct = limit > 0 ? (total / limit) * 100 : 0;
   const remainingPct = Math.max(0, 100 - pct);
   const barColor =
     remainingPct <= 10
-      ? "bg-destructive"
+      ? "bg-error"
       : remainingPct <= 30
       ? "bg-warning"
-      : "bg-primary";
+      : "bg-accent";
 
   return (
     <div className="w-full h-0.5 bg-border/20 overflow-hidden">
@@ -57,3 +54,4 @@ export function ContextProgressLine({ contextUsage }: ContextIndicatorProps) {
     </div>
   );
 }
+

@@ -10,6 +10,7 @@ export type Route =
   | { page: "agents" }
   | { page: "channels" }
   | { page: "channel"; channelId: string }
+  | { page: "org"; channelId: string }
   | { page: "logs" }
   | { page: "laboratory"; experimentId?: string | null }
   | { page: "mcps" }
@@ -67,6 +68,9 @@ function parseRoute(): Route {
     }
     if (subPage === "workspace") {
       return { page: "workspace", channelId };
+    }
+    if (subPage === "org") {
+      return { page: "org", channelId };
     }
     // Default
     return { page: "chat", sessionId: null, channelId };

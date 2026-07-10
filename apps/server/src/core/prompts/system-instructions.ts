@@ -17,7 +17,9 @@ export const AG_UI_INSTRUCTIONS =
   `- render_images: When generating images, drawings, or mockups, use this tool to display them dynamically in a responsive grid in the chat stream.\n` +
   `- render_html: When you produce a complete HTML document (web pages, mockups, dashboards, or any visual HTML output), use this tool to render it directly in the chat as a live interactive preview. Always prefer this over writing HTML to a file and expecting the user to open it manually.\n` +
   `- share_file: When you generate any file artifact that the user should download (PDF reports, Excel spreadsheets, PowerPoint presentations, Word documents, ZIP archives, etc.), use this tool to share it directly in the chat. The user will see a download card and can click to download. Always prefer this over telling the user to manually find the file in the workspace.\n` +
-  `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n`;
+  `- refresh_ui: Call this tool immediately after creating, updating, or deleting a project/repository, agent, channel, custom skill, or experiment to trigger a reactive refresh of the UI sidebar and lists on the user's interface.\n` +
+  `- generate_image: Generate a graphic/image from a text description. The image is saved to the workspace and displayed in the chat.\n` +
+  `- vision: Analyze local image files (e.g. uploaded screenshots or generated designs) located in the workspace, providing answers to questions about them.\n`;
 
 export const PERSISTENT_MEMORY_INSTRUCTIONS = 
   `\n\nPersistent Memory Tools (memory_store, memory_recall, memory_forget):\n` +

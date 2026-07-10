@@ -6,7 +6,7 @@ import { ChatInput, processAttachments } from "./ChatInput";
 import { RightDrawer } from "./RightDrawer";
 import { AnimatePresence } from "framer-motion";
 import type { TaskRunnerState } from "shared";
-import { useLiterals } from "@/lib";
+import { useLiterals, type MessageUsage, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatArea.literals";
 import { useRouter } from "@/hooks/useRouter";
 import { WelcomeChatInput } from "./WelcomeChatInput";
@@ -15,23 +15,6 @@ import { SubagentConsole } from "./tools/SubagentConsole";
 import { FloatingTasks } from "./FloatingTasks";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
-
-
-
-interface MessageUsage {
-  input: number;
-  output: number;
-  cacheRead?: number;
-  cacheWrite?: number;
-  totalTokens?: number;
-  cost?: {
-    input?: number;
-    output?: number;
-    cacheRead?: number;
-    cacheWrite?: number;
-    total?: number;
-  };
-}
 
 interface Message {
   role: "user" | "assistant" | "tool_result" | "system";
@@ -67,6 +50,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [error, setError] = useState<string | null>(null);
   const [, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
   const [serialTools, setSerialTools] = useState<string[]>(["request_approval", "ask_question"]);
+  const [contextUsage, setContextUsage] = useState<ContextUsage | null>(null);
 
   const getSessionPath = useCallback((id: string) => {
     if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
@@ -168,7 +152,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     currentTaskId: null,
     status: "idle",
   });
-  const { send, subscribe } = useWebSocket(sessionId);
+  const { connected, send, subscribe } = useWebSocket(sessionId);
+  const [wasConnected, setWasConnected] = useState(connected);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const firstMessageSentRef = useRef(false);
 
@@ -206,13 +191,15 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     }
   }, [sessionId]);
 
-  const loadMessages = useCallback(async () => {
+  const loadMessages = useCallback(async (silent = false) => {
     if (!sessionId) {
       setMessages([]);
       setLoadingMessages(false);
       return;
     }
-    setLoadingMessages(true);
+    if (!silent) {
+      setLoadingMessages(true);
+    }
     try {
       const token = localStorage.getItem("token");
       const res = await fetch(`/api/sessions/${sessionId}/messages`, {
@@ -230,7 +217,9 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     } catch (e) {
       console.error(e);
     } finally {
-      setLoadingMessages(false);
+      if (!silent) {
+        setLoadingMessages(false);
+      }
     }
   }, [sessionId, scrollToBottom]);
 
@@ -238,6 +227,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     if (!sessionId) {
       setMessages([]);
       setLoadingMessages(false);
+      setContextUsage(null);
       return;
     }
 
@@ -367,6 +357,13 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       }
     });
 
+    const unsubContext = subscribe("context_usage", (data: unknown) => {
+      const evt = data as Record<string, unknown>;
+      if (evt.contextUsage) {
+        setContextUsage(evt.contextUsage as ContextUsage);
+      }
+    });
+
     return () => {
       unsubStart();
       unsubEnd();
@@ -377,8 +374,19 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubError();
       unsubTasks();
       unsubSubagent();
+      unsubContext();
     };
   }, [sessionId, subscribe]);
+
+  useEffect(() => {
+    if (connected && !wasConnected && sessionId) {
+      const timer = setTimeout(() => {
+        loadMessages(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    setWasConnected(connected);
+  }, [connected, wasConnected, sessionId, loadMessages]);
   const handleSend = useCallback(
     (message: string, option?: "steer" | "follow_up", tools?: string[], images?: Array<{ type: "image"; data: string; mimeType: string }>) => {
       if (!message.trim() || !sessionId) return;
@@ -589,6 +597,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 activeProjectName={activeProjectName}
                 activeAgentId={activeAgent?.id}
                 activeChannelId={activeChannel?.id}
+                contextUsage={contextUsage}
               />
             )}
           </div>

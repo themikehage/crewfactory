@@ -541,6 +541,25 @@ function ToolBody({
           activeChannelId={activeChannelId}
         />
       );
+    case "generate_image":
+      return (
+        <div className="flex flex-col gap-2">
+          {text && (
+            <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
+              {text}
+            </pre>
+          )}
+          {(result?.details as any)?.images && (
+            <ImageGrid
+              images={((result?.details as any)?.images as any) || []}
+              sessionId={sessionId || null}
+              activeProjectName={activeProjectName}
+              activeAgentId={activeAgentId}
+              activeChannelId={activeChannelId}
+            />
+          )}
+        </div>
+      );
     case "render_html":
       return (
         <HtmlPreview

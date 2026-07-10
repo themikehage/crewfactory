@@ -5,6 +5,7 @@ import type { AvailableModel, ModelRegistry } from "./model-registry";
 import type { SessionManager } from "./session-persistence";
 import type { DefaultResourceLoader } from "./resource-loader";
 import { convertToLlm } from "./messages";
+import { estimateContextTokens } from "./vendor/ai/src/utils/estimate.ts";
 
 export interface CreateAgentSessionOptions {
   cwd: string;
@@ -154,9 +155,24 @@ export class AgentSession {
     this.isStreaming = true;
     this.abortController = new AbortController();
 
+    const contentParts: any[] = [{ type: "text" as const, text: messageText }];
+    if (opts?.images && Array.isArray(opts.images)) {
+      for (const img of opts.images) {
+        let base64Part = img.data || "";
+        if (base64Part.includes("base64,")) {
+          base64Part = base64Part.substring(base64Part.indexOf("base64,") + 7);
+        }
+        contentParts.push({
+          type: "image" as const,
+          mimeType: img.mimeType || "image/png",
+          data: base64Part,
+        });
+      }
+    }
+
     const userMessage = {
       role: "user" as const,
-      content: messageText,
+      content: contentParts.length > 1 ? contentParts : messageText,
       timestamp: Date.now(),
     };
 
@@ -325,27 +341,38 @@ export class AgentSession {
 
   getContextUsage() {
     const context = this.sessionManager.buildSessionContext();
-    let charCount = 0;
-    for (const msg of context.messages as any[]) {
-      if (msg.content) {
-        if (typeof msg.content === "string") {
-          charCount += msg.content.length;
-        } else if (Array.isArray(msg.content)) {
-          for (const block of msg.content) {
-            if (block.type === "text" && block.text) {
-              charCount += block.text.length;
+    try {
+      const estimate = estimateContextTokens(context);
+      return {
+        totalTokens: estimate.tokens,
+        inputTokens: estimate.usageTokens,
+        outputTokens: estimate.trailingTokens,
+        limit: this.model?.contextWindow ?? 1_000_000,
+      };
+    } catch (err) {
+      console.error("[AgentSession] Error estimating context tokens:", err);
+      let charCount = 0;
+      for (const msg of context.messages as any[]) {
+        if (msg.content) {
+          if (typeof msg.content === "string") {
+            charCount += msg.content.length;
+          } else if (Array.isArray(msg.content)) {
+            for (const block of msg.content) {
+              if (block.type === "text" && block.text) {
+                charCount += block.text.length;
+              }
             }
           }
         }
       }
+      const estimatedTokens = Math.ceil(charCount / 4);
+      return {
+        totalTokens: estimatedTokens,
+        inputTokens: estimatedTokens,
+        outputTokens: 0,
+        limit: this.model?.contextWindow ?? 1_000_000,
+      };
     }
-    const estimatedTokens = Math.ceil(charCount / 4);
-    return {
-      totalTokens: estimatedTokens,
-      inputTokens: estimatedTokens,
-      outputTokens: 0,
-      limit: this.model?.contextWindow ?? 1_000_000,
-    };
   }
 
   getSessionStats() {

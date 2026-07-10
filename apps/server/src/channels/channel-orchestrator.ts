@@ -8,8 +8,16 @@ import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
 import { NegotiationProtocol } from "../core/negotiation/negotiation-protocol";
 import { ArbitrationProtocol } from "../core/negotiation/arbitration-protocol";
-import { TaskLedger } from "./task-ledger";
 import { memoryRegistry } from "../core/memory/registry";
+import {
+  HTML_PREVIEW_INSTRUCTIONS,
+  AG_UI_INSTRUCTIONS,
+  PERSISTENT_MEMORY_INSTRUCTIONS,
+  SUBAGENT_DELEGATION_INSTRUCTIONS,
+  TASK_DELEGATION_INSTRUCTIONS,
+} from "../core/prompts/system-instructions";
+import { getEnvironmentContext } from "../core/env-check";
+import { promptComposer } from "../core/prompts/composer";
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -170,9 +178,6 @@ class ChannelOrchestrator {
 
     // Reset negotiation state, task ledger, and silent round counter at start of chain
     channelStore.resetNegotiationState(username, channelId);
-    const ledgerPath = channelStore.getTaskLedgerPath(username, channelId);
-    const ledger = new TaskLedger(ledgerPath);
-    ledger.reset();
     this.consecutiveSilentRounds.delete(key);
 
     // Create a new AbortController for this dispatch chain
@@ -551,14 +556,49 @@ class ChannelOrchestrator {
 
     const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
     const agentNameMap = this.buildAgentNameMap(channel.members);
+
+    // Dynamically build DeploymentContext for the current channel invocation
+    const isBroadcast = channel.members.some(m => m.replyMode === "broadcast");
+    const hasLeader = channel.members.some(m => m.role === "lead");
+    const selfMember = channel.members.find(m => m.agentId === member.agentId);
+    const isArbiter = selfMember?.role === "lead";
+
+    const deployment = {
+      mode: isBroadcast ? "broadcast" : (hasLeader ? "targeted" : "broadcast") as any,
+      channelId,
+      agentRole: selfMember?.role || "member",
+      members: channel.members.map(m => ({
+        agentId: m.agentId,
+        agentName: agentNameMap.get(m.agentId) || m.agentId,
+        role: m.role || "member",
+      })),
+      negotiationProtocol: !!channel.negotiationProtocol,
+      isArbiter,
+    };
+
+    const workspaceDir = agentEntry.server.session.cwd;
+    const layered = promptComposer.compose(agentEntry.server.definition, deployment, workspaceDir);
+
+    const envContext = getEnvironmentContext(workspaceDir);
+    const appendSystemPrompts = [
+      `\n\nRuntime Environment:\n${envContext}`,
+      layered.composed,
+      HTML_PREVIEW_INSTRUCTIONS,
+      AG_UI_INSTRUCTIONS,
+      PERSISTENT_MEMORY_INSTRUCTIONS,
+      SUBAGENT_DELEGATION_INSTRUCTIONS,
+      TASK_DELEGATION_INSTRUCTIONS,
+    ];
+    if (typeof (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt === "function") {
+      (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt(appendSystemPrompts);
+      await agentEntry.server.session.resourceLoader.reload();
+    }
+
     const promptText = memoryPrefix + this.buildAgentPrompt(
       agentEntry.server.definition,
       incomingMsg,
       recentMessages,
-      channel.context || [],
-      channel.members,
-      agentNameMap,
-      channel
+      channel.context || []
     );
 
     let fullResponse = "";
@@ -866,51 +906,8 @@ class ChannelOrchestrator {
     agentDef: any,
     incomingMsg: ChannelMessage,
     recentHistory: ChannelMessage[],
-    contextItems: { key: string; value: string }[] = [],
-    members: ChannelMember[] = [],
-    agentNameMap: Map<string, string> = new Map(),
-    channel?: Channel
+    contextItems: { key: string; value: string }[] = []
   ): string {
-    let rosterBlock = "";
-    if (members.length > 0) {
-      const isBroadcast = members.some(m => m.replyMode === "broadcast");
-      const hasLeader = !isBroadcast && members.some(m => m.role === "lead");
-      const modeLabel = isBroadcast
-        ? "multi-agent leaderless (all agents see all messages; there is no coordinator)"
-        : hasLeader
-          ? "multi-agent with leader (the leader coordinates; non-leader agents respond when @mentioned)"
-          : "single agent (you handle the full workflow autonomously)";
-
-      const lines = ["- @user (the human user)"];
-      for (const m of members) {
-        const name = agentNameMap.get(m.agentId) || m.agentId;
-        lines.push(`- @${name}  (id: ${m.agentId}, role: ${m.role ?? "member"})`);
-      }
-      let rulesBlock = "";
-      if (incomingMsg.role === "user") {
-        rulesBlock =
-          `COMMUNICATION PROTOCOL (USER MESSAGE):\n` +
-          `1. DIRECT ASSISTANCE: You are responding to the user. Answer clearly, professionally, and helpfully to address their request or guide them.\n` +
-          `2. CONCISENESS & STYLE: Be concise. Avoid large markdown tables, bulleted breakdowns, or lengthy lists unless explicitly requested. Write like a human in a team chat.\n` +
-          `3. TASK DELEGATION: If your response requires delegation, review, or input from a specific teammate (e.g. @Tech Lead, @Senior Dev), formulate your task or scope and explicitly tag them in your message.\n\n`;
-      } else {
-        rulesBlock =
-          `COMMUNICATION PROTOCOL (PEER AGENT MESSAGE):\n` +
-          `1. NO COURTESY CHATTER: You are receiving a message from peer agent "${incomingMsg.agentName || incomingMsg.agentId}". Do NOT reply merely to say hello, acknowledge receipt, or state that you are "present" or "on standby".\n` +
-          `2. CHRONOLOGY CHECK: Check the conversation history. If an agreement has already been reached or a decision has already been finalized (e.g., in a message saying "ACUERDO ALCANZADO" or "ACEPTO"), do NOT propose alternative versions, contra-proposals, or re-open the negotiation. Maintain alignment with the latest messages.\n` +
-          `3. CONCISENESS & STYLE: Be extremely concise and direct. Do NOT repeat tables, desgloses, or previous messages. Explain your reasoning in 1-2 sentences.\n` +
-          `4. SILENT MODE: If this peer message does not require your specific technical decision, deliverable, or direct action, reply EXACTLY with "(silent)".\n` +
-          `5. TASK DELEGATION: Mention other team members using @name or @id ONLY when transferring an explicit task or work deliverable.\n\n`;
-      }
-
-      rosterBlock =
-        `Channel Participants & Tagging Protocol:\n` +
-        `Execution mode: ${modeLabel}\n` +
-        `The following participants are in this channel. Explicitly mentioning them using @name or @id in your message will trigger them to respond:\n` +
-        `${lines.join("\n")}\n\n` +
-        rulesBlock;
-    }
-
     let historyText = "";
     for (const msg of recentHistory) {
       if (msg.role === "user") {
@@ -932,7 +929,6 @@ class ChannelOrchestrator {
       incomingMsg.role === "user" ? "User" : incomingMsg.agentName || incomingMsg.agentId;
 
     return (
-      rosterBlock +
       contextBlock +
       `Conversation so far:\n${historyText}\n` +
       `--- New message from ${senderLabel} ---\n` +

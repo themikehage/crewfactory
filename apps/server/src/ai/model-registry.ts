@@ -21,6 +21,7 @@ export interface AvailableModel {
   baseUrl: string;
   apiKey?: string;
   reasoning?: boolean;
+  input?: string[];
   contextWindow?: number;
   maxTokens?: number;
   compat?: Record<string, unknown>;
@@ -85,6 +86,7 @@ export class ModelRegistry {
           baseUrl: config.baseUrl,
           apiKey: resolvedKey,
           reasoning: model.reasoning,
+          input: model.input,
           contextWindow: model.contextWindow,
           maxTokens: model.maxTokens,
           compat: model.compat,

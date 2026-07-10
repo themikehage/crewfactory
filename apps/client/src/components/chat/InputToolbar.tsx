@@ -5,9 +5,10 @@ import { SkillsPopover } from "./SkillsPopover";
 import { ToolsPopover } from "./ToolsPopover";
 import { SendStopButton } from "./SendStopButton";
 import type { SkillInfo } from "./SkillsSelector";
-import { useLiterals } from "@/lib";
+import { useLiterals, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
 import { ALL_TOOLS } from "./ToolsSelector";
+import { ContextIndicator } from "./ContextIndicator";
 
 interface InputToolbarProps {
   sessionId: string | null;
@@ -22,6 +23,7 @@ interface InputToolbarProps {
   toolStatus?: Record<string, "available" | "missing_key">;
   onSend: () => void;
   onStop: () => void;
+  contextUsage?: ContextUsage | null;
 }
 
 export function InputToolbar({
@@ -37,6 +39,7 @@ export function InputToolbar({
   toolStatus = {},
   onSend,
   onStop,
+  contextUsage = null,
 }: InputToolbarProps) {
   const l = useLiterals(u);
   const [openSkills, setOpenSkills] = useState(false);
@@ -138,6 +141,7 @@ export function InputToolbar({
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
+        <ContextIndicator contextUsage={contextUsage} />
         <SendStopButton
           streaming={streaming}
           disabled={disabled}

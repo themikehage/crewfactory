@@ -6,7 +6,6 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 ## Pendientes
 
 - [data-persistence-migration.md](./data-persistence-migration.md) — Migracion a persistencia robusta con Docker Compose
-- [remove-channel-features.md](./remove-channel-features.md) — Eliminar Tasks/Optimize/Benchmark de canales sin dejar codigo muerto
 - [info-edit-button.md](./info-edit-button.md) — Boton de informacion en proyectos y agentes para ver/editar todos los datos disponibles
 - [mobile-bottom-bar-redesign.md](./mobile-bottom-bar-redesign.md) — La bottombar de mobile solo se muestra cuando el drawer del menu esta abierto
 - [audit-slow-operations.md](./audit-slow-operations.md) — Auditoria de rendimiento: decompose tasks, LLM judge, y export experiment: paths configurables via env vars, entrypoint con inicializacion, volumenes nombrados en /app/data, y migracion automatica de datos legacy.
@@ -40,7 +39,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
 
 
-## Completados (25)
+## Completados (26)
 
 Ver [COMPLETED/](./COMPLETED/)
 

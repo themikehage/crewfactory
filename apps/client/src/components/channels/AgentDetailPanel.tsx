@@ -7,19 +7,6 @@ import { AgentAvatar } from "@/components/shared/AgentAvatar";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { ROLE_OPTIONS, REPLY_MODE_OPTIONS } from "@/lib/dropdown-options";
 
-interface LedgerTask {
-  id: string;
-  assignedBy: string;
-  assignedByName: string;
-  assignedTo: string;
-  assignedToName: string;
-  role: string;
-  task: string;
-  status: "open" | "in-progress" | "done" | "failed";
-  createdAt: string;
-  updatedAt: string;
-}
-
 interface Props {
   isOpen: boolean;
   onClose: () => void;
@@ -27,7 +14,6 @@ interface Props {
   agentInfo?: AgentInfo;
   allMembers: ChannelMember[];
   registeredAgents: AgentInfo[];
-  channelId: string;
   streamingState?: {
     text: string;
     thinking?: string;
@@ -45,7 +31,6 @@ export function AgentDetailPanel({
   agentInfo,
   allMembers,
   registeredAgents,
-  channelId,
   streamingState,
   onUpdateMember,
   onRemoveMember,
@@ -55,8 +40,6 @@ export function AgentDetailPanel({
   const [role, setRole] = useState<ChannelRole>(member.role || "member");
   const [replyMode, setReplyMode] = useState<ReplyMode>(member.replyMode);
   const [targetAgentIds, setTargetAgentIds] = useState<string[]>(member.targetAgentIds || []);
-  const [tasks, setTasks] = useState<LedgerTask[]>([]);
-  const [loadingTasks, setLoadingTasks] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
@@ -64,29 +47,6 @@ export function AgentDetailPanel({
     setReplyMode(member.replyMode);
     setTargetAgentIds(member.targetAgentIds || []);
   }, [member]);
-
-  useEffect(() => {
-    if (!isOpen) return;
-    const fetchTasks = async () => {
-      setLoadingTasks(true);
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/channels/${channelId}/ledger`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          const ledgerTasks: LedgerTask[] = data.tasks || [];
-          setTasks(ledgerTasks.filter((t) => t.assignedTo === member.agentId));
-        }
-      } catch (e) {
-        console.error("Failed to fetch agent tasks:", e);
-      } finally {
-        setLoadingTasks(false);
-      }
-    };
-    fetchTasks();
-  }, [isOpen, channelId, member.agentId]);
 
   const handleSave = async () => {
     setIsSaving(true);
@@ -301,35 +261,6 @@ export function AgentDetailPanel({
                       <span key={s} className="px-2 py-0.5 rounded-md bg-card-hover border border-border text-[10px] text-foreground font-medium">
                         {s}
                       </span>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Delegated Tasks */}
-              <div className="space-y-2 border-t border-border pt-4">
-                <h5 className="text-xs font-semibold text-muted-foreground">{l.activeTasks}</h5>
-                {loadingTasks ? (
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <div className="w-3 h-3 border border-muted-foreground border-t-transparent rounded-full animate-spin" />
-                    <span>Loading...</span>
-                  </div>
-                ) : tasks.length === 0 ? (
-                  <p className="text-[11px] text-muted-foreground italic">{l.noTasks}</p>
-                ) : (
-                  <div className="space-y-2 max-h-48 overflow-y-auto">
-                    {tasks.map((t) => (
-                      <div key={t.id} className="p-2 border border-border rounded-lg bg-background/50 text-[11px] space-y-1">
-                        <div className="flex items-center justify-between">
-                          <span className="font-semibold text-foreground">@{t.assignedByName}</span>
-                          <span className={`px-1 py-0.2 rounded text-[9px] font-bold uppercase tracking-wider ${
-                            t.status === "done" ? "bg-accent/10 border border-accent/20 text-accent" : "bg-warning/10 border border-warning/20 text-warning"
-                          }`}>
-                            {t.status}
-                          </span>
-                        </div>
-                        <p className="font-mono text-[10px] text-muted-foreground line-clamp-2">{t.task}</p>
-                      </div>
                     ))}
                   </div>
                 )}

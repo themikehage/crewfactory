@@ -8,7 +8,7 @@ interface ProviderInfo {
   id: string;
   name: string;
   authStatus: { configured: boolean };
-  models: Array<{ id: string; name: string; reasoning: boolean }>;
+  models: Array<{ id: string; name: string; reasoning: boolean; input?: string[] }>;
 }
 
 interface SelectedModel {
@@ -263,13 +263,18 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
                   <button
                     key={m.id}
                     onClick={() => handleSelectModel(currentProvider.id, m.id, m.name)}
-                    className={`w-full text-left px-4 py-2 text-xs transition-colors ${
+                    className={`w-full px-4 py-2 text-xs transition-colors flex items-center justify-between gap-2 ${
                       selected?.provider === currentProvider.id && selected?.modelId === m.id
                         ? "bg-primary/15 text-primary"
                         : "text-foreground hover:bg-card-hover"
                     }`}
                   >
-                    <div className="truncate">{m.name}</div>
+                    <span className="truncate">{m.name}</span>
+                    {m.input?.includes("image") && (
+                      <span className="text-[9px] font-semibold bg-primary/20 text-primary border border-primary/30 px-1 rounded flex-shrink-0">
+                        Vision
+                      </span>
+                    )}
                   </button>
                 ))}
               </div>

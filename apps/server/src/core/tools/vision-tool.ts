@@ -56,8 +56,8 @@ export async function runVisionModel(
     apiKey: apiKeyResult.apiKey
   });
 
-  const textContent = response.output.find(o => o.type === "text");
-  return textContent && textContent.type === "text" ? textContent.text : JSON.stringify(response.output);
+  const textContent = response.content.find(o => o.type === "text");
+  return textContent && textContent.type === "text" ? textContent.text : JSON.stringify(response.content);
 }
 
 export function createVisionTool(

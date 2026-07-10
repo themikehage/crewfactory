@@ -1,4 +1,6 @@
 import { uiApprovalRegistry } from "../ui-approval-registry";
+import { createVisionTool } from "./vision-tool";
+import { createImageGenTool } from "./image-gen-tool";
 
 export function createUiTools(
   workspaceDir: string,
@@ -236,6 +238,9 @@ export function createUiTools(
     }
   };
 
+  const visionTool = createVisionTool(workspaceDir, username);
+  const imageGenTool = createImageGenTool(workspaceDir, username);
+
   const tools = [
     requestApprovalTool,
     askQuestionTool,
@@ -243,7 +248,9 @@ export function createUiTools(
     renderHtmlTool,
     renderChartTool,
     shareFileTool,
-    refreshUiTool
+    refreshUiTool,
+    visionTool,
+    imageGenTool
   ];
 
   if (subagentOptions) {

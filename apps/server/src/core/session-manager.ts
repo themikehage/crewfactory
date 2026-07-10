@@ -462,6 +462,8 @@ class SessionManager {
           "decompose_tasks",
           "update_task_status",
           "complete_task_list",
+          "vision",
+          "generate_image",
         ];
         if (resolvedAgentId === "lab-architect") {
           alwaysOnTools.push("create_experiment");

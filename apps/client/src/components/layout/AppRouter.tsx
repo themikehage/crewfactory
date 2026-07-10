@@ -7,6 +7,7 @@ import { SkillsPage } from "@/pages/SkillsPage";
 import { AgentsPage } from "@/pages/AgentsPage";
 import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
+import { ChannelOrgPage } from "@/pages/ChannelOrgPage";
 import { LogsConsolePage } from "@/pages/LogsConsolePage";
 import { LaboratoryPage } from "@/pages/LaboratoryPage";
 import { ExperimentDetailPage } from "@/pages/ExperimentDetailPage";
@@ -203,6 +204,18 @@ export function AppRouter() {
     const isWorkspace = r.page === "workspace";
     const isPreview = r.page === "preview";
     const isChat = r.page === "chat";
+    const isOrg = r.page === "org";
+
+    if (isOrg && activeChannel) {
+      return {
+        type: "context",
+        contextType: "channel",
+        contextId: activeChannel.id,
+        contextName: activeChannel.name,
+        page: "org",
+        path: `/channels/${activeChannel.id}/org`,
+      };
+    }
 
     if (isChat) {
       if (activeProjectId) {
@@ -576,6 +589,9 @@ export function AppRouter() {
         )}
         {route.page === "channel" && (
           <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
+        )}
+        {route.page === "org" && (
+          <ChannelOrgPage channelId={route.channelId} onNavigate={navigate} />
         )}
         {route.page === "workspace" && (
           <WorkspacePanel

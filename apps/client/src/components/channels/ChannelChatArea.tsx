@@ -6,11 +6,6 @@ import type { MentionTarget } from "@/components/chat/ChatInput";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
-import { ChannelOrgTab } from "./ChannelOrgTab";
-import { ChannelTaskLedger } from "./ChannelTaskLedger";
-import { ChannelBenchmarkPanel } from "./ChannelBenchmarkPanel";
-import { ChannelOptimizePanel } from "./ChannelOptimizePanel";
-import { BenchmarkLiveTab } from "./BenchmarkLiveTab";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
@@ -27,9 +22,6 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
-  const [viewMode, setViewMode] = useState<"chat" | "org" | "ledger" | "benchmark" | "optimize" | "benchmark_live">("chat");
-
-  const currentView = variantMode ? "chat" : viewMode;
 
   const mentionTargets: MentionTarget[] = [
     { id: "__user__", name: "user" },
@@ -137,62 +129,6 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
           </div>
 
           <div className="flex items-center gap-1">
-            <div className="flex items-center gap-1 bg-background border border-input rounded-lg p-0.5 mr-2">
-              <button
-                onClick={() => setViewMode("chat")}
-                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                  viewMode === "chat"
-                    ? "bg-card text-foreground border border-input/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Chat
-              </button>
-              {channel?.benchmark?.enabled && (
-                <button
-                  onClick={() => setViewMode("benchmark_live")}
-                  className={`px-2 py-0.5 rounded text-xs font-medium transition-colors relative ${
-                    viewMode === "benchmark_live"
-                      ? "bg-card text-foreground border border-input/80"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Benchmark
-                  <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-primary animate-pulse" />
-                </button>
-              )}
-              <button
-                onClick={() => setViewMode("org")}
-                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                  viewMode === "org"
-                    ? "bg-card text-foreground border border-input/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Org Chart
-              </button>
-              <button
-                onClick={() => setViewMode("ledger")}
-                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                  viewMode === "ledger"
-                    ? "bg-card text-foreground border border-input/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Tareas
-              </button>
-              <button
-                onClick={() => setViewMode("optimize")}
-                className={`px-2 py-0.5 rounded text-xs font-medium transition-colors ${
-                  viewMode === "optimize"
-                    ? "bg-card text-foreground border border-input/80"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Optimizar
-              </button>
-            </div>
-
             <button
               onClick={() => setShowContextModal(true)}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors relative"
@@ -236,59 +172,27 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
         </div>
       )}
 
-      {/* Messages area, Org Chart or Task Ledger */}
-      {currentView === "org" ? (
-        <ChannelOrgTab
-          channelId={activeChannel.id}
-          members={channelMembers}
-          registeredAgents={registeredAgents}
+      {/* Messages area */}
+      <>
+        <ChannelMessageList
+          messages={messages}
           streamingAgents={streamingAgents}
-          onAddMemberClick={() => setShowMembersModal(true)}
-          onUpdateMember={handleUpdateMember}
-          onRemoveMember={handleRemoveMember}
-        />
-      ) : currentView === "ledger" ? (
-        <ChannelTaskLedger
-          channelId={activeChannel.id}
-        />
-      ) : currentView === "benchmark_live" ? (
-        <BenchmarkLiveTab
-          channelId={activeChannel.id}
-          channel={channel}
+          mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
           sessionId={sessionId}
-          channelMessages={messages.map((m) => `[${m.agentName || "agent"}]: ${m.content}`).join("\n\n")}
+          activeChannelId={activeChannel.id}
         />
-      ) : currentView === "benchmark" ? (
-        <ChannelBenchmarkPanel
-          channelId={activeChannel.id}
-        />
-      ) : currentView === "optimize" ? (
-        <ChannelOptimizePanel
-          channelId={activeChannel.id}
-        />
-      ) : (
-        <>
-          <ChannelMessageList
-            messages={messages}
-            streamingAgents={streamingAgents}
-            mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
+
+        {sessionId && !variantMode && (
+          <ChatInput
             sessionId={sessionId}
+            streaming={isStreaming}
+            onSend={(msg) => handleSend(msg)}
+            onAbort={abortDispatch}
+            mentionTargets={mentionTargets}
             activeChannelId={activeChannel.id}
           />
-
-          {/* Reused InputArea shared with normal chat */}
-          {sessionId && !variantMode && (
-            <ChatInput
-              sessionId={sessionId}
-              streaming={isStreaming}
-              onSend={(msg) => handleSend(msg)}
-              onAbort={abortDispatch}
-              mentionTargets={mentionTargets}
-              activeChannelId={activeChannel.id}
-            />
-          )}
-        </>
-      )}
+        )}
+      </>
 
       {showMembersModal && (
         <ChannelMembersModal

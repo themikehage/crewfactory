@@ -26,6 +26,8 @@ interface AppWebSocket extends WSContext {
 interface WsSocketMeta {
   sessionId?: string;
   channelId?: string;
+  missedPings?: number;
+  ws?: AppWebSocket;
 }
 
 let wsCounter = 0;
@@ -35,6 +37,28 @@ const wsSocketMeta = new Map<string, WsSocketMeta>();
 export const sessionSockets = new Map<string, Set<WSContext>>();
 export const userSockets = new Map<string, Set<WSContext>>();
 export const channelSockets = new Map<string, Set<WSContext>>();
+
+// Server-side heartbeat ping-pong
+setInterval(() => {
+  for (const [wsId, meta] of wsSocketMeta.entries()) {
+    const ws = meta.ws;
+    if (!ws) continue;
+
+    const missed = meta.missedPings ?? 0;
+    if (missed >= 3) {
+      console.log(`[WS Server] Closing connection for wsId ${wsId} due to missed pings`);
+      try {
+        ws.close();
+      } catch {}
+      continue;
+    }
+
+    meta.missedPings = missed + 1;
+    try {
+      ws.send(JSON.stringify({ type: "ping" }));
+    } catch {}
+  }
+}, 30000);
 
 export function broadcastToChannel(channelId: string, data: any) {
   const sockets = channelSockets.get(channelId);
@@ -182,25 +206,26 @@ async function subscribeWsToSession(
 
   if (session.isStreaming) {
     safeSend(ws, JSON.stringify({ type: "agent_start" }));
-    try {
-      const contextUsage = session.getContextUsage();
-      const sessionStats = session.getSessionStats();
-      if (contextUsage || sessionStats) {
-        safeSend(ws, JSON.stringify({
-          type: "context_usage",
-          sessionId,
-          contextUsage,
-          sessionStats,
-        }));
-      }
-    } catch {}
   }
+
+  try {
+    const contextUsage = session.getContextUsage();
+    const sessionStats = session.getSessionStats();
+    if (contextUsage || sessionStats) {
+      safeSend(ws, JSON.stringify({
+        type: "context_usage",
+        sessionId,
+        contextUsage,
+        sessionStats,
+      }));
+    }
+  } catch {}
 }
 
 export function onOpen(_evt: Event, _ws: WSContext) {
   const ws = _ws as unknown as AppWebSocket;
   ws.wsId = String(++wsCounter);
-  wsSocketMeta.set(ws.wsId, {});
+  wsSocketMeta.set(ws.wsId, { missedPings: 0, ws });
 }
 
 export function onClose(_evt: any, _ws: WSContext) {
@@ -253,6 +278,14 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   try {
     data = JSON.parse(evt.data);
   } catch {
+    return;
+  }
+
+  if (data.type === "pong") {
+    const meta = wsSocketMeta.get(ws.wsId);
+    if (meta) {
+      meta.missedPings = 0;
+    }
     return;
   }
 
@@ -335,6 +368,8 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
             "decompose_tasks",
             "update_task_status",
             "complete_task_list",
+            "vision",
+            "generate_image",
           ])
         )
       );
