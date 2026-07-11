@@ -125,3 +125,12 @@
 - [x] 103.5 Clean up broken options imports and remove ts-nocheck from types.ts
 - [x] 103.6 Fix associated build/typecheck errors in agent-session.ts, metadata-store.ts and decompose-tool.ts
 
+## Phase 104: Resolve High Severity Fixes (H1, H2, H3, H4, H5)
+- [x] 104.1 Wrap prompt pre-loop setup in try-catch-finally in agent-session.ts (H1)
+- [x] 104.2 Prevent steer/followUp message duplication by removing appendMessage from steer/followUp and handling custom messages in loop callback (H3)
+- [x] 104.3 Replace bare catch blocks with console.error logs in handler.ts to protect WS pipeline (H4)
+- [x] 104.4 Add navigate tree streaming guard in agent-session.ts (H2)
+- [x] 104.5 Track/deduplicate client updates using responseId/id in ChatArea.tsx (H5)
+- [x] 104.6 Verify successful compilation build of client and server apps
+
+
