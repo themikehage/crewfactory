@@ -21,6 +21,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 ### Research
 
 - [state-of-the-art-2026.md](./state-of-the-art-2026.md) — Estado del arte de plataformas AI agenticas (Cursor, Devin Desktop, Claude Code, Copilot, Codex) con 14 funcionalidades priorizadas para CrewFactory
+- [sandboxing.md](./sandboxing.md) — Sandboxing profesional: Permission Engine, Docker sandbox, Network Proxy, Secret Filter, Resource Limits, UI de configuracion
 
 ### Features
 
