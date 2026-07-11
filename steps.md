@@ -117,6 +117,11 @@
 - [x] 102.3 Implement ghost members filter on channel read (GET / and GET /:id) in backend
 - [x] 102.4 Implement visual warning styles, warning labels, and badges for missing agents in the frontend (canvas flow, mobile list, members panel, detail panel, modals)
 - [x] 102.5 Verify successful compilation and builds for server and client
-
-
+## Phase 103: Resolve Critical Fixes (C1, C2, C6, C8, C9, C10)
+- [x] 103.1 Fix exception handling in AgentSession catch block and emit messages on agent_end
+- [x] 103.2 Split delegationResultQueue into steeringQueue and followUpQueue in AgentSession
+- [x] 103.3 Delete unused/broken providers/all.ts and agent/node.ts files
+- [x] 103.4 Define OAuthCredentials locally in auth/types.ts and remove ts-nocheck from auth/types.ts and resolve.ts
+- [x] 103.5 Clean up broken options imports and remove ts-nocheck from types.ts
+- [x] 103.6 Fix associated build/typecheck errors in agent-session.ts, metadata-store.ts and decompose-tool.ts
 

@@ -1,13 +1,4 @@
-// @ts-nocheck
-import type { AnthropicOptions } from "./api/anthropic-messages.ts";
-import type { AzureOpenAIResponsesOptions } from "./api/azure-openai-responses.ts";
-import type { BedrockOptions } from "./api/bedrock-converse-stream.ts";
-import type { GoogleOptions } from "./api/google-generative-ai.ts";
-import type { GoogleVertexOptions } from "./api/google-vertex.ts";
-import type { MistralOptions } from "./api/mistral-conversations.ts";
-import type { OpenAICodexResponsesOptions } from "./api/openai-codex-responses.ts";
 import type { OpenAICompletionsOptions } from "./api/openai-completions.ts";
-import type { OpenAIResponsesOptions } from "./api/openai-responses.ts";
 import type { AssistantMessageDiagnostic } from "./utils/diagnostics.ts";
 import type { AssistantMessageEventStream } from "./utils/event-stream.ts";
 
@@ -193,15 +184,15 @@ export type ProviderStreamOptions = StreamOptions & Record<string, unknown>;
  * this is tree-shake safe.
  */
 export interface ApiOptionsMap {
-	"anthropic-messages": AnthropicOptions;
 	"openai-completions": OpenAICompletionsOptions;
-	"openai-responses": OpenAIResponsesOptions;
-	"openai-codex-responses": OpenAICodexResponsesOptions;
-	"azure-openai-responses": AzureOpenAIResponsesOptions;
-	"google-generative-ai": GoogleOptions;
-	"google-vertex": GoogleVertexOptions;
-	"mistral-conversations": MistralOptions;
-	"bedrock-converse-stream": BedrockOptions;
+	"anthropic-messages": any;
+	"openai-responses": any;
+	"openai-codex-responses": any;
+	"azure-openai-responses": any;
+	"google-generative-ai": any;
+	"google-vertex": any;
+	"mistral-conversations": any;
+	"bedrock-converse-stream": any;
 }
 
 /**

@@ -188,7 +188,7 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
           modelObj as any,
           {
             systemPrompt: "You are a task decomposition engine. Output ONLY JSON.",
-            messages: [{ role: "user" as const, content: promptText }],
+            messages: [{ role: "user" as const, content: promptText, timestamp: Date.now() }],
           },
           {
             signal: _parentSignal,

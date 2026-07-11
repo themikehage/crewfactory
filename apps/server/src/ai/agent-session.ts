@@ -36,21 +36,22 @@ export class AgentSession {
   private allToolsMap: Map<string, AgentTool> = new Map();
   private eventListeners: Set<(evt: any) => void> = new Set();
   private abortController: AbortController | null = null;
-  private delegationResultQueue: any[] = [];
+  private steeringQueue: AgentMessage[] = [];
+  private followUpQueue: AgentMessage[] = [];
 
-  addDelegationResult(resultMessage: any): void {
-    this.delegationResultQueue.push(resultMessage);
+  addDelegationResult(resultMessage: AgentMessage): void {
+    this.steeringQueue.push(resultMessage);
   }
 
-  private drainSteeringMessages(): Promise<any[]> {
-    const msgs = [...this.delegationResultQueue];
-    this.delegationResultQueue = [];
+  private drainSteeringMessages(): Promise<AgentMessage[]> {
+    const msgs = [...this.steeringQueue];
+    this.steeringQueue = [];
     return Promise.resolve(msgs);
   }
 
-  private drainFollowUpMessages(): Promise<any[]> {
-    const msgs = [...this.delegationResultQueue];
-    this.delegationResultQueue = [];
+  private drainFollowUpMessages(): Promise<AgentMessage[]> {
+    const msgs = [...this.followUpQueue];
+    this.followUpQueue = [];
     return Promise.resolve(msgs);
   }
 
@@ -322,9 +323,10 @@ export class AgentSession {
         this.abortController.signal,
         streamSimple
       );
-    } catch (err: any) {
-      this.emit({ type: "agent_error", error: err.message });
-      this.emit({ type: "agent_end", messages: [], willRetry: false });
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
+      this.emit({ type: "agent_error", error: errorMsg });
+      this.emit({ type: "agent_end", messages: this.messages, willRetry: false });
     } finally {
       this.isStreaming = false;
       this.abortController = null;
@@ -339,7 +341,7 @@ export class AgentSession {
       content: messageText,
       timestamp: Date.now(),
     };
-    this.delegationResultQueue.push(steeringMsg);
+    this.steeringQueue.push(steeringMsg);
     this.sessionManager.appendMessage(steeringMsg);
     this.messages = this.sessionManager.buildSessionContext().messages;
   }
@@ -350,7 +352,7 @@ export class AgentSession {
       content: messageText,
       timestamp: Date.now(),
     };
-    this.delegationResultQueue.push(followUpMsg);
+    this.followUpQueue.push(followUpMsg);
     this.sessionManager.appendMessage(followUpMsg);
     this.messages = this.sessionManager.buildSessionContext().messages;
   }
@@ -383,7 +385,15 @@ export class AgentSession {
   getContextUsage() {
     const context = this.sessionManager.buildSessionContext();
     try {
-      const estimate = estimateContextTokens(context);
+      const systemPrompt = [
+        this.resourceLoader.getSystemPrompt() || "",
+        ...(this.resourceLoader.getAppendSystemPrompt() || []),
+      ].filter(Boolean).join("\n\n");
+      const llmContext = {
+        systemPrompt,
+        messages: convertToLlm(context.messages),
+      };
+      const estimate = estimateContextTokens(llmContext);
       return {
         totalTokens: estimate.tokens,
         inputTokens: estimate.usageTokens,
