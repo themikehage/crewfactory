@@ -284,6 +284,20 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     };
     fetchTasks();
 
+    const findMsgIndex = (prev: Message[], msg: Message) => {
+      return prev.findIndex(m => 
+        (m.id && msg.id && m.id === msg.id) || 
+        (m.responseId && msg.responseId && m.responseId === msg.responseId)
+      );
+    };
+
+    const hasContent = (c: any) => {
+      if (!c) return false;
+      if (typeof c === "string") return c.length > 0;
+      if (Array.isArray(c)) return c.length > 0;
+      return true;
+    };
+
     const unsubStart = subscribe("agent_start", () => {
       setStreaming(true);
     });
@@ -300,6 +314,15 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       if (msg.role === "user") return;
 
       setMessages((prev) => {
+        const index = findMsgIndex(prev, msg);
+        if (index !== -1) {
+          const existing = prev[index];
+          const newContent = hasContent(msg.content) ? msg.content : existing.content;
+          const updated = { ...existing, ...msg, content: newContent, isStreaming: true };
+          const copy = [...prev];
+          copy[index] = updated;
+          return copy;
+        }
         const last = prev[prev.length - 1];
         if (last?.isStreaming) {
           return [...prev.slice(0, -1), { ...msg, isStreaming: true }];
@@ -314,6 +337,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       if (!msg) return;
 
       setMessages((prev) => {
+        const index = findMsgIndex(prev, msg);
+        if (index !== -1) {
+          const existing = prev[index];
+          const updated = { ...existing, ...msg, isStreaming: true };
+          const copy = [...prev];
+          copy[index] = updated;
+          return copy;
+        }
         const last = prev[prev.length - 1];
         if (last?.isStreaming) {
           return [...prev.slice(0, -1), { ...msg, isStreaming: true }];
@@ -329,6 +360,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       if (msg.role === "user") return;
 
       setMessages((prev) => {
+        const index = findMsgIndex(prev, msg);
+        if (index !== -1) {
+          const existing = prev[index];
+          const updated = { ...existing, ...msg, isStreaming: false };
+          const copy = [...prev];
+          copy[index] = updated;
+          return copy;
+        }
         const last = prev[prev.length - 1];
         if (last?.isStreaming) {
           return [...prev.slice(0, -1), msg];

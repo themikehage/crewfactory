@@ -49,14 +49,18 @@ setInterval(() => {
       console.log(`[WS Server] Closing connection for wsId ${wsId} due to missed pings`);
       try {
         ws.close();
-      } catch {}
+      } catch (err) {
+        console.error("[WS Server] ws.close failed:", err);
+      }
       continue;
     }
 
     meta.missedPings = missed + 1;
     try {
       ws.send(JSON.stringify({ type: "ping" }));
-    } catch {}
+    } catch (err) {
+      console.error("[WS Server] ws.send ping failed:", err);
+    }
   }
 }, 30000);
 
@@ -67,7 +71,9 @@ export function broadcastToChannel(channelId: string, data: any) {
     for (const ws of sockets) {
       try {
         ws.send(payload);
-      } catch {}
+      } catch (err) {
+        console.error("[WS Server] broadcastToChannel ws.send failed:", err);
+      }
     }
   }
 }
@@ -81,7 +87,9 @@ export function broadcastToUser(username: string, data: any) {
     for (const ws of sockets) {
       try {
         ws.send(payload);
-      } catch {}
+      } catch (err) {
+        console.error("[WS Server] broadcastToUser ws.send failed:", err);
+      }
     }
   }
 }
@@ -93,7 +101,9 @@ export function broadcastToSession(sessionId: string, data: any) {
     for (const ws of sockets) {
       try {
         ws.send(payload);
-      } catch {}
+      } catch (err) {
+        console.error("[WS Server] broadcastToSession ws.send failed:", err);
+      }
     }
   }
 }
@@ -104,7 +114,9 @@ setEventBroadcaster(broadcastToUser);
 function safeSend(ws: { send: (data: string) => void }, data: string) {
   try {
     ws.send(data);
-  } catch {}
+  } catch (err) {
+    console.error("[WS Server] safeSend failed:", err);
+  }
 }
 
 async function subscribeWsToSession(
@@ -186,7 +198,9 @@ async function subscribeWsToSession(
             sessionStats,
           }));
         }
-      } catch {}
+      } catch (err) {
+        console.error("[WS Server] sendContextUsage callback failed:", err);
+      }
     };
 
     if (agentEvent.type === "agent_start") {
@@ -219,7 +233,9 @@ async function subscribeWsToSession(
         sessionStats,
       }));
     }
-  } catch {}
+  } catch (err) {
+    console.error("[WS Server] subscribeWsToSession initial sendContextUsage failed:", err);
+  }
 }
 
 export function onOpen(_evt: Event, _ws: WSContext) {

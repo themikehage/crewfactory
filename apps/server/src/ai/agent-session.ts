@@ -173,80 +173,79 @@ export class AgentSession {
     this.isStreaming = true;
     this.abortController = new AbortController();
 
-    const contentParts: any[] = [{ type: "text" as const, text: messageText }];
-    if (opts?.images && Array.isArray(opts.images)) {
-      for (const img of opts.images) {
-        let base64Part = img.data || "";
-        if (base64Part.includes("base64,")) {
-          base64Part = base64Part.substring(base64Part.indexOf("base64,") + 7);
-        }
-        contentParts.push({
-          type: "image" as const,
-          mimeType: img.mimeType || "image/png",
-          data: base64Part,
-        });
-      }
-    }
-
-    const userMessage = {
-      role: "user" as const,
-      content: contentParts.length > 1 ? contentParts : messageText,
-      timestamp: Date.now(),
-    };
-
-    // Registrar en persistencia
-    this.sessionManager.appendMessage(userMessage);
-    this.messages = this.sessionManager.buildSessionContext().messages;
-
-    const sessionContext = this.sessionManager.buildSessionContext();
-    const systemPrompt = [
-      this.resourceLoader.getSystemPrompt() || "",
-      ...(this.resourceLoader.getAppendSystemPrompt() || []),
-    ].filter(Boolean).join("\n\n");
-
-    const agentContext = {
-      systemPrompt,
-      messages: sessionContext.messages.slice(0, -1) as AgentMessage[],
-      tools: this.activeTools,
-    };
-
-    if (!this.model) {
-      this.isStreaming = false;
-      throw new Error("No model selected or available in session");
-    }
-
-    const modelObj = {
-      id: this.model.id,
-      name: this.model.name,
-      provider: this.model.provider,
-      api: this.model.api,
-      baseUrl: this.model.baseUrl,
-      apiKey: this.model.apiKey,
-      reasoning: !!this.model.reasoning,
-      contextWindow: this.model.contextWindow || 100000,
-      maxTokens: this.model.maxTokens || 4096,
-      compat: this.model.compat,
-      input: (this.model as any).input || [],
-      cost: (this.model as any).cost || {},
-    };
-
-    const loopConfig = {
-      model: modelObj,
-      maxSteps: 20,
-      thinkingLevel: this.thinkingLevel as any,
-      getApiKey: async (providerName: string) => {
-        const result = await this.modelRegistry.getApiKeyAndHeaders({
-          provider: providerName,
-          apiKey: this.model?.apiKey,
-        } as any);
-        return result.ok ? result.apiKey : undefined;
-      },
-      convertToLlm,
-      getSteeringMessages: () => this.drainSteeringMessages(),
-      getFollowUpMessages: () => this.drainFollowUpMessages(),
-    };
-
     try {
+      const contentParts: any[] = [{ type: "text" as const, text: messageText }];
+      if (opts?.images && Array.isArray(opts.images)) {
+        for (const img of opts.images) {
+          let base64Part = img.data || "";
+          if (base64Part.includes("base64,")) {
+            base64Part = base64Part.substring(base64Part.indexOf("base64,") + 7);
+          }
+          contentParts.push({
+            type: "image" as const,
+            mimeType: img.mimeType || "image/png",
+            data: base64Part,
+          });
+        }
+      }
+
+      const userMessage = {
+        role: "user" as const,
+        content: contentParts.length > 1 ? contentParts : messageText,
+        timestamp: Date.now(),
+      };
+
+      // Registrar en persistencia
+      this.sessionManager.appendMessage(userMessage);
+      this.messages = this.sessionManager.buildSessionContext().messages;
+
+      const sessionContext = this.sessionManager.buildSessionContext();
+      const systemPrompt = [
+        this.resourceLoader.getSystemPrompt() || "",
+        ...(this.resourceLoader.getAppendSystemPrompt() || []),
+      ].filter(Boolean).join("\n\n");
+
+      const agentContext = {
+        systemPrompt,
+        messages: sessionContext.messages.slice(0, -1) as AgentMessage[],
+        tools: this.activeTools,
+      };
+
+      if (!this.model) {
+        throw new Error("No model selected or available in session");
+      }
+
+      const modelObj = {
+        id: this.model.id,
+        name: this.model.name,
+        provider: this.model.provider,
+        api: this.model.api,
+        baseUrl: this.model.baseUrl,
+        apiKey: this.model.apiKey,
+        reasoning: !!this.model.reasoning,
+        contextWindow: this.model.contextWindow || 100000,
+        maxTokens: this.model.maxTokens || 4096,
+        compat: this.model.compat,
+        input: (this.model as any).input || [],
+        cost: (this.model as any).cost || {},
+      };
+
+      const loopConfig = {
+        model: modelObj,
+        maxSteps: 20,
+        thinkingLevel: this.thinkingLevel as any,
+        getApiKey: async (providerName: string) => {
+          const result = await this.modelRegistry.getApiKeyAndHeaders({
+            provider: providerName,
+            apiKey: this.model?.apiKey,
+          } as any);
+          return result.ok ? result.apiKey : undefined;
+        },
+        convertToLlm,
+        getSteeringMessages: () => this.drainSteeringMessages(),
+        getFollowUpMessages: () => this.drainFollowUpMessages(),
+      };
+
       await runAgentLoop(
         [userMessage as any],
         agentContext,
@@ -278,7 +277,7 @@ export class AgentSession {
               message: evt.message,
             });
           } else if (evt.type === "message_end") {
-            if (evt.message && (evt.message.role === "assistant" || evt.message.role === "toolResult")) {
+            if (evt.message && (evt.message.role === "assistant" || evt.message.role === "toolResult" || (evt.message.role === "user" && evt.message !== userMessage))) {
               this.sessionManager.appendMessage(evt.message);
               this.messages = this.sessionManager.buildSessionContext().messages;
             }
@@ -342,8 +341,6 @@ export class AgentSession {
       timestamp: Date.now(),
     };
     this.steeringQueue.push(steeringMsg);
-    this.sessionManager.appendMessage(steeringMsg);
-    this.messages = this.sessionManager.buildSessionContext().messages;
   }
 
   followUp(messageText: string): void {
@@ -353,8 +350,6 @@ export class AgentSession {
       timestamp: Date.now(),
     };
     this.followUpQueue.push(followUpMsg);
-    this.sessionManager.appendMessage(followUpMsg);
-    this.messages = this.sessionManager.buildSessionContext().messages;
   }
 
   async abort(): Promise<void> {
@@ -377,6 +372,9 @@ export class AgentSession {
   }
 
   async navigateTree(targetId: string, options?: { summarize?: boolean }): Promise<{ editorText: string }> {
+    if (this.isStreaming) {
+      throw new Error("Cannot navigate while session is streaming");
+    }
     this.sessionManager.branch(targetId);
     this.messages = this.sessionManager.buildSessionContext().messages;
     return { editorText: "" };
