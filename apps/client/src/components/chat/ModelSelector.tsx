@@ -246,19 +246,19 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
       </button>
 
       <PortalPopover triggerRef={triggerRef} open={open} onClose={() => { setOpen(false); setActiveProvider(null); }}>
-        <div className="w-72 bg-[#171717] border border-border rounded-xl shadow-xl overflow-hidden flex flex-col max-h-80">
+        <div className="w-72 bg-[#171717] border border-border rounded-xl shadow-xl flex flex-col max-h-[min(80vh,360px)] overflow-y-auto">
           {activeProvider && currentProvider ? (
             <>
               <button
                 onClick={() => setActiveProvider(null)}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors border-b border-input"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors border-b border-input shrink-0"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
                 </svg>
                 {currentProvider.name}
               </button>
-              <div className="max-h-48 overflow-y-auto">
+              <div className="overflow-y-auto">
                 {currentProvider.models.map((m) => (
                   <button
                     key={m.id}
@@ -281,7 +281,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
             </>
           ) : (
             <>
-              <div className="max-h-56 overflow-y-auto">
+              <div className="overflow-y-auto">
                 {recentModels.length > 0 && (
                   <div className="border-b border-input pb-1.5 mb-1.5">
                     <div className="px-3 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">
@@ -349,7 +349,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
                   navigate("/settings");
                   setOpen(false);
                 }}
-                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-primary hover:bg-card-hover transition-colors border-t border-input"
+                className="w-full flex items-center gap-2 px-3 py-2 text-xs text-primary hover:bg-card-hover transition-colors border-t border-input shrink-0"
               >
                 <svg width="12" height="12" viewBox="0 0 20 20" fill="currentColor">
                   <path fillRule="evenodd" d="M10 3a1 1 0 011 1v5h5a1 1 0 110 2h-5v5a1 1 0 11-2 0v-5H4a1 1 0 110-2h5V4a1 1 0 011-1z" clipRule="evenodd" />

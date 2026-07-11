@@ -86,7 +86,7 @@ export function Dropdown<T extends string>({
         matchWidth={matchWidth}
       >
         <div className={`bg-[#171717] border border-border rounded-xl shadow-xl overflow-y-auto py-1 ${matchWidth ? "" : "min-w-[140px]"}`}
-          style={matchWidth ? undefined : { maxHeight: "240px" }}>
+          style={matchWidth ? undefined : { maxHeight: "min(50vh, 240px)" }}>
           {options.map((opt) => {
             const isSelected = opt.value === value;
             return (

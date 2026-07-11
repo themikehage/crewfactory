@@ -16,6 +16,10 @@ RUN curl -fsSL https://bun.sh/install | bash \
   && cp /root/.bun/bin/bunx /usr/local/bin/bunx \
   && rm -rf /root/.bun
 
+RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
+  && apt-get install -y nodejs \
+  && rm -rf /var/lib/apt/lists/*
+
 FROM base AS builder
 WORKDIR /app
 

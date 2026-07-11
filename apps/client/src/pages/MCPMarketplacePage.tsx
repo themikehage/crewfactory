@@ -12,7 +12,7 @@ import { literals } from "./MCPMarketplacePage.literals";
 export function MCPMarketplacePage() {
   const { addToast } = useToast();
   const l = useLiterals(literals);
-  const [activeTab, setActiveTab] = useState<"gallery" | "custom">("gallery");
+  const [activeTab, setActiveTab] = useState<"gallery" | "custom" | "raw">("gallery");
   const [catalog, setCatalog] = useState<McpCatalogItem[]>([]);
   const [servers, setServers] = useState<McpServerConfig[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,10 +32,10 @@ export function MCPMarketplacePage() {
   const [editingCustomId, setEditingCustomId] = useState<string | null>(null);
 
   // Raw editor state
-  const [showRawEditor, setShowRawEditor] = useState(false);
   const [rawConfigStr, setRawConfigStr] = useState("");
   const [rawConfigError, setRawConfigError] = useState("");
   const [savingRaw, setSavingRaw] = useState(false);
+  const [rawLoaded, setRawLoaded] = useState(false);
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -311,8 +311,8 @@ export function MCPMarketplacePage() {
 
   // --- RAW EDITOR ACTIONS ---
 
-  const openRawEditor = async () => {
-    setShowRawEditor(true);
+  const loadRawConfig = useCallback(async () => {
+    if (rawLoaded) return;
     setRawConfigError("");
     try {
       const res = await apiFetch("/api/mcp");
@@ -327,7 +327,14 @@ export function MCPMarketplacePage() {
       setRawConfigError("Error al cargar la configuración");
       setRawConfigStr("{}");
     }
-  };
+    setRawLoaded(true);
+  }, [rawLoaded]);
+
+  useEffect(() => {
+    if (activeTab === "raw") {
+      loadRawConfig();
+    }
+  }, [activeTab, loadRawConfig]);
 
   const handleSaveRawConfig = async () => {
     setSavingRaw(true);
@@ -350,7 +357,7 @@ export function MCPMarketplacePage() {
       });
       if (!res.ok) throw new Error("Error al guardar la configuración");
       addToast("success", "Configuración guardada.");
-      setShowRawEditor(false);
+      setRawLoaded(false);
       fetchData();
     } catch (err: any) {
       setRawConfigError(err.message || "Error al guardar");
@@ -367,13 +374,11 @@ export function MCPMarketplacePage() {
 
   return (
     <div className="flex-1 flex flex-col min-h-0 h-full overflow-hidden bg-background text-foreground relative">
-      {/* Navigation tabs + raw editor toggle */}
-      <div className="flex items-center justify-between border-b border-border/80 px-6 py-3 flex-shrink-0 bg-card/10">
+      {/* Navigation tabs */}
+      <div className="flex items-center border-b border-border/80 px-6 py-3 flex-shrink-0 bg-card/10">
         <div className="flex items-center gap-1.5 p-0.5 bg-card/60 rounded-xl border border-input/10">
           <button
-            onClick={() => {
-              setActiveTab("gallery");
-            }}
+            onClick={() => setActiveTab("gallery")}
             className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
               activeTab === "gallery"
                 ? "bg-card text-primary shadow-sm border border-primary/20"
@@ -396,15 +401,15 @@ export function MCPMarketplacePage() {
           >
             {l.tabCustom}
           </button>
-        </div>
-
-        <div className="flex items-center gap-2">
           <button
-            onClick={openRawEditor}
-            className="px-3 py-1.5 text-xs font-semibold rounded-lg transition-all cursor-pointer bg-card/40 border border-input/20 text-muted-foreground hover:text-foreground hover:border-input/40 flex items-center gap-1.5"
-            title={l.rawEditor}
+            onClick={() => setActiveTab("raw")}
+            className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all cursor-pointer ${
+              activeTab === "raw"
+                ? "bg-card text-primary shadow-sm border border-primary/20"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
           >
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="inline mr-1.5 -mt-0.5">
               <polyline points="16 18 22 12 16 6" />
               <polyline points="8 6 2 12 8 18" />
             </svg>
@@ -420,67 +425,7 @@ export function MCPMarketplacePage() {
           </div>
         )}
 
-        {/* Raw Editor Panel */}
-        <AnimatePresence>
-          {showRawEditor && (
-            <motion.div
-              initial={{ opacity: 0, height: 0 }}
-              animate={{ opacity: 1, height: "auto" }}
-              exit={{ opacity: 0, height: 0 }}
-              transition={{ duration: 0.15 }}
-              className="mb-6 overflow-hidden"
-            >
-              <div className="bg-card rounded-xl border border-input/20 p-5 space-y-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <h3 className="text-foreground font-semibold text-sm">{l.rawEditorTitle}</h3>
-                    <p className="text-muted-foreground text-[11px] mt-0.5">
-                      Edita directamente el archivo mcp-servers.json completo.
-                    </p>
-                  </div>
-                  <button
-                    onClick={() => setShowRawEditor(false)}
-                    className="text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer"
-                  >
-                    Cerrar
-                  </button>
-                </div>
 
-                {rawConfigError && (
-                  <div className="p-3 bg-destructive/10 border border-destructive/20 text-error rounded-lg text-xs font-mono">
-                    {rawConfigError}
-                  </div>
-                )}
-
-                <textarea
-                  value={rawConfigStr}
-                  onChange={(e) => setRawConfigStr(e.target.value)}
-                  className="w-full h-72 px-4 py-3 bg-background border border-input/40 rounded-xl text-foreground outline-none focus:border-primary text-xs font-mono resize-y"
-                  spellCheck={false}
-                />
-
-                <div className="flex items-center justify-end gap-3">
-                  <button
-                    onClick={() => setShowRawEditor(false)}
-                    className="px-4 py-2 text-xs font-semibold rounded-lg bg-card-hover/20 text-muted-foreground hover:text-foreground transition-all cursor-pointer border border-input/20"
-                  >
-                    Cancelar
-                  </button>
-                  <button
-                    onClick={handleSaveRawConfig}
-                    disabled={savingRaw}
-                    className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
-                  >
-                    {savingRaw && (
-                      <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
-                    )}
-                    Guardar Configuración
-                  </button>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {loading ? (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -677,6 +622,59 @@ export function MCPMarketplacePage() {
                     })}
                   </div>
                 )}
+              </motion.div>
+            )}
+
+            {/* Raw Config Tab */}
+            {activeTab === "raw" && (
+              <motion.div
+                key="raw"
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                transition={{ duration: 0.15 }}
+                className="max-w-2xl"
+              >
+                <div className="bg-card rounded-xl border border-input/20 p-5 space-y-4">
+                  <div>
+                    <h3 className="text-foreground font-semibold text-sm">{l.rawEditorTitle}</h3>
+                    <p className="text-muted-foreground text-[11px] mt-0.5">
+                      Edita directamente el archivo mcp-servers.json completo.
+                    </p>
+                  </div>
+
+                  {rawConfigError && (
+                    <div className="p-3 bg-destructive/10 border border-destructive/20 text-error rounded-lg text-xs font-mono">
+                      {rawConfigError}
+                    </div>
+                  )}
+
+                  <textarea
+                    value={rawConfigStr}
+                    onChange={(e) => setRawConfigStr(e.target.value)}
+                    className="w-full h-72 px-4 py-3 bg-background border border-input/40 rounded-xl text-foreground outline-none focus:border-primary text-xs font-mono resize-y"
+                    spellCheck={false}
+                  />
+
+                  <div className="flex items-center justify-end gap-3">
+                    <button
+                      onClick={() => { setRawConfigStr("{}"); setRawConfigError(""); }}
+                      className="px-4 py-2 text-xs font-semibold rounded-lg bg-card-hover/20 text-muted-foreground hover:text-foreground transition-all cursor-pointer border border-input/20"
+                    >
+                      Reiniciar
+                    </button>
+                    <button
+                      onClick={handleSaveRawConfig}
+                      disabled={savingRaw}
+                      className="px-4 py-2 text-xs font-semibold rounded-lg bg-primary text-white hover:bg-primary/90 transition-all cursor-pointer disabled:opacity-50 flex items-center gap-2"
+                    >
+                      {savingRaw && (
+                        <span className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin inline-block" />
+                      )}
+                      Guardar Configuración
+                    </button>
+                  </div>
+                </div>
               </motion.div>
             )}
           </AnimatePresence>

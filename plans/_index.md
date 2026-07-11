@@ -11,6 +11,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - **12 High** → [fix-high.md](./fix-high.md) — Pre-loop throw, navigateTree corrupts messages, steer duplicado, sendContextUsage mata pipe, out-of-order WS messages, tool_execution_update dropped, AgentHarness no usado, compact stub, message_update filtering, vendor sync
 - **30 Medium** → [fix-medium.md](./fix-medium.md) — emit() traga errores, race abortController, dispose sin await, constructor inseguro, session dir race, authStorage any, dynamic import, bash hardcode, persist sin rollback, rewrite full file, image tokens, WS jitter/retries/queue, channel_join cleanup
 - **15 Low** → [fix-low.md](./fix-low.md) — Context type mismatch, token naming, steer warning, undefined return, compact stub, auth error feedback, EXEC/LAB silent, TOCTOU race, disconnect feedback, network errors, turn events, unknown event log, barrel export
+- **10 Delegation** → [fix-delegation.md](./fix-delegation.md) — role:user en vez de toolResult, doble toolCallId, forwardSubagentEvents sin fallback, parent muerto silencioso, wakeMessage duplicado, includeFullHistory sin truncar, FloatingDelegations no renderizado, DelegationsPanel sin WS events, type guards, sanitize URL
 
 ### Technical Debt
 

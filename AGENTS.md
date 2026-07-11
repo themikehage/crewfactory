@@ -10,6 +10,7 @@ Before any work, read: `about.md`, `steps.md`, `AGENTS.md` (this file). These ar
 4. Update `steps.md` to mark completed (dont read complete, only the last entries)
 5. Update `about.md` after each new change to keep documentation current (architecture, features, API endpoints, and modules)
 6. **Ideas**: When the user shares a feature idea, analyze it, create a plan in `plans/{topic}.md`, link it in `plans/_index.md`, and update `about.md` if needed
+7. **Plan completion**: When a plan is fully implemented, prepend `COMPLETED` as the first line of its `.md` file and move it to `plans/COMPLETED/`
 
 ## Commands
 - `bun run dev` - Start both client and server (from root)
