@@ -113,6 +113,21 @@
 - `ensureWorkspaceSubdirs()` creates the common subdirectory skeleton for any entity workspace.
 - Dashboard view (initial screen) lets users list, create or clone Git projects.
 
+### Custom Tool System (Agent-Defined Tools)
+
+- **On-Demand Tool Creation**: El agente LLM puede crear, editar, activar/desactivar y eliminar tools personalizadas via la tool `manage_custom_tools` sin intervencion del usuario.
+- **Contrato Zod Solido**: Cada tool se define con un objeto JSON validado estrictamente con Zod: `name`, `description`, `parameters` (JSON Schema), `execute` (modo de ejecucion), y `ui` (componentes visuales opcionales).
+- **3 Modos de Ejecucion**:
+  1. **Pipeline**: Secuencia de tools existentes (bash, read, write, grep, find, ls) con paso de variables entre pasos via `{variableName}`. Ejecucion secuencial controlada con `onError: stop|continue`.
+  2. **UI**: Tool puramente visual sin ejecucion server-side. El agente define componentes estructurados que el frontend renderiza nativamente (card, card-list, table, badge, metric, code, section).
+  3. **Subagent** (fase 2): La tool spawnca un subagente con instrucciones especificas.
+- **Motor de Pipeline (PipelineEngine)**: Ejecuta secuencialmente los pasos, resolviendo variables con soporte de anidacion, emitiendo eventos `tool_execution_start/update/end` en tiempo real via WebSocket.
+- **CustomToolStorage**: Persistencia en filesystem (`/app/data/users/{username}/custom-tools/{name}.json` + `_index.json`). CRUD completo con toggle enable/disable.
+- **CustomToolRuntime**: Wrapper que convierte `CustomToolDefinition` → `AgentTool` compatible con `AgentSession._customTools`. Inyeccion dinamica identica al patron MCP.
+- **UI Builder Engine (Frontend)**: Sistema de componentes React nativos que renderizan definiciones JSON estructuradas. Soporta composicion anidada (`section` contiene `card-list` que contiene `card` + `badge`). Escape hatch HTML via `{ type: "html" }` con Tailwind design system inyectado en iframe sandboxeado.
+- **Agent Self-Service**: El system prompt del agente incluye documentacion completa sobre como definir tools, componentes UI disponibles, y sintaxis de variables. El agente puede auto-documentar sus tools creadas.
+- **Entity Refresh Integration**: Las mutaciones de custom tools emiten `entity-updated` via WebSocket para refrescar el frontend en tiempo real.
+
 ### Tool Permissions
 - Per-session tool access control: toggle `read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`
 - Presets: **Full Access** (all 7 tools) and **Read-Only** (read, grep, find, ls only)

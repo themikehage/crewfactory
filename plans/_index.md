@@ -26,6 +26,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ### Features
 
+- [custom-tools.md](./custom-tools.md) — **Custom Tool System**: Motor de creacion de tools personalizadas por el agente LLM a demanda. Contrato Zod solido con 3 modos de ejecucion (pipeline, UI, subagent), CRUD engine con persistencia en filesystem, y motor de UI builder con componentes estructurados (cards, tables, metrics) + escape hatch HTML con design system inyectado.
 - [manage-factory-tool.md](./manage-factory-tool.md) — Tool `manage_factory`: operaciones CRUD de fabrica en una sola tool con contrato auto-documentado. Reemplaza skills factory-x + curl por tool nativa.
 - [async-delegation-spawn.md](./async-delegation-spawn.md) — Delegacion y spawn asincronos sin bloqueo del agente padre, con redireccion a sesion del subagente y tracker de delegaciones tipo FloatingTasks
 - [api-error-detection.md](./api-error-detection.md) — Detectar errores silenciosos de la API cuando el LLM devuelve error en lugar de texto, mostrando mensajes de error visibles en el chat
