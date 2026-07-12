@@ -636,14 +636,14 @@ export class SessionManager {
     return entry.id;
   }
 
-  appendCompaction(summary: string, tokensBefore: number): string {
+  appendCompaction(summary: string, tokensBefore: number, firstKeptEntryId?: string): string {
     const entry: CompactionEntry = {
       type: "compaction",
       id: generateId(this.byId),
       parentId: this.leafId,
       timestamp: new Date().toISOString(),
       summary,
-      firstKeptEntryId: this.leafId || "",
+      firstKeptEntryId: firstKeptEntryId || this.leafId || "",
       tokensBefore,
     };
     this._appendEntry(entry);

@@ -133,4 +133,12 @@
 - [x] 104.5 Track/deduplicate client updates using responseId/id in ChatArea.tsx (H5)
 - [x] 104.6 Verify successful compilation build of client and server apps
 
-
+## Phase 105: Refactor AgentSession & Adoption of Agent Class
+- [x] 105.1 Refactored session-persistence.ts to accept custom firstKeptEntryId in appendCompaction
+- [x] 105.2 Refactored AgentSession to delegate to the vendor Agent class internally
+- [x] 105.3 Subscribed to tool_execution_update events and forwarded them locally in ChatArea.tsx
+- [x] 105.4 Passed compaction state and callbacks from ChatArea -> ChatInput -> InputToolbar -> ContextIndicator
+- [x] 105.5 Added Zap button for context compaction inside ContextIndicator.tsx
+- [x] 105.6 Subscribed to tool-update event and rendered progressive logs in ToolCallRow.tsx
+- [x] 105.7 Added unit tests covering AgentSession initialization, prompt execution, steering, and compaction in agent-session.test.ts
+- [x] 105.8 Verified successful compilation and execution of client and server builds and tests

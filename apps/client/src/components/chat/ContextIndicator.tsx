@@ -1,11 +1,16 @@
 import { useMemo } from "react";
-import { type ContextUsage } from "@/lib";
+import { Zap } from "lucide-react";
+import { useLiterals, type ContextUsage } from "@/lib";
+import { literals as u } from "./ContextMeter.literals";
 
 interface ContextIndicatorProps {
   contextUsage: ContextUsage | null;
+  onCompact?: () => void;
+  compacting?: boolean;
 }
 
-export function ContextIndicator({ contextUsage }: ContextIndicatorProps) {
+export function ContextIndicator({ contextUsage, onCompact, compacting = false }: ContextIndicatorProps) {
+  const l = useLiterals(u);
   const show = contextUsage && contextUsage.totalTokens !== null && contextUsage.limit !== null;
 
   const formattedText = useMemo(() => {
@@ -20,12 +25,25 @@ export function ContextIndicator({ contextUsage }: ContextIndicatorProps) {
   if (!show) return null;
 
   return (
-    <span
-      className="text-xs font-mono text-text-secondary select-none"
-      aria-label={`${contextUsage.totalTokens} of ${contextUsage.limit} tokens used`}
-    >
-      {formattedText}
-    </span>
+    <div className="flex items-center gap-1.5 select-none">
+      <span
+        className="text-xs font-mono text-text-secondary"
+        aria-label={`${contextUsage.totalTokens} of ${contextUsage.limit} tokens used`}
+      >
+        {formattedText}
+      </span>
+      {onCompact && (
+        <button
+          type="button"
+          onClick={onCompact}
+          disabled={compacting}
+          className="p-1 rounded-md text-text-secondary hover:text-accent hover:bg-surface-hover/30 transition-all cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center"
+          title={compacting ? l.compacting : l.compact}
+        >
+          <Zap size={11} className={compacting ? "animate-pulse text-accent" : ""} />
+        </button>
+      )}
+    </div>
   );
 }
 

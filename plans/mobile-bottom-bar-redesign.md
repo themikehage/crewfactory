@@ -1,3 +1,4 @@
+COMPLETED
 # Mobile Bottom Bar Redesign
 
 La bottombar de mobile solo debe mostrarse cuando el menu lateral (drawer) esta desplegado. Nunca debe mostrarse en pantallas de chat, home, settings, skills, logs, ni ninguna otra vista.

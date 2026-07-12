@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { LsResult } from "./LsResult";
 import { FindResult } from "./FindResult";
 import { WriteResult } from "./WriteResult";
@@ -628,6 +628,24 @@ export function ToolCallRow({
   const l = useLiterals(literals);
   const isInteractive = serialTools.includes(toolName) || toolName === "spawn_subagent" || toolName === "delegate_task";
 
+  const [partialResult, setPartialResult] = useState<any>(null);
+
+  useEffect(() => {
+    if (!toolCallId || result !== null) return;
+
+    const handleUpdate = (e: Event) => {
+      const detail = (e as CustomEvent).detail;
+      if (detail && detail.partialResult) {
+        setPartialResult(detail.partialResult);
+      }
+    };
+
+    window.addEventListener(`tool-update-${toolCallId}`, handleUpdate);
+    return () => {
+      window.removeEventListener(`tool-update-${toolCallId}`, handleUpdate);
+    };
+  }, [toolCallId, result]);
+
   const [expanded, setExpanded] = useState(
     !disabled && (
       toolName === "edit" ||
@@ -673,9 +691,15 @@ export function ToolCallRow({
   const labelText = meta.label === toolName ? getToolLabel(toolName) : meta.label;
 
   const running = result === null;
+  const activeResult = result || (partialResult ? {
+    toolName,
+    content: [{ type: "text", text: typeof partialResult === "string" ? partialResult : (partialResult.output || partialResult.text || JSON.stringify(partialResult)) }],
+    isError: false,
+    details: partialResult.details || partialResult,
+  } : null);
   const hasError = result?.isError ?? false;
   const argSummary = getArgSummary(toolName, args, l);
-  const resultSummary = result ? getResultSummary(toolName, result, l) : "";
+  const resultSummary = activeResult ? getResultSummary(toolName, activeResult, l) : "";
   const isFullBleed = toolName === "render_html" || toolName === "render_chart";
 
   return (
@@ -684,8 +708,8 @@ export function ToolCallRow({
       hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
     }`}>
       <button
-        onClick={() => !disabled && !running && setExpanded(!expanded)}
-        disabled={disabled || (running && isInteractive)}
+        onClick={() => !disabled && setExpanded(!expanded)}
+        disabled={disabled}
         className="w-full flex items-center gap-2 px-3 py-2 hover:bg-card-hover/40 transition-colors text-left cursor-pointer disabled:cursor-default"
       >
         <span className={`flex-shrink-0 ${meta.colorClass}`}>{meta.icon}</span>
@@ -738,12 +762,12 @@ export function ToolCallRow({
         </div>
       </button>
 
-      {(!running || isInteractive) && expanded && (
+      {(!running || isInteractive || partialResult !== null) && expanded && (
         <div className={`border-t border-border bg-card-hover/20 ${isFullBleed ? "p-0" : "p-3"}`}>
           <ToolBody
             toolName={toolName}
             args={args}
-            result={result}
+            result={activeResult}
             toolCallId={toolCallId}
             sessionId={_sessionId}
             activeProjectName={_activeProjectName}

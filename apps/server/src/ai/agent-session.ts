@@ -1,5 +1,6 @@
-import { runAgentLoop } from "./vendor/agent/src/agent-loop.ts";
-import { streamSimple } from "./vendor/ai/src/compat.ts";
+import { Agent } from "./vendor/agent/src/agent.ts";
+import { prepareCompaction, compact } from "./vendor/agent/src/harness/compaction/compaction.ts";
+import { completeSimple, streamSimple } from "./vendor/ai/src/compat.ts";
 import type { AgentMessage, AgentTool } from "./vendor/agent/src/types.ts";
 import type { AvailableModel, ModelRegistry } from "./model-registry";
 import type { SessionManager } from "./session-persistence";
@@ -27,32 +28,43 @@ export class AgentSession {
   customTools: any[];
   _customTools: any[];
 
-  messages: any[] = [];
   model: AvailableModel | null = null;
-  thinkingLevel: string = "off";
-  isStreaming: boolean = false;
 
+  private agent!: Agent;
   private activeTools: AgentTool[] = [];
   private allToolsMap: Map<string, AgentTool> = new Map();
   private eventListeners: Set<(evt: any) => void> = new Set();
   private abortController: AbortController | null = null;
-  private steeringQueue: AgentMessage[] = [];
-  private followUpQueue: AgentMessage[] = [];
+
+  get messages(): any[] {
+    return this.agent?.state?.messages || [];
+  }
+  set messages(val: any[]) {
+    if (this.agent?.state) {
+      this.agent.state.messages = val;
+    }
+  }
+
+  get thinkingLevel(): string {
+    return this.agent?.state?.thinkingLevel || "off";
+  }
+  set thinkingLevel(val: string) {
+    if (this.agent?.state) {
+      (this.agent.state as any).thinkingLevel = val as any;
+    }
+  }
+
+  get isStreaming(): boolean {
+    return this.agent?.state?.isStreaming || false;
+  }
+  set isStreaming(val: boolean) {
+    if (this.agent?.state) {
+      (this.agent.state as any).isStreaming = val;
+    }
+  }
 
   addDelegationResult(resultMessage: AgentMessage): void {
-    this.steeringQueue.push(resultMessage);
-  }
-
-  private drainSteeringMessages(): Promise<AgentMessage[]> {
-    const msgs = [...this.steeringQueue];
-    this.steeringQueue = [];
-    return Promise.resolve(msgs);
-  }
-
-  private drainFollowUpMessages(): Promise<AgentMessage[]> {
-    const msgs = [...this.followUpQueue];
-    this.followUpQueue = [];
-    return Promise.resolve(msgs);
+    this.agent.steer(resultMessage);
   }
 
   constructor(options: CreateAgentSessionOptions) {
@@ -66,6 +78,7 @@ export class AgentSession {
 
     this.initializeTools();
     this.restoreSessionState();
+    this.initializeAgent();
   }
 
   _refreshToolRegistry(): void {
@@ -101,6 +114,9 @@ export class AgentSession {
       this.allToolsMap.set(toolDef.name, wrappedTool);
     }
     this.activeTools = Array.from(this.allToolsMap.values());
+    if (this.agent) {
+      (this.agent.state as any).tools = this.activeTools;
+    }
   }
 
   private initializeTools() {
@@ -109,8 +125,7 @@ export class AgentSession {
 
   private restoreSessionState() {
     const context = this.sessionManager.buildSessionContext();
-    this.messages = context.messages;
-    this.thinkingLevel = context.thinkingLevel || "off";
+    const loadedThinkingLevel = context.thinkingLevel || "off";
 
     if (context.model) {
       const found = this.modelRegistry.find(context.model.provider, context.model.modelId);
@@ -125,6 +140,145 @@ export class AgentSession {
         this.model = available[0];
       }
     }
+
+    this.thinkingLevel = loadedThinkingLevel;
+  }
+
+  private initializeAgent() {
+    const systemPrompt = [
+      this.resourceLoader.getSystemPrompt() || "",
+      ...(this.resourceLoader.getAppendSystemPrompt() || []),
+    ].filter(Boolean).join("\n\n");
+
+    const modelObj = this.model ? {
+      id: this.model.id,
+      name: this.model.name,
+      provider: this.model.provider,
+      api: this.model.api,
+      baseUrl: this.model.baseUrl,
+      apiKey: this.model.apiKey,
+      reasoning: !!this.model.reasoning,
+      contextWindow: this.model.contextWindow || 100000,
+      maxTokens: this.model.maxTokens || 4096,
+      compat: this.model.compat,
+      input: (this.model as any).input || [],
+      cost: (this.model as any).cost || {},
+    } : {
+      id: "unknown",
+      name: "unknown",
+      provider: "unknown",
+      api: "unknown",
+      baseUrl: "",
+      reasoning: false,
+      contextWindow: 100000,
+      maxTokens: 4096,
+      compat: undefined,
+      input: [],
+      cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
+    };
+
+    const initialMessages = this.sessionManager.buildSessionContext().messages;
+
+    this.agent = new Agent({
+      initialState: {
+        systemPrompt,
+        model: modelObj as any,
+        thinkingLevel: this.thinkingLevel as any,
+        tools: this.activeTools,
+        messages: initialMessages,
+      },
+      convertToLlm,
+      streamFn: streamSimple,
+      getApiKey: async (providerName: string) => {
+        const result = await this.modelRegistry.getApiKeyAndHeaders({
+          provider: providerName,
+          apiKey: this.model?.apiKey,
+        } as any);
+        return result.ok ? result.apiKey : undefined;
+      },
+    });
+
+    this.agent.subscribe(async (evt) => {
+      await this.handleAgentEvent(evt);
+    });
+  }
+
+  private async handleAgentEvent(evt: any) {
+    if (evt.type === "agent_start") {
+      this.emit({ type: "agent_start" });
+    } else if (evt.type === "agent_end") {
+      for (const msg of evt.messages || []) {
+        if (msg.role === "assistant" && msg.usage) {
+          if (!msg.usage.cost) {
+            msg.usage.cost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
+          } else {
+            const cost = msg.usage.cost;
+            cost.input = cost.input ?? 0;
+            cost.output = cost.output ?? 0;
+            cost.cacheRead = cost.cacheRead ?? 0;
+            cost.cacheWrite = cost.cacheWrite ?? 0;
+            cost.total = cost.total ?? 0;
+          }
+        }
+      }
+      this.emit({ type: "agent_end", messages: evt.messages, willRetry: false });
+    } else if (evt.type === "message_start") {
+      this.emit({
+        type: "message_start",
+        message: evt.message,
+      });
+    } else if (evt.type === "message_end") {
+      if (evt.message) {
+        this.sessionManager.appendMessage(evt.message);
+      }
+      this.emit({
+        type: "message_end",
+        message: evt.message,
+      });
+    } else if (evt.type === "message_update") {
+      if (evt.assistantMessageEvent?.type === "text_delta" || evt.assistantMessageEvent?.type === "thinking_delta") {
+        this.emit({
+          type: "message_update",
+          assistantMessageEvent: evt.assistantMessageEvent,
+          message: evt.message,
+        });
+      }
+    } else if (evt.type === "tool_execution_start") {
+      this.emit({
+        type: "tool_execution_start",
+        toolName: evt.toolName,
+        args: evt.args,
+        toolCallId: evt.toolCallId,
+        toolCall: {
+          id: evt.toolCallId,
+          name: evt.toolName,
+          arguments: evt.args,
+        },
+      });
+    } else if (evt.type === "tool_execution_end") {
+      this.emit({
+        type: "tool_execution_end",
+        toolName: evt.toolName,
+        result: evt.result,
+        isError: evt.isError,
+        toolCallId: evt.toolCallId,
+        toolCall: {
+          id: evt.toolCallId,
+          name: evt.toolName,
+        },
+      });
+    } else if (evt.type === "tool_execution_update") {
+      this.emit({
+        type: "tool_execution_update",
+        toolCallId: evt.toolCallId,
+        toolName: evt.toolName,
+        partialResult: evt.partialResult,
+      });
+    } else if (evt.type === "turn_end") {
+      if (evt.message && evt.message.role === "assistant" && evt.message.errorMessage) {
+        this.emit({ type: "agent_error", error: evt.message.errorMessage });
+      }
+    }
   }
 
   setActiveToolsByName(names: string[]): void {
@@ -134,6 +288,9 @@ export class AgentSession {
       if (tool) list.push(tool);
     }
     this.activeTools = list;
+    if (this.agent) {
+      (this.agent.state as any).tools = list;
+    }
   }
 
   getActiveToolNames(): string[] {
@@ -143,6 +300,22 @@ export class AgentSession {
   async setModel(model: AvailableModel): Promise<void> {
     this.model = model;
     this.sessionManager.appendModelChange(model.provider, model.id);
+    if (this.agent) {
+      (this.agent.state as any).model = {
+        id: model.id,
+        name: model.name,
+        provider: model.provider,
+        api: model.api,
+        baseUrl: model.baseUrl,
+        apiKey: model.apiKey,
+        reasoning: !!model.reasoning,
+        contextWindow: model.contextWindow || 100000,
+        maxTokens: model.maxTokens || 4096,
+        compat: model.compat,
+        input: (model as any).input || [],
+        cost: (model as any).cost || {},
+      };
+    }
   }
 
   setThinkingLevel(level: string): void {
@@ -195,133 +368,34 @@ export class AgentSession {
         timestamp: Date.now(),
       };
 
-      // Registrar en persistencia
-      this.sessionManager.appendMessage(userMessage);
-      this.messages = this.sessionManager.buildSessionContext().messages;
+      if (this.model) {
+        const modelObj = {
+          id: this.model.id,
+          name: this.model.name,
+          provider: this.model.provider,
+          api: this.model.api,
+          baseUrl: this.model.baseUrl,
+          apiKey: this.model.apiKey,
+          reasoning: !!this.model.reasoning,
+          contextWindow: this.model.contextWindow || 100000,
+          maxTokens: this.model.maxTokens || 4096,
+          compat: this.model.compat,
+          input: (this.model as any).input || [],
+          cost: (this.model as any).cost || {},
+        };
+        (this.agent.state as any).model = modelObj;
+      }
 
-      const sessionContext = this.sessionManager.buildSessionContext();
       const systemPrompt = [
         this.resourceLoader.getSystemPrompt() || "",
         ...(this.resourceLoader.getAppendSystemPrompt() || []),
       ].filter(Boolean).join("\n\n");
+      (this.agent.state as any).systemPrompt = systemPrompt;
 
-      const agentContext = {
-        systemPrompt,
-        messages: sessionContext.messages.slice(0, -1) as AgentMessage[],
-        tools: this.activeTools,
-      };
+      const currentMessages = this.sessionManager.buildSessionContext().messages;
+      (this.agent.state as any).messages = currentMessages;
 
-      if (!this.model) {
-        throw new Error("No model selected or available in session");
-      }
-
-      const modelObj = {
-        id: this.model.id,
-        name: this.model.name,
-        provider: this.model.provider,
-        api: this.model.api,
-        baseUrl: this.model.baseUrl,
-        apiKey: this.model.apiKey,
-        reasoning: !!this.model.reasoning,
-        contextWindow: this.model.contextWindow || 100000,
-        maxTokens: this.model.maxTokens || 4096,
-        compat: this.model.compat,
-        input: (this.model as any).input || [],
-        cost: (this.model as any).cost || {},
-      };
-
-      const loopConfig = {
-        model: modelObj,
-        maxSteps: 20,
-        thinkingLevel: this.thinkingLevel as any,
-        getApiKey: async (providerName: string) => {
-          const result = await this.modelRegistry.getApiKeyAndHeaders({
-            provider: providerName,
-            apiKey: this.model?.apiKey,
-          } as any);
-          return result.ok ? result.apiKey : undefined;
-        },
-        convertToLlm,
-        getSteeringMessages: () => this.drainSteeringMessages(),
-        getFollowUpMessages: () => this.drainFollowUpMessages(),
-      };
-
-      await runAgentLoop(
-        [userMessage as any],
-        agentContext,
-        loopConfig,
-        async (evt: any) => {
-          // Mapear eventos a la estructura que espera CrewFactory
-          if (evt.type === "agent_start") {
-            this.emit({ type: "agent_start" });
-          } else if (evt.type === "agent_end") {
-            // Sanitizar costos al finalizar el loop
-            for (const msg of evt.messages) {
-              if (msg.role === "assistant" && msg.usage) {
-                if (!msg.usage.cost) {
-                  msg.usage.cost = { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 };
-                } else {
-                  const cost = msg.usage.cost;
-                  cost.input = cost.input ?? 0;
-                  cost.output = cost.output ?? 0;
-                  cost.cacheRead = cost.cacheRead ?? 0;
-                  cost.cacheWrite = cost.cacheWrite ?? 0;
-                  cost.total = cost.total ?? 0;
-                }
-              }
-            }
-            this.emit({ type: "agent_end", messages: evt.messages, willRetry: false });
-          } else if (evt.type === "message_start") {
-            this.emit({
-              type: "message_start",
-              message: evt.message,
-            });
-          } else if (evt.type === "message_end") {
-            if (evt.message && (evt.message.role === "assistant" || evt.message.role === "toolResult" || (evt.message.role === "user" && evt.message !== userMessage))) {
-              this.sessionManager.appendMessage(evt.message);
-              this.messages = this.sessionManager.buildSessionContext().messages;
-            }
-            this.emit({
-              type: "message_end",
-              message: evt.message,
-            });
-          } else if (evt.type === "message_update") {
-            if (evt.assistantMessageEvent?.type === "text_delta" || evt.assistantMessageEvent?.type === "thinking_delta") {
-              this.emit({
-                type: "message_update",
-                assistantMessageEvent: evt.assistantMessageEvent,
-                message: evt.message,
-              });
-            }
-          } else if (evt.type === "tool_execution_start") {
-            this.emit({
-              type: "tool_execution_start",
-              toolName: evt.toolName,
-              args: evt.args,
-              toolCallId: evt.toolCallId,
-              toolCall: {
-                id: evt.toolCallId,
-                name: evt.toolName,
-                arguments: evt.args,
-              },
-            });
-          } else if (evt.type === "tool_execution_end") {
-            this.emit({
-              type: "tool_execution_end",
-              toolName: evt.toolName,
-              result: evt.result,
-              isError: evt.isError,
-              toolCallId: evt.toolCallId,
-              toolCall: {
-                id: evt.toolCallId,
-                name: evt.toolName,
-              },
-            });
-          }
-        },
-        this.abortController.signal,
-        streamSimple
-      );
+      await this.agent.prompt(userMessage as any);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
       this.emit({ type: "agent_error", error: errorMsg });
@@ -329,8 +403,6 @@ export class AgentSession {
     } finally {
       this.isStreaming = false;
       this.abortController = null;
-      // Actualizar mensajes en memoria local
-      this.messages = this.sessionManager.buildSessionContext().messages;
     }
   }
 
@@ -340,7 +412,7 @@ export class AgentSession {
       content: messageText,
       timestamp: Date.now(),
     };
-    this.steeringQueue.push(steeringMsg);
+    this.agent.steer(steeringMsg);
   }
 
   followUp(messageText: string): void {
@@ -349,10 +421,13 @@ export class AgentSession {
       content: messageText,
       timestamp: Date.now(),
     };
-    this.followUpQueue.push(followUpMsg);
+    this.agent.followUp(followUpMsg);
   }
 
   async abort(): Promise<void> {
+    if (this.agent) {
+      this.agent.abort();
+    }
     if (this.abortController) {
       this.abortController.abort();
     }
@@ -366,9 +441,82 @@ export class AgentSession {
     }
   }
 
-  async compact(): Promise<void> {
-    // Stub de compaction simple
-    this.sessionManager.appendCompaction("Manual compaction triggered", 0);
+  async compact(customInstructions?: string): Promise<void> {
+    if (this.isStreaming) {
+      throw new Error("Cannot compact while session is streaming");
+    }
+
+    if (!this.model) {
+      throw new Error("No model configured for compaction");
+    }
+
+    const modelObj = {
+      id: this.model.id,
+      name: this.model.name,
+      provider: this.model.provider,
+      api: this.model.api,
+      baseUrl: this.model.baseUrl,
+      apiKey: this.model.apiKey,
+      reasoning: !!this.model.reasoning,
+      contextWindow: this.model.contextWindow || 100000,
+      maxTokens: this.model.maxTokens || 4096,
+      compat: this.model.compat,
+      input: (this.model as any).input || [],
+      cost: (this.model as any).cost || {},
+    };
+
+    const entries = this.sessionManager.getEntries();
+    const settings = {
+      enabled: true,
+      reserveTokens: 16384,
+      keepRecentTokens: 20000,
+    };
+
+    const prepResult = prepareCompaction(entries as any[], settings);
+    if (!prepResult.ok) {
+      console.error("[Compaction] Preparation failed:", prepResult.error);
+      return;
+    }
+
+    const preparation = prepResult.value;
+    if (!preparation) {
+      console.log("[Compaction] Nothing to compact");
+      return;
+    }
+
+    const dummyModels = {
+      completeSimple: async (m: any, ctx: any, opts?: any) => {
+        const result = await this.modelRegistry.getApiKeyAndHeaders({
+          provider: m.provider,
+          apiKey: this.model?.apiKey,
+        } as any);
+        const apiKey = result.ok ? result.apiKey : undefined;
+        return completeSimple(m, ctx, { ...opts, apiKey });
+      }
+    } as any;
+
+    try {
+      const compactResult = await compact(
+        preparation,
+        dummyModels,
+        modelObj,
+        customInstructions,
+        undefined,
+        this.thinkingLevel as any
+      );
+
+      if (!compactResult.ok) {
+        console.error("[Compaction] Execution failed:", compactResult.error);
+        return;
+      }
+
+      const { summary, firstKeptEntryId, tokensBefore } = compactResult.value;
+      this.sessionManager.appendCompaction(summary, tokensBefore, firstKeptEntryId);
+      this.messages = this.sessionManager.buildSessionContext().messages;
+      console.log("[Compaction] Successfully compacted session context");
+    } catch (err) {
+      console.error("[Compaction] Unexpected error during compaction:", err);
+    }
   }
 
   async navigateTree(targetId: string, options?: { summarize?: boolean }): Promise<{ editorText: string }> {
@@ -377,6 +525,9 @@ export class AgentSession {
     }
     this.sessionManager.branch(targetId);
     this.messages = this.sessionManager.buildSessionContext().messages;
+    if (this.agent) {
+      this.agent.state.messages = this.messages;
+    }
     return { editorText: "" };
   }
 

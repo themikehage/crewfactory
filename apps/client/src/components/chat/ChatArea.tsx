@@ -171,10 +171,17 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     currentTaskId: null,
     status: "idle",
   });
+  const [compacting, setCompacting] = useState(false);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const [wasConnected, setWasConnected] = useState(connected);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const firstMessageSentRef = useRef(false);
+
+  const handleCompact = useCallback(() => {
+    if (!sessionId || compacting) return;
+    setCompacting(true);
+    send({ type: "compact", sessionId });
+  }, [sessionId, send, compacting]);
 
   const isReadOnlyExecution = sessionId?.startsWith("exec_") ?? false;
 
@@ -403,6 +410,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     const unsubError = subscribe("agent_error", (data: unknown) => {
       const evt = data as Record<string, unknown>;
       setError(String(evt.error ?? l.unknownError));
+      setCompacting(false);
     });
 
     const unsubTasks = subscribe("tasks_update", (data: any) => {
@@ -421,7 +429,15 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const evt = data as Record<string, unknown>;
       if (evt.contextUsage) {
         setContextUsage(evt.contextUsage as ContextUsage);
+        setCompacting(false);
       }
+    });
+
+    const unsubToolUpdate = subscribe("tool_execution_update", (data: unknown) => {
+      const evt = data as Record<string, unknown>;
+      const toolCallId = evt.toolCallId as string | undefined;
+      if (!toolCallId) return;
+      window.dispatchEvent(new CustomEvent(`tool-update-${toolCallId}`, { detail: evt }));
     });
 
     const unsubDelCompleted = subscribe("delegation_completed", (data: any) => {
@@ -441,6 +457,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubTasks();
       unsubSubagent();
       unsubContext();
+      unsubToolUpdate();
       unsubDelCompleted();
     };
   }, [sessionId, subscribe, loadMessages, navigate, getSessionPath]);
@@ -696,6 +713,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 activeAgentId={activeAgent?.id}
                 activeChannelId={activeChannel?.id}
                 contextUsage={contextUsage}
+                onCompact={handleCompact}
+                compacting={compacting}
               />
             )}
           </div>

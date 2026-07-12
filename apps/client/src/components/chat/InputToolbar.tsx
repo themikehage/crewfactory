@@ -24,6 +24,8 @@ interface InputToolbarProps {
   onSend: () => void;
   onStop: () => void;
   contextUsage?: ContextUsage | null;
+  onCompact?: () => void;
+  compacting?: boolean;
 }
 
 export function InputToolbar({
@@ -40,6 +42,8 @@ export function InputToolbar({
   onSend,
   onStop,
   contextUsage = null,
+  onCompact,
+  compacting = false,
 }: InputToolbarProps) {
   const l = useLiterals(u);
   const [openSkills, setOpenSkills] = useState(false);
@@ -141,7 +145,11 @@ export function InputToolbar({
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        <ContextIndicator contextUsage={contextUsage} />
+        <ContextIndicator
+          contextUsage={contextUsage}
+          onCompact={onCompact}
+          compacting={compacting}
+        />
         <SendStopButton
           streaming={streaming}
           disabled={disabled}

@@ -204,6 +204,8 @@ interface Props {
   activeAgentId?: string | null;
   activeChannelId?: string | null;
   contextUsage?: ContextUsage | null;
+  onCompact?: () => void;
+  compacting?: boolean;
 }
 
 export function ChatInput({
@@ -218,6 +220,8 @@ export function ChatInput({
   activeAgentId = null,
   activeChannelId = null,
   contextUsage = null,
+  onCompact,
+  compacting = false,
 }: Props) {
   const l = useLiterals(u);
   const { addToast } = useToast();
@@ -557,6 +561,8 @@ export function ChatInput({
               onSend={() => handleSend()}
               onStop={onAbort}
               contextUsage={contextUsage}
+              onCompact={onCompact}
+              compacting={compacting}
             />
           }
         />
