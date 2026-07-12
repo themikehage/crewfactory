@@ -82,6 +82,11 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     installSuccessChannel: "Channel installed successfully!",
     installError: "Failed to install template",
     viewDetail: "View Details",
+    advancedConfig: "Advanced Configuration",
+    serialToolsLabel: "Serial Tools (Interactive)",
+    serialToolsDescription: "Select the tools that will suspend agent execution to wait for your approval or input.",
+    blueprintIdLabel: "Blueprint ID",
+    createdAtLabel: "Created At",
   },
   es: {
     deleting: "Eliminando...",
@@ -164,5 +169,10 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     installSuccessChannel: "¡Canal instalado correctamente!",
     installError: "Error al instalar la plantilla",
     viewDetail: "Ver Detalles",
+    advancedConfig: "Configuracion Avanzada",
+    serialToolsLabel: "Herramientas Seriales (Interactivas)",
+    serialToolsDescription: "Selecciona las herramientas que pausaran la ejecucion del agente para esperar tu aprobacion o respuesta.",
+    blueprintIdLabel: "ID del Blueprint",
+    createdAtLabel: "Creado el",
   },
 };

@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/contexts/ToastContext";
 import { useLiterals } from "@/lib";
 import { literals as dashboardLiterals } from "./DashboardPage.literals";
@@ -9,6 +10,9 @@ interface RepoItem {
   name: string;
   path: string;
   lastModified: string;
+  cloneUrl?: string | null;
+  createdAt?: string | null;
+  diskPath?: string;
 }
 
 interface Props {
@@ -36,6 +40,14 @@ export function DashboardPage({ onSelectProject }: Props) {
   const [deleteRepo, setDeleteRepo] = useState<RepoItem | null>(null);
   const [confirmDeleteName, setConfirmDeleteName] = useState("");
   const [deleting, setDeleting] = useState(false);
+
+  // Project Info / Details states
+  const [infoProject, setInfoProject] = useState<RepoItem | null>(null);
+  const [infoName, setInfoName] = useState("");
+  const [infoCloneUrl, setInfoCloneUrl] = useState("");
+  const [infoSaving, setInfoSaving] = useState(false);
+  const [infoError, setInfoError] = useState<string | null>(null);
+  const [copiedId, setCopiedId] = useState(false);
 
   const fetchRepos = async () => {
     try {
@@ -124,6 +136,57 @@ export function DashboardPage({ onSelectProject }: Props) {
     } finally {
       setDeleting(false);
     }
+  };
+
+  const handleStartInfo = (repo: RepoItem) => {
+    setInfoProject(repo);
+    setInfoName(repo.name);
+    setInfoCloneUrl(repo.cloneUrl || "");
+    setInfoSaving(false);
+    setInfoError(null);
+    setCopiedId(false);
+  };
+
+  const handleUpdateInfo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!infoProject) return;
+
+    setInfoSaving(true);
+    setInfoError(null);
+    const id = infoProject.id || infoProject.name;
+    const token = localStorage.getItem("token");
+    try {
+      const res = await fetch(`/api/workspace-projects/${id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name: infoName.trim(),
+          cloneUrl: infoCloneUrl.trim() || null,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Failed to update project" }));
+        throw new Error(err.error || "Failed to update project");
+      }
+      await fetchRepos();
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+      setInfoProject(null);
+    } catch (err: any) {
+      setInfoError(err.message);
+    } finally {
+      setInfoSaving(false);
+    }
+  };
+
+  const handleCopyId = () => {
+    if (!infoProject) return;
+    const id = infoProject.id || infoProject.name;
+    navigator.clipboard.writeText(id);
+    setCopiedId(true);
+    setTimeout(() => setCopiedId(false), 2000);
   };
 
   const handleCreateRepo = async (e: React.FormEvent) => {
@@ -234,6 +297,17 @@ export function DashboardPage({ onSelectProject }: Props) {
                       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
                         <line x1="5" y1="12" x2="19" y2="12" />
                         <polyline points="12 5 19 12 12 19" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => handleStartInfo(repo)}
+                      className="p-1.5 bg-card-hover/20 hover:bg-primary hover:text-background text-muted-foreground hover:text-foreground rounded-lg transition-all cursor-pointer border border-transparent hover:border-primary/30"
+                      title={l.infoModalTitle}
+                    >
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                        <circle cx="12" cy="12" r="10" />
+                        <line x1="12" y1="16" x2="12" y2="12" />
+                        <line x1="12" y1="8" x2="12.01" y2="8" />
                       </svg>
                     </button>
                     <button
@@ -414,6 +488,120 @@ export function DashboardPage({ onSelectProject }: Props) {
           </div>
         </div>
       )}
+
+      <AnimatePresence>
+        {infoProject && (
+          <div className="fixed inset-0 bg-black/60 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95, y: 8 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 8 }}
+              transition={{ duration: 0.18 }}
+              className="bg-card border border-input rounded-xl w-full max-w-md p-6 shadow-2xl relative"
+            >
+              <button
+                type="button"
+                onClick={() => setInfoProject(null)}
+                className="absolute top-4 right-4 p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors"
+              >
+                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
+                </svg>
+              </button>
+
+              <h2 className="text-base font-bold text-foreground mb-4">{l.infoModalTitle}</h2>
+
+              <form onSubmit={handleUpdateInfo} className="space-y-4">
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    {l.projectNameLabel}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={infoName}
+                    onChange={(e) => setInfoName(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    {l.cloneUrlLabelEditable}
+                  </label>
+                  <input
+                    type="text"
+                    placeholder={l.cloneUrlPlaceholder}
+                    value={infoCloneUrl}
+                    onChange={(e) => setInfoCloneUrl(e.target.value)}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm text-foreground focus:outline-none focus:border-primary"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    ID
+                  </label>
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      readOnly
+                      value={infoProject.id || infoProject.name}
+                      className="flex-1 px-3 py-2 bg-card-hover/20 border border-input rounded-lg text-sm text-muted-foreground font-mono focus:outline-none"
+                    />
+                    <button
+                      type="button"
+                      onClick={handleCopyId}
+                      className="px-3 py-2 bg-card-hover/40 hover:bg-card-hover text-xs rounded-lg font-semibold transition-colors border border-input/30"
+                    >
+                      {copiedId ? l.copied : l.copyId}
+                    </button>
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    {l.createdAtLabel}
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={infoProject.createdAt ? new Date(infoProject.createdAt).toLocaleString() : l.noValue}
+                    className="w-full px-3 py-2 bg-card-hover/20 border border-input rounded-lg text-sm text-muted-foreground focus:outline-none"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-1">
+                    {l.diskPathLabel}
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={infoProject.diskPath || l.noValue}
+                    className="w-full px-3 py-2 bg-card-hover/20 border border-input rounded-lg text-[11px] text-muted-foreground font-mono focus:outline-none overflow-x-auto"
+                  />
+                </div>
+
+                {infoError && (
+                  <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg text-xs">
+                    {infoError}
+                  </div>
+                )}
+
+                <div className="flex justify-end gap-3 mt-6">
+                  <Button variant="outline" type="button" onClick={() => setInfoProject(null)}>
+                    {l.cancel}
+                  </Button>
+                  <Button type="submit" disabled={infoSaving}>
+                    {infoSaving ? l.saving : l.saveChanges}
+                  </Button>
+                </div>
+              </form>
+            </motion.div>
+          </div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

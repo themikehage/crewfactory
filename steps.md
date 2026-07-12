@@ -229,3 +229,13 @@
 - [x] 116.5 Refactor `spawn_subagent` tool to delegate to `assemblePromptAppends` in `subagent-spawn` mode and remove duplicate inline string structures
 - [x] 116.6 Verify successful compilation, strict typecheck, and production builds of both client and server packages
 
+## Phase 117: Extract useConnectionAwareEffect Hook
+- [x] 117.1 Create useConnectionAware.ts custom React hook
+- [x] 117.2 Refactor useWebSocket.ts to use the new hook
+- [x] 117.3 Refactor useChannel.ts to use the new hook and split message/state connection effects
+- [x] 117.4 Verify successful client build compilation
+## Phase 118: Info/Edit Button for Projects & Agents
+- [x] 118.1 Extend backend endpoints to return and patch project details (`cloneUrl`, `createdAt`, `diskPath`)
+- [x] 118.2 Implement inline `ProjectInfoModal` details/editing panel on `DashboardPage` and add translations
+- [x] 118.3 Add collapsible Advanced Configuration drawer with checkboxes for `serialTools` inside `RegisterModal` and add translations
+- [x] 118.4 Move implemented plan to completed folder and verify client/server compilations

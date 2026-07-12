@@ -38,6 +38,13 @@ function roleColor(role: string) {
   return ROLE_COLORS[role] ?? ROLE_COLORS.default;
 }
 
+const KNOWN_SERIAL_TOOLS = [
+  { id: "request_approval", label: "request_approval", description: "Suspends execution for explicit user approval" },
+  { id: "ask_question",     label: "ask_question",     description: "Prompts the user for a free-text answer" },
+  { id: "spawn_subagent",   label: "spawn_subagent",   description: "Delegates to a child agent and waits for result" },
+  { id: "delegate_task",    label: "delegate_task",    description: "Runs a task in an isolated session and awaits result" },
+];
+
 const DEFAULT_FORM: AgentDefinition = {
   id: "",
   name: "",
@@ -46,6 +53,7 @@ const DEFAULT_FORM: AgentDefinition = {
   model: "",
   skills: [],
   port: undefined,
+  serialTools: ["request_approval", "ask_question"],
 };
 
 function AgentCard({
@@ -197,7 +205,12 @@ function RegisterModal({
           if (res.ok) {
             const data = await res.json();
             if (data.definition) {
-              setForm(data.definition);
+              setForm({
+                ...data.definition,
+                serialTools: data.definition.serialTools && data.definition.serialTools.length > 0
+                  ? data.definition.serialTools
+                  : ["request_approval", "ask_question"]
+              });
               setSkillsInput(data.definition.skills?.join(", ") || "");
               const avUrl = data.definition.avatarUrl || null;
               setAvatarPreview(avUrl);
@@ -279,6 +292,16 @@ function RegisterModal({
 
   const set = (key: keyof AgentDefinition) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm((prev) => ({ ...prev, [key]: e.target.value }));
+
+  const toggleSerialTool = (toolId: string) => {
+    setForm((prev) => {
+      const current = prev.serialTools ?? [];
+      const updated = current.includes(toolId)
+        ? current.filter((t) => t !== toolId)
+        : [...current, toolId];
+      return { ...prev, serialTools: updated };
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -449,6 +472,85 @@ function RegisterModal({
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 resize-none font-mono leading-relaxed"
             />
           </div>
+
+          <details className="group border border-input rounded-lg bg-background/30 overflow-hidden">
+            <summary className="flex items-center justify-between px-3 py-2 cursor-pointer select-none hover:bg-card-hover/40 transition-colors text-xs font-semibold text-foreground">
+              <span>{l.advancedConfig}</span>
+              <svg
+                className="w-3.5 h-3.5 text-muted-foreground transform transition-transform group-open:rotate-180"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth="2.5"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div className="px-3 py-3 border-t border-input space-y-3 bg-card/10 text-xs">
+              <div>
+                <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                  {l.serialToolsLabel}
+                </label>
+                <p className="text-[10px] text-muted-foreground mb-2">
+                  {l.serialToolsDescription}
+                </p>
+                <div className="space-y-1.5">
+                  {KNOWN_SERIAL_TOOLS.map((tool) => {
+                    const isChecked = form.serialTools?.includes(tool.id) ?? false;
+                    return (
+                      <label
+                        key={tool.id}
+                        className="flex items-start gap-2.5 p-2 rounded-lg border border-input/30 bg-background/50 hover:bg-card-hover/30 transition-colors cursor-pointer"
+                      >
+                        <input
+                          type="checkbox"
+                          checked={isChecked}
+                          onChange={() => toggleSerialTool(tool.id)}
+                          className="mt-0.5 rounded border-input text-primary focus:ring-primary accent-primary"
+                        />
+                        <div>
+                          <span className="font-mono text-[11px] font-medium text-foreground block">
+                            {tool.label}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground block">
+                            {tool.description}
+                          </span>
+                        </div>
+                      </label>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {agent && form.blueprintId && (
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                    {l.blueprintIdLabel}
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={form.blueprintId}
+                    className="w-full bg-card-hover/25 border border-input/50 rounded-lg px-2.5 py-1.5 text-[11px] text-muted-foreground font-mono focus:outline-none"
+                  />
+                </div>
+              )}
+
+              {agent && agent.createdAt && (
+                <div>
+                  <label className="text-[11px] font-semibold text-muted-foreground uppercase tracking-wider block mb-1">
+                    {l.createdAtLabel}
+                  </label>
+                  <input
+                    type="text"
+                    readOnly
+                    value={new Date(agent.createdAt).toLocaleString()}
+                    className="w-full bg-card-hover/25 border border-input/50 rounded-lg px-2.5 py-1.5 text-[11px] text-muted-foreground focus:outline-none"
+                  />
+                </div>
+              )}
+            </div>
+          </details>
 
           {error && (
             <div className="bg-destructive/10 border border-error/30 text-destructive text-xs px-3 py-2 rounded-lg">

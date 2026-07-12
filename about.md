@@ -16,6 +16,7 @@
 ### Chat & Streaming
 - Multi-session chat (create, switch, delete sessions)
 - Real-time streaming via a **single shared WebSocket connection** (`wsClient` singleton) with automatic exponential-backoff reconnect, server-initiated 30s ping-pong keepalive checks to prune dead sockets, and an offline message queue on the client to prevent losing prompts.
+- **Hook de Conexión WebSocket Reentrante (`useConnectionAwareEffect`):** Hook customizado que implementa el patrón "send now + replay on reconnect" de forma segura con un `useRef` wrapper. Centraliza la lógica de suscripciones de sesiones (`useWebSocket`) y canales (`useChannel`), aislando los listeners de estado de la subscripción de mensajes y previniendo fugas o ejecuciones duplicadas durante ciclos de desconexión.
 - Message rendering: user, assistant, tool calls, thinking blocks (with compact single-line preview when collapsed and `animate-pulse` border during streaming)
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
@@ -112,6 +113,8 @@
 - **Agent/Channel mode:** Agent CWD is the entity's workspace. Global factory skills injected via `getResolvedSkillPaths()`.
 - `ensureWorkspaceSubdirs()` creates the common subdirectory skeleton for any entity workspace.
 - Dashboard view (initial screen) lets users list, create or clone Git projects.
+- **Detalle y Edición de Proyectos:** Botón de información `(i)` en las tarjetas de proyecto para ver y editar el nombre o `cloneUrl`, además de visualizar datos técnicos del proyecto como ID, fecha de creación y ruta absoluta en disco.
+- **Configuración Avanzada de Agentes (RegisterModal):** Drawer colapsable que permite configurar las `serialTools` (herramientas interactivas como `request_approval` y `ask_question`), e inspeccionar de solo lectura el `blueprintId` y fecha de creación del agente.
 
 ### Custom Tool System (Agent-Defined Tools)
 

@@ -228,14 +228,19 @@ filesRouter.get("/workspace-projects", async (c) => {
         const entryPath = join(projectsDir, entry.name);
         const jsonPath = join(entryPath, "project.json");
         let projName = entry.name;
+        let cloneUrl = null;
+        let createdAt = null;
         if (existsSync(jsonPath)) {
           try {
             const proj = JSON.parse(readFileSync(jsonPath, "utf-8"));
             projName = proj.name || entry.name;
+            cloneUrl = proj.cloneUrl || null;
+            createdAt = proj.createdAt || null;
           } catch {}
         } else {
           try {
-            writeFileSync(jsonPath, JSON.stringify({ id: entry.name, name: entry.name }, null, 2), "utf-8");
+            createdAt = new Date().toISOString();
+            writeFileSync(jsonPath, JSON.stringify({ id: entry.name, name: entry.name, cloneUrl: null, createdAt }, null, 2), "utf-8");
           } catch {}
         }
         const stat = statSync(entryPath);
@@ -243,6 +248,9 @@ filesRouter.get("/workspace-projects", async (c) => {
           id: entry.name,
           name: projName,
           path: entry.name,
+          cloneUrl,
+          createdAt,
+          diskPath: getProjectWorkspaceDir(username, entry.name),
           lastModified: stat.mtime.toISOString(),
         });
       }
@@ -352,10 +360,13 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
 
   try {
     const body = await c.req.json().catch(() => ({}));
-    const { name } = body;
+    const { name, cloneUrl } = body;
 
-    if (!name || typeof name !== "string") {
+    if (name !== undefined && (typeof name !== "string" || !name.trim())) {
       return c.json({ error: "Invalid project name" }, 400);
+    }
+    if (cloneUrl !== undefined && cloneUrl !== null && (typeof cloneUrl !== "string" || (cloneUrl !== "" && !cloneUrl.startsWith("http")))) {
+      return c.json({ error: "Invalid clone URL" }, 400);
     }
 
     const projectsDir = getProjectsDir(username);
@@ -367,18 +378,26 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
     }
 
     const projectJson = JSON.parse(readFileSync(jsonPath, "utf-8"));
-    projectJson.name = name;
+    if (name !== undefined) {
+      projectJson.name = name.trim();
+    }
+    if (cloneUrl !== undefined) {
+      projectJson.cloneUrl = cloneUrl ? cloneUrl.trim() : null;
+    }
 
     writeFileSync(jsonPath, JSON.stringify(projectJson, null, 2), "utf-8");
 
     return c.json({
       id,
-      name,
+      name: projectJson.name,
       path: id,
+      cloneUrl: projectJson.cloneUrl,
+      createdAt: projectJson.createdAt || null,
+      diskPath: getProjectWorkspaceDir(username, id),
       lastModified: statSync(projectPath).mtime.toISOString(),
     });
   } catch (err: any) {
-    return c.json({ error: err.message || "Failed to update project name" }, 500);
+    return c.json({ error: err.message || "Failed to update project" }, 500);
   }
 });
 
