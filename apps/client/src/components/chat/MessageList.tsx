@@ -9,6 +9,17 @@ import { AgentAvatar } from "@/components/shared/AgentAvatar";
 import { ImageGrid } from "./ImageGrid";
 import { ThinkingBlock, AssistantTextBlock } from "./MessageBlocks";
 
+function formatTimestamp(ts: number): string {
+  const d = new Date(ts);
+  const now = new Date();
+  const time = d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const sameDay = d.toDateString() === now.toDateString();
+  if (sameDay) return time;
+  const sameYear = d.getFullYear() === now.getFullYear();
+  const month = d.toLocaleString([], { month: "short", day: "numeric" });
+  return sameYear ? `${month}, ${time}` : `${month}, ${d.getFullYear()}, ${time}`;
+}
+
 interface ContentBlock {
   type: string;
   text?: string;
@@ -203,6 +214,11 @@ function AgentTurn({
         <span className="text-xs font-semibold text-foreground truncate">
           {displayName}
         </span>
+        {firstAssistant?.timestamp && (
+          <span className="text-xs text-muted-foreground font-mono shrink-0">
+            {formatTimestamp(firstAssistant.timestamp)}
+          </span>
+        )}
       </div>
 
       <div className="flex-1 min-w-0 space-y-0.5">
@@ -271,7 +287,7 @@ function AgentTurn({
                 <span className="inline-block w-2 h-4 ml-1 bg-primary animate-pulse rounded-sm" />
               )}
 
-              {(msg.provider || msg.model || msg.usage) && !isStreaming && (
+              {(msg.provider || msg.model || msg.usage || msg.timestamp) && !isStreaming && (
                 <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 mt-2 text-xs text-muted-foreground font-mono">
                   {msg.provider && <span>provider: <span className="text-muted-foreground">{msg.provider}</span></span>}
                   {msg.model && <span>• model: <span className="text-muted-foreground">{msg.model}</span></span>}
@@ -282,6 +298,9 @@ function AgentTurn({
                         <span>• cost: <span className="text-muted-foreground">${msg.usage.cost.total.toFixed(6)}</span></span>
                       )}
                     </>
+                  )}
+                  {msg.timestamp && (
+                    <span>• <span className="text-muted-foreground">{formatTimestamp(msg.timestamp)}</span></span>
                   )}
                 </div>
               )}
@@ -401,6 +420,11 @@ function UserBubble({
               );
             })}
           </div>
+        )}
+        {msg.timestamp && !msg.isStreaming && (
+          <span className="text-[10px] text-muted-foreground font-mono">
+            {formatTimestamp(msg.timestamp)}
+          </span>
         )}
         <BranchNav msg={msg} onNavigate={onNavigate} />
       </div>

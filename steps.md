@@ -176,6 +176,12 @@
 - [x] 110.4 Refactor `prompt-builder.ts` to use cached task state and prevent redundant disk I/O per agent turn
 - [x] 110.5 Verify successful type checking and compilation on client and server
 
+## Phase 111: Decouple Task Planning from `decompose_tasks` Tool
+- [x] 111.1 Modify parameter schema of `decompose_tasks` tool to receive pre-split `tasks` list array directly
+- [x] 111.2 Refactor execute method to register plan instantly and drop nested `streamSimple` call
+- [x] 111.3 Update system guidelines in `default-factory-skills.ts` to guide models to pre-split tasks in their own ReAct loop
+- [x] 111.4 Compile, build, and verify server/client type safety
+
 
 
 

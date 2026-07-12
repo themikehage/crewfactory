@@ -64,6 +64,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [image-vision-and-generation.md](./image-vision-and-generation.md) — Soporte completo de vision de imagen (input multimodal) y generacion de imagen (output) para agentes
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
 - [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
+- [delegation-notification-ui.md](./delegation-notification-ui.md) — Renderizado limpio de resultados de delegacion con contrato compartido server/cliente via `details.type` en `packages/shared/`
 
 
 ## Completados (65)
