@@ -64,19 +64,26 @@ export function forwardSubagentEvents(
   subagentSessionId: string,
   toolCallId: string
 ): () => void {
-  return subSession.subscribe((evt: any) => {
-    try {
-      broadcastToSession(parentSessionId, {
-        type: "subagent_event",
-        sessionId: parentSessionId,
-        subagentSessionId,
-        toolCallId,
-        event: evt,
-      });
-    } catch (err) {
-      console.error("[Subagent Event Forwarding Error]:", err);
-    }
-  });
+  let unsub: (() => void) | undefined;
+  try {
+    unsub = subSession.subscribe((evt: any) => {
+      try {
+        broadcastToSession(parentSessionId, {
+          type: "subagent_event",
+          sessionId: parentSessionId,
+          subagentSessionId,
+          toolCallId,
+          event: evt,
+        });
+      } catch (err) {
+        console.error("[Subagent Event Forwarding Error]:", err);
+      }
+    });
+  } catch (err) {
+    console.error("[forwardSubagentEvents] Subscribe failed:", err);
+    unsub = () => {};
+  }
+  return unsub;
 }
 
 /**
@@ -131,9 +138,9 @@ export function formatDelegationResultMessage(
   outputText?: string
 ): any {
   const sections = [
-    `[NOTIFICACIÓN DE SISTEMA: DELEGACIÓN FINALIZADA]`,
-    `La tarea delegada mediante '${toolName}' (ID: ${toolCallId}) en la sesión '${subagentSessionId}' ha completado su ejecución.`,
-    `Resultado de la tarea:`,
+    `[SYSTEM NOTIFICATION: DELEGATION COMPLETED]`,
+    `The task delegated via '${toolName}' (ID: ${toolCallId}) in session '${subagentSessionId}' has finished executing.`,
+    `Task Result:`,
     `---`,
     `status: ${envelope.status}`,
     `executive_summary: ${envelope.executive_summary}`,
@@ -144,7 +151,7 @@ export function formatDelegationResultMessage(
 
   if (outputText && outputText.trim()) {
     sections.push(
-      `Respuesta final del delegado:`,
+      `Delegate final response:`,
       `"""`,
       outputText.trim(),
       `"""`
@@ -154,8 +161,11 @@ export function formatDelegationResultMessage(
   const envelopeStr = sections.join("\n");
 
   return {
-    role: "user",
+    role: "toolResult",
+    toolCallId: toolCallId,
+    toolName: toolName,
     content: [{ type: "text", text: envelopeStr }],
+    isError: envelope.status === "error" || envelope.status === "blocked",
     timestamp: Date.now(),
   };
 }

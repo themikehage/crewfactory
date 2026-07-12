@@ -101,7 +101,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             try {
               await session.prompt(task);
             } finally {
-              unsub();
+              unsub?.();
             }
 
             lastText = getLastAssistantText(session.messages);
@@ -109,7 +109,8 @@ Allows keeping parent context clean by returning a structured summary instead of
             if (includeFullHistory) {
               executionResultText = session.messages
                 .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
-                .join("\n\n");
+                .join("\n\n")
+                .slice(0, 4000);
             }
 
           } else if (targetType === "project") {
@@ -128,7 +129,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             try {
               await session.prompt(task);
             } finally {
-              unsub();
+              unsub?.();
             }
 
             lastText = getLastAssistantText(session.messages);
@@ -136,7 +137,8 @@ Allows keeping parent context clean by returning a structured summary instead of
             if (includeFullHistory) {
               executionResultText = session.messages
                 .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
-                .join("\n\n");
+                .join("\n\n")
+                .slice(0, 4000);
             }
 
           } else if (targetType === "channel") {
@@ -159,7 +161,8 @@ Allows keeping parent context clean by returning a structured summary instead of
             if (includeFullHistory) {
               executionResultText = channelMessages
                 .map(m => `[${m.role === "agent" ? m.agentName || "Agent" : "User"}]: ${m.content}`)
-                .join("\n\n");
+                .join("\n\n")
+                .slice(0, 4000);
             }
 
           } else if (targetType === "session") {
@@ -174,7 +177,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             try {
               await session.prompt(task);
             } finally {
-              unsub();
+              unsub?.();
             }
 
             lastText = getLastAssistantText(session.messages);
@@ -182,7 +185,8 @@ Allows keeping parent context clean by returning a structured summary instead of
             if (includeFullHistory) {
               executionResultText = session.messages
                 .map(m => `[${m.role.toUpperCase()}]: ${typeof m.content === "string" ? m.content : JSON.stringify(m.content)}`)
-                .join("\n\n");
+                .join("\n\n")
+                .slice(0, 4000);
             }
           } else {
             throw new Error(`Unsupported target type: ${targetType}`);
@@ -214,46 +218,30 @@ Allows keeping parent context clean by returning a structured summary instead of
         // Complete delegation in registry
         delegationRegistry.complete(username, parentSessionId, toolCallId, status as any, parsedEnvelope);
 
-        // Format final envelope response
-        const envelopeStr = [
-          "---",
-          `status: ${parsedEnvelope.status}`,
-          `executive_summary: ${parsedEnvelope.executive_summary}`,
-          `artifacts: ${parsedEnvelope.artifacts}`,
-          `risks: ${parsedEnvelope.risks}`,
-          "---",
-        ].join("\n");
-
-        let finalResultContent = envelopeStr;
-        if (includeFullHistory && executionResultText) {
-          finalResultContent = `${envelopeStr}\n\n=== FULL CONVERSATION HISTORY ===\n\n${executionResultText}`;
-        }
-
         const parent = sessionManager.getSession(username, parentSessionId);
         if (parent) {
           const toolResultMsg = formatDelegationResultMessage(toolCallId, "delegate_task", parsedEnvelope, delegateSessionId, lastText);
           if (includeFullHistory && executionResultText) {
-            toolResultMsg.content = [{ type: "text", text: finalResultContent }];
+            const baseText = toolResultMsg.content[0].text;
+            toolResultMsg.content = [{
+              type: "text",
+              text: `${baseText}\n\n=== FULL CONVERSATION HISTORY ===\n\n${executionResultText}`
+            }];
           }
           parent.addDelegationResult(toolResultMsg);
 
           if (!parent.isStreaming) {
-            const wakeMessage = [
-              `Delegation result received for ${targetType} ${targetId}:`,
-              `status: ${parsedEnvelope.status}`,
-              `executive_summary: ${parsedEnvelope.executive_summary}`,
-              `artifacts: ${parsedEnvelope.artifacts}`,
-              `risks: ${parsedEnvelope.risks}`,
-              `Respuesta final del delegado:`,
-              `"""`,
-              lastText,
-              `"""`
-            ].join("\n");
+            const isError = status === "error" || parsedEnvelope.status === "error" || parsedEnvelope.status === "blocked";
+            const wakeMessage = isError
+              ? `[SYSTEM: DELEGATION ERROR] Delegated task to ${targetType} ${targetId} failed. The error result has been enqueued. Please check and proceed.`
+              : `[SYSTEM: DELEGATION SUCCESS] Delegated task to ${targetType} ${targetId} completed. The delegation tool result has been received and enqueued. Please review the result and continue.`;
             
             parent.prompt(wakeMessage).catch((e) => {
               console.error("[Delegate Async Return] Parent prompt fail:", e);
             });
           }
+        } else {
+          console.warn(`[Delegate] Parent session ${parentSessionId} not found for toolCallId ${toolCallId} — delegation result discarded`);
         }
       };
 

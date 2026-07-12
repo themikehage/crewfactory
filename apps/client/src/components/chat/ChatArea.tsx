@@ -13,6 +13,8 @@ import { WelcomeChatInput } from "./WelcomeChatInput";
 import { useToast } from "@/contexts/ToastContext";
 
 import { FloatingTasks } from "./FloatingTasks";
+import { FloatingDelegations } from "./FloatingDelegations";
+import type { PendingDelegation } from "./FloatingDelegations";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
@@ -171,6 +173,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     currentTaskId: null,
     status: "idle",
   });
+  const [delegations, setDelegations] = useState<PendingDelegation[]>([]);
   const [compacting, setCompacting] = useState(false);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const [wasConnected, setWasConnected] = useState(connected);
@@ -256,6 +259,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       setMessages([]);
       setLoadingMessages(false);
       setContextUsage(null);
+      setDelegations([]);
       return;
     }
 
@@ -290,6 +294,20 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       } catch {}
     };
     fetchTasks();
+
+    const fetchDelegations = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        const res = await fetch(`/api/sessions/${sessionId}/delegations`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setDelegations(data.delegations ?? []);
+        }
+      } catch {}
+    };
+    fetchDelegations();
 
     const findMsgIndex = (prev: Message[], msg: Message) => {
       return prev.findIndex(m => 
@@ -440,9 +458,37 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       window.dispatchEvent(new CustomEvent(`tool-update-${toolCallId}`, { detail: evt }));
     });
 
+    const unsubDelStarted = subscribe("delegation_started", (data: any) => {
+      if (sessionId === data.parentSessionId) {
+        setDelegations((prev) => {
+          const exists = prev.some(d => d.toolCallId === data.toolCallId);
+          if (exists) return prev;
+          return [...prev, {
+            toolCallId: data.toolCallId,
+            subagentSessionId: data.subagentSessionId,
+            task: data.task,
+            targetType: data.targetType,
+            status: "running",
+            startedAt: new Date().toISOString()
+          }];
+        });
+      }
+    });
+
     const unsubDelCompleted = subscribe("delegation_completed", (data: any) => {
       if (sessionId === data.parentSessionId) {
         loadMessages(true);
+        setDelegations((prev) => prev.map(d => {
+          if (d.toolCallId === data.toolCallId) {
+            return {
+              ...d,
+              status: data.status,
+              completedAt: new Date().toISOString(),
+              result: data.result
+            };
+          }
+          return d;
+        }));
       }
     });
 
@@ -458,6 +504,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubSubagent();
       unsubContext();
       unsubToolUpdate();
+      unsubDelStarted();
       unsubDelCompleted();
     };
   }, [sessionId, subscribe, loadMessages, navigate, getSessionPath]);
@@ -654,6 +701,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                   <FloatingTasks
                     tasksState={tasksState}
                     onToggleStatus={handleToggleTasksStatus}
+                  />
+                  <FloatingDelegations
+                    delegations={delegations}
+                    onNavigateToSession={(subSessionId) => {
+                      navigate(getSessionPath(subSessionId));
+                    }}
                   />
                   <MessageList
                     messages={messages}

@@ -241,22 +241,13 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
 
             // If parent is not active streaming, prompt it to wake up
             if (!parent.isStreaming) {
-              const wakeMessage = [
-                `Delegation result received for subagent session ${subagentSessionId}:`,
-                `status: ${envelope.status}`,
-                `executive_summary: ${envelope.executive_summary}`,
-                `artifacts: ${envelope.artifacts}`,
-                `risks: ${envelope.risks}`,
-                `Respuesta final del delegado:`,
-                `"""`,
-                lastText,
-                `"""`
-              ].join("\n");
-              
+              const wakeMessage = `[SYSTEM: DELEGATION SUCCESS] Subagent session ${subagentSessionId} completed successfully. The delegation tool result has been received and enqueued. Please review the result and continue.`;
               parent.prompt(wakeMessage).catch((e) => {
                 console.error("[Subagent Async Return] Parent prompt fail:", e);
               });
             }
+          } else {
+            console.warn(`[Subagent] Parent session ${parentSessionId} not found for toolCallId ${toolCallId} — delegation result discarded`);
           }
         })
         .catch(async (err) => {
@@ -282,10 +273,13 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
             parent.addDelegationResult(toolResultMsg);
 
             if (!parent.isStreaming) {
-              parent.prompt(`Delegation error for subagent session ${subagentSessionId}:\n${envelope.executive_summary}`).catch((e) => {
+              const wakeMessage = `[SYSTEM: DELEGATION ERROR] Subagent session ${subagentSessionId} failed: ${envelope.executive_summary}. The error result has been enqueued. Please check and proceed.`;
+              parent.prompt(wakeMessage).catch((e) => {
                 console.error("[Subagent Async Return] Parent prompt fail on error:", e);
               });
             }
+          } else {
+            console.warn(`[Subagent] Parent session ${parentSessionId} not found for toolCallId ${toolCallId} — delegation result discarded`);
           }
         })
         .finally(() => {

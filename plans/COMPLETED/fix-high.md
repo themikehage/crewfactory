@@ -1,3 +1,4 @@
+COMPLETED
 # High Severity Fixes
 
 ## H1 — Pre-loop throw leaves isStreaming=true permanently

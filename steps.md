@@ -148,3 +148,12 @@
 - [x] 106.2 Add WebSocket state validation, ui_action_error handler, and 15s reset timeout to ApprovalForm.tsx
 - [x] 106.3 Refactor ChatArea.tsx tool_execution_end subscriber and MessageList.tsx mapping to unify tool result roles under 'toolResult' and prevent duplicate items
 - [x] 106.4 Validate production compilation of client application
+
+## Phase 107: Robust Delegation and Subagent Messaging
+- [x] 107.1 Refactor delegation results to use 'toolResult' role with English notification content (C1 + X1)
+- [x] 107.2 Implement duplicate delegation prevention and catch guards in DelegationRegistry (H1 + L1)
+- [x] 107.3 Add parent session validation logs and safe event subscription handlers in subagent/delegation processes (H2 + H3)
+- [x] 107.4 De-duplicate wake messages and limit full history logging context footprint (M1 + M2)
+- [x] 107.5 Integrate FloatingDelegations in ChatArea with global WS updates and sanitize URL route keys (M3 + M4 + L2)
+- [x] 107.6 Validate complete build compilation on server and client packages
+

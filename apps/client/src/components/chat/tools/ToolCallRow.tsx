@@ -461,7 +461,7 @@ function ToolBody({
             <span className="text-xs font-semibold text-text-primary">{l.bodySubagentConsole}</span>
             {onOpenSubagentConsole && (
               <button
-                onClick={() => onOpenSubagentConsole(toolCallId || "")}
+                onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -488,7 +488,7 @@ function ToolBody({
             </span>
             {onOpenSubagentConsole && (
               <button
-                onClick={() => onOpenSubagentConsole(toolCallId || "")}
+                onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
                 className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
               >
                 <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">

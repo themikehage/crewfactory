@@ -1,3 +1,4 @@
+COMPLETED
 # Critical Fixes
 
 ## C1 — AgentSession catch block can lock session permanently

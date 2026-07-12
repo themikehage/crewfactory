@@ -31,6 +31,14 @@ class DelegationRegistry {
   }
 
   register(username: string, parentSessionId: string, d: PendingDelegation, abortFn: () => void): void {
+    if (this.activePromises.has(d.toolCallId)) {
+      console.warn(`[DelegationRegistry] toolCallId ${d.toolCallId} already registered — aborting previous`);
+      try {
+        this.activePromises.get(d.toolCallId)!.abort();
+      } catch (err) {
+        console.error(`[DelegationRegistry] Failed to abort previous toolCallId ${d.toolCallId}:`, err);
+      }
+    }
     const dir = this.getDelegationsDir(username, parentSessionId);
     writeFileSync(join(dir, `${d.toolCallId}.json`), JSON.stringify(d, null, 2), "utf-8");
     this.activePromises.set(d.toolCallId, { abort: abortFn, parentSessionId, subagentSessionId: d.subagentSessionId });
@@ -55,8 +63,9 @@ class DelegationRegistry {
         d.completedAt = new Date().toISOString();
         d.result = result;
         writeFileSync(file, JSON.stringify(d, null, 2), "utf-8");
-      } catch (err) {
-        console.error(`[DelegationRegistry] Failed to complete delegation file:`, err);
+      } catch (err: unknown) {
+        const msg = err instanceof Error ? err.message : String(err ?? "Unknown error");
+        console.error(`[DelegationRegistry] Failed to complete delegation file:`, msg);
       }
     }
     this.activePromises.delete(toolCallId);

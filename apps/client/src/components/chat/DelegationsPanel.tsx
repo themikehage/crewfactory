@@ -20,7 +20,7 @@ export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = n
   const [loading, setLoading] = useState(false);
   const [selectedDelegationId, setSelectedDelegationId] = useState<string | null>(null);
 
-  const { subscribe } = useWebSocket(sessionId);
+  const { subscribe } = useWebSocket(null);
 
   const getSessionPath = useCallback((id: string) => {
     let basePath = "";
@@ -58,6 +58,7 @@ export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = n
     }
 
     const unsubDelStarted = subscribe("delegation_started", (data: any) => {
+      if (data.parentSessionId !== sessionId) return;
       setDelegations((prev) => {
         const exists = prev.some(d => d.toolCallId === data.toolCallId);
         if (exists) return prev;
@@ -73,6 +74,7 @@ export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = n
     });
 
     const unsubDelCompleted = subscribe("delegation_completed", (data: any) => {
+      if (data.parentSessionId !== sessionId) return;
       setDelegations((prev) => prev.map(d => {
         if (d.toolCallId === data.toolCallId) {
           return {
