@@ -1,52 +1,21 @@
-import { existsSync, mkdirSync, readFileSync, writeFileSync, readdirSync } from "node:fs";
-import { join } from "node:path";
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { join, dirname } from "node:path";
 import {
   getUserDir,
   getSessionDir,
   getSessionMetadataPath,
   AVAILABLE_TOOLS,
 } from "shared";
+import { resolveSubagentSessionDir } from "./workspace-resolver";
 
 export class SessionMetadataStore {
   private getMetadataPath(username: string, sessionId: string): string {
-    let sessionDir = getSessionDir(username, sessionId);
-    if (sessionId.startsWith("sub_")) {
-      const userDir = getUserDir(username);
-      const sessionsDir = join(userDir, "sessions");
-      if (existsSync(sessionsDir)) {
-        try {
-          const sessionFolders = readdirSync(sessionsDir);
-          for (const parentId of sessionFolders) {
-            const candidateDir = join(sessionsDir, parentId, "subagents", sessionId);
-            if (existsSync(candidateDir)) {
-              sessionDir = candidateDir;
-              break;
-            }
-          }
-        } catch {}
-      }
-    }
+    const sessionDir = resolveSubagentSessionDir(username, sessionId) ?? getSessionDir(username, sessionId);
     return join(sessionDir, "metadata.json");
   }
 
   ensureSessionDir(username: string, sessionId: string): string {
-    let sessionDir = getSessionDir(username, sessionId);
-    if (sessionId.startsWith("sub_")) {
-      const userDir = getUserDir(username);
-      const sessionsDir = join(userDir, "sessions");
-      if (existsSync(sessionsDir)) {
-        try {
-          const sessionFolders = readdirSync(sessionsDir);
-          for (const parentId of sessionFolders) {
-            const candidateDir = join(sessionsDir, parentId, "subagents", sessionId);
-            if (existsSync(candidateDir)) {
-              sessionDir = candidateDir;
-              break;
-            }
-          }
-        } catch {}
-      }
-    }
+    const sessionDir = resolveSubagentSessionDir(username, sessionId) ?? getSessionDir(username, sessionId);
     if (!existsSync(sessionDir)) {
       mkdirSync(sessionDir, { recursive: true });
     }
@@ -101,11 +70,6 @@ export class SessionMetadataStore {
       return [...AVAILABLE_TOOLS];
     }
   }
-}
-
-// Helper to get dirname in ES6 environment
-function dirname(path: string): string {
-  return path.substring(0, path.lastIndexOf(require("node:path").sep));
 }
 
 export const sessionMetadataStore = new SessionMetadataStore();

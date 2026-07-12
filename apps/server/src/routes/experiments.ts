@@ -27,7 +27,7 @@ experimentsRouter.get("/", async (c) => {
 experimentsRouter.get("/default-model", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
-  const model = sessionManager.getUserDefaultModel(username);
+  const model = sessionManager.userConfig.getUserDefaultModel(username);
   return c.json({ model });
 });
 
@@ -81,7 +81,7 @@ experimentsRouter.post("/", async (c) => {
   const id = crypto.randomUUID();
   let experiment: LabExperiment;
 
-  const userDefaultModel = sessionManager.getUserDefaultModel(username);
+  const userDefaultModel = sessionManager.userConfig.getUserDefaultModel(username);
   if (!userDefaultModel) {
     return c.json({ error: "No configured LLM providers or models found. Please configure an API key in settings." }, 400);
   }
@@ -261,7 +261,7 @@ experimentsRouter.post("/:id/judge", async (c) => {
           finalJudgeModel = `${activeSession.model.provider}/${activeSession.model.id}`;
         } else {
           const { join } = require("node:path");
-          const sessionDir = join(sessionManager.ensureUserDir(username), "sessions", labSession.id);
+          const sessionDir = join(sessionManager.userConfig.ensureUserDir(username), "sessions", labSession.id);
           const { readdirSync, readFileSync } = require("node:fs");
           const jsonlFiles = readdirSync(sessionDir)
             .filter((f: string) => f.endsWith(".jsonl"))

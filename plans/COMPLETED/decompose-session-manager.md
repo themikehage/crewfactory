@@ -1,6 +1,7 @@
+COMPLETED
 # Decompose SessionManager — Extract Sub-Modules, Unify Resolution, and Remove Boilerplate
 
-**Status:** Pending
+**Status:** Completed
 **Date:** 2026-07-12
 **Scope:** Backend-only refactoring of `apps/server/src/core/session-manager.ts`
 
@@ -76,11 +77,11 @@ Callers (80 references across 20 files):
 
 ```
                       SessionManager.getOrCreateSession()
-                              (~120 lines)
+                               (~120 lines)
 ┌──────────────────────────────────────────────────────────────────────┐
 │  1. resolveSessionWorkspace() → { sessionDir, workspaceDir }         │
 │  2. read/merge metadata.json                                         │
-│  3. resolveAgentDefinition() → { agentDef, hasExaKey? }              │
+│  3. resolveAgentDefinition() → { agentDef, hasExa? }              │
 │  4. skillPaths + MCP tool enumeration                                │
 │  5. sessionPromptBuilder.buildSystemPrompts()                        │
 │  6. DefaultResourceLoader + VendoredSessionManager                   │
@@ -110,11 +111,12 @@ Callers (80 references across 20 files):
     │ createBeforeToolCall   │    └──────────────────────────┘
     │   Hook()               │
     │  → beforeToolCall cb   │    ┌──────────────────────────┐
-    └────────────────────────┘    │ session-memory-enricher.ts│
-                                  │                          │
-    ┌────────────────────────┐    │ enrichSessionWithMemory() │
-    │ agent-definition-      │    │  wraps session.prompt     │
-    │   resolver.ts          │    └──────────────────────────┘
+    │                        │    │ session-memory-enricher.ts│
+    └────────────────────────┘    │                          │
+                                  │ enrichSessionWithMemory() │
+    ┌────────────────────────┐    │  wraps session.prompt     │
+    │ agent-definition-      │    └──────────────────────────┘
+    │   resolver.ts          │
     │                        │
     │ resolveAgentDefinition │
     │  → { agentDef, hasExa }│
@@ -380,86 +382,4 @@ Note: `resolveModelWithFallback` returns a string in `provider/id` or `id` forma
    - Spawn a subagent → confirm subagent session dir is found correctly
    - Verify metadata persistence across session restarts
    - Verify EventBroker publications still fire (agent_start, text_delta, tool_start, etc.)
-
----
-
-## Affected Files
-
-### New files (6):
-| File | Purpose |
-|---|---|
-| `apps/server/src/core/session/workspace-resolver.ts` | Unified subagent dir resolution + workspace selection |
-| `apps/server/src/core/session/tool-activation-engine.ts` | Pure function: resolve active tool names |
-| `apps/server/src/core/session/session-event-publisher.ts` | Subscribe session events → EventBroker |
-| `apps/server/src/core/session/before-tool-call-hook.ts` | Create the beforeToolCall callback |
-| `apps/server/src/core/session/session-memory-enricher.ts` | Wrap session.prompt with memory context |
-| `apps/server/src/core/session/agent-definition-resolver.ts` | Load agent definition (with lazy lab-architect) |
-
-### Modified files (16):
-| File | Change |
-|---|---|
-| `apps/server/src/core/session-manager.ts` | Major refactor: ~300 lines removed, 6 sub-module calls added, passthrough methods deleted, public properties added |
-| `apps/server/src/core/session/metadata-store.ts` | Replace duplicated subagent dir resolution with shared `resolveSubagentSessionDir` |
-| `apps/server/src/channels/channel-orchestrator.ts` | Use `resolveModelWithFallback` for model assignment |
-| `apps/server/src/laboratory/judge.ts` | Use `resolveModelWithFallback` for judge model resolution |
-| `apps/server/src/routes/auth.ts` | `sessionManager.getUserPasswordHash` → `sessionManager.userConfig.getUserPasswordHash` |
-| `apps/server/src/routes/backup.ts` | `sessionManager.clearUserContext` → `sessionManager.userConfig.clearUserContext` |
-| `apps/server/src/routes/env.ts` | 4 delegation call updates |
-| `apps/server/src/routes/experiments.ts` | `getUserDefaultModel`/`ensureUserDir` → `userConfig` |
-| `apps/server/src/routes/models.ts` | `getUserContext`/`getUserEnv` → `userConfig` |
-| `apps/server/src/routes/providers.ts` | 5 `getUserContext` calls → `userConfig` |
-| `apps/server/src/routes/sessions.ts` | 12+ delegation call updates (metadata, userDir, tools, env) |
-| `apps/server/src/routes/settings.ts` | 4 delegation call updates |
-| `apps/server/src/ws/handler.ts` | `getUserContext` → `userConfig` |
-| `apps/server/src/core/tools/decompose-tool.ts` | `ensureUserDir` → `userConfig` |
-| `apps/server/src/core/tools/delegate-tool.ts` | `saveSessionMetadata` → `metadataStore` |
-| `apps/server/src/core/tools/exa-search-tool.ts` | `getUserEnv` → `userConfig` |
-| `apps/server/src/core/tools/factory-tool.ts` | 5 delegation call updates |
-| `apps/server/src/core/tools/image-gen-tool.ts` | `getUserEnv`/`getUserContext`/`getUserSettings` → `userConfig` |
-| `apps/server/src/core/tools/spawn-subagent-tool.ts` | 4 delegation call updates |
-| `apps/server/src/core/tools/update-task-tool.ts` | 2 `ensureUserDir` → `userConfig` |
-| `apps/server/src/core/tools/vision-tool.ts` | `getUserContext`/`getUserSettings` → `userConfig` |
-| `apps/server/src/core/delegation-registry.ts` | `ensureUserDir` → `userConfig` |
-| `apps/server/src/core/session/prompt-builder.ts` | `getSessionMetadata` → `metadataStore` |
-| `apps/server/src/laboratory/create-experiment-tool.ts` | 3 delegation call updates |
-| `apps/server/src/laboratory/experiment-runner.ts` | 5 delegation call updates |
-| `apps/server/src/laboratory/experiment-store.ts` | `getUserDefaultModel` → `userConfig` |
-
----
-
-## Verification Criteria
-
-1. `bun run build` in `apps/server/` succeeds with no TypeScript errors
-2. Session creation for all 5 contexts (global, project, agent, channel, lab) produces identical behavior to current
-3. Tool availability for each session type matches current (exa_search conditional, memory tools conditional, agent-specific alwaysOnTools)
-4. Subagent sessions find their parent session directory correctly (both in `session-manager` and `metadata-store` paths)
-5. Channel orchestrator model resolution produces the same model assignment as current
-6. Lab judge model resolution produces the same model assignment as current
-7. EventBroker publishes the same events at the same times (agent_start, text_delta, thinking_delta, tool_start, tool_end, error)
-8. Session metadata reads/writes work identically (updatedAt, name, tools, etc.)
-9. All UI/API flows that depend on sessionManager methods continue working (auth, env management, settings, session listing, experiment CRUD)
-10. No circular dependency issues (particularly `before-tool-call-hook` → `../ws/handler` dynamic import)
-
----
-
-## Risks and Mitigations
-
-| Risk | Likelihood | Impact | Mitigation |
-|---|---|---|---|
-| Extracted sub-modules introduce subtle behavioral differences | Medium | High | Extract one module at a time, diff the behavior by running the same session creation flows before and after each extraction. Keep original code in git for comparison. |
-| `resolveModelWithFallback` returns `provider/id` string but callers need `Model` objects | Medium | Medium | At Step 8 implementation time, verify what types `session.setModel()` accepts. If it only accepts `Model`, keep the lookup after `resolveModelWithFallback` returns the string. The benefit is still unified fallback logic. |
-| Dynamic import in `before-tool-call-hook.ts` breaks when moved to a different module path | Low | High | The `../ws/handler` path is relative to `session-manager.ts` in `core/`. The new module will be in `core/session/`, so the relative import becomes `../../ws/handler`. Verify at build time. |
-| Passthrough method migration touches 20+ files and may miss a caller | Low | Medium | Use `grep` to find all callers before starting. After removing passthrough methods, TypeScript compilation will catch any missed callers. |
-| `ensureWorkspaceStructure` side-effect inside `resolveSessionWorkspace` is too heavy | Low | Low | It's already called once per session creation. Moving it into the resolver preserves the exact same call count and timing. A future plan can optimize workspace initialization. |
-| Metadata store's `dirname` helper (L107-109) is fragile | Low | Low | Not touched by this refactoring, but noted. It uses `require("node:path").sep` in an ESM context which works due to Bun's CJS/ESM interop. |
-
----
-
-## Estimated Effort
-
-- Steps 1-6 (create sub-modules): 3 hours
-- Step 7 (refactor getOrCreateSession): 1 hour
-- Step 8 (unify model resolution): 0.5 hours
-- Step 9 (remove passthroughs + update callers): 2 hours
-- Step 10 (verification + fixes): 1.5 hours
-- **Total: ~8 hours**
+   - Verify all UI/API flows that depend on sessionManager methods continue working (auth, env management, settings, session listing, experiment CRUD)

@@ -169,7 +169,7 @@ export class ExperimentRunner {
                 judgeModelToUse = `${activeSession.model.provider}/${activeSession.model.id}`;
               } else {
                 const { join } = require("node:path");
-                const sessionDir = join(sessionManager.ensureUserDir(username), "sessions", labSession.id);
+                const sessionDir = join(sessionManager.userConfig.ensureUserDir(username), "sessions", labSession.id);
                 const { readdirSync, readFileSync } = require("node:fs");
                 const jsonlFiles = readdirSync(sessionDir)
                   .filter((f: string) => f.endsWith(".jsonl"))
@@ -276,7 +276,7 @@ export class ExperimentRunner {
     let rawOutput = "";
     let runError = "";
 
-    const userDefaultModel = sessionManager.getUserDefaultModel(username) || "";
+    const userDefaultModel = sessionManager.userConfig.getUserDefaultModel(username) || "";
     // 1. Temporary register agent
     const ag = run.agents[0] || {
       id: "baseline",
@@ -294,7 +294,7 @@ export class ExperimentRunner {
       }
 
       // Resolve model using agent-utils helper
-      const { modelRegistry } = sessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
       const resolvedModel = resolveModelWithFallback(ag.model, modelRegistry);
 
       await agentRegistry.register(username, {
@@ -330,7 +330,7 @@ export class ExperimentRunner {
 
       // Initialize session and save metadata to disk
       await sessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
-      sessionManager.saveSessionMetadata(username, sessionId, {
+      sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
         name: `${exp.name} - Baseline`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -465,7 +465,7 @@ export class ExperimentRunner {
 
     // 1. Temporary register agents
     const registeredIds: string[] = [];
-    const { modelRegistry } = sessionManager.getUserContext(username);
+    const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
     const configuredModels = modelRegistry.getAvailable();
 
     let rawOutput = "";
@@ -574,7 +574,7 @@ export class ExperimentRunner {
 
       // Initialize session and save metadata to disk
       await sessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
-      sessionManager.saveSessionMetadata(username, sessionId, {
+      sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
         name: `${exp.name} - ${variantKey === "multiNoLeader" ? "Horizontal" : "Jerárquico"}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

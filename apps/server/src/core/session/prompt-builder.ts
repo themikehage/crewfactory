@@ -142,7 +142,7 @@ export class SessionPromptBuilder {
     const { username, sessionId } = params;
     try {
       const { sessionManager } = await import("../session-manager");
-      const meta = sessionManager.getSessionMetadata(username, sessionId);
+      const meta = sessionManager.metadataStore.getSessionMetadata(username, sessionId);
       const channelId = meta?.channelId;
 
       if (channelId) {

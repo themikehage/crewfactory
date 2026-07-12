@@ -1,6 +1,7 @@
 import { sessionManager } from "../core/session-manager";
 import { z } from "zod";
 import { broadcastToUser } from "../ws/handler";
+import { resolveModelWithFallback } from "../core/agent-utils";
 
 const OutputEvaluationSchema = z.object({
   criteria: z.record(z.object({
@@ -61,18 +62,15 @@ export class LabJudge {
     }
 
     if (judgeModel) {
-      const { modelRegistry } = sessionManager.getUserContext(username);
-      let provider = judgeModel;
-      let modelId = judgeModel;
-      if (judgeModel.includes("/")) {
-        const parts = judgeModel.split("/");
-        provider = parts[0];
-        modelId = parts.slice(1).join("/");
-      }
-      const model = modelRegistry.find(provider, modelId) ||
-                    modelRegistry.getAvailable().find(m => m.id === judgeModel || `${m.provider}/${m.id}` === judgeModel);
-      if (model) {
-        await session.setModel(model);
+      const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
+      const resolved = resolveModelWithFallback(judgeModel, modelRegistry);
+      if (resolved) {
+        const model = modelRegistry.getAvailable().find(
+          m => m.id === resolved || `${m.provider}/${m.id}` === resolved
+        );
+        if (model) {
+          await session.setModel(model);
+        }
       }
     }
 

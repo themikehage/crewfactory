@@ -11,7 +11,7 @@ settingsRouter.use("/*", authMiddleware);
 
 settingsRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
-  const settings = sessionManager.getUserSettings(username);
+  const settings = sessionManager.userConfig.getUserSettings(username);
 
   // Fallbacks razonables por defecto
   return c.json({
@@ -52,9 +52,9 @@ settingsRouter.patch("/", async (c) => {
       updates.imageGenModel = String(body.imageGenModel);
     }
 
-    sessionManager.saveUserSettings(username, updates);
+    sessionManager.userConfig.saveUserSettings(username, updates);
 
-    return c.json({ ok: true, settings: { ...sessionManager.getUserSettings(username) } });
+    return c.json({ ok: true, settings: { ...sessionManager.userConfig.getUserSettings(username) } });
   } catch (e) {
     return c.json({ error: "Invalid request body" }, 400);
   }
@@ -102,8 +102,8 @@ settingsRouter.post("/test-image-gen", async (c) => {
       return c.json({ error: "Missing prompt" }, 400);
     }
 
-    const { authStorage } = sessionManager.getUserContext(username);
-    const userEnv = sessionManager.getUserEnv(username);
+    const { authStorage } = sessionManager.userConfig.getUserContext(username);
+    const userEnv = sessionManager.userConfig.getUserEnv(username);
     const apiKey = authStorage.getApiKey("qwen") || userEnv.DASHSCOPE_API_KEY || process.env.DASHSCOPE_API_KEY || "";
     console.log(`[DIAGNOSTIC TEST-IMAGE-GEN] Resolved key length: ${apiKey.length}. Start: '${apiKey.substring(0, 15)}' End: '${apiKey.substring(apiKey.length - 15)}'`);
 

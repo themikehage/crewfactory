@@ -92,8 +92,8 @@ const QWEN_IMAGE_MODELS = [
 
 modelsRouter.get("/images", authMiddleware, (c) => {
   const { username } = getAuthPayload(c);
-  const { authStorage } = sessionManager.getUserContext(username);
-  const userEnv = sessionManager.getUserEnv(username);
+  const { authStorage } = sessionManager.userConfig.getUserContext(username);
+  const userEnv = sessionManager.userConfig.getUserEnv(username);
 
   const hasQwen = authStorage.hasAuth("qwen") || 
                   !!userEnv.DASHSCOPE_API_KEY || 
@@ -134,7 +134,7 @@ modelsRouter.get("/images", authMiddleware, (c) => {
 
 modelsRouter.get("/", authMiddleware, (c) => {
   const { username } = getAuthPayload(c);
-  const { modelRegistry } = sessionManager.getUserContext(username);
+  const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
 
   const available = modelRegistry.getAvailable();
 

@@ -110,7 +110,7 @@ backupRouter.post("/import", async (c) => {
   try {
     // 1. Safe shutdown of active user sessions
     await sessionManager.destroyAllSessions(username);
-    sessionManager.clearUserContext(username);
+    sessionManager.userConfig.clearUserContext(username);
 
     // 2. Stop programmatic agents for this user
     for (const info of agentRegistry.list(username)) {

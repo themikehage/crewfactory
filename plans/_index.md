@@ -24,7 +24,6 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [debt-vendor-fork.md](./debt-vendor-fork.md) — Fork sin version tracking, 33 imports rotos, 8 dead types, @ts-nocheck en 5 archivos, sin proceso de sync
 - [extract-session-utils.md](./extract-session-utils.md) — Extrae 16 ocurrencias de lógica duplicada de sesiones (body, filtro, path, name, meta) en un módulo compartido `session-utils.ts`
 - [decompose-channel-orchestrator.md](./decompose-channel-orchestrator.md) — Decompose ChannelOrchestrator (1072-line God class): extrae AgentPromptRunner, ChannelNegotiationHandler, ChannelMessagePublisher, ResponseParser; unifica deployment-context; elimina circular dep con agent-registry; remueve double-publish a eventBroker
-- [decompose-session-manager.md](./decompose-session-manager.md) — Refactorizacion de `getOrCreateSession()` (414 lineas, 24 responsabilidades): extraccion de 6 sub-modulos, unificacion de `resolveModelWithFallback`, eliminacion de 66 lineas de passthrough boilerplate en `SessionManager`
 
 ### Research
 
@@ -81,7 +80,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [extract-connection-aware-hook.md](./extract-connection-aware-hook.md) — Extraer hook `useConnectionAwareEffect` para eliminar codigo duplicado de WebSocket en useWebSocket y useChannel
 
 
-## Completados (65)
+## Completados (66)
 
 Ver [COMPLETED/](./COMPLETED/)
 

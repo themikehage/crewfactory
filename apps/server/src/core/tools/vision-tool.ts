@@ -10,7 +10,7 @@ export async function runVisionModel(
   base64Data: string,
   mimeType: string
 ): Promise<string> {
-  const { modelRegistry } = sessionManager.getUserContext(username);
+  const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
   const available = modelRegistry.getAvailable();
   const visionModel = available.find(m => `${m.provider}/${m.id}` === modelId || m.id === modelId);
 
@@ -82,7 +82,7 @@ export function createVisionTool(
       required: ["imagePath", "prompt"]
     },
     execute: async (toolCallId: string, args: any) => {
-      const settings = sessionManager.getUserSettings(username);
+      const settings = sessionManager.userConfig.getUserSettings(username);
       const modelId = settings.visionModel;
 
       if (!modelId) {

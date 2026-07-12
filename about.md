@@ -394,7 +394,7 @@ packages/shared/  Shared Zod schemas and types
 
 ### Key Server Modules
 - `ai/` — Vendored and decoupled core agent runtime, including ModelRegistry, SessionManager (persistence), DefaultResourceLoader, AuthStorage, BashTool, and loadSkills.
-- `core/session-manager.ts` — Fachada unificada y singleton que delega la gestión de variables de entorno, configuraciones de usuario, armado de prompts, instanciación de herramientas y listado de sesiones a submódulos especializados dentro de `core/session/` (`user-config`, `metadata-store`, `prompt-builder`, `tool-factory`, `session-lister`).
+- `core/session-manager.ts` — Fachada unificada y singleton que coordina la instanciación y ciclo de vida de sesiones de agentes, exponiendo como propiedades públicas de solo lectura submódulos especializados dentro de `core/session/` (`user-config`, `metadata-store`, `prompt-builder`, `tool-factory`, `session-lister`, `workspace-resolver`, `tool-activation-engine`, `session-event-publisher`, `before-tool-call-hook`, `session-memory-enricher`, `agent-definition-resolver`).
 - `core/tools/task-state-manager.ts` — Centralized manager for planning task state. Encapsulates in-memory caching, atomic write operations, strict Zod-based task list validation, and circular dependency checking.
 - `core/decompose-tool.ts` — Native task decomposition tool factory that constructs structured plans from objectives.
 - `core/update-task-tool.ts` — Native task status update and completion tool definitions maintaining planning state DAGs.

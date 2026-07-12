@@ -62,7 +62,7 @@ Allows keeping parent context clean by returning a structured summary instead of
       }
 
       // Guardar metadata inicial para la sesion delegada para persistir parentSessionId
-      sessionManager.saveSessionMetadata(username, delegateSessionId, {
+      sessionManager.metadataStore.saveSessionMetadata(username, delegateSessionId, {
         name: `Delegation: ${targetType} - ${targetId}`,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

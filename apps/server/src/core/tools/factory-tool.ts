@@ -292,7 +292,7 @@ async function handleChannels(action: string, id: string | undefined, params: an
 async function handleSessions(action: string, id: string | undefined, _params: any, username: string) {
   if (action === "get") {
     if (id) {
-      const meta = sessionManager.getSessionMetadata(username, id);
+      const meta = sessionManager.metadataStore.getSessionMetadata(username, id);
       if (!meta) {
         const session = sessionManager.getSession(username, id);
         if (!session) return err(`Session "${id}" not found`);
@@ -321,11 +321,11 @@ async function handleSessions(action: string, id: string | undefined, _params: a
 async function handleEnv(action: string, key: string | undefined, params: any, username: string) {
   if (action === "get") {
     if (key) {
-      const userEnv = sessionManager.getUserEnv(username);
+      const userEnv = sessionManager.userConfig.getUserEnv(username);
       if (!(key in userEnv)) return err(`Env var "${key}" not found`);
       return ok(`Env var ${key} exists (value hidden)`, { entity: "env", key, exists: true });
     }
-    const userEnv = sessionManager.getUserEnv(username);
+    const userEnv = sessionManager.userConfig.getUserEnv(username);
     const list = Object.entries(userEnv).map(([k]) => ({ key: k, value: "••••••••" }));
     return ok(JSON.stringify(list, null, 2), { entity: "env", data: list });
   }
@@ -333,14 +333,14 @@ async function handleEnv(action: string, key: string | undefined, params: any, u
   if (action === "upsert") {
     if (!params.key) return err("key is required in params for env upsert");
     if (params.value === undefined) return err("value is required in params for env upsert");
-    sessionManager.setUserEnv(username, params.key.trim(), params.value);
+    sessionManager.userConfig.setUserEnv(username, params.key.trim(), params.value);
     return ok(`Env var "${params.key}" set`, { entity: "env", key: params.key, status: "set" });
   }
 
   if (action === "delete") {
     const targetKey = key || params?.key;
     if (!targetKey) return err("key is required (as id or in params) for env delete");
-    sessionManager.deleteUserEnv(username, targetKey);
+    sessionManager.userConfig.deleteUserEnv(username, targetKey);
     return ok(`Env var "${targetKey}" deleted`, { entity: "env", key: targetKey, status: "deleted" });
   }
 
@@ -348,7 +348,7 @@ async function handleEnv(action: string, key: string | undefined, params: any, u
 }
 
 async function handleProviders(action: string, id: string | undefined, params: any, username: string) {
-  const { modelRegistry, authStorage } = sessionManager.getUserContext(username);
+  const { modelRegistry, authStorage } = sessionManager.userConfig.getUserContext(username);
 
   if (action === "get") {
     if (id) {

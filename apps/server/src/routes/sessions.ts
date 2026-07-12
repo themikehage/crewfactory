@@ -42,7 +42,7 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     experimentId,
   };
 
-  sessionManager.saveSessionMetadata(username, sessionId, {
+  sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
     name,
     createdAt: now,
     updatedAt: now,
@@ -65,7 +65,7 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   const { username } = getAuthPayload(c);
 
   const session = await sessionManager.getOrCreateSession(username, sessionId);
-  const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
+  const metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
   const projectName = metadata.projectName;
 
   const execId = crypto.randomUUID();
@@ -75,7 +75,7 @@ sessionsRouter.post("/:id/prompt", zValidator("json", PromptSchema), async (c) =
   const startTime = Date.now();
 
   if (projectName) {
-    const userDir = sessionManager.ensureUserDir(username);
+    const userDir = sessionManager.userConfig.ensureUserDir(username);
     const projectExecsDir = join(userDir, "projects", projectName, "executions");
     if (!existsSync(projectExecsDir)) mkdirSync(projectExecsDir, { recursive: true });
     execDir = join(projectExecsDir, execId);
@@ -146,7 +146,7 @@ sessionsRouter.post(
     const { username } = getAuthPayload(c);
 
     const session = await sessionManager.getOrCreateSession(username, sessionId);
-    const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
+    const metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
     const projectName = metadata.projectName;
 
     const execId = crypto.randomUUID();
@@ -156,7 +156,7 @@ sessionsRouter.post(
     const startTime = Date.now();
 
     if (projectName) {
-      const userDir = sessionManager.ensureUserDir(username);
+      const userDir = sessionManager.userConfig.ensureUserDir(username);
       const projectExecsDir = join(userDir, "projects", projectName, "executions");
       if (!existsSync(projectExecsDir)) mkdirSync(projectExecsDir, { recursive: true });
       execDir = join(projectExecsDir, execId);
@@ -230,7 +230,7 @@ sessionsRouter.get("/projects/:projectName/executions", async (c) => {
   const { username } = getAuthPayload(c);
   const projectName = c.req.param("projectName");
   
-  const userDir = sessionManager.ensureUserDir(username);
+  const userDir = sessionManager.userConfig.ensureUserDir(username);
   const execsDir = join(userDir, "projects", projectName, "executions");
   if (!existsSync(execsDir)) return c.json({ executions: [] });
 
@@ -253,7 +253,7 @@ sessionsRouter.get("/projects/:projectName/executions/:execId", async (c) => {
   const projectName = c.req.param("projectName");
   const execId = c.req.param("execId");
 
-  const userDir = sessionManager.ensureUserDir(username);
+  const userDir = sessionManager.userConfig.ensureUserDir(username);
   const execDir = join(userDir, "projects", projectName, "executions", execId);
   if (!existsSync(execDir)) return c.json({ error: "Execution not found" }, 404);
 
@@ -407,7 +407,7 @@ sessionsRouter.get("/:id/messages", async (c) => {
     };
   });
 
-  const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
+  const metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
   return c.json({ messages: enrichedMessages, metadata });
 });
 
@@ -473,7 +473,7 @@ sessionsRouter.patch("/:id", zValidator("json", z.object({ name: z.string().min(
     return c.json({ error: "Cannot rename API executions" }, 400);
   }
 
-  sessionManager.saveSessionMetadata(username, sessionId, { name });
+  sessionManager.metadataStore.saveSessionMetadata(username, sessionId, { name });
 
   return c.json({ success: true });
 });
@@ -490,7 +490,7 @@ sessionsRouter.post(
       return c.json({ error: "Cannot modify model settings for execution logs" }, 400);
     }
 
-    const { modelRegistry } = sessionManager.getUserContext(username);
+    const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
 
     const model = modelRegistry.find(provider, modelId);
     if (!model) {
@@ -625,14 +625,14 @@ sessionsRouter.post(
         ])
       )
     );
-    sessionManager.persistSessionTools(username, sessionId, tools);
+    sessionManager.metadataStore.persistSessionTools(username, sessionId, tools);
 
     return c.json({ success: true, tools });
   }
 );
 
 function getGatedToolStatus(username: string): Record<string, "available" | "missing_key"> {
-  const env = sessionManager.getUserEnv(username);
+  const env = sessionManager.userConfig.getUserEnv(username);
   return {
     exa_search: (env.EXA_API_KEY || process.env.EXA_API_KEY) ? "available" : "missing_key",
   };
@@ -646,8 +646,8 @@ sessionsRouter.get("/:id/tools", async (c) => {
     return c.json({ tools: [], serialTools: ["request_approval", "ask_question"], toolStatus: getGatedToolStatus(username) });
   }
 
-  const tools = sessionManager.getSessionTools(username, sessionId);
-  const metadata = sessionManager.getSessionMetadata(username, sessionId) || {};
+  const tools = sessionManager.metadataStore.getSessionTools(username, sessionId);
+  const metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
   let serialTools = ["request_approval", "ask_question"];
 
   if (metadata.agentId) {
@@ -664,7 +664,7 @@ sessionsRouter.get("/:id/tasks", async (c) => {
   const sessionId = c.req.param("id");
   const { username } = getAuthPayload(c);
 
-  const userDir = sessionManager.ensureUserDir(username);
+  const userDir = sessionManager.userConfig.ensureUserDir(username);
   const sessionDir = join(userDir, "sessions", sessionId);
   const tasksPath = join(sessionDir, "tasks.json");
 
@@ -689,7 +689,7 @@ sessionsRouter.post("/:id/tasks/status", async (c) => {
       return c.json({ error: "Invalid status value. Must be 'running' or 'paused'." }, 400);
     }
 
-    const userDir = sessionManager.ensureUserDir(username);
+    const userDir = sessionManager.userConfig.ensureUserDir(username);
     const sessionDir = join(userDir, "sessions", sessionId);
     const tasksPath = join(sessionDir, "tasks.json");
 
@@ -717,7 +717,7 @@ sessionsRouter.get("/:parentId/subagents/:subagentId/messages", async (c) => {
   const subagentId = c.req.param("subagentId");
   const { username } = getAuthPayload(c);
 
-  const userDir = sessionManager.ensureUserDir(username);
+  const userDir = sessionManager.userConfig.ensureUserDir(username);
   const delegateDir = join(userDir, "sessions", `del_${subagentId}`);
   const subFolder = `sub_${subagentId}`;
   const subagentDir = join(userDir, "sessions", parentId, "subagents", subFolder);

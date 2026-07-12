@@ -2,6 +2,7 @@ import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { parseMentions } from "./mention-parser";
+import { resolveModelWithFallback } from "../core/agent-utils";
 import { type Channel, type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
 import { eventBroker } from "../lib/event-broker";
 import { AgentWorkQueue } from "./agent-work-queue";
@@ -483,14 +484,19 @@ class ChannelOrchestrator {
 
     // Ensure model is set
     if (!agentEntry.server.session.model) {
-      const { modelRegistry } = sessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
       modelRegistry.refresh();
-      const available = modelRegistry.getAvailable();
-      if (available.length > 0) {
-        try {
-          await agentEntry.server.session.setModel(available[0]);
-        } catch (e) {
-          console.error(`[ChannelOrchestrator] Failed to assign model to ${member.agentId}:`, e);
+      const resolved = resolveModelWithFallback(undefined, modelRegistry);
+      if (resolved) {
+        const model = modelRegistry.getAvailable().find(
+          m => m.id === resolved || `${m.provider}/${m.id}` === resolved
+        );
+        if (model) {
+          try {
+            await agentEntry.server.session.setModel(model);
+          } catch (e) {
+            console.error(`[ChannelOrchestrator] Failed to assign model to ${member.agentId}:`, e);
+          }
         }
       }
     }
@@ -535,7 +541,7 @@ class ChannelOrchestrator {
       agentName,
     });
 
-    const userSettings = sessionManager.getUserSettings(username);
+    const userSettings = sessionManager.userConfig.getUserSettings(username);
     const memoryEnabled = userSettings.memoryEnabled ?? true;
     const channelDbPath = getChannelMemoryDbPath(username, channelId);
     const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);

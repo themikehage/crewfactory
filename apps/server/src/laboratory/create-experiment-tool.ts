@@ -81,10 +81,10 @@ It registers the defined specialist agents dynamically in the workspace registry
         };
       }
 
-      const { modelRegistry } = sessionManager.getUserContext(username);
+      const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
       const parentSession = sessionManager.getSession(username, parentSessionId);
       const parentModel = parentSession?.model ? `${parentSession.model.provider}/${parentSession.model.id}` : undefined;
-      const userDefaultModel = sessionManager.getUserDefaultModel(username);
+      const userDefaultModel = sessionManager.userConfig.getUserDefaultModel(username);
       const fallbackModel = parentModel || userDefaultModel || "";
 
       // 1. Register agents in workspace registry (if they do not already exist)
@@ -200,9 +200,9 @@ It registers the defined specialist agents dynamically in the workspace registry
 
       // Bind this session to the newly created experiment if it wasn't bound
       try {
-        const metadata = sessionManager.getSessionMetadata(username, parentSessionId);
+        const metadata = sessionManager.metadataStore.getSessionMetadata(username, parentSessionId);
         if (metadata && !metadata.experimentId) {
-          sessionManager.saveSessionMetadata(username, parentSessionId, {
+          sessionManager.metadataStore.saveSessionMetadata(username, parentSessionId, {
             ...metadata,
             experimentId: experimentId
           });

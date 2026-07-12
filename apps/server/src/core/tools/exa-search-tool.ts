@@ -226,7 +226,7 @@ export function createExaSearchTool(opts: ExaSearchOptions) {
 
 function getExaApiKey(username: string): string | null {
   try {
-    const env = sessionManager.getUserEnv(username);
+    const env = sessionManager.userConfig.getUserEnv(username);
     if (env.EXA_API_KEY) return env.EXA_API_KEY;
   } catch { }
   return process.env.EXA_API_KEY || null;

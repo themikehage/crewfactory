@@ -176,7 +176,7 @@ export class ExperimentStore {
           name: labAgent.name,
           role: labAgent.role,
           systemPrompt: labAgent.systemPrompt,
-          model: labAgent.model || sessionManager.getUserDefaultModel(username) || "",
+          model: labAgent.model || sessionManager.userConfig.getUserDefaultModel(username) || "",
           skills: [],
         };
         await agentRegistry.register(username, definition, true);

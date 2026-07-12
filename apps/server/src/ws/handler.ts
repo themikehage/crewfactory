@@ -401,7 +401,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
       return;
     }
 
-    const { modelRegistry } = sessionManager.getUserContext(user.username);
+    const { modelRegistry } = sessionManager.userConfig.getUserContext(user.username);
     if (!session.model || !modelRegistry.hasConfiguredAuth(session.model)) {
       const available = modelRegistry.getAvailable();
       if (available.length > 0) {

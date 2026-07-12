@@ -56,7 +56,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
       // Determine parent entity metadata
-      const parentMeta = sessionManager.getSessionMetadata(username, parentSessionId) || {};
+      const parentMeta = sessionManager.metadataStore.getSessionMetadata(username, parentSessionId) || {};
       let parentEntityType = "global";
       let parentEntityId: string | null = null;
 
@@ -72,7 +72,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       }
 
       // 1. Create a directory for the subagent session
-      const userDir = sessionManager.ensureUserDir(username);
+      const userDir = sessionManager.userConfig.ensureUserDir(username);
       const subagentSessionId = `${SessionPrefix.SUBAGENT}${toolCallId}`;
       const subagentDir = join(userDir, "sessions", parentSessionId, "subagents", subagentSessionId);
       mkdirSync(subagentDir, { recursive: true });
@@ -97,7 +97,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
 
       const customBashTool = createBashToolDefinition(workspaceDir, {
         spawnHook: (context) => {
-          const userEnv = sessionManager.getUserEnv(username);
+          const userEnv = sessionManager.userConfig.getUserEnv(username);
           const token = jwt.sign(
             { username },
             process.env.JWT_SECRET!,
@@ -114,7 +114,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
           };
         },
         outputFilter: (output: string) => {
-          const userEnv = sessionManager.getUserEnv(username);
+          const userEnv = sessionManager.userConfig.getUserEnv(username);
           const secrets = Object.values(userEnv).filter(Boolean);
           return filterSecretsFromOutput(output, secrets);
         },

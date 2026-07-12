@@ -40,7 +40,7 @@ After marking a task as 'done', the task runner will automatically identify the 
       const status: "done" | "failed" = args.status;
       const log: string = args.log || "";
 
-      const userDir = sessionManager.ensureUserDir(username);
+      const userDir = sessionManager.userConfig.ensureUserDir(username);
       const sessionDir = join(userDir, "sessions", parentSessionId);
 
       const state = TaskStateManager.getTaskState(sessionDir);
@@ -134,7 +134,7 @@ Use this ONLY when all tasks in the list have been marked as 'done' and you have
     execute: async (toolCallId: string, args: any, _parentSignal?: AbortSignal) => {
       const summary: string = args.summary;
 
-      const userDir = sessionManager.ensureUserDir(username);
+      const userDir = sessionManager.userConfig.ensureUserDir(username);
       const sessionDir = join(userDir, "sessions", parentSessionId);
 
       const state = TaskStateManager.getTaskState(sessionDir);

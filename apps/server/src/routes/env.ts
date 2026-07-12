@@ -12,7 +12,7 @@ envRouter.use("/*", authMiddleware);
 
 envRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
-  const userEnv = sessionManager.getUserEnv(username);
+  const userEnv = sessionManager.userConfig.getUserEnv(username);
 
   const envList = Object.entries(userEnv).map(([key]) => ({
     key,
@@ -25,7 +25,7 @@ envRouter.get("/", (c) => {
 envRouter.get("/reveal/:key", (c) => {
   const key = c.req.param("key").trim().toUpperCase();
   const { username } = getAuthPayload(c);
-  const userEnv = sessionManager.getUserEnv(username);
+  const userEnv = sessionManager.userConfig.getUserEnv(username);
 
   if (!(key in userEnv)) {
     return c.json({ error: "Variable not found" }, 404);
@@ -43,7 +43,7 @@ envRouter.post(
     const { key, value } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
-    sessionManager.setUserEnv(username, key.trim(), value);
+    sessionManager.userConfig.setUserEnv(username, key.trim(), value);
 
     return c.json({ success: true, key, value: "••••••••" });
   }
@@ -63,7 +63,7 @@ envRouter.put(
   (c) => {
     const { variables } = c.req.valid("json");
     const { username } = getAuthPayload(c);
-    const current = sessionManager.getUserEnv(username);
+    const current = sessionManager.userConfig.getUserEnv(username);
     const updated: Record<string, string> = {};
 
     for (const [key, value] of Object.entries(variables)) {
@@ -77,7 +77,7 @@ envRouter.put(
       }
     }
 
-    sessionManager.setUserEnvMap(username, updated);
+    sessionManager.userConfig.setUserEnvMap(username, updated);
 
     const envList = Object.entries(updated).map(([k]) => ({
       key: k,
@@ -92,7 +92,7 @@ envRouter.delete("/:key", (c) => {
   const key = c.req.param("key");
   const { username } = getAuthPayload(c);
 
-  sessionManager.deleteUserEnv(username, key);
+  sessionManager.userConfig.deleteUserEnv(username, key);
 
   return c.json({ success: true });
 });

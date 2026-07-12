@@ -47,7 +47,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const workspaceDir = join(agentDir, "workspace");
   const sessionDir = join(agentDir, "sessions", "main");
 
-  const userSettings = coreSessionManager.getUserSettings(username);
+  const userSettings = coreSessionManager.userConfig.getUserSettings(username);
   const memoryEnabled = userSettings.memoryEnabled ?? true;
   const memoryDbPath = join(agentDir, "memory", "memory.db");
   const memory = await memoryRegistry.get(`agent:${definition.id}`, memoryDbPath, memoryEnabled);
@@ -55,7 +55,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   if (!existsSync(sessionDir)) mkdirSync(sessionDir, { recursive: true });
 
   const { getResolvedSkillPaths } = await import("../core/session-manager");
-  const { authStorage, modelRegistry } = coreSessionManager.getUserContext(username);
+  const { authStorage, modelRegistry } = coreSessionManager.userConfig.getUserContext(username);
   modelRegistry.refresh();
 
   const additionalSkillPaths = [

@@ -9,7 +9,7 @@ import { sessionManager } from "../core/session-manager";
 export const authRouter = new Hono();
 
 function resolveHashB64(username: string): string {
-  const fileHash = sessionManager.getUserPasswordHash(username);
+  const fileHash = sessionManager.userConfig.getUserPasswordHash(username);
   return fileHash ?? process.env.AUTH_PASSWORD_HASH!;
 }
 
@@ -49,7 +49,7 @@ authRouter.post("/password", authMiddleware, zValidator("json", ChangePasswordSc
 
   const newHash = await bcrypt.hash(newPassword, 10);
   const newHashB64 = Buffer.from(newHash).toString("base64");
-  sessionManager.setUserPasswordHash(username, newHashB64);
+  sessionManager.userConfig.setUserPasswordHash(username, newHashB64);
 
   const token = jwt.sign(
     { username },

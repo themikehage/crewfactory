@@ -128,7 +128,7 @@ Once the plan is registered, execute each task in order using your available too
         };
       }
 
-      const userDir = sessionManager.ensureUserDir(username);
+      const userDir = sessionManager.userConfig.ensureUserDir(username);
       const sessionDir = join(userDir, "sessions", parentSessionId);
 
       const oldState = TaskStateManager.getTaskState(sessionDir);

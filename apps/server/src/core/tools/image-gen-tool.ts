@@ -12,9 +12,9 @@ export async function runImageGenModel(
   workspaceDir: string
 ): Promise<string> {
   const isQwen = modelId.startsWith("wan") || modelId.startsWith("qwen-image") || modelId.startsWith("z-image") || modelId.includes("wanxiang");
-  const userEnv = sessionManager.getUserEnv(username);
+  const userEnv = sessionManager.userConfig.getUserEnv(username);
 
-  const { authStorage } = sessionManager.getUserContext(username);
+  const { authStorage } = sessionManager.userConfig.getUserContext(username);
 
   if (isQwen) {
     const apiKey = authStorage.getApiKey("qwen") || userEnv.DASHSCOPE_API_KEY || process.env.DASHSCOPE_API_KEY || "";
@@ -198,7 +198,7 @@ export function createImageGenTool(
       required: ["prompt"]
     },
     execute: async (toolCallId: string, args: any) => {
-      const settings = sessionManager.getUserSettings(username);
+      const settings = sessionManager.userConfig.getUserSettings(username);
       const modelId = settings.imageGenModel;
 
       if (!modelId) {
