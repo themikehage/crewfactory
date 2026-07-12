@@ -1,7 +1,7 @@
 import { ExperimentStore } from "./experiment-store";
 import { calculateVariantScores } from "./scoring";
 import { LabJudge } from "./judge";
-import { type LabExperiment, type VariantRunResult, type LabAgent } from "shared";
+import { type LabExperiment, type VariantRunResult, type LabAgent, type ChannelMember } from "shared";
 import { channelOrchestrator, channelStore } from "../channels";
 import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";

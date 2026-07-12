@@ -3,11 +3,11 @@ import { promptFragmentRegistry, type PromptFragment } from "./registry";
 export interface DeploymentContext {
   mode: "solo" | "broadcast" | "targeted";
   channelId?: string;
-  agentRole?: "lead" | "senior" | "member" | "observer";
+  agentRole?: string;
   members?: {
     agentId: string;
     agentName: string;
-    role: "lead" | "senior" | "member" | "observer";
+    role: string;
   }[];
   negotiationProtocol?: boolean;
   isArbiter?: boolean;

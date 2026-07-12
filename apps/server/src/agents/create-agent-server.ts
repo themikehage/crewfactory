@@ -16,17 +16,10 @@ import { createUiTools } from "../core/tools/ui-tools";
 import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
 import jwt from "jsonwebtoken";
 import { filterSecretsFromOutput } from "../core/bash-output-filter";
-import { getEnvironmentContext } from "../core/env-check";
 import { memoryRegistry } from "../core/memory/registry";
 import { createMemoryTools } from "../core/memory/memory-tools";
 import { mcpRegistry } from "../core/mcp-registry";
-import {
-  HTML_PREVIEW_INSTRUCTIONS,
-  AG_UI_INSTRUCTIONS,
-  PERSISTENT_MEMORY_INSTRUCTIONS,
-  SUBAGENT_DELEGATION_INSTRUCTIONS,
-  TASK_DELEGATION_INSTRUCTIONS,
-} from "../core/prompts/system-instructions";
+import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = getAgentDir(username, id);
@@ -71,20 +64,15 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     }
   }
 
-  const envContext = getEnvironmentContext(workspaceDir);
   const resourceLoader = new DefaultResourceLoader({
     cwd: workspaceDir,
     agentDir,
     additionalSkillPaths,
-    appendSystemPrompt: [
-      `\n\nRuntime Environment:\n${envContext}`,
-      `\n\n${definition.systemPrompt}`,
-      HTML_PREVIEW_INSTRUCTIONS,
-      AG_UI_INSTRUCTIONS,
-      PERSISTENT_MEMORY_INSTRUCTIONS,
-      SUBAGENT_DELEGATION_INSTRUCTIONS,
-      TASK_DELEGATION_INSTRUCTIONS,
-    ],
+    appendSystemPrompt: assemblePromptAppends({
+      mode: "agent-startup",
+      workspaceDir,
+      agentDef: definition,
+    }),
   });
   await resourceLoader.reload();
 
@@ -105,7 +93,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
   const customBashTool = createBashToolDefinition(workspaceDir, {
     spawnHook: (context) => {
-      const userEnv = coreSessionManager.getUserEnv(username);
+      const userEnv = coreSessionManager.userConfig.getUserEnv(username);
       const token = jwt.sign(
         { username },
         process.env.JWT_SECRET!,
@@ -122,8 +110,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
       };
     },
     outputFilter: (output: string) => {
-      const userEnv = coreSessionManager.getUserEnv(username);
-      const secrets = Object.values(userEnv).filter(Boolean);
+      const userEnv = coreSessionManager.userConfig.getUserEnv(username);
+      const secrets = Object.values(userEnv).filter(Boolean) as string[];
       return filterSecretsFromOutput(output, secrets);
     },
   });

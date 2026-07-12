@@ -20,7 +20,7 @@ export function stripThinkBlocks(content: string): string {
 
 export function parseAgentResponse(
   messages: any[],
-  channel: { showThinking: boolean; showTools: boolean },
+  channel: { showThinking?: boolean; showTools?: boolean },
   fullResponseFromStream: string
 ): ParsedResponse {
   let fullResponse = fullResponseFromStream;

@@ -1,15 +1,7 @@
 import { TaskStateManager } from "../tools/task-state-manager";
 import { SessionPrefix } from "shared";
-import { getEnvironmentContext } from "../env-check";
 import { promptComposer } from "../prompts/composer";
-
-import {
-  HTML_PREVIEW_INSTRUCTIONS,
-  AG_UI_INSTRUCTIONS,
-  PERSISTENT_MEMORY_INSTRUCTIONS,
-  SUBAGENT_DELEGATION_INSTRUCTIONS,
-  TASK_DELEGATION_INSTRUCTIONS,
-} from "../prompts/system-instructions";
+import { assemblePromptAppends } from "../prompts/prompt-assembly";
 
 export interface BuildPromptsParams {
   username: string;
@@ -35,15 +27,10 @@ export class SessionPromptBuilder {
       experimentId,
     } = params;
 
-    const envContext = getEnvironmentContext(workspaceDir);
-    const appendPrompts = [
-      `\n\nRuntime Environment:\n${envContext}`,
-      HTML_PREVIEW_INSTRUCTIONS,
-      AG_UI_INSTRUCTIONS,
-      PERSISTENT_MEMORY_INSTRUCTIONS,
-      SUBAGENT_DELEGATION_INSTRUCTIONS,
-      TASK_DELEGATION_INSTRUCTIONS,
-    ];
+    const appendPrompts = assemblePromptAppends({
+      mode: "standard-session",
+      workspaceDir,
+    });
 
     if (sessionId.startsWith(SessionPrefix.DELEGATE)) {
       appendPrompts.push(

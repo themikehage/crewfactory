@@ -4,15 +4,7 @@ import { sessionManager } from "../core/session-manager";
 import { resolveModelWithFallback } from "../core/agent-utils";
 import { type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
 import { memoryRegistry } from "../core/memory/registry";
-import {
-  HTML_PREVIEW_INSTRUCTIONS,
-  AG_UI_INSTRUCTIONS,
-  PERSISTENT_MEMORY_INSTRUCTIONS,
-  SUBAGENT_DELEGATION_INSTRUCTIONS,
-  TASK_DELEGATION_INSTRUCTIONS,
-} from "../core/prompts/system-instructions";
-import { getEnvironmentContext } from "../core/env-check";
-import { promptComposer } from "../core/prompts/composer";
+import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
 import { buildDeploymentContext } from "../core/channel/deployment-context";
 import { parseAgentResponse } from "./response-parser";
 import { parseMentions } from "./mention-parser";
@@ -187,18 +179,12 @@ export class AgentPromptRunner {
     const deployment = buildDeploymentContext(channel, member.agentId, agentNameMap);
 
     const workspaceDir = agentEntry.server.session.cwd;
-    const layered = promptComposer.compose(agentEntry.server.definition, deployment, workspaceDir);
-
-    const envContext = getEnvironmentContext(workspaceDir);
-    const appendSystemPrompts = [
-      `\n\nRuntime Environment:\n${envContext}`,
-      layered.composed,
-      HTML_PREVIEW_INSTRUCTIONS,
-      AG_UI_INSTRUCTIONS,
-      PERSISTENT_MEMORY_INSTRUCTIONS,
-      SUBAGENT_DELEGATION_INSTRUCTIONS,
-      TASK_DELEGATION_INSTRUCTIONS,
-    ];
+    const appendSystemPrompts = assemblePromptAppends({
+      mode: "channel-member",
+      workspaceDir,
+      agentDef: agentEntry.server.definition,
+      deployment,
+    });
     if (typeof (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt === "function") {
       (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt(appendSystemPrompts);
       await agentEntry.server.session.resourceLoader.reload();

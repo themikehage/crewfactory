@@ -224,6 +224,7 @@
   4. **Protocol**: Injected conditionally based on channel settings (Negotiation rules or Arbitration decision-making).
 - **Registry & Composer**: Powered by `PromptFragmentRegistry` resolving default system fragments and overrides from `prompt-overrides.json`, combined with `PromptComposer` to assemble the final unified system prompt.
 - **Agent Server Dynamic Mutator**: Integrated with `DefaultResourceLoader.setAppendSystemPrompt` to update active session system instructions dynamically before executing prompts in `ChannelOrchestrator` or standard chats.
+- **Centralized Prompt Assembly**: Implements `PromptAssemblyFactory` (`prompt-assembly.ts`) to centralize system prompt building across standard sessions, group channels, standalone agent servers, and subagent executors, resolving raw prompt bypass bugs.
 
 ### Dynamic Model Sourcing & Capabilities Matrix
 - **Hot-Reloading Catalog**: Supports the `POST /api/providers/:id/refresh` endpoint to query dynamic models in real-time from endpoints (like OpenCode Go or Qwen) with credentials.

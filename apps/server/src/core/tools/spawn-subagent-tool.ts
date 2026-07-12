@@ -12,7 +12,7 @@ import {
 import { createUiTools } from "./ui-tools";
 import { sessionManager } from "../session-manager";
 import { filterSecretsFromOutput } from "../bash-output-filter";
-import { getEnvironmentContext } from "../env-check";
+import { assemblePromptAppends } from "../prompts/prompt-assembly";
 import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
@@ -122,34 +122,16 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
 
       const uiTools = createUiTools(workspaceDir, username);
 
-      const subagentInstructions = [
-        `\n\n## Subagent Executor Mode`,
-        `You are a SUBAGENT EXECUTOR. Your goal is to perform a focused task on behalf of the parent agent orchestrator.`,
-        `The task you must perform is:`,
-        `"""\n${args.task}\n"""`,
-        args.subagentRole ? `\nRole context: ${args.subagentRole}` : "",
-        `\n## Executor Contract`,
-        `1. Perform the task directly using your tools.`,
-        `2. Save any artifacts (files) before your final text response.`,
-        `3. Your final message MUST contain the structured result envelope below.`,
-        `Return the result envelope exactly in this format as your last message:`,
-        `---`,
-        `status: success | partial | blocked`,
-        `executive_summary: <1-3 sentences summarizing what was accomplished>`,
-        `artifacts: <comma-separated list of files created/modified, or "none">`,
-        `risks: <any risks found, or "None">`,
-        `---`
-      ].filter(Boolean).join("\n");
-
-      const envContext = getEnvironmentContext(workspaceDir);
       const subResourceLoader = new DefaultResourceLoader({
         cwd: workspaceDir,
         agentDir: userDir,
         additionalSkillPaths: resourceLoader.getSkills().skills.map(s => s.baseDir),
-        appendSystemPrompt: [
-          subagentInstructions,
-          `\n\nRuntime Environment:\n${envContext}`
-        ],
+        appendSystemPrompt: assemblePromptAppends({
+          mode: "subagent-spawn",
+          workspaceDir,
+          subagentTask: args.task,
+          subagentRole: args.subagentRole,
+        }),
       });
       await subResourceLoader.reload();
 

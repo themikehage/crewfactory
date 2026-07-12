@@ -1,4 +1,4 @@
-import type { ChannelMember, ChannelNegotiationProtocol, ChannelContextItem, ChannelMessage } from "shared";
+import type { ChannelMember, NegotiationProtocol, ChannelContextItem, ChannelMessage } from "shared";
 
 export interface RunToCompletionConfig {
   channelId: string;
@@ -8,7 +8,7 @@ export interface RunToCompletionConfig {
   maxChainDepth: number;
   showThinking: boolean;
   showTools: boolean;
-  negotiationProtocol?: ChannelNegotiationProtocol;
+  negotiationProtocol?: NegotiationProtocol;
   contextItems?: ChannelContextItem[];
   taskPrompt: string;
   sessionId: string;

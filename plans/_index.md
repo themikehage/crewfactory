@@ -29,10 +29,6 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [state-of-the-art-2026.md](./state-of-the-art-2026.md) — Estado del arte de plataformas AI agenticas (Cursor, Devin Desktop, Claude Code, Copilot, Codex) con 14 funcionalidades priorizadas para CrewFactory
 - [sandboxing.md](./sandboxing.md) — Sandboxing profesional: Permission Engine, Docker sandbox, Network Proxy, Secret Filter, Resource Limits, UI de configuracion
 
-### Refactoring
-
-- [centralize-prompt-assembly.md](./centralize-prompt-assembly.md) — Centralizar el ensamblaje de `appendSystemPrompt` duplicado en 4 archivos via `PromptAssemblyFactory`
-
 ### Features
 
 - [webfetch-tool.md](./webfetch-tool.md) — **Web Fetch Tool**: Tool `web_fetch` para que el agente obtenga contenido de URLs arbitrarias. Analisis completo de seguridad (SSRF, DNS rebinding, redirect tracking, rate limiting), rendimiento (cache con TTL, streaming read con byte limit, conditional fetch), y extraccion de contenido (HTML→text, JSON, markdown). Complementa `exa_search`.
@@ -79,7 +75,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [extract-connection-aware-hook.md](./extract-connection-aware-hook.md) — Extraer hook `useConnectionAwareEffect` para eliminar codigo duplicado de WebSocket en useWebSocket y useChannel
 
 
-## Completados (66)
+## Completados (67)
 
 Ver [COMPLETED/](./COMPLETED/)
 

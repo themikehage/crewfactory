@@ -221,3 +221,11 @@
 - [x] 115.4 Refactor `ExperimentRunner` to remove obsolete `runSingleVariant` and `runMultiVariant` duplicate methods and delegate to `channelOrchestrator.runToCompletion`
 - [x] 115.5 Verify successful compilation and builds for both server and client packages
 
+## Phase 116: Centralize Prompt Assembly
+- [x] 116.1 Create `apps/server/src/core/prompts/prompt-assembly.ts` containing the centralized `assemblePromptAppends` factory and its modes
+- [x] 116.2 Refactor `SessionPromptBuilder` to delegate to `assemblePromptAppends` in `standard-session` mode
+- [x] 116.3 Refactor `AgentPromptRunner` to delegate to `assemblePromptAppends` in `channel-member` mode
+- [x] 116.4 Fix `createAgentServer` prompt composition bug by delegating to `assemblePromptAppends` in `agent-startup` mode
+- [x] 116.5 Refactor `spawn_subagent` tool to delegate to `assemblePromptAppends` in `subagent-spawn` mode and remove duplicate inline string structures
+- [x] 116.6 Verify successful compilation, strict typecheck, and production builds of both client and server packages
+
