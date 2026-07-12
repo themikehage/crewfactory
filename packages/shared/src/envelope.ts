@@ -9,3 +9,16 @@ export const EnvelopeResultSchema = z.object({
 });
 
 export type EnvelopeResult = z.infer<typeof EnvelopeResultSchema>;
+
+export const DELEGATION_NOTIFICATION_TYPE = "delegation_notification" as const;
+
+export interface DelegationNotificationDetails {
+  type: typeof DELEGATION_NOTIFICATION_TYPE;
+  status: EnvelopeResult["status"];
+  toolName: string;
+  toolCallId: string;
+  subagentSessionId: string;
+  executiveSummary: string;
+  artifacts: string;
+  hasOutputText: boolean;
+}

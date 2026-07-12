@@ -1,6 +1,7 @@
 import type { ModelRegistry } from "../ai";
 import { broadcastToSession } from "../ws/handler";
-import type { EnvelopeResult } from "shared";
+import type { EnvelopeResult, DelegationNotificationDetails } from "shared";
+import { DELEGATION_NOTIFICATION_TYPE } from "shared";
 
 
 /**
@@ -137,32 +138,40 @@ export function formatDelegationResultMessage(
   subagentSessionId: string,
   outputText?: string
 ): any {
-  const sections = [
-    `[SYSTEM NOTIFICATION: DELEGATION COMPLETED]`,
-    `The task delegated via '${toolName}' (ID: ${toolCallId}) in session '${subagentSessionId}' has finished executing.`,
-    `Task Result:`,
-    `---`,
-    `status: ${envelope.status}`,
-    `executive_summary: ${envelope.executive_summary}`,
-    `artifacts: ${envelope.artifacts}`,
-    `risks: ${envelope.risks}`,
-    `---`,
-  ];
+  const details: DelegationNotificationDetails = {
+    type: DELEGATION_NOTIFICATION_TYPE,
+    status: envelope.status,
+    toolName,
+    toolCallId,
+    subagentSessionId,
+    executiveSummary: envelope.executive_summary,
+    artifacts: envelope.artifacts,
+    hasOutputText: !!(outputText && outputText.trim()),
+  };
 
-  if (outputText && outputText.trim()) {
-    sections.push(
-      `Delegate final response:`,
-      `"""`,
-      outputText.trim(),
-      `"""`
-    );
+  const statusLabel = envelope.status === "success" ? "Completed" : envelope.status;
+  const statusBadge = `[Delegation ${statusLabel}]`;
+  const summary = envelope.executive_summary.slice(0, 300);
+  const parts = [statusBadge, summary];
+
+  if (envelope.artifacts && envelope.artifacts !== "none") {
+    parts.push(`Artifacts: ${envelope.artifacts}`);
   }
 
-  const envelopeStr = sections.join("\n");
+  if (envelope.risks && envelope.risks !== "None") {
+    parts.push(`Risks: ${envelope.risks}`);
+  }
+
+  if (outputText && outputText.trim()) {
+    parts.push(`\n${outputText.trim()}`);
+  }
+
+  const envelopeStr = parts.join("\n\n");
 
   return {
     role: "user",
     content: [{ type: "text", text: envelopeStr }],
+    details,
     timestamp: Date.now(),
   };
 }

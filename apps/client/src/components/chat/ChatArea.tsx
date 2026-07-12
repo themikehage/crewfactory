@@ -14,15 +14,15 @@ import { WelcomeChatInput } from "./WelcomeChatInput";
 import { useToast } from "@/contexts/ToastContext";
 
 import { FloatingTasks } from "./FloatingTasks";
-import { FloatingDelegations } from "./FloatingDelegations";
-import type { PendingDelegation } from "./FloatingDelegations";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
 interface Message {
-  role: "user" | "assistant" | "tool_result" | "toolResult" | "system";
+  role: "user" | "assistant" | "tool_result" | "toolResult" | "system" | "tool_approval_request";
   content: string | Array<{ type: string; text?: string; thinking?: string; name?: string; arguments?: Record<string, unknown> }>;
   toolName?: string;
+  toolCallId?: string;
+  args?: Record<string, any>;
   isError?: boolean;
   isStreaming?: boolean;
   api?: string;
@@ -55,6 +55,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [, setSandboxTools] = useState<string[]>(ALL_TOOL_NAMES);
   const [serialTools, setSerialTools] = useState<string[]>(["request_approval", "ask_question"]);
   const [contextUsage, setContextUsage] = useState<ContextUsage | null>(null);
+  const [settledApprovals, setSettledApprovals] = useState<Record<string, "confirm" | "deny">>({});
 
   const getSessionPath = useCallback((id: string) => {
     if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
@@ -174,7 +175,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     currentTaskId: null,
     status: "idle",
   });
-  const [delegations, setDelegations] = useState<PendingDelegation[]>([]);
   const [compacting, setCompacting] = useState(false);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const [wasConnected, setWasConnected] = useState(connected);
@@ -204,7 +204,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     streaming,
   });
 
-
+  const handleResolveApproval = useCallback((toolCallId: string, action: "confirm" | "deny") => {
+    send({
+      type: "ui_action",
+      componentId: toolCallId,
+      action,
+    });
+    setSettledApprovals((prev) => ({ ...prev, [toolCallId]: action }));
+  }, [send]);
 
   const handleToggleTasksStatus = useCallback(async (newStatus: "running" | "paused") => {
     if (!sessionId) return;
@@ -266,7 +273,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       setMessages([]);
       setLoadingMessages(false);
       setContextUsage(null);
-      setDelegations([]);
       return;
     }
 
@@ -301,20 +307,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       } catch {}
     };
     fetchTasks();
-
-    const fetchDelegations = async () => {
-      try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/delegations`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (res.ok) {
-          const data = await res.json();
-          setDelegations(data.delegations ?? []);
-        }
-      } catch {}
-    };
-    fetchDelegations();
 
     const findMsgIndex = (prev: Message[], msg: Message) => {
       return prev.findIndex(m => 
@@ -465,38 +457,19 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       window.dispatchEvent(new CustomEvent(`tool-update-${toolCallId}`, { detail: evt }));
     });
 
-    const unsubDelStarted = subscribe("delegation_started", (data: any) => {
-      if (sessionId === data.parentSessionId) {
-        setDelegations((prev) => {
-          const exists = prev.some(d => d.toolCallId === data.toolCallId);
-          if (exists) return prev;
-          return [...prev, {
-            toolCallId: data.toolCallId,
-            subagentSessionId: data.subagentSessionId,
-            task: data.task,
-            targetType: data.targetType,
-            status: "running",
-            startedAt: new Date().toISOString()
-          }];
-        });
-      }
-    });
-
-    const unsubDelCompleted = subscribe("delegation_completed", (data: any) => {
-      if (sessionId === data.parentSessionId) {
-        loadMessages(true);
-        setDelegations((prev) => prev.map(d => {
-          if (d.toolCallId === data.toolCallId) {
-            return {
-              ...d,
-              status: data.status,
-              completedAt: new Date().toISOString(),
-              result: data.result
-            };
-          }
-          return d;
-        }));
-      }
+    const unsubToolApproval = subscribe("tool_approval_request", (data: any) => {
+      setMessages((prev) => {
+        if (prev.some(m => m.toolCallId === data.toolCallId)) return prev;
+        const approvalMsg: Message = {
+          role: "tool_approval_request" as any,
+          toolCallId: data.toolCallId,
+          toolName: data.toolName,
+          content: data.reason || "Action requires approval",
+          args: data.args,
+          timestamp: Date.now(),
+        } as any;
+        return [...prev, approvalMsg];
+      });
     });
 
     return () => {
@@ -511,8 +484,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubSubagent();
       unsubContext();
       unsubToolUpdate();
-      unsubDelStarted();
-      unsubDelCompleted();
+      unsubToolApproval();
     };
   }, [sessionId, subscribe, loadMessages, navigate, getSessionPath]);
 
@@ -648,23 +620,21 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
         {(sessionId.startsWith("sub_") || sessionId.startsWith("del_")) && (
-          <div className="px-4 py-2.5 bg-surface border-b border-border flex items-center justify-between flex-shrink-0 z-10">
-            <div className="flex items-center gap-2">
-              <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent font-medium text-[10px] font-mono uppercase tracking-wider">
-                {sessionId.startsWith("sub_") ? "Subagent Session" : "Delegated Session"}
-              </span>
-            </div>
+          <div className="px-4 py-2.5 bg-surface border-b border-border flex items-center gap-2 flex-shrink-0 z-10">
             {sessionMetadata?.parentSessionId && (
               <button
                 onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId))}
-                className="text-xs text-accent hover:underline flex items-center gap-1.5 transition-all duration-150 cursor-pointer"
+                className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+                title="Volver a la sesión padre"
               >
-                <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
                 </svg>
-                Volver a la Sesión Padre
               </button>
             )}
+            <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent font-medium text-[10px] font-mono uppercase tracking-wider">
+              {sessionId.startsWith("sub_") ? "Subagent Session" : "Delegated Session"}
+            </span>
           </div>
         )}
 
@@ -711,12 +681,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     tasksState={tasksState}
                     onToggleStatus={handleToggleTasksStatus}
                   />
-                  <FloatingDelegations
-                    delegations={delegations}
-                    onNavigateToSession={(subSessionId) => {
-                      navigate(getSessionPath(subSessionId));
-                    }}
-                  />
                   <MessageList
                     messages={messages}
                     onNavigate={handleNavigate}
@@ -730,6 +694,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     onOpenSubagentConsole={(toolCallId: string) => {
                       navigate(getSessionPath(`sub_${toolCallId}`));
                     }}
+                    settledApprovals={settledApprovals}
+                    onResolveApproval={handleResolveApproval}
                   />
                   {!isReadOnlyExecution && <div className="h-[176px] flex-shrink-0" />}
                 </>

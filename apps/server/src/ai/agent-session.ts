@@ -1,7 +1,7 @@
 import { Agent } from "./vendor/agent/src/agent.ts";
 import { prepareCompaction, compact } from "./vendor/agent/src/harness/compaction/compaction.ts";
 import { completeSimple, streamSimple } from "./vendor/ai/src/compat.ts";
-import type { AgentMessage, AgentTool } from "./vendor/agent/src/types.ts";
+import type { AgentMessage, AgentTool, BeforeToolCallContext, BeforeToolCallResult } from "./vendor/agent/src/types.ts";
 import type { AvailableModel, ModelRegistry } from "./model-registry";
 import type { SessionManager } from "./session-persistence";
 import type { DefaultResourceLoader } from "./resource-loader";
@@ -15,6 +15,7 @@ export interface CreateAgentSessionOptions {
   modelRegistry: ModelRegistry;
   resourceLoader: DefaultResourceLoader;
   customTools?: any[];
+  beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;
 }
 
 export type AgentSessionEvent = any;
@@ -27,6 +28,7 @@ export class AgentSession {
   resourceLoader: DefaultResourceLoader;
   customTools: any[];
   _customTools: any[];
+  beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;
 
   model: AvailableModel | null = null;
 
@@ -75,6 +77,7 @@ export class AgentSession {
     this.resourceLoader = options.resourceLoader;
     this.customTools = options.customTools || [];
     this._customTools = this.customTools;
+    this.beforeToolCall = options.beforeToolCall;
 
     this.initializeTools();
     this.restoreSessionState();
@@ -196,6 +199,7 @@ export class AgentSession {
         } as any);
         return result.ok ? result.apiKey : undefined;
       },
+      beforeToolCall: this.beforeToolCall,
     });
 
     this.agent.subscribe(async (evt) => {

@@ -1,4 +1,6 @@
+COMPLETED
 # Sandboxing Plan — CrewFactory
+
 
 ## Contexto
 

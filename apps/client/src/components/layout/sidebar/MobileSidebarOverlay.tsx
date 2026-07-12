@@ -25,7 +25,7 @@ export function MobileSidebarOverlay({
             animate={{ x: 0 }}
             exit={{ x: "-100%" }}
             transition={{ duration: 0.25, ease: "easeOut" }}
-            className="fixed inset-0 z-50 w-full bg-background pb-14"
+            className="fixed inset-0 z-50 w-full bg-background flex flex-col"
           >
             <div className="h-12 px-3 flex items-center border-b border-border bg-card/30 flex-shrink-0">
               <div className="flex items-center gap-2">
@@ -33,7 +33,9 @@ export function MobileSidebarOverlay({
                 <span className="text-base font-semibold text-foreground">Factory</span>
               </div>
             </div>
-            {children}
+            <div className="flex-1 min-h-0 pb-14">
+              {children}
+            </div>
           </motion.aside>
         )}
       </AnimatePresence>

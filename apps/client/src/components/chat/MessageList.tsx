@@ -8,6 +8,7 @@ import { resolveFileUrl, getFileType, type MediaType } from "./ToolResultInspect
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
 import { ImageGrid } from "./ImageGrid";
 import { ThinkingBlock, AssistantTextBlock } from "./MessageBlocks";
+import { DELEGATION_NOTIFICATION_TYPE } from "shared";
 
 function formatTimestamp(ts: number): string {
   const d = new Date(ts);
@@ -52,6 +53,7 @@ interface Message {
   id?: string;
   parentId?: string | null;
   siblings?: string[];
+  args?: Record<string, any>;
   details?: {
     diff?: string;
     patch?: string;
@@ -82,11 +84,14 @@ interface Props {
   activeChannelId?: string | null;
   serialTools?: string[];
   onOpenSubagentConsole?: (toolCallId: string) => void;
+  settledApprovals?: Record<string, "confirm" | "deny">;
+  onResolveApproval?: (toolCallId: string, action: "confirm" | "deny") => void;
 }
 
 type RenderGroup =
   | { type: "user"; msg: Message }
   | { type: "system"; msg: Message }
+  | { type: "tool_approval_request"; msg: Message }
   | { type: "agent"; messages: Message[] };
 
 function buildGroups(messages: Message[]): RenderGroup[] {
@@ -109,6 +114,10 @@ function buildGroups(messages: Message[]): RenderGroup[] {
     } else if (msg.role === "system") {
       flush();
       groups.push({ type: "system", msg });
+      currentAgentName = undefined;
+    } else if (msg.role === "tool_approval_request") {
+      flush();
+      groups.push({ type: "tool_approval_request", msg });
       currentAgentName = undefined;
     } else {
       const msgAgentName = msg.agentName || msg.model || undefined;
@@ -340,6 +349,82 @@ function cleanUserMessageText(text: string): string {
   return text.replace(/\[Attached File:\s*([^\n\]]+)\]\s*\([^\n)]+\)/gi, "").trim();
 }
 
+function DelegationNotification({ msg }: { msg: Message }) {
+  const d = msg.details;
+  if (!d || d.type !== DELEGATION_NOTIFICATION_TYPE) return null;
+
+  const borderColors: Record<string, string> = {
+    success: "border-l-green-500/60",
+    error: "border-l-red-500/60",
+    blocked: "border-l-yellow-500/60",
+    partial: "border-l-yellow-500/60",
+  };
+  const dotColors: Record<string, string> = {
+    success: "bg-green-500",
+    error: "bg-red-500",
+    blocked: "bg-yellow-500",
+    partial: "bg-yellow-500",
+  };
+  const statusLabels: Record<string, string> = {
+    success: "Completed",
+    error: "Error",
+    blocked: "Blocked",
+    partial: "Partial",
+  };
+
+  const status = (d.status as string) || "success";
+  const borderColor = borderColors[status] || "border-l-accent/60";
+  const dotColor = dotColors[status] || "bg-accent";
+  const statusLabel = statusLabels[status] || status;
+  const summary = (d as any).executiveSummary || "";
+  const artifacts = (d as any).artifacts || "";
+  const hasOutputText = (d as any).hasOutputText || false;
+  const toolName = (d as any).toolName || "";
+
+  const text = typeof msg.content === "string"
+    ? msg.content
+    : Array.isArray(msg.content)
+    ? (msg.content as ContentBlock[]).map(b => b.text ?? "").join(" ")
+    : "";
+
+  const bodyLines = text.split("\n").filter(l => l.trim());
+  const outputText = hasOutputText ? bodyLines.slice(1).join("\n").trim() : "";
+
+  return (
+    <div className="flex justify-start my-2 w-full">
+      <div className={`bg-surface/20 border border-border/50 border-l-2 ${borderColor} text-text-secondary text-xs rounded-lg rounded-l-sm px-4 py-3 max-w-[85%] shadow-xs flex flex-col gap-2`}>
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className={`w-2 h-2 rounded-full ${dotColor} shrink-0`} />
+          <span className="text-[10px] font-mono uppercase font-semibold tracking-wider text-text-secondary">
+            {toolName} {statusLabel}
+          </span>
+        </div>
+        {summary && (
+          <p className="text-xs text-text-primary leading-relaxed line-clamp-2">{summary}</p>
+        )}
+        {artifacts && artifacts !== "none" && (
+          <div className="flex items-center gap-1.5">
+            <span className="text-[9px] font-mono uppercase text-text-secondary tracking-wider">Artifacts</span>
+            <span className="text-[10px] text-text-primary font-mono px-1.5 py-0.5 rounded bg-surface border border-border/50 truncate max-w-[200px]">
+              {artifacts}
+            </span>
+          </div>
+        )}
+        {outputText && (
+          <details className="group">
+            <summary className="text-[10px] font-mono text-accent hover:text-accent-hover cursor-pointer select-none">
+              View output
+            </summary>
+            <div className="mt-2 p-2.5 bg-bg/50 border border-border/30 rounded text-[11px] text-text-secondary leading-relaxed whitespace-pre-wrap max-h-[200px] overflow-y-auto font-mono">
+              {outputText}
+            </div>
+          </details>
+        )}
+      </div>
+    </div>
+  );
+}
+
 function UserBubble({
   msg,
   onNavigate,
@@ -432,6 +517,80 @@ function UserBubble({
   );
 }
 
+function ToolApprovalCard({
+  msg,
+  onResolve,
+  settledAction,
+}: {
+  msg: Message;
+  onResolve?: (toolCallId: string, action: "confirm" | "deny") => void;
+  settledAction?: "confirm" | "deny";
+}) {
+  const toolCallId = msg.toolCallId!;
+  const toolName = msg.toolName || "tool";
+  const reason = typeof msg.content === "string" ? msg.content : "Action requires approval";
+  const args = msg.args || {};
+
+  return (
+    <div className="flex justify-start my-3 w-full">
+      <div className="bg-[#171717] border border-yellow-500/30 border-l-2 border-l-yellow-500 text-text-secondary text-sm rounded-xl px-4 py-3.5 max-w-[85%] sm:max-w-[70%] shadow-lg flex flex-col gap-3">
+        <div className="flex items-center gap-2">
+          <span className="w-2.5 h-2.5 rounded-full bg-yellow-500 animate-pulse shrink-0" />
+          <span className="text-[10px] font-mono uppercase font-bold tracking-wider text-yellow-500">
+            Security Permission Request
+          </span>
+        </div>
+
+        <div className="space-y-1">
+          <h4 className="text-text-primary font-semibold text-sm">
+            Agent wants to run <code className="font-mono text-xs px-1.5 py-0.5 rounded bg-[#121212] text-yellow-400">{toolName}</code>
+          </h4>
+          <p className="text-xs text-text-secondary leading-relaxed">{reason}</p>
+        </div>
+
+        {Object.keys(args).length > 0 && (
+          <div className="p-2.5 bg-[#121212] border border-border/50 rounded-lg text-xs font-mono overflow-x-auto max-w-full text-text-primary">
+            {toolName === "bash" && args.command ? (
+              <pre className="whitespace-pre-wrap break-all text-xs text-green-400">$ {args.command}</pre>
+            ) : (
+              <pre className="whitespace-pre-wrap break-all text-xs">{JSON.stringify(args, null, 2)}</pre>
+            )}
+          </div>
+        )}
+
+        <div className="flex items-center gap-2 mt-1">
+          {settledAction ? (
+            <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg border font-mono ${
+              settledAction === "confirm"
+                ? "bg-green-500/10 text-green-400 border-green-500/20"
+                : "bg-red-500/10 text-red-400 border-red-500/20"
+            }`}>
+              {settledAction === "confirm" ? "✓ Approved" : "✗ Denied"}
+            </div>
+          ) : (
+            <>
+              <button
+                type="button"
+                onClick={() => onResolve?.(toolCallId, "confirm")}
+                className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#4ade80] text-[#121212] hover:opacity-90 active:scale-95 transition-all cursor-pointer font-sans"
+              >
+                Approve
+              </button>
+              <button
+                type="button"
+                onClick={() => onResolve?.(toolCallId, "deny")}
+                className="px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-[#202020] hover:bg-[#2a2a2a] text-text-primary border border-border hover:border-border-hover active:scale-95 transition-all cursor-pointer font-sans"
+              >
+                Deny
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export const MessageList: FC<Props> = ({
   messages,
   onNavigate,
@@ -443,6 +602,8 @@ export const MessageList: FC<Props> = ({
   activeChannelId = null,
   serialTools,
   onOpenSubagentConsole,
+  settledApprovals,
+  onResolveApproval,
 }) => {
   if (messages.length === 0) {
     return (
@@ -458,6 +619,13 @@ export const MessageList: FC<Props> = ({
 
   const groups = buildGroups(messages);
 
+  const toolResultMap = new Map<string, Message>();
+  for (const m of messages) {
+    if ((m.role === "toolResult" || m.role === "tool_result") && m.toolCallId) {
+      toolResultMap.set(m.toolCallId, m);
+    }
+  }
+
   return (
     <div className="space-y-4">
       <AnimatePresence>
@@ -469,20 +637,42 @@ export const MessageList: FC<Props> = ({
             transition={{ duration: 0.15 }}
           >
             {group.type === "user" ? (
-              <UserBubble
-                msg={group.msg}
-                onNavigate={onNavigate}
-                sessionId={sessionId}
-                activeProjectName={activeProjectName}
-                activeAgentId={activeAgentId}
-                activeChannelId={activeChannelId}
-              />
+              group.msg.details?.type === DELEGATION_NOTIFICATION_TYPE ? (
+                <DelegationNotification msg={group.msg} />
+              ) : (
+                <UserBubble
+                  msg={group.msg}
+                  onNavigate={onNavigate}
+                  sessionId={sessionId}
+                  activeProjectName={activeProjectName}
+                  activeAgentId={activeAgentId}
+                  activeChannelId={activeChannelId}
+                />
+              )
             ) : group.type === "system" ? (
               <div className="flex justify-center my-2 w-full">
                 <div className="bg-card/30 border border-input/40 text-muted-foreground text-xs px-4 py-2 rounded-full max-w-[85%] text-center font-medium shadow-xs">
                   {typeof group.msg.content === "string" ? group.msg.content : ""}
                 </div>
               </div>
+            ) : group.type === "tool_approval_request" ? (
+              <ToolApprovalCard
+                msg={group.msg}
+                onResolve={onResolveApproval}
+                settledAction={
+                  (group.msg.toolCallId && toolResultMap.has(group.msg.toolCallId))
+                    ? (
+                        (
+                          typeof toolResultMap.get(group.msg.toolCallId!)?.content === "string" &&
+                          (toolResultMap.get(group.msg.toolCallId!)?.content as string).includes("[Permission Denied]")
+                        ) || (
+                          Array.isArray(toolResultMap.get(group.msg.toolCallId!)?.content) &&
+                          (toolResultMap.get(group.msg.toolCallId!)?.content as any[]).some(c => c.text && c.text.includes("[Permission Denied]"))
+                        ) ? "deny" : "confirm"
+                      )
+                    : (group.msg.toolCallId ? settledApprovals?.[group.msg.toolCallId] : undefined)
+                }
+              />
             ) : (
               <AgentTurn
                 messages={group.messages}

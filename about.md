@@ -120,6 +120,7 @@
 - Applied immediately to live agent session via `session.setActiveToolsByName()`
 - Sandbox badge in chat header shows current mode (Read-Only / Full Access / N/7 Tools)
 - Tools also sent per-prompt via WebSocket for immediate override
+- **Permission Engine:** Stateless rule evaluation (deny-first, then ask, then allow) implemented via the underlying agent `beforeToolCall` hook. Destructive patterns (such as fork bombs, recursive deletion of critical folders, piping network scripts into bash, or raw disk modifications) are blocked immediately. Potentially hazardous operations (like recursive deletions or writing outside workspace/temp boundaries) prompt the user for permission, suspending agent execution while rendering an interactive approval card in the chat window.
 
 ### Context Window Meter
 - Real-time context usage bar in chat footer (tokens / context window / percentage)

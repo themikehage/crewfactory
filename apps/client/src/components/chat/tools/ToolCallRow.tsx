@@ -456,53 +456,42 @@ function ToolBody({
     }
     case "spawn_subagent":
       return (
-        <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-text-primary">{l.bodySubagentConsole}</span>
-            {onOpenSubagentConsole && (
-              <button
-                onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="4 17 10 11 4 5" />
-                  <line x1="12" y1="19" x2="20" y2="19" />
-                </svg>
-                {l.bodyViewLiveConsole}
-              </button>
-            )}
-          </div>
-          {result && (
-            <pre className="mt-2 text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
-              {text}
-            </pre>
+        <div className="flex items-center justify-between p-1.5 rounded-lg bg-surface border border-border">
+          <span className="text-xs font-semibold text-text-primary">
+            {l.bodySubagentConsole}{" "}
+            {typeof args.subagentRole === "string" ? `(${args.subagentRole})` : ""}
+          </span>
+          {onOpenSubagentConsole && (
+            <button
+              onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+              {l.bodyViewLiveConsole}
+            </button>
           )}
         </div>
       );
     case "delegate_task":
       return (
-        <div className="flex flex-col gap-2 p-1.5 rounded-lg bg-surface border border-border">
-          <div className="flex items-center justify-between">
-            <span className="text-xs font-semibold text-text-primary">
-              {l.bodyDelegationTo} {String(args.targetType)}: <span className="text-primary font-mono font-normal">{String(args.targetId)}</span>
-            </span>
-            {onOpenSubagentConsole && (
-              <button
-                onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
-                className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
-              >
-                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                  <polyline points="4 17 10 11 4 5" />
-                  <line x1="12" y1="19" x2="20" y2="19" />
-                </svg>
-                {l.bodyViewLiveConsole}
-              </button>
-            )}
-          </div>
-          {result && (
-            <pre className="mt-2 text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
-              {text}
-            </pre>
+        <div className="flex items-center justify-between p-1.5 rounded-lg bg-surface border border-border">
+          <span className="text-xs font-semibold text-text-primary">
+            {l.bodyDelegationTo} {String(args.targetType)}: <span className="text-primary font-mono font-normal">{String(args.targetId)}</span>
+          </span>
+          {onOpenSubagentConsole && (
+            <button
+              onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
+            >
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 17 10 11 4 5" />
+                <line x1="12" y1="19" x2="20" y2="19" />
+              </svg>
+              {l.bodyViewLiveConsole}
+            </button>
           )}
         </div>
       );

@@ -1,3 +1,4 @@
+COMPLETED
 # Delegation Notification UI
 
 Mejorar el renderizado de los resultados de delegacion en el chat, manteniendo `role: "user"` pero con una UI limpia y un contrato compartido entre server y cliente para la deteccion.

@@ -182,6 +182,15 @@
 - [x] 111.3 Update system guidelines in `default-factory-skills.ts` to guide models to pre-split tasks in their own ReAct loop
 - [x] 111.4 Compile, build, and verify server/client type safety
 
+## Phase 112: Permission Engine & Sandboxing (Phase 1)
+- [x] 112.1 Update CreateAgentSessionOptions in agent-session.ts to support beforeToolCall forwarding to Agent constructor
+- [x] 112.2 Implement PermissionEngine stateless module under apps/server/src/core/sandbox/permission-engine.ts with default deny and ask rules
+- [x] 112.3 Add sandbox barrel exports under apps/server/src/core/sandbox/index.ts
+- [x] 112.4 Wire beforeToolCall hook in session-manager.ts to evaluate rules and pause-on-ask using uiApprovalRegistry and WebSocket broadcast
+- [x] 112.5 Capture tool_approval_request WebSocket events in client ChatArea.tsx and map them as a custom message role
+- [x] 112.6 Create interactive ToolApprovalCard in MessageList.tsx allowing inline Approve/Deny actions with auto-disable
+- [x] 112.7 Verify successful compilation and build check for client and server
+
 
 
 
