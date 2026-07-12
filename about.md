@@ -191,6 +191,7 @@
 - Floating Task Accordion UI: premium glassmorphic overlay panel rendered at the top of the chat area, with real-time status indicators, progress bars, and execution controls (Play/Pause).
 - Autonomous error handling and re-planning: if a task fails, the agent re-calls the tool to adjust the remaining steps.
 - **Fast Task Decomposition**: Optimized by replacing the secondary agent session (`plan_*`) and complete loop with a direct, lightweight `streamSimple` call to the active LLM, resolving task planning overhead and improving execution speed by ~40-60%.
+- **Robustness & Cache Layer**: Encapsulated state updates, circular dependency/deadlock checks, Zod schema validation, and atomic operations inside a cache-backed `TaskStateManager` to guarantee threat safety and avoid redundant disk read operations in the active agent prompts loop.
 ### Integrations Hub
 - Dynamic and fully customizable integrations catalog configured per user on the server
 - Automatic integration status detection linked with existing user-level environment variables
@@ -378,6 +379,7 @@ packages/shared/  Shared Zod schemas and types
 ### Key Server Modules
 - `ai/` — Vendored and decoupled core agent runtime, including ModelRegistry, SessionManager (persistence), DefaultResourceLoader, AuthStorage, BashTool, and loadSkills.
 - `core/session-manager.ts` — Fachada unificada y singleton que delega la gestión de variables de entorno, configuraciones de usuario, armado de prompts, instanciación de herramientas y listado de sesiones a submódulos especializados dentro de `core/session/` (`user-config`, `metadata-store`, `prompt-builder`, `tool-factory`, `session-lister`).
+- `core/tools/task-state-manager.ts` — Centralized manager for planning task state. Encapsulates in-memory caching, atomic write operations, strict Zod-based task list validation, and circular dependency checking.
 - `core/decompose-tool.ts` — Native task decomposition tool factory that constructs structured plans from objectives.
 - `core/update-task-tool.ts` — Native task status update and completion tool definitions maintaining planning state DAGs.
 - `routes/files.ts` — Workspace file CRUD API with `?project=name` scoping and `/workspace-projects` endpoints for project management.

@@ -1,7 +1,7 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sessionManager } from "../session-manager";
 import { broadcastToSession } from "../../ws/handler";
+import { TaskStateManager } from "./task-state-manager";
 
 export interface UpdateTaskOptions {
   username: string;
@@ -35,28 +35,18 @@ After marking a task as 'done', the task runner will automatically identify the 
       },
       required: ["taskId", "status"],
     },
-    execute: async (toolCallId: string, args: any) => {
+    execute: async (toolCallId: string, args: any, _parentSignal?: AbortSignal) => {
       const taskId: string = args.taskId;
       const status: "done" | "failed" = args.status;
       const log: string = args.log || "";
 
       const userDir = sessionManager.ensureUserDir(username);
       const sessionDir = join(userDir, "sessions", parentSessionId);
-      const tasksPath = join(sessionDir, "tasks.json");
 
-      if (!existsSync(tasksPath)) {
+      const state = TaskStateManager.getTaskState(sessionDir);
+      if (!state) {
         return {
           content: [{ type: "text", text: "Error: No active task plan found in this session. Create one first using decompose_tasks." }],
-          isError: true,
-        };
-      }
-
-      let state: any;
-      try {
-        state = JSON.parse(readFileSync(tasksPath, "utf-8"));
-      } catch (err: any) {
-        return {
-          content: [{ type: "text", text: `Error reading task plan: ${err.message || String(err)}` }],
           isError: true,
         };
       }
@@ -69,7 +59,6 @@ After marking a task as 'done', the task runner will automatically identify the 
         };
       }
 
-      // Update task status
       task.status = status;
       task.log = log;
 
@@ -77,7 +66,6 @@ After marking a task as 'done', the task runner will automatically identify the 
         state.status = "failed";
         state.error = `Task '${taskId}' failed: ${log}`;
       } else {
-        // Resolve DAG dependencies to find the next ready task
         const completedTaskIds = new Set(
           state.tasks
             .filter((t: any) => t.status === "done")
@@ -86,36 +74,37 @@ After marking a task as 'done', the task runner will automatically identify the 
 
         const pendingTasks = state.tasks.filter((t: any) => t.status === "pending" || t.status === "running");
 
-        // Find tasks whose dependencies are completely satisfied
-        const readyTasks = pendingTasks.filter((t: any) => {
-          const deps = t.depends_on || [];
-          return deps.every((depId: string) => completedTaskIds.has(depId));
-        });
+        if (pendingTasks.length > 0) {
+          const readyTasks = pendingTasks.filter((t: any) => {
+            const deps = t.depends_on || [];
+            return deps.every((depId: string) => completedTaskIds.has(depId));
+          });
 
-        if (readyTasks.length > 0) {
-          state.currentTaskId = readyTasks[0].id;
-          readyTasks[0].status = "running";
-        } else if (pendingTasks.length > 0) {
-          // Fallback if there are pending tasks but none are ready (detect circular deps or block)
-          state.currentTaskId = pendingTasks[0].id;
-          pendingTasks[0].status = "running";
+          if (readyTasks.length > 0) {
+            state.currentTaskId = readyTasks[0].id;
+            readyTasks[0].status = "running";
+          } else {
+            return {
+              content: [{ type: "text", text: "Error: Deadlock or circular dependency detected in task plan dependencies." }],
+              isError: true,
+            };
+          }
         } else {
-          // No pending tasks left!
           state.currentTaskId = null;
-          state.status = "running"; // wait for complete_task_list call
+          state.status = "running";
         }
       }
 
-      try {
-        writeFileSync(tasksPath, JSON.stringify(state, null, 2), "utf-8");
-      } catch (e) {
-        console.error("Failed to update tasks.json:", e);
-      }
+      TaskStateManager.saveTaskState(sessionDir, state);
 
-      broadcastToSession(parentSessionId, {
-        type: "tasks_update",
-        state,
-      });
+      try {
+        broadcastToSession(parentSessionId, {
+          type: "tasks_update",
+          state,
+        });
+      } catch (e) {
+        console.error("Failed to broadcast tasks_update:", e);
+      }
 
       const nextTaskInfo = state.currentTaskId
         ? `Next active task is now: ${state.currentTaskId}.`
@@ -142,26 +131,24 @@ Use this ONLY when all tasks in the list have been marked as 'done' and you have
       },
       required: ["summary"],
     },
-    execute: async (toolCallId: string, args: any) => {
+    execute: async (toolCallId: string, args: any, _parentSignal?: AbortSignal) => {
       const summary: string = args.summary;
 
       const userDir = sessionManager.ensureUserDir(username);
       const sessionDir = join(userDir, "sessions", parentSessionId);
-      const tasksPath = join(sessionDir, "tasks.json");
 
-      if (!existsSync(tasksPath)) {
+      const state = TaskStateManager.getTaskState(sessionDir);
+      if (!state) {
         return {
           content: [{ type: "text", text: "Error: No active task plan found to complete." }],
           isError: true,
         };
       }
 
-      let state: any;
-      try {
-        state = JSON.parse(readFileSync(tasksPath, "utf-8"));
-      } catch (err: any) {
+      const incomplete = state.tasks.filter((t: any) => t.status !== "done" && t.status !== "failed");
+      if (incomplete.length > 0) {
         return {
-          content: [{ type: "text", text: `Error reading task plan: ${err.message || String(err)}` }],
+          content: [{ type: "text", text: `Error: Cannot complete. There are still incomplete tasks: ${incomplete.map((t: any) => t.id).join(", ")}` }],
           isError: true,
         };
       }
@@ -170,16 +157,16 @@ Use this ONLY when all tasks in the list have been marked as 'done' and you have
       state.currentTaskId = null;
       state.error = undefined;
 
-      try {
-        writeFileSync(tasksPath, JSON.stringify(state, null, 2), "utf-8");
-      } catch (e) {
-        console.error("Failed to write tasks.json:", e);
-      }
+      TaskStateManager.saveTaskState(sessionDir, state);
 
-      broadcastToSession(parentSessionId, {
-        type: "tasks_update",
-        state,
-      });
+      try {
+        broadcastToSession(parentSessionId, {
+          type: "tasks_update",
+          state,
+        });
+      } catch (e) {
+        console.error("Failed to broadcast tasks_update:", e);
+      }
 
       return {
         content: [{ type: "text", text: `Task plan successfully completed! Summary: ${summary}` }],
@@ -190,3 +177,4 @@ Use this ONLY when all tasks in the list have been marked as 'done' and you have
 
   return [updateTaskStatusTool, completeTaskListTool];
 }
+

@@ -1,5 +1,4 @@
-import { existsSync, readFileSync } from "node:fs";
-import { join } from "node:path";
+import { TaskStateManager } from "../tools/task-state-manager";
 import { SessionPrefix } from "shared";
 import { getEnvironmentContext } from "../env-check";
 import { promptComposer } from "../prompts/composer";
@@ -106,36 +105,33 @@ export class SessionPromptBuilder {
       }
     }
 
-    const tasksPath = join(sessionDir, "tasks.json");
-    if (existsSync(tasksPath)) {
+    const tasksState = TaskStateManager.getTaskState(sessionDir);
+    if (tasksState && tasksState.status === "running") {
       try {
-        const tasksState = JSON.parse(readFileSync(tasksPath, "utf-8"));
-        if (tasksState.status === "running") {
-          const activeTask = tasksState.tasks?.find((t: any) => t.id === tasksState.currentTaskId);
-          const tasksListStr = tasksState.tasks
-            ?.map((t: any) => `- [${t.status === "done" ? "x" : t.status === "running" ? "/" : " "}] ${t.id}: ${t.title}${t.depends_on?.length > 0 ? ` (depends on: ${t.depends_on.join(", ")})` : ""}`)
-            .join("\n");
+        const activeTask = tasksState.tasks?.find((t: any) => t.id === tasksState.currentTaskId);
+        const tasksListStr = tasksState.tasks
+          ?.map((t: any) => `- [${t.status === "done" ? "x" : t.status === "running" ? "/" : " "}] ${t.id}: ${t.title}${t.depends_on?.length > 0 ? ` (depends on: ${t.depends_on.join(", ")})` : ""}`)
+          .join("\n");
 
-          const promptSnippet =
-            `\n\n## Active Task Plan\n` +
-            `You are currently executing a structured, dependency-aware task plan to achieve a high-level goal.\n` +
-            `Overall Objective: "${tasksState.objective || ""}"\n` +
-            `Current Plan Status: ${tasksState.status}\n\n` +
-            `Tasks List:\n${tasksListStr}\n\n` +
-            `Active Task Details:\n` +
-            `- ID: ${tasksState.currentTaskId}\n` +
-            `- Title: ${activeTask?.title || "N/A"}\n` +
-            `- Instructions: "${activeTask?.prompt || "N/A"}"\n\n` +
-            `Guidelines:\n` +
-            `1. Focus ONLY on completing the active task: ${tasksState.currentTaskId}. Do not perform actions related to other tasks.\n` +
-            `2. When the active task's objective is fully achieved, you MUST call the native tool: \`update_task_status(taskId: "${tasksState.currentTaskId}", status: "done", log: "summary of what was done")\` to mark it as complete. This will automatically update your active instructions in the next turn.\n` +
-            `3. If a task fails or you hit an error you cannot resolve, call \`update_task_status(taskId: "${tasksState.currentTaskId}", status: "failed", log: "error reason")\`.\n` +
-            `4. When all tasks in the list have been marked as "done", you MUST call \`complete_task_list(summary: "final completion summary")\` to finalize the execution.`;
+        const promptSnippet =
+          `\n\n## Active Task Plan\n` +
+          `You are currently executing a structured, dependency-aware task plan to achieve a high-level goal.\n` +
+          `Overall Objective: "${tasksState.objective || ""}"\n` +
+          `Current Plan Status: ${tasksState.status}\n\n` +
+          `Tasks List:\n${tasksListStr}\n\n` +
+          `Active Task Details:\n` +
+          `- ID: ${tasksState.currentTaskId}\n` +
+          `- Title: ${activeTask?.title || "N/A"}\n` +
+          `- Instructions: "${activeTask?.prompt || "N/A"}"\n\n` +
+          `Guidelines:\n` +
+          `1. Focus ONLY on completing the active task: ${tasksState.currentTaskId}. Do not perform actions related to other tasks.\n` +
+          `2. When the active task's objective is fully achieved, you MUST call the native tool: \`update_task_status(taskId: "${tasksState.currentTaskId}", status: "done", log: "summary of what was done")\` to mark it as complete. This will automatically update your active instructions in the next turn.\n` +
+          `3. If a task fails or you hit an error you cannot resolve, call \`update_task_status(taskId: "${tasksState.currentTaskId}", status: "failed", log: "error reason")\`.\n` +
+          `4. When all tasks in the list have been marked as "done", you MUST call \`complete_task_list(summary: "final completion summary")\` to finalize the execution.`;
 
-          appendPrompts.push(promptSnippet);
-        }
+        appendPrompts.push(promptSnippet);
       } catch (e) {
-        console.error("Failed to parse tasks.json for prompt injection:", e);
+        console.error("Failed to parse tasks state for prompt injection:", e);
       }
     }
 

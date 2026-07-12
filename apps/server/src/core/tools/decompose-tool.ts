@@ -1,8 +1,8 @@
-import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { sessionManager } from "../session-manager";
 import { broadcastToSession } from "../../ws/handler";
 import { streamSimple } from "../../ai/vendor/ai/src/compat.ts";
+import { TaskStateManager } from "./task-state-manager";
 
 export interface DecomposeTasksOptions {
   username: string;
@@ -41,25 +41,22 @@ function buildDecomposePrompt(objective: string, context: string, maxTasks: numb
     `- For linear mode: each task's depends_on should contain the ID of the previous task (except the first).`,
     `- "prompt" must be fully self-contained.`,
     `- Output ONLY the JSON block.`,
-  ]
-    .filter((l) => l !== null)
-    .join("\n");
+  ].join("\n");
 }
 
-function parseTasksFromText(
-  text: string
-): Array<{ id: string; title: string; prompt: string; depends_on: string[]; estimated_steps?: number }> | null {
+function parseTasksFromText(text: string): unknown | null {
   const jsonMatch = text.match(/```json\s*([\s\S]*?)\s*```/);
   if (jsonMatch) {
     try {
-      const parsed = JSON.parse(jsonMatch[1].trim());
-      if (Array.isArray(parsed) && parsed.length > 0) return parsed;
+      return JSON.parse(jsonMatch[1].trim());
     } catch { }
   }
-  try {
-    const parsed = JSON.parse(text.trim());
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed;
-  } catch { }
+  const trimmed = text.trim();
+  if (trimmed.startsWith("[") || trimmed.startsWith("{")) {
+    try {
+      return JSON.parse(trimmed);
+    } catch { }
+  }
   return null;
 }
 
@@ -102,7 +99,7 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
     execute: async (toolCallId: string, args: any, _parentSignal?: AbortSignal) => {
       const objective: string = args.objective || "";
       const context: string = args.context || "";
-      const maxTasks: number = Math.min(args.maxTasks || 8, 15);
+      const maxTasks: number = Math.max(1, Math.min(args.maxTasks || 8, 15));
       const mode: string = args.mode || "linear";
 
       if (!objective.trim()) {
@@ -114,23 +111,18 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
 
       const userDir = sessionManager.ensureUserDir(username);
       const sessionDir = join(userDir, "sessions", parentSessionId);
-      const tasksPath = join(sessionDir, "tasks.json");
 
-      if (existsSync(tasksPath)) {
-        try {
-          const oldState = JSON.parse(readFileSync(tasksPath, "utf-8"));
-          if (oldState.status === "running") {
-            return {
-              content: [
-                {
-                  type: "text",
-                  text: "Error: There is already an active task plan in progress. Please complete or pause the current task list before starting a new one.",
-                },
-              ],
-              isError: true,
-            };
-          }
-        } catch { }
+      const oldState = TaskStateManager.getTaskState(sessionDir);
+      if (oldState && oldState.status === "running") {
+        return {
+          content: [
+            {
+              type: "text",
+              text: "Error: There is already an active task plan in progress. Please complete or pause the current task list before starting a new one.",
+            },
+          ],
+          isError: true,
+        };
       }
 
       const parentSession = sessionManager.getSession(username, parentSessionId);
@@ -172,16 +164,10 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
         }
 
         const modelObj = {
-          id: activeModel.id,
-          name: activeModel.name,
-          provider: activeModel.provider,
-          api: activeModel.api,
-          baseUrl: activeModel.baseUrl,
+          ...activeModel,
           apiKey: apiKeyResult.apiKey,
           contextWindow: activeModel.contextWindow || 128000,
           maxTokens: activeModel.maxTokens || 4096,
-          compat: activeModel.compat,
-          input: (activeModel as any).input || ["text"],
         };
 
         const stream = streamSimple(
@@ -214,8 +200,9 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
         };
       }
 
-      const parsed = parseTasksFromText(responseText);
-      if (!parsed || parsed.length === 0) {
+      const rawJson = parseTasksFromText(responseText);
+      const tasks = rawJson ? TaskStateManager.validateAndParseTasks(rawJson) : null;
+      if (!tasks || tasks.length === 0) {
         return {
           content: [
             {
@@ -227,33 +214,23 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
         };
       }
 
-      const tasks = parsed.map((t, idx) => ({
-        id: t.id || `t${idx + 1}`,
-        title: t.title || `Task ${idx + 1}`,
-        prompt: t.prompt || "",
-        status: "pending" as const,
-        log: "",
-        depends_on: Array.isArray(t.depends_on) ? t.depends_on : [],
-        estimated_steps: typeof t.estimated_steps === "number" ? t.estimated_steps : undefined,
-      }));
-
       const finalState = {
+        objective,
         tasks,
         currentTaskId: tasks[0]?.id || null,
         status: "running" as const,
-        error: undefined,
       };
 
-      try {
-        writeFileSync(tasksPath, JSON.stringify(finalState, null, 2), "utf-8");
-      } catch (e) {
-        console.error("Failed to write tasks.json:", e);
-      }
+      TaskStateManager.saveTaskState(sessionDir, finalState);
 
-      broadcastToSession(parentSessionId, {
-        type: "tasks_update",
-        state: finalState,
-      });
+      try {
+        broadcastToSession(parentSessionId, {
+          type: "tasks_update",
+          state: finalState,
+        });
+      } catch (e) {
+        console.error("Failed to broadcast tasks_update:", e);
+      }
 
       const summary = tasks
         .map((t, i) => {
@@ -283,3 +260,4 @@ Do NOT use this for simple, single-step tasks you can execute inline.`,
     },
   };
 }
+
