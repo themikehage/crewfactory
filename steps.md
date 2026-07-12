@@ -142,3 +142,9 @@
 - [x] 105.6 Subscribed to tool-update event and rendered progressive logs in ToolCallRow.tsx
 - [x] 105.7 Added unit tests covering AgentSession initialization, prompt execution, steering, and compaction in agent-session.test.ts
 - [x] 105.8 Verified successful compilation and execution of client and server builds and tests
+
+## Phase 106: Robust AskQuestionForm and ApprovalForm
+- [x] 106.1 Add WebSocket state validation, ui_action_error handler, and 15s reset timeout to AskQuestionForm.tsx
+- [x] 106.2 Add WebSocket state validation, ui_action_error handler, and 15s reset timeout to ApprovalForm.tsx
+- [x] 106.3 Refactor ChatArea.tsx tool_execution_end subscriber and MessageList.tsx mapping to unify tool result roles under 'toolResult' and prevent duplicate items
+- [x] 106.4 Validate production compilation of client application

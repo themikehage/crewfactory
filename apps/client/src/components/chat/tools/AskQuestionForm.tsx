@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { wsClient } from "@/lib/ws-client";
 import { useToast } from "@/contexts/ToastContext";
 
@@ -48,6 +48,25 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
   );
   const [submitting, setSubmitting] = useState(false);
 
+  useEffect(() => {
+    const unsub = wsClient.subscribe("ui_action_error", (data: any) => {
+      if (data.componentId === toolCallId) {
+        setSubmitting(false);
+        addToast("error", data.error || "Error al procesar la acción.");
+      }
+    });
+    return unsub;
+  }, [toolCallId, addToast]);
+
+  useEffect(() => {
+    if (!submitting) return;
+    const timer = setTimeout(() => {
+      setSubmitting(false);
+      addToast("error", "No se recibió respuesta del servidor. Por favor intenta de nuevo.");
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [submitting, addToast]);
+
   const handleOptionToggle = (option: string) => {
     if (isResolved || submitting) return;
     const newSelected = new Set(selected);
@@ -66,6 +85,10 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
 
   const handleSubmit = () => {
     if (isResolved || submitting || !sessionId) return;
+    if (wsClient.getState() !== "connected") {
+      addToast("error", "No hay conexión con el servidor. Por favor espera a que se restablezca.");
+      return;
+    }
     if (selected.size === 0 && (!showCustom || !customText.trim())) {
       addToast("warning", "Por favor selecciona al menos una opción o escribe una respuesta personalizada.");
       return;
@@ -86,6 +109,10 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
 
   const handleCancel = () => {
     if (isResolved || submitting || !sessionId) return;
+    if (wsClient.getState() !== "connected") {
+      addToast("error", "No hay conexión con el servidor. Por favor espera a que se restablezca.");
+      return;
+    }
     setSubmitting(true);
     wsClient.send({
       type: "ui_action",

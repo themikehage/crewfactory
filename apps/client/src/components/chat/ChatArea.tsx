@@ -17,7 +17,7 @@ import { FloatingTasks } from "./FloatingTasks";
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
 interface Message {
-  role: "user" | "assistant" | "tool_result" | "system";
+  role: "user" | "assistant" | "tool_result" | "toolResult" | "system";
   content: string | Array<{ type: string; text?: string; thinking?: string; name?: string; arguments?: Record<string, unknown> }>;
   toolName?: string;
   isError?: boolean;
@@ -392,11 +392,11 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const isError = evt.isError as boolean | undefined;
       setMessages((prev) => {
         const alreadyExists = prev.some(
-          m => m.role === "tool_result" && (m as any).toolCallId === toolCallId
+          m => (m.role === "tool_result" || m.role === "toolResult") && (m as any).toolCallId === toolCallId
         );
         if (alreadyExists) return prev;
         const toolResultMsg: any = {
-          role: "tool_result",
+          role: "toolResult",
           toolCallId,
           content: (result && typeof result === "object" && result.content)
             ? result.content

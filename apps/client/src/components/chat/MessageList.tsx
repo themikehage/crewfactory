@@ -165,7 +165,7 @@ function AgentTurn({
 }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
-    if (m.role === "toolResult" && m.toolCallId) {
+    if ((m.role === "toolResult" || m.role === "tool_result") && m.toolCallId) {
       toolResultMap.set(m.toolCallId, m);
     }
   }

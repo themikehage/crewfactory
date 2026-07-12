@@ -1,7 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { wsClient } from "@/lib/ws-client";
 import { RichMarkdown } from "../RichMarkdown";
+import { useToast } from "@/contexts/ToastContext";
 
 interface Props {
   toolCallId: string;
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function ApprovalForm({ toolCallId, args, result, sessionId }: Props) {
+  const { addToast } = useToast();
   const [detailsExpanded, setDetailsExpanded] = useState(false);
   const [localAction, setLocalAction] = useState<"confirm" | "cancel" | null>(null);
 
@@ -36,8 +38,31 @@ export function ApprovalForm({ toolCallId, args, result, sessionId }: Props) {
   const resolvedStatus = result?.content?.[0]?.text;
   const isResolved = !!resolvedStatus;
 
+  useEffect(() => {
+    const unsub = wsClient.subscribe("ui_action_error", (data: any) => {
+      if (data.componentId === toolCallId) {
+        setLocalAction(null);
+        addToast("error", data.error || "Error al procesar la aprobación.");
+      }
+    });
+    return unsub;
+  }, [toolCallId, addToast]);
+
+  useEffect(() => {
+    if (!localAction) return;
+    const timer = setTimeout(() => {
+      setLocalAction(null);
+      addToast("error", "No se recibió respuesta del servidor. Por favor intenta de nuevo.");
+    }, 15000);
+    return () => clearTimeout(timer);
+  }, [localAction, addToast]);
+
   const handleAction = (action: "confirm" | "cancel") => {
-    if (isResolved || !sessionId) return;
+    if (isResolved || localAction !== null || !sessionId) return;
+    if (wsClient.getState() !== "connected") {
+      addToast("error", "No hay conexión con el servidor. Por favor espera a que se restablezca.");
+      return;
+    }
     setLocalAction(action);
     wsClient.send({
       type: "ui_action",
