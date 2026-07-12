@@ -194,3 +194,12 @@
 
 
 
+
+
+## Phase 113: Decompose SessionManager & Clean Up Passthroughs
+- [x] 113.1 Create modular helper modules: workspace-resolver, tool-activation-engine, session-event-publisher, before-tool-call-hook, session-memory-enricher, agent-definition-resolver
+- [x] 113.2 Refactor getOrCreateSession in session-manager.ts to delegate to new sub-modules
+- [x] 113.3 Remove passthrough methods and expose public readonly sub-managers on SessionManager
+- [x] 113.4 Migrate all 26+ callers of old delegate methods to use new properties directly
+- [x] 113.5 Unify model resolution across channel-orchestrator.ts and judge.ts using resolveModelWithFallback
+- [x] 113.6 Verify clean compilation and successful builds for both server and client packages
