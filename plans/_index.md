@@ -13,16 +13,27 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - **15 Low** → [fix-low.md](./fix-low.md) — Context type mismatch, token naming, steer warning, undefined return, compact stub, auth error feedback, EXEC/LAB silent, TOCTOU race, disconnect feedback, network errors, turn events, unknown event log, barrel export
 - **10 Delegation** → [fix-delegation.md](./fix-delegation.md) — role:user en vez de toolResult, doble toolCallId, forwardSubagentEvents sin fallback, parent muerto silencioso, wakeMessage duplicado, includeFullHistory sin truncar, FloatingDelegations no renderizado, DelegationsPanel sin WS events, type guards, sanitize URL
 
+### Refactoring
+
+- [unify-lab-channel-orchestration.md](./unify-lab-channel-orchestration.md) — Unificar orquestracion del laboratorio con `ChannelOrchestrator`: el lab debe consumir el subsistema de canales como cliente en lugar de reinventar el pipeline completo (gen, channel, dispatch, tokens, destroy). ~500 lineas eliminadas.
+
 ### Technical Debt
 
 - [debt-agentsession.md](./debt-agentsession.md) — AgentSession no usa la clase `Agent` de pi: pierde state machine, colas separadas, waitForIdle, errores estructurados, compaction, tool_execution_update
 - [debt-websocket.md](./debt-websocket.md) — WebSocket sin dedup en reconnect, sin indicador de conexion, sin ping de cliente, degradacion silenciosa, race en pending-prompt
 - [debt-vendor-fork.md](./debt-vendor-fork.md) — Fork sin version tracking, 33 imports rotos, 8 dead types, @ts-nocheck en 5 archivos, sin proceso de sync
+- [extract-session-utils.md](./extract-session-utils.md) — Extrae 16 ocurrencias de lógica duplicada de sesiones (body, filtro, path, name, meta) en un módulo compartido `session-utils.ts`
+- [decompose-channel-orchestrator.md](./decompose-channel-orchestrator.md) — Decompose ChannelOrchestrator (1072-line God class): extrae AgentPromptRunner, ChannelNegotiationHandler, ChannelMessagePublisher, ResponseParser; unifica deployment-context; elimina circular dep con agent-registry; remueve double-publish a eventBroker
+- [decompose-session-manager.md](./decompose-session-manager.md) — Refactorizacion de `getOrCreateSession()` (414 lineas, 24 responsabilidades): extraccion de 6 sub-modulos, unificacion de `resolveModelWithFallback`, eliminacion de 66 lineas de passthrough boilerplate en `SessionManager`
 
 ### Research
 
 - [state-of-the-art-2026.md](./state-of-the-art-2026.md) — Estado del arte de plataformas AI agenticas (Cursor, Devin Desktop, Claude Code, Copilot, Codex) con 14 funcionalidades priorizadas para CrewFactory
 - [sandboxing.md](./sandboxing.md) — Sandboxing profesional: Permission Engine, Docker sandbox, Network Proxy, Secret Filter, Resource Limits, UI de configuracion
+
+### Refactoring
+
+- [centralize-prompt-assembly.md](./centralize-prompt-assembly.md) — Centralizar el ensamblaje de `appendSystemPrompt` duplicado en 4 archivos via `PromptAssemblyFactory`
 
 ### Features
 
@@ -67,6 +78,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
 - [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
 - [delegation-notification-ui.md](./delegation-notification-ui.md) — Renderizado limpio de resultados de delegacion con contrato compartido server/cliente via `details.type` en `packages/shared/`
+- [extract-connection-aware-hook.md](./extract-connection-aware-hook.md) — Extraer hook `useConnectionAwareEffect` para eliminar codigo duplicado de WebSocket en useWebSocket y useChannel
 
 
 ## Completados (65)
