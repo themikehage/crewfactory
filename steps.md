@@ -163,4 +163,11 @@
 - [x] 108.3 Integrate useChatInputFocus hook in ChatArea.tsx and bind ref to input components
 - [x] 108.4 Verify client build and compilation builds successfully
 
+## Phase 109: Native Delegation followUp and continue resume
+- [x] 109.1 Implement `continue()` method in `AgentSession` and modify `addDelegationResult()` to use `followUp` in `agent-session.ts`
+- [x] 109.2 Update `delegate-tool.ts` to resume parent via `parent.continue()` instead of `parent.prompt(wakeMessage)`
+- [x] 109.3 Update `spawn-subagent-tool.ts` to resume parent via `parent.continue()` instead of `parent.prompt(wakeMessage)`
+- [x] 109.4 Validate clean compilation check and verify type safety
+
+
 

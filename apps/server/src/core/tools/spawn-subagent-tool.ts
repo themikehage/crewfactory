@@ -239,11 +239,10 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
             const toolResultMsg = formatDelegationResultMessage(toolCallId, "spawn_subagent", envelope, subagentSessionId, lastText);
             parent.addDelegationResult(toolResultMsg);
 
-            // If parent is not active streaming, prompt it to wake up
+            // If parent is not active streaming, continue execution
             if (!parent.isStreaming) {
-              const wakeMessage = `[SYSTEM: DELEGATION SUCCESS] Subagent session ${subagentSessionId} completed successfully. The delegation tool result has been received and enqueued. Please review the result and continue.`;
-              parent.prompt(wakeMessage).catch((e) => {
-                console.error("[Subagent Async Return] Parent prompt fail:", e);
+              parent.continue().catch((e) => {
+                console.error("[Subagent Async Return] Parent continue fail:", e);
               });
             }
           } else {
@@ -273,9 +272,8 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
             parent.addDelegationResult(toolResultMsg);
 
             if (!parent.isStreaming) {
-              const wakeMessage = `[SYSTEM: DELEGATION ERROR] Subagent session ${subagentSessionId} failed: ${envelope.executive_summary}. The error result has been enqueued. Please check and proceed.`;
-              parent.prompt(wakeMessage).catch((e) => {
-                console.error("[Subagent Async Return] Parent prompt fail on error:", e);
+              parent.continue().catch((e) => {
+                console.error("[Subagent Async Return] Parent continue fail on error:", e);
               });
             }
           } else {

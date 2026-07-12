@@ -64,7 +64,7 @@ export class AgentSession {
   }
 
   addDelegationResult(resultMessage: AgentMessage): void {
-    this.agent.steer(resultMessage);
+    this.agent.followUp(resultMessage);
   }
 
   constructor(options: CreateAgentSessionOptions) {
@@ -396,6 +396,53 @@ export class AgentSession {
       (this.agent.state as any).messages = currentMessages;
 
       await this.agent.prompt(userMessage as any);
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
+      this.emit({ type: "agent_error", error: errorMsg });
+      this.emit({ type: "agent_end", messages: this.messages, willRetry: false });
+    } finally {
+      this.isStreaming = false;
+      this.abortController = null;
+    }
+  }
+
+  async continue(): Promise<any> {
+    if (this.isStreaming) {
+      throw new Error("Session is already streaming");
+    }
+
+    this.isStreaming = true;
+    this.abortController = new AbortController();
+
+    try {
+      if (this.model) {
+        const modelObj = {
+          id: this.model.id,
+          name: this.model.name,
+          provider: this.model.provider,
+          api: this.model.api,
+          baseUrl: this.model.baseUrl,
+          apiKey: this.model.apiKey,
+          reasoning: !!this.model.reasoning,
+          contextWindow: this.model.contextWindow || 100000,
+          maxTokens: this.model.maxTokens || 4096,
+          compat: this.model.compat,
+          input: (this.model as any).input || [],
+          cost: (this.model as any).cost || {},
+        };
+        (this.agent.state as any).model = modelObj;
+      }
+
+      const systemPrompt = [
+        this.resourceLoader.getSystemPrompt() || "",
+        ...(this.resourceLoader.getAppendSystemPrompt() || []),
+      ].filter(Boolean).join("\n\n");
+      (this.agent.state as any).systemPrompt = systemPrompt;
+
+      const currentMessages = this.sessionManager.buildSessionContext().messages;
+      (this.agent.state as any).messages = currentMessages;
+
+      await this.agent.continue();
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
       this.emit({ type: "agent_error", error: errorMsg });

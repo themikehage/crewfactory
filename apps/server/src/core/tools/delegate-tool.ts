@@ -231,13 +231,8 @@ Allows keeping parent context clean by returning a structured summary instead of
           parent.addDelegationResult(toolResultMsg);
 
           if (!parent.isStreaming) {
-            const isError = status === "error" || parsedEnvelope.status === "error" || parsedEnvelope.status === "blocked";
-            const wakeMessage = isError
-              ? `[SYSTEM: DELEGATION ERROR] Delegated task to ${targetType} ${targetId} failed. The error result has been enqueued. Please check and proceed.`
-              : `[SYSTEM: DELEGATION SUCCESS] Delegated task to ${targetType} ${targetId} completed. The delegation tool result has been received and enqueued. Please review the result and continue.`;
-            
-            parent.prompt(wakeMessage).catch((e) => {
-              console.error("[Delegate Async Return] Parent prompt fail:", e);
+            parent.continue().catch((e) => {
+              console.error("[Delegate Async Return] Parent continue fail:", e);
             });
           }
         } else {
