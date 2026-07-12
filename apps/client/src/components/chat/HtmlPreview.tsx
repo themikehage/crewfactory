@@ -7,8 +7,31 @@ interface Props {
   fullBleed?: boolean;
 }
 
+const SCROLLBAR_STYLES = `<style>
+  :root { color-scheme: dark; }
+  html { scrollbar-width: thin; scrollbar-color: #313131 #171717; }
+  ::-webkit-scrollbar { width: 8px; height: 8px; }
+  ::-webkit-scrollbar-track { background: #171717; }
+  ::-webkit-scrollbar-thumb { background: #313131; border-radius: 4px; }
+  ::-webkit-scrollbar-thumb:hover { background: #4ade80; }
+</style>`;
+
+function injectScrollbarStyles(raw: string): string {
+  if (raw.includes("</head>") || raw.includes("</HEAD>")) {
+    return raw.replace(/(<\/head\s*>)/i, `${SCROLLBAR_STYLES}$1`);
+  }
+  if (raw.includes("<html") || raw.includes("<HTML")) {
+    return raw.replace(/(<html[^>]*>)/i, `$1<head>${SCROLLBAR_STYLES}</head>`);
+  }
+  if (raw.includes("<body") || raw.includes("<BODY")) {
+    return raw.replace(/(<body[^>]*>)/i, `$1${SCROLLBAR_STYLES}`);
+  }
+  return `${SCROLLBAR_STYLES}${raw}`;
+}
+
 export function HtmlPreview({ html, title, fullBleed = false }: Props) {
   const [showHtml, setShowHtml] = useState(true);
+  const previewHtml = injectScrollbarStyles(html);
   const extractedTitle = html.match(/<title>([^<]*)<\/title>/i)?.[1]?.trim();
   const displayTitle = extractedTitle || title || "HTML Preview";
   const displayUrl = extractedTitle
@@ -92,7 +115,7 @@ export function HtmlPreview({ html, title, fullBleed = false }: Props) {
       {showHtml ? (
         <div className={`bg-white w-full ${fullBleed ? "h-[85vh] min-h-[35rem]" : "h-[70vh] min-h-[30rem]"}`}>
           <iframe
-            srcDoc={html}
+            srcDoc={previewHtml}
             title={displayTitle}
             sandbox="allow-scripts allow-forms"
             className="w-full h-full border-0 bg-white"
