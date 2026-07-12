@@ -1,24 +1,20 @@
 import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
-import { sessionManager } from "../core/session-manager";
-import { parseMentions } from "./mention-parser";
-import { resolveModelWithFallback } from "../core/agent-utils";
-import { type Channel, type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
-import { eventBroker } from "../lib/event-broker";
+import { type Channel, type ChannelMember, type ChannelMessage } from "shared";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
-import { NegotiationProtocol } from "../core/negotiation/negotiation-protocol";
-import { ArbitrationProtocol } from "../core/negotiation/arbitration-protocol";
-import { memoryRegistry } from "../core/memory/registry";
 import {
-  HTML_PREVIEW_INSTRUCTIONS,
-  AG_UI_INSTRUCTIONS,
-  PERSISTENT_MEMORY_INSTRUCTIONS,
-  SUBAGENT_DELEGATION_INSTRUCTIONS,
-  TASK_DELEGATION_INSTRUCTIONS,
-} from "../core/prompts/system-instructions";
-import { getEnvironmentContext } from "../core/env-check";
-import { promptComposer } from "../core/prompts/composer";
+  AgentPromptRunner,
+  buildAgentNameMap,
+  type ActiveAgentStream,
+} from "./agent-prompt-runner";
+import { handleNegotiation } from "./channel-negotiation-handler";
+import { createMessagePublisher } from "./channel-message-publisher";
+import { parseMentions } from "./mention-parser";
+import { collectChannelTokens } from "../core/agent-utils";
+import { type RunToCompletionConfig, type RunToCompletionResult } from "./types";
+
+
 
 type BroadcastFn = (channelId: string, data: any) => void;
 let broadcastToChannelFn: BroadcastFn | null = null;
@@ -35,26 +31,21 @@ function broadcast(channelId: string, data: any) {
 
 const MAX_CHAIN_DEPTH = 5;
 
-export interface ActiveAgentStream {
-  agentId: string;
-  agentName: string;
-  text: string;
-  thinking: string;
-  toolCalls: Record<string, {
-    toolName: string;
-    args: any;
-    result: any | null;
-    isError: boolean;
-  }>;
-}
-
 class ChannelOrchestrator {
-  private abortedDispatches = new Set<string>(); // `${channelId}:${sessionId || 'default'}`
+  private abortedDispatches = new Set<string>();
   private agentQueues = new Map<string, AgentWorkQueue>();
-  private channelAbortControllers = new Map<string, AbortController>(); // key = channelId:sessionId
+  private channelAbortControllers = new Map<string, AbortController>();
   private activeStreams = new Map<string, Map<string, ActiveAgentStream>>();
   private activeChains = new Map<string, { count: number; resolve: () => void }>();
-  private consecutiveSilentRounds = new Map<string, number>(); // key = channelId:sessionId
+  private consecutiveSilentRounds = new Map<string, number>();
+
+  private promptRunner: AgentPromptRunner;
+  private messagePublisher: ReturnType<typeof createMessagePublisher>;
+
+  constructor() {
+    this.promptRunner = new AgentPromptRunner(this.activeStreams, broadcast);
+    this.messagePublisher = createMessagePublisher(broadcast);
+  }
 
   private incrementChain(key: string) {
     const entry = this.activeChains.get(key);
@@ -109,15 +100,12 @@ class ChannelOrchestrator {
     this.abortedDispatches.add(key);
     console.log(`[ChannelOrchestrator] Aborting dispatch for ${key}`);
 
-    // Remove active stream snapshots
     this.activeStreams.delete(key);
 
-    // Signal the AbortController for this dispatch
     const controller = this.channelAbortControllers.get(key);
     controller?.abort();
     this.channelAbortControllers.delete(key);
 
-    // Abort in-flight prompts and clear queues for all channel members
     const channel = channelStore.getChannel(username, channelId);
     if (channel) {
       for (const member of channel.members) {
@@ -136,24 +124,19 @@ class ChannelOrchestrator {
     broadcast(channelId, { type: "channel_dispatch_aborted", channelId, sessionId });
   }
 
-
-  private buildAgentNameMap(members: ChannelMember[]): Map<string, string> {
-    const map = new Map<string, string>();
-    for (const member of members) {
-      const entry = agentRegistry.get(member.agentId);
-      if (entry) map.set(member.agentId, entry.server.definition.name);
-    }
-    return map;
-  }
-
-  async dispatchUserMessage(username: string, channelId: string, userContent: string, sessionId?: string): Promise<void> {
+  async dispatchUserMessage(
+    username: string,
+    channelId: string,
+    userContent: string,
+    sessionId?: string
+  ): Promise<void> {
     const key = `${channelId}:${sessionId || "default"}`;
     this.abortedDispatches.delete(key);
 
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) throw new Error("Channel not found");
 
-    const agentNameMap = this.buildAgentNameMap(channel.members);
+    const agentNameMap = buildAgentNameMap(channel.members);
     const mentions = parseMentions(userContent, channel.members, agentNameMap);
 
     const userMsg: ChannelMessage = {
@@ -166,41 +149,30 @@ class ChannelOrchestrator {
       createdAt: new Date().toISOString(),
     };
 
-    channelStore.appendMessage(username, channelId, userMsg);
-    broadcast(channelId, { type: "channel_message", channelId, message: userMsg });
+    this.messagePublisher(username, channelId, channel.name, userMsg, "user_message");
 
-    eventBroker.publishEvent(username, {
-      sourceType: "channel",
-      sourceId: channelId,
-      sourceName: channel.name,
-      eventType: "user_message",
-      detail: userContent,
-    });
-
-    // Reset negotiation state, task ledger, and silent round counter at start of chain
     channelStore.resetNegotiationState(username, channelId);
     this.consecutiveSilentRounds.delete(key);
 
-    // Create a new AbortController for this dispatch chain
     const controller = new AbortController();
     this.channelAbortControllers.set(key, controller);
 
-    // Setup active chain wait promise
     let resolveChain: () => void = () => {};
     const chainPromise = new Promise<void>((resolve) => {
       resolveChain = resolve;
     });
     this.activeChains.set(key, { count: 1, resolve: resolveChain });
 
-    // Check if this channel uses broadcast (cooperative/leaderless) reply mode
-    const isBroadcastChannel = channel.members.some(m => m.replyMode === "broadcast");
+    const isBroadcastChannel = channel.members.some((m) => m.replyMode === "broadcast");
 
     if (isBroadcastChannel) {
-      this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal).catch((err) => {
-        console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
-      }).finally(() => {
-        this.decrementChain(key);
-      });
+      this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal)
+        .catch((err) => {
+          console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
+        })
+        .finally(() => {
+          this.decrementChain(key);
+        });
     } else {
       this.runDispatchRound(username, channelId, userMsg, 1, controller.signal);
       this.decrementChain(key);
@@ -209,11 +181,6 @@ class ChannelOrchestrator {
     return chainPromise;
   }
 
-  /**
-   * Fire-and-forget dispatch round.
-   * Enqueues each eligible agent independently — does NOT await their completion.
-   * Each agent posts to the channel on its own timeline.
-   */
   private runDispatchRound(
     username: string,
     channelId: string,
@@ -239,7 +206,6 @@ class ChannelOrchestrator {
     const targetMembers = this.resolveRecipients(channel, incomingMsg);
     if (targetMembers.length === 0) return;
 
-    // Dispatch each agent independently — fire-and-forget
     for (const member of targetMembers) {
       this.incrementChain(key);
       this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
@@ -248,10 +214,6 @@ class ChannelOrchestrator {
     }
   }
 
-  /**
-   * Runs a single agent dispatch through the per-agent queue.
-   * Awaits completion of this specific agent, then posts and chains.
-   */
   private async dispatchToAgentAsync(
     username: string,
     channelId: string,
@@ -293,17 +255,23 @@ class ChannelOrchestrator {
     }
 
     const queue = this.getOrCreateQueue(member.agentId);
+    const members = channelStore.getChannel(username, channelId)?.members || [];
+    const agentNameMap = buildAgentNameMap(members);
 
     let result: DispatchResult;
     try {
       result = await queue.enqueue({
         id: crypto.randomUUID(),
         signal,
-        execute: () => this.runAgentPrompt(username, channelId, member, incomingMsg, signal),
+        execute: () =>
+          this.promptRunner.run(username, channelId, member, incomingMsg, agentNameMap, signal),
       });
     } catch (err: any) {
-      // Aborted or cleared — no broadcast needed
-      if (err.message === "Aborted before enqueue" || err.message === "Aborted while queued" || err.message === "Queue cleared") {
+      if (
+        err.message === "Aborted before enqueue" ||
+        err.message === "Aborted while queued" ||
+        err.message === "Queue cleared"
+      ) {
         return;
       }
       console.error(`[ChannelOrchestrator] Queue error for agent ${member.agentId}:`, err);
@@ -325,548 +293,48 @@ class ChannelOrchestrator {
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) return;
 
-    // F1: Negotiation Protocol
-    let isAgreed = false;
-    let isRejected = false;
-    if (channel.negotiationProtocol) {
-      const negotiationState = channelStore.getNegotiationState(username, channelId);
-      const protocol = new NegotiationProtocol(channel.negotiationProtocol, negotiationState);
-      const receiverId = incomingMsg.role === "user" ? "user" : incomingMsg.agentId || "user";
-      const senderId = member.agentId;
-      const ingestResult = protocol.ingest(senderId, receiverId, result.agentMsg.content);
+    const negResult = handleNegotiation(
+      username,
+      channelId,
+      channel,
+      member.agentId,
+      incomingMsg,
+      result.agentMsg,
+      agentNameMap,
+      broadcast
+    );
 
-      channelStore.saveNegotiationState(username, channelId, protocol.getState());
-
-      broadcast(channelId, {
-        type: "channel_negotiation_round",
-        channelId,
-        sessionId: incomingMsg.sessionId,
-        agentId: senderId,
-        receiverId,
-        rounds: ingestResult.rounds,
-        status: protocol.getState()[ingestResult.pairKey]?.status || "open",
-      });
-
-      if (ingestResult.matched === "agreed") {
-        isAgreed = true;
-        broadcast(channelId, {
-          type: "channel_negotiation_agreement",
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          agentId: senderId,
-          receiverId,
-          content: result.agentMsg.content,
-        });
-      } else if (ingestResult.matched === "rejected") {
-        isRejected = true;
-        broadcast(channelId, {
-          type: "channel_negotiation_rejected",
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          agentId: senderId,
-          receiverId,
-        });
-      } else if (ingestResult.shouldEscalate && channel.negotiationProtocol.arbiterAgentId) {
-        const arbiterId = channel.negotiationProtocol.arbiterAgentId;
-        const arbiterEntry = agentRegistry.get(arbiterId);
-        const arbiterName = arbiterEntry?.server.definition.name || arbiterId;
-
-        broadcast(channelId, {
-          type: "channel_negotiation_escalation",
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          arbiterId,
-          arbiterName,
-          rounds: ingestResult.rounds,
-        });
-
-        // Trigger arbiter dispatch using ArbitrationProtocol
-        const agentName = agentEntry?.server.definition.name || senderId;
-        const targetName = receiverId === "user" ? "user" : agentRegistry.get(receiverId)?.server.definition.name || receiverId;
-        const arbiterProtocol = new ArbitrationProtocol({ arbiterAgentId: arbiterId });
-        const escalationMsg = arbiterProtocol.buildEscalationMessage({
-          senderId,
-          senderName: agentName,
-          receiverId,
-          receiverName: targetName,
-          rounds: ingestResult.rounds,
-          channelId,
-          sessionId: incomingMsg.sessionId,
-        });
-
-        const arbiterMember = channel.members.find((m) => m.agentId === arbiterId);
-        if (arbiterMember) {
-          channelStore.appendMessage(username, channelId, result.agentMsg);
-          broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
-          eventBroker.publishEvent(username, {
-            sourceType: "channel",
-            sourceId: channelId,
-            sourceName: channel.name,
-            eventType: "agent_message",
-            agentName: result.agentMsg.agentName,
-            detail: result.agentMsg.content,
-          });
-          this.incrementChain(key);
-          this.dispatchToAgentAsync(username, channelId, arbiterMember, escalationMsg, depth + 1, signal).catch((err) => {
-            console.error(`[ChannelOrchestrator] Escalation dispatch error:`, err);
-          });
-        }
-        return;
-      }
+    if (negResult.action === "stop-rejected") {
+      this.messagePublisher(username, channelId, channel.name, result.agentMsg);
+      return;
     }
 
-    if (isRejected) {
-      // Append the rejection message and stop the chain
-      channelStore.appendMessage(username, channelId, result.agentMsg);
-      broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
-      eventBroker.publishEvent(username, {
-        sourceType: "channel",
-        sourceId: channelId,
-        sourceName: channel.name,
-        eventType: "agent_message",
-        agentName: result.agentMsg.agentName,
-        detail: result.agentMsg.content,
+    if (negResult.action === "escalate" && negResult.escalationMessage && negResult.arbiterMember) {
+      this.messagePublisher(username, channelId, channel.name, result.agentMsg);
+
+      this.incrementChain(key);
+      this.dispatchToAgentAsync(
+        username,
+        channelId,
+        negResult.arbiterMember,
+        negResult.escalationMessage,
+        depth + 1,
+        signal
+      ).catch((err) => {
+        console.error(`[ChannelOrchestrator] Escalation dispatch error:`, err);
       });
       return;
     }
 
-    channelStore.appendMessage(username, channelId, result.agentMsg);
-    broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
+    this.messagePublisher(username, channelId, channel.name, result.agentMsg);
 
-    eventBroker.publishEvent(username, {
-      sourceType: "channel",
-      sourceId: channelId,
-      sourceName: channel.name,
-      eventType: "agent_message",
-      agentName: result.agentMsg.agentName,
-      detail: result.agentMsg.content,
-    });
-
-    // Real output — reset consecutive silent counter
     this.consecutiveSilentRounds.set(key, 0);
 
-    // Chain to next round if not agreed
-    if (!isAgreed) {
+    if (negResult.action === "continue") {
       this.incrementChain(key);
       this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
       this.decrementChain(key);
     }
-  }
-
-  /**
-   * Runs a single agent prompt. Called inside the AgentWorkQueue executor.
-   * This is the only place that awaits session.prompt().
-   */
-  private async runAgentPrompt(
-    username: string,
-    channelId: string,
-    member: ChannelMember,
-    incomingMsg: ChannelMessage,
-    signal: AbortSignal
-  ): Promise<DispatchResult> {
-    if (signal.aborted) return { agentMsg: null };
-
-    const channel = channelStore.getChannel(username, channelId);
-    if (!channel) return { agentMsg: null };
-
-    const agentEntry = agentRegistry.get(member.agentId);
-    if (!agentEntry || agentEntry.status === "stopped") {
-      broadcast(channelId, {
-        type: "channel_agent_error",
-        channelId,
-        agentId: member.agentId,
-        error: `Agent "${member.agentId}" is not available`,
-      });
-      return { agentMsg: null };
-    }
-
-    const agentName = agentEntry.server.definition.name;
-
-    // Ensure model is set
-    if (!agentEntry.server.session.model) {
-      const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
-      modelRegistry.refresh();
-      const resolved = resolveModelWithFallback(undefined, modelRegistry);
-      if (resolved) {
-        const model = modelRegistry.getAvailable().find(
-          m => m.id === resolved || `${m.provider}/${m.id}` === resolved
-        );
-        if (model) {
-          try {
-            await agentEntry.server.session.setModel(model);
-          } catch (e) {
-            console.error(`[ChannelOrchestrator] Failed to assign model to ${member.agentId}:`, e);
-          }
-        }
-      }
-    }
-
-    if (!agentEntry.server.session.model) {
-      broadcast(channelId, {
-        type: "channel_agent_error",
-        channelId,
-        agentId: member.agentId,
-        error: `No LLM providers or models available for agent "${agentName}". Please configure API keys in Settings.`,
-      });
-      return { agentMsg: null };
-    }
-
-    const streamKey = `${channelId}:${incomingMsg.sessionId || "default"}`;
-    let channelStreams = this.activeStreams.get(streamKey);
-    if (!channelStreams) {
-      channelStreams = new Map();
-      this.activeStreams.set(streamKey, channelStreams);
-    }
-    channelStreams.set(member.agentId, {
-      agentId: member.agentId,
-      agentName,
-      text: "",
-      thinking: "",
-      toolCalls: {},
-    });
-
-    broadcast(channelId, {
-      type: "channel_agent_start",
-      channelId,
-      sessionId: incomingMsg.sessionId,
-      agentId: member.agentId,
-      agentName,
-    });
-
-    eventBroker.publishEvent(username, {
-      sourceType: "channel",
-      sourceId: channelId,
-      sourceName: channel.name,
-      eventType: "agent_start",
-      agentName,
-    });
-
-    const userSettings = sessionManager.userConfig.getUserSettings(username);
-    const memoryEnabled = userSettings.memoryEnabled ?? true;
-    const channelDbPath = getChannelMemoryDbPath(username, channelId);
-    const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);
-
-    const [agentMemCtx, channelMemCtx] = await Promise.all([
-      agentEntry.server.memory.buildContext(incomingMsg.content),
-      channelMemory.buildContext(incomingMsg.content),
-    ]);
-
-    let memoryPrefix = "";
-    if (agentMemCtx) {
-      memoryPrefix += `${agentMemCtx}\n\n`;
-    }
-    if (channelMemCtx) {
-      const channelFormatted = channelMemCtx.replace("--- Relevant Memories ---", "--- Relevant Channel Memories ---");
-      memoryPrefix += `${channelFormatted}\n\n`;
-    }
-
-    const recentMessages = channelStore.getMessages(username, channelId, 20, incomingMsg.sessionId);
-    const agentNameMap = this.buildAgentNameMap(channel.members);
-
-    // Dynamically build DeploymentContext for the current channel invocation
-    const isBroadcast = channel.members.some(m => m.replyMode === "broadcast");
-    const hasLeader = channel.members.some(m => m.role === "lead");
-    const selfMember = channel.members.find(m => m.agentId === member.agentId);
-    const isArbiter = selfMember?.role === "lead";
-
-    const deployment = {
-      mode: isBroadcast ? "broadcast" : (hasLeader ? "targeted" : "broadcast") as any,
-      channelId,
-      agentRole: selfMember?.role || "member",
-      members: channel.members.map(m => ({
-        agentId: m.agentId,
-        agentName: agentNameMap.get(m.agentId) || m.agentId,
-        role: m.role || "member",
-      })),
-      negotiationProtocol: !!channel.negotiationProtocol,
-      isArbiter,
-    };
-
-    const workspaceDir = agentEntry.server.session.cwd;
-    const layered = promptComposer.compose(agentEntry.server.definition, deployment, workspaceDir);
-
-    const envContext = getEnvironmentContext(workspaceDir);
-    const appendSystemPrompts = [
-      `\n\nRuntime Environment:\n${envContext}`,
-      layered.composed,
-      HTML_PREVIEW_INSTRUCTIONS,
-      AG_UI_INSTRUCTIONS,
-      PERSISTENT_MEMORY_INSTRUCTIONS,
-      SUBAGENT_DELEGATION_INSTRUCTIONS,
-      TASK_DELEGATION_INSTRUCTIONS,
-    ];
-    if (typeof (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt === "function") {
-      (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt(appendSystemPrompts);
-      await agentEntry.server.session.resourceLoader.reload();
-    }
-
-    const promptText = memoryPrefix + this.buildAgentPrompt(
-      agentEntry.server.definition,
-      incomingMsg,
-      recentMessages,
-      channel.context || []
-    );
-
-    let fullResponse = "";
-
-    const unsub = agentEntry.server.session.subscribe((evt) => {
-      const ev = evt as any;
-      if (evt.type === "message_update") {
-        if (ev.assistantMessageEvent?.type === "text_delta") {
-          const delta = ev.assistantMessageEvent.delta;
-          if (delta) {
-            fullResponse += delta;
-            const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
-            if (stream) {
-              stream.text += delta;
-            }
-            broadcast(channelId, {
-              type: "channel_agent_token",
-              channelId,
-              sessionId: incomingMsg.sessionId,
-              agentId: member.agentId,
-              token: delta,
-              fullText: stream ? stream.text : undefined,
-            });
-            eventBroker.publishEvent(username, {
-              sourceType: "channel",
-              sourceId: channelId,
-              sourceName: channel.name,
-              eventType: "text_delta",
-              agentName,
-              detail: delta,
-            });
-          }
-        } else if (ev.assistantMessageEvent?.type === "thinking_delta" && channel.showThinking) {
-          const delta = ev.assistantMessageEvent.delta;
-          if (delta) {
-            const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
-            if (stream) {
-              stream.thinking += delta;
-            }
-            broadcast(channelId, {
-              type: "channel_agent_thinking",
-              channelId,
-              sessionId: incomingMsg.sessionId,
-              agentId: member.agentId,
-              token: delta,
-              fullThinking: stream ? stream.thinking : undefined,
-            });
-            eventBroker.publishEvent(username, {
-              sourceType: "channel",
-              sourceId: channelId,
-              sourceName: channel.name,
-              eventType: "thinking_delta",
-              agentName,
-              detail: delta,
-            });
-          }
-        }
-      } else if (evt.type === "tool_execution_start" && channel.showTools) {
-        const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
-        if (stream) {
-          stream.toolCalls[ev.toolCallId] = {
-            toolName: ev.toolName,
-            args: ev.args,
-            result: null,
-            isError: false,
-          };
-        }
-        broadcast(channelId, {
-          type: "channel_agent_tool_start",
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          agentId: member.agentId,
-          toolName: ev.toolName,
-          args: ev.args,
-          toolCallId: ev.toolCallId,
-        });
-        eventBroker.publishEvent(username, {
-          sourceType: "channel",
-          sourceId: channelId,
-          sourceName: channel.name,
-          eventType: "tool_start",
-          agentName,
-          detail: { toolName: ev.toolName, args: ev.args, toolCallId: ev.toolCallId },
-        });
-      } else if (evt.type === "tool_execution_end" && channel.showTools) {
-        const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
-        if (stream && stream.toolCalls[ev.toolCallId]) {
-          stream.toolCalls[ev.toolCallId].result = ev.result;
-          stream.toolCalls[ev.toolCallId].isError = ev.isError;
-        }
-        broadcast(channelId, {
-          type: "channel_agent_tool_end",
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          agentId: member.agentId,
-          toolName: ev.toolName,
-          result: ev.result,
-          isError: ev.isError,
-          toolCallId: ev.toolCallId,
-        });
-        eventBroker.publishEvent(username, {
-          sourceType: "channel",
-          sourceId: channelId,
-          sourceName: channel.name,
-          eventType: "tool_end",
-          agentName,
-          detail: { toolName: ev.toolName, result: ev.result, isError: ev.isError, toolCallId: ev.toolCallId },
-        });
-      }
-    });
-
-    try {
-      // Reset internal agent runtime state before each prompt
-      if ((agentEntry.server.session as any).agent?.reset) {
-        (agentEntry.server.session as any).agent.reset();
-      }
-      await agentEntry.server.session.prompt(promptText);
-    } catch (err: any) {
-      unsub();
-      const isAbort = signal.aborted || err.message?.includes("abort") || err.message?.includes("cancel");
-      if (!isAbort) {
-        console.error(`[ChannelOrchestrator] Error prompting agent ${member.agentId}:`, err);
-        broadcast(channelId, {
-          type: "channel_agent_error",
-          channelId,
-          sessionId: incomingMsg.sessionId,
-          agentId: member.agentId,
-          error: String(err.message || err),
-        });
-        eventBroker.publishEvent(username, {
-          sourceType: "channel",
-          sourceId: channelId,
-          sourceName: channel.name,
-          eventType: "error",
-          agentName,
-          detail: String(err.message || err),
-        });
-      }
-      broadcast(channelId, {
-        type: "channel_agent_end",
-        channelId,
-        sessionId: incomingMsg.sessionId,
-        agentId: member.agentId,
-      });
-      return { agentMsg: null };
-    } finally {
-      unsub();
-      const activeStreamsMap = this.activeStreams.get(streamKey);
-      if (activeStreamsMap) {
-        activeStreamsMap.delete(member.agentId);
-        if (activeStreamsMap.size === 0) {
-          this.activeStreams.delete(streamKey);
-        }
-      }
-    }
-
-
-    let messageTokensIn = 0;
-    let messageTokensOut = 0;
-
-    // Extract full response and token usage from session messages if streaming didn't capture it
-    const msgs = agentEntry.server.session.messages;
-    const lastMsg = [...msgs].reverse().find((m) => m.role === "assistant") as any;
-    if (lastMsg) {
-      if (!fullResponse.trim()) {
-        if (typeof lastMsg.content === "string") fullResponse = lastMsg.content;
-        else if (Array.isArray(lastMsg.content)) {
-          fullResponse = lastMsg.content.map((c: any) => c.text || "").join("\n");
-        }
-      }
-      if (lastMsg.usage) {
-        messageTokensIn = lastMsg.usage.input || 0;
-        messageTokensOut = lastMsg.usage.output || 0;
-      }
-    }
-
-    const stripped = channel.showThinking ? fullResponse : this.stripThinkBlocks(fullResponse);
-    const trimmed = stripped.trim();
-    const isSilent = this.isSilentContent(trimmed);
-
-    if (memoryEnabled && userSettings.memoryAutoStore !== false && trimmed && !isSilent) {
-      await agentEntry.server.memory.store(
-        trimmed.slice(0, 500),
-        "episodic",
-        0.5,
-        ["interaction", `channel:${channelId}`]
-      );
-    }
-
-    broadcast(channelId, {
-      type: "channel_agent_end",
-      channelId,
-      sessionId: incomingMsg.sessionId,
-      agentId: member.agentId,
-    });
-
-    eventBroker.publishEvent(username, {
-      sourceType: "channel",
-      sourceId: channelId,
-      sourceName: channel.name,
-      eventType: "agent_end",
-      agentName,
-    });
-
-    if (isSilent) {
-      console.log(`[ChannelOrchestrator] Agent ${member.agentId} produced silent response`);
-      return { agentMsg: null };
-    }
-
-    let finalThinking = "";
-    let finalToolCalls: any[] = [];
-
-    if (channel.showThinking || channel.showTools) {
-      const msgsForParsing = agentEntry.server.session.messages;
-      const lastMsgForParsing = [...msgsForParsing].reverse().find((m) => m.role === "assistant");
-      if (lastMsgForParsing && Array.isArray(lastMsgForParsing.content)) {
-        for (const block of lastMsgForParsing.content) {
-          if (block.type === "thinking" && block.thinking && channel.showThinking) {
-            finalThinking += block.thinking;
-          }
-          if (block.type === "toolCall" && channel.showTools) {
-            const matchedResult = msgsForParsing.find((m) => m.role === "toolResult" && (m as any).toolCallId === block.id) as any;
-            finalToolCalls.push({
-              id: block.id,
-              name: block.name,
-              arguments: block.arguments,
-              result: matchedResult
-                ? {
-                    toolName: matchedResult.toolName ?? block.name,
-                    content: Array.isArray(matchedResult.content)
-                      ? matchedResult.content
-                      : [{ type: "text", text: String(matchedResult.content) }],
-                    isError: matchedResult.isError ?? false,
-                    details: (matchedResult as any).details,
-                  }
-                : null,
-            });
-          }
-        }
-      }
-    }
-
-    const agentNameMap2 = this.buildAgentNameMap(channel.members);
-    const agentMentions = parseMentions(trimmed, channel.members, agentNameMap2);
-
-    const agentMsg: ChannelMessage = {
-      id: crypto.randomUUID(),
-      channelId,
-      sessionId: incomingMsg.sessionId,
-      role: "agent",
-      agentId: member.agentId,
-      agentName,
-      content: trimmed,
-      thinking: finalThinking || undefined,
-      toolCalls: finalToolCalls.length > 0 ? finalToolCalls : undefined,
-      mentions: agentMentions.length > 0 ? agentMentions : undefined,
-      tokensIn: messageTokensIn || undefined,
-      tokensOut: messageTokensOut || undefined,
-      createdAt: new Date().toISOString(),
-    };
-
-    return { agentMsg };
   }
 
   private resolveRecipients(channel: Channel, incomingMsg: ChannelMessage): ChannelMember[] {
@@ -908,50 +376,6 @@ class ChannelOrchestrator {
     return result;
   }
 
-  private buildAgentPrompt(
-    agentDef: any,
-    incomingMsg: ChannelMessage,
-    recentHistory: ChannelMessage[],
-    contextItems: { key: string; value: string }[] = []
-  ): string {
-    let historyText = "";
-    for (const msg of recentHistory) {
-      if (msg.role === "user") {
-        historyText += `[User]: ${msg.content}\n`;
-      } else {
-        historyText += `[${msg.agentName || msg.agentId}]: ${msg.content}\n`;
-      }
-    }
-
-    let contextBlock = "";
-    if (contextItems.length > 0) {
-      contextBlock =
-        `Channel Environmental Context Variables:\n` +
-        contextItems.map((item) => `- ${item.key}: ${item.value}`).join("\n") +
-        "\n\n";
-    }
-
-    const senderLabel =
-      incomingMsg.role === "user" ? "User" : incomingMsg.agentName || incomingMsg.agentId;
-
-    return (
-      contextBlock +
-      `Conversation so far:\n${historyText}\n` +
-      `--- New message from ${senderLabel} ---\n` +
-      `${incomingMsg.content}`
-    );
-  }
-
-  private isSilentContent(content: string): boolean {
-    if (!content) return true;
-    const SILENT_REGEX = /^\s*[\(\[\*]*\s*silent(ioso)?\s*[\)\]\*]*[\s\.]*$/i;
-    return SILENT_REGEX.test(content.trim());
-  }
-
-  private stripThinkBlocks(content: string): string {
-    return content.replace(/<think>[\s\S]*?<\/think>/gi, "").trim();
-  }
-
   private async runSequentialBroadcastLoop(
     username: string,
     channelId: string,
@@ -970,20 +394,18 @@ class ChannelOrchestrator {
       console.log(`[ChannelOrchestrator] Sequential Round ${depth} starting...`);
       let roundActive = false;
 
+      const agentNameMap = buildAgentNameMap(channel.members);
+
       for (const member of channel.members) {
         if (signal.aborted || this.abortedDispatches.has(key)) return;
 
-        // Skip if the member is the author of the last message
         if (currentIncomingMsg.role === "agent" && currentIncomingMsg.agentId === member.agentId) {
           continue;
         }
 
-        // Check if the member is eligible to respond to currentIncomingMsg
         const recipients = this.resolveRecipients(channel, currentIncomingMsg);
-        const isEligible = recipients.some(r => r.agentId === member.agentId);
+        const isEligible = recipients.some((r) => r.agentId === member.agentId);
         if (!isEligible) continue;
-
-
 
         const queue = this.getOrCreateQueue(member.agentId);
         let result: DispatchResult;
@@ -991,10 +413,22 @@ class ChannelOrchestrator {
           result = await queue.enqueue({
             id: crypto.randomUUID(),
             signal,
-            execute: () => this.runAgentPrompt(username, channelId, member, currentIncomingMsg, signal),
+            execute: () =>
+              this.promptRunner.run(
+                username,
+                channelId,
+                member,
+                currentIncomingMsg,
+                agentNameMap,
+                signal
+              ),
           });
         } catch (err: any) {
-          if (err.message === "Aborted before enqueue" || err.message === "Aborted while queued" || err.message === "Queue cleared") {
+          if (
+            err.message === "Aborted before enqueue" ||
+            err.message === "Aborted while queued" ||
+            err.message === "Queue cleared"
+          ) {
             return;
           }
           console.error(`[ChannelOrchestrator] Queue error for agent ${member.agentId}:`, err);
@@ -1003,57 +437,23 @@ class ChannelOrchestrator {
 
         if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) continue;
 
-        // Append to store, broadcast, and update current message
-        channelStore.appendMessage(username, channelId, result.agentMsg);
-        broadcast(channelId, { type: "channel_message", channelId, message: result.agentMsg });
-
-        eventBroker.publishEvent(username, {
-          sourceType: "channel",
-          sourceId: channelId,
-          sourceName: channel.name,
-          eventType: "agent_message",
-          agentName: result.agentMsg.agentName,
-          detail: result.agentMsg.content,
-        });
+        this.messagePublisher(username, channelId, channel.name, result.agentMsg);
 
         currentIncomingMsg = result.agentMsg;
         roundActive = true;
 
-        // Check agreement
-        let isAgreed = false;
-        if (channel.negotiationProtocol) {
-          const negotiationState = channelStore.getNegotiationState(username, channelId);
-          const protocol = new NegotiationProtocol(channel.negotiationProtocol, negotiationState);
-          const receiverId = currentIncomingMsg.role === "user" ? "user" : currentIncomingMsg.agentId || "user";
-          const senderId = member.agentId;
-          const ingestResult = protocol.ingest(senderId, receiverId, currentIncomingMsg.content);
+        const negResult = handleNegotiation(
+          username,
+          channelId,
+          channel,
+          member.agentId,
+          currentIncomingMsg,
+          result.agentMsg,
+          agentNameMap,
+          broadcast
+        );
 
-          channelStore.saveNegotiationState(username, channelId, protocol.getState());
-
-          broadcast(channelId, {
-            type: "channel_negotiation_round",
-            channelId,
-            sessionId: currentIncomingMsg.sessionId,
-            agentId: senderId,
-            receiverId,
-            rounds: ingestResult.rounds,
-            status: protocol.getState()[ingestResult.pairKey]?.status || "open",
-          });
-
-          if (ingestResult.matched === "agreed") {
-            isAgreed = true;
-            broadcast(channelId, {
-              type: "channel_negotiation_agreement",
-              channelId,
-              sessionId: currentIncomingMsg.sessionId,
-              agentId: senderId,
-              receiverId,
-              content: currentIncomingMsg.content,
-            });
-          }
-        }
-
-        if (isAgreed) {
+        if (negResult.action === "stop-agreed") {
           console.log(`[ChannelOrchestrator] Consensus reached. Stopping sequence.`);
           return;
         }
@@ -1072,7 +472,141 @@ class ChannelOrchestrator {
       broadcast(channelId, { type: "channel_chain_limit", channelId, maxChainDepth: maxDepth });
     }
   }
+
+  async runToCompletion(
+    username: string,
+    config: RunToCompletionConfig
+  ): Promise<RunToCompletionResult> {
+    const {
+      channelId,
+      channelName,
+      description,
+      members,
+      maxChainDepth,
+      showThinking,
+      showTools,
+      negotiationProtocol,
+      contextItems,
+      taskPrompt,
+      sessionId,
+      sessionName,
+      signal,
+    } = config;
+
+    // 1. Clean stale channel
+    try {
+      channelStore.deleteChannel(username, channelId);
+    } catch {}
+
+    // 2. Create channel
+    channelStore.createChannel(username, {
+      id: channelId,
+      name: channelName,
+      description,
+      maxChainDepth,
+      showThinking,
+      showTools,
+      context: contextItems,
+      negotiationProtocol,
+    } as any);
+
+    // 3. Set members
+    channelStore.updateMembers(username, channelId, members as any);
+
+    // 4. Create session + metadata
+    const { sessionManager } = await import("../core/session-manager");
+    await sessionManager.getOrCreateSession(username, sessionId, undefined, undefined, channelId);
+    sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
+      name: sessionName,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      channelId,
+      isExecution: true,
+    });
+
+
+    // 5. Dispatch and wait
+    const agentIds = members.map((m) => m.agentId);
+    let status: "completed" | "failed" | "aborted" = "completed";
+
+    try {
+      if (signal?.aborted) {
+        return {
+          status: "aborted",
+          messages: [],
+          tokensIn: 0,
+          tokensOut: 0,
+          negotiationRounds: 0,
+          escalationsToLeader: 0,
+          agreementReached: false,
+        };
+      }
+
+      const dispatchPromise = this.dispatchUserMessage(username, channelId, taskPrompt, sessionId);
+
+      if (signal) {
+        const abortPromise = new Promise<void>((_, reject) => {
+          signal.addEventListener("abort", () => reject(new Error("aborted")), { once: true });
+        });
+        await Promise.race([dispatchPromise, abortPromise]);
+      } else {
+        await dispatchPromise;
+      }
+    } catch (err: any) {
+      if (err.message === "aborted" || signal?.aborted) {
+        this.abortDispatch(username, channelId, sessionId);
+        status = "aborted";
+      } else {
+        console.error(`[ChannelOrchestrator.runToCompletion] Dispatch error:`, err);
+        status = "failed";
+      }
+    }
+
+    // 6. Collect messages
+    const messages = channelStore.getMessages(username, channelId, 100, sessionId);
+
+    // 7. Collect tokens using the helper function
+    const { tokensIn, tokensOut } = collectChannelTokens(
+      channelStore,
+      agentRegistry,
+      username,
+      channelId,
+      sessionId,
+      agentIds
+    );
+
+    // 8. Collect negotiation metrics
+    const negState = channelStore.getNegotiationState(username, channelId);
+    let negotiationRounds = 0;
+    let escalationsToLeader = 0;
+    let agreementReached = false;
+
+    const agentMessages = messages.filter((m) => m.role === "agent");
+    agreementReached = agentMessages.some((m) =>
+      m.content?.includes("ACUERDO ALCANZADO") ||
+      m.content?.includes("ACEPTO la propuesta") ||
+      m.content?.includes("ACEPTO")
+    );
+
+    for (const key of Object.keys(negState)) {
+      negotiationRounds = Math.max(negotiationRounds, negState[key].rounds || 0);
+      if (negState[key].status === "escalated") {
+        escalationsToLeader++;
+      }
+    }
+
+    return {
+      status,
+      messages,
+      tokensIn,
+      tokensOut,
+      negotiationRounds,
+      escalationsToLeader,
+      agreementReached,
+    };
+  }
 }
+
 
 export const channelOrchestrator = new ChannelOrchestrator();
 export { ChannelOrchestrator };

@@ -149,31 +149,17 @@ export class SessionPromptBuilder {
         const { channelStore } = await import("../../channels/channel-store");
         const channel = channelStore.getChannel(username, channelId);
         if (channel) {
-          const isBroadcast = channel.members.some(m => m.replyMode === "broadcast");
-          const agentId = params.resolvedAgentId;
-          const selfMember = channel.members.find(m => m.agentId === agentId);
-          const hasLeader = channel.members.some(m => m.role === "lead");
-          const isArbiter = selfMember?.role === "lead";
-
-          const members = [];
           const { agentRegistry } = await import("../../agents");
+          const agentNameMap = new Map<string, string>();
           for (const m of channel.members) {
-            const agentEntry = agentRegistry.get(m.agentId);
-            members.push({
-              agentId: m.agentId,
-              agentName: agentEntry?.server.definition.name || m.agentId,
-              role: m.role || "member",
-            });
+            const entry = agentRegistry.get(m.agentId);
+            if (entry) {
+              agentNameMap.set(m.agentId, entry.server.definition.name);
+            }
           }
-
-          return {
-            mode: isBroadcast ? "broadcast" : (hasLeader ? "targeted" : "broadcast"),
-            channelId,
-            agentRole: selfMember?.role || "member",
-            members,
-            negotiationProtocol: !!channel.negotiationProtocol,
-            isArbiter,
-          };
+          const agentId = params.resolvedAgentId || "";
+          const { buildDeploymentContext } = await import("../channel/deployment-context");
+          return buildDeploymentContext(channel, agentId, agentNameMap);
         }
       }
     } catch (e) {

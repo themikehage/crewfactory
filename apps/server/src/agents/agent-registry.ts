@@ -3,7 +3,12 @@ import { type AgentDefinition, type AgentInfo, type AgentStatus, SessionPrefix, 
 import type { AgentEntry } from "./types";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { channelOrchestrator } from "../channels/channel-orchestrator";
+
+let onAgentStopCallback: ((agentId: string) => void) | null = null;
+
+export function setAgentStopCallback(fn: (agentId: string) => void) {
+  onAgentStopCallback = fn;
+}
 
 class AgentRegistry {
   private agents = new Map<string, AgentEntry>();
@@ -142,7 +147,9 @@ class AgentRegistry {
     const entry = this.agents.get(id);
     if (!entry) return;
     entry.status = "stopped";
-    channelOrchestrator.removeAgentQueue(id);
+    if (onAgentStopCallback) {
+      onAgentStopCallback(id);
+    }
     await entry.server.stop();
     this.agents.delete(id);
 

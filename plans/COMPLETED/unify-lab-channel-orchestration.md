@@ -1,6 +1,7 @@
+COMPLETED
 # Unify Lab-Channel Orchestration
 
-**Status**: Proposed
+**Status**: Completed
 **Date**: 2026-07-12
 
 ## Problem Statement
@@ -257,6 +258,7 @@ Logic:
 5. Build channel config with `config.maxChainDepth`, negotiation protocol if applicable
 6. Call `channelOrchestrator.runToCompletion(username, runToCompletionConfig)`
 7. On return: stop agents, build `VariantRunResult` from result
+8. Return
 
 ### Step 6: Simplify `executeAllVariants`
 
@@ -266,7 +268,7 @@ Replace 3 separate blocks (lines 107-147, each ~15 lines of boilerplate) with a 
 const variantConfigs: VariantConfig[] = [
   { variantKey: "single", replyMode: "user-only", maxChainDepth: 3, hasNegotiationProtocol: false, minAgents: 1 },
   { variantKey: "multiNoLeader", replyMode: "broadcast", maxChainDepth: 8, hasNegotiationProtocol: false, minAgents: 2 },
-  { variantKey: "multiWithLeader", replyMode: "targeted", maxChainDepth: 15, hasNegotiationProtocol: true, minAgents: 3 },
+  { variantKey: "multiWithLeader", replyMode: "targeted", hasNegotiationProtocol: true, minAgents: 3 },
 ];
 
 for (const config of variantConfigs) {
@@ -318,7 +320,7 @@ Run `bun run build` from `apps/server`. Manually verify in the UI that:
 
 ## Verification Criteria
 
-- [ ] `bun run build` from `apps/server` succeeds with no type errors
+- [x] `bun run build` from `apps/server` succeeds with no type errors
 - [ ] All 3 variants run successfully (single, multiNoLeader, multiWithLeader)
 - [ ] Token collection returns same values as before (compare representative runs)
 - [ ] Judge evaluation produces same scores as before

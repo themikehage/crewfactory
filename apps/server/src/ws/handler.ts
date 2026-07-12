@@ -8,6 +8,11 @@ import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
 import { SessionPrefix, getSessionMetadataPath } from "shared";
+import { setAgentStopCallback } from "../agents";
+
+setAgentStopCallback((agentId) => {
+  channelOrchestrator.removeAgentQueue(agentId);
+});
 
 function getProjectNameForSession(username: string, sessionId: string): string | undefined {
   const p = getSessionMetadataPath(username, sessionId);

@@ -1,5 +1,4 @@
 import type { ModelRegistry } from "../ai";
-import { broadcastToSession } from "../ws/handler";
 import type { EnvelopeResult, DelegationNotificationDetails } from "shared";
 import { DELEGATION_NOTIFICATION_TYPE } from "shared";
 
@@ -69,12 +68,16 @@ export function forwardSubagentEvents(
   try {
     unsub = subSession.subscribe((evt: any) => {
       try {
-        broadcastToSession(parentSessionId, {
-          type: "subagent_event",
-          sessionId: parentSessionId,
-          subagentSessionId,
-          toolCallId,
-          event: evt,
+        import("../ws/handler").then(({ broadcastToSession }) => {
+          broadcastToSession(parentSessionId, {
+            type: "subagent_event",
+            sessionId: parentSessionId,
+            subagentSessionId,
+            toolCallId,
+            event: evt,
+          });
+        }).catch(err => {
+          console.error("[Subagent Event Forwarding Import Error]:", err);
         });
       } catch (err) {
         console.error("[Subagent Event Forwarding Error]:", err);
@@ -175,4 +178,62 @@ export function formatDelegationResultMessage(
     timestamp: Date.now(),
   };
 }
+
+/**
+ * Collects and aggregates input and output tokens consumed in a channel session.
+ * Utilizes channel messages as primary source and falls back to agent session stats.
+ */
+export function collectChannelTokens(
+  channelStore: { getMessages: (username: string, channelId: string, limit: number, sessionId?: string) => any[] },
+  agentRegistry: { get: (agentId: string) => any },
+  username: string,
+  channelId: string,
+  sessionId: string,
+  agentIds: string[]
+): { tokensIn: number; tokensOut: number } {
+  let tokensIn = 0;
+  let tokensOut = 0;
+
+  try {
+    const messages = channelStore.getMessages(username, channelId, 100, sessionId);
+    for (const msg of messages) {
+      if (msg.role === "agent") {
+        tokensIn += (msg as any).tokensIn || 0;
+        tokensOut += (msg as any).tokensOut || 0;
+      }
+    }
+  } catch (err) {
+    console.error(`[collectChannelTokens] Failed to sum tokens from channel messages:`, err);
+  }
+
+  // Fallback: Query temporary agent session stats directly
+  if (tokensIn === 0 && tokensOut === 0) {
+    for (const agentId of agentIds) {
+      try {
+        const entry = agentRegistry.get(agentId);
+        if (entry && entry.server && entry.server.session) {
+          const stats = entry.server.session.getSessionStats();
+          if (stats && stats.tokens) {
+            tokensIn += stats.tokens.input || 0;
+            tokensOut += stats.tokens.output || 0;
+          }
+          if (entry.server.session.messages) {
+            for (const m of entry.server.session.messages) {
+              const anyM = m as any;
+              if (anyM.usage) {
+                tokensIn += anyM.usage.input || 0;
+                tokensOut += anyM.usage.output || 0;
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.error(`[collectChannelTokens] Fallback stats lookup failed for agent ${agentId}:`, err);
+      }
+    }
+  }
+
+  return { tokensIn, tokensOut };
+}
+
 

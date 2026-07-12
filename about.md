@@ -194,7 +194,9 @@
   - *Multi-Agent Jerárquico (con líder):* Debate estructurado con mediación y toma de decisiones a cargo de un agente líder/árbitro.
 - **Evaluación Automatizada por LLM-Judge:** Calificación y feedback detallado por criterio a partir de una rúbrica configurable (Calidad, Eficiencia, Negociación, etc.), con cálculo de métricas de tokens consumidos y duración.
 - **Canales Temporales Resilientes:** Generación dinámica y transparente en el backend de los canales asociados a cada variante (`lab_{experimentId}_{variantKey}`). Ante una solicitud GET, si el canal no está en el almacén pero el experimento existe, se recrea al vuelo garantizando la disponibilidad de la interfaz antes y después de las ejecuciones, eliminando errores `404 (Not Found)`.
+- **Orquestación Unificada de Canales:** En lugar de implementar un ciclo de vida independiente, el laboratorio delega toda la ejecución al backend de canales a través de `ChannelOrchestrator.runToCompletion()`. Esto unifica el manejo de la profundidad de cadenas, el control de abortos, la detección de equilibrio y la agregación unificada de tokens de manera centralizada.
 - **Historial de Ejecuciones:** Registro y persistencia de corridas históricas con sus respectivas métricas, accesibles desde la barra de herramientas del laboratorio.
+
 
 
 ### Task Planning & Decomposition (decompose_tasks)
@@ -237,7 +239,7 @@
 ### Multi-Agent Group Channels (`channelId`) & Mention System
 - **Collaborative Group Spaces**: Multi-agent channels with isolated workspaces at `/tmp/crewfactory/{username}/channels/{channelId}/workspace` and append-only message logs (`messages.jsonl`), fully isolated per user.
 - **Session Message Isolation**: Channel message histories and live WebSocket streams strictly isolated per session ID (`sessionId`).
-- **Sequential Orchestrator & Configurable Depth**: Dynamic execution depth control with configurable `maxChainDepth` per channel (default 5, editable up to 20 via UI).
+- **Sequential Orchestrator & Configurable Depth**: Dynamic execution depth control with configurable `maxChainDepth` per channel (default 5, editable up to 20 via UI). Powered by a modular, decoupled channel orchestrator containing a thin coordinator (`ChannelOrchestrator`) and dedicated execution modules (`AgentPromptRunner`, `ChannelNegotiationHandler`, `ResponseParser`, and `ChannelMessagePublisher`).
 - **Configurable Thought & Tool Visibility**: Options (`showThinking` and `showTools`) to toggle the visibility and real-time streaming of agents' reasoning (thinking blocks) and tool execution details inside the channel chat.
 - **Flexible Reply Modes**: `user-only` (responds to human), `broadcast` (triggers all channel agents), `targeted` (responds to selected peers), and `mention-only` (responds exclusively when explicitly tagged).
 - **@Mention Tagging System**: Real-time `@name` / `@id` / `@user` parsing, interactive autocomplete dropdown in `InputArea`, roster prompt injection, and markdown highlight rendering.

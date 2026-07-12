@@ -203,3 +203,21 @@
 - [x] 113.4 Migrate all 26+ callers of old delegate methods to use new properties directly
 - [x] 113.5 Unify model resolution across channel-orchestrator.ts and judge.ts using resolveModelWithFallback
 - [x] 113.6 Verify clean compilation and successful builds for both server and client packages
+
+## Phase 114: Decompose ChannelOrchestrator
+- [x] 114.1 Create deployment-context.ts shared utility and update prompt-builder.ts
+- [x] 114.2 Create ChannelMessagePublisher factory and message-publisher.ts
+- [x] 114.3 Create ResponseParser and response-parser.ts
+- [x] 114.4 Create ChannelNegotiationHandler and channel-negotiation-handler.ts
+- [x] 114.5 Create AgentPromptRunner and agent-prompt-runner.ts
+- [x] 114.6 Refactor ChannelOrchestrator to thin coordinator delegating to new helper modules
+- [x] 114.7 Resolve circular dependency between agent-registry.ts and channel-orchestrator.ts using callback registration
+- [x] 114.8 Verify clean compilation and successful builds for both server and client packages
+
+## Phase 115: Unify Lab-Channel Orchestration
+- [x] 115.1 Add token collection utility `collectChannelTokens` under `core/agent-utils.ts`
+- [x] 115.2 Create shared orchestration types under `channels/types.ts`
+- [x] 115.3 Implement `runToCompletion` method in `ChannelOrchestrator` to automate setup, execution, and teardown
+- [x] 115.4 Refactor `ExperimentRunner` to remove obsolete `runSingleVariant` and `runMultiVariant` duplicate methods and delegate to `channelOrchestrator.runToCompletion`
+- [x] 115.5 Verify successful compilation and builds for both server and client packages
+
