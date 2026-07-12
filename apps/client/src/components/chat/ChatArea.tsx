@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useChatScroll } from "@/hooks/useChatScroll";
+import { useChatInputFocus } from "@/hooks/useChatInputFocus";
 import { MessageList } from "./MessageList";
 import { ChatInput, processAttachments } from "./ChatInput";
 import { RightDrawer } from "./RightDrawer";
@@ -195,6 +196,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   } = useChatScroll(scrollContainerRef, {
     dependencies: [messages],
     isStreaming: streaming
+  });
+
+  const chatInputRef = useChatInputFocus({
+    sessionId,
+    loadingMessages,
+    streaming,
   });
 
 
@@ -631,6 +638,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           allowAttachments={!activeChannel}
           disabled={streaming}
           loading={streaming}
+          textareaRef={chatInputRef}
         />
       </div>
     );
@@ -695,6 +703,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                   allowAttachments={!activeChannel}
                   disabled={streaming}
                   loading={streaming}
+                  textareaRef={chatInputRef}
                 />
               ) : (
                 <>
@@ -768,6 +777,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 contextUsage={contextUsage}
                 onCompact={handleCompact}
                 compacting={compacting}
+                textareaRef={chatInputRef}
               />
             )}
           </div>

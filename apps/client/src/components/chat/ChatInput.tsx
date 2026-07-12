@@ -206,6 +206,7 @@ interface Props {
   contextUsage?: ContextUsage | null;
   onCompact?: () => void;
   compacting?: boolean;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function ChatInput({
@@ -222,6 +223,7 @@ export function ChatInput({
   contextUsage = null,
   onCompact,
   compacting = false,
+  textareaRef: externalTextareaRef,
 }: Props) {
   const l = useLiterals(u);
   const { addToast } = useToast();
@@ -234,7 +236,8 @@ export function ChatInput({
   const [focused, setFocused] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const localTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = externalTextareaRef || localTextareaRef;
 
   // Autocomplete state
   const [autocompleteMode, setAutocompleteMode] = useState<"skill" | "mention" | null>(null);

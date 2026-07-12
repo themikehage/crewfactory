@@ -20,6 +20,7 @@
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
 - **Experiencia de Scroll Robusta:** Implementación de scroll pinning inteligente mediante un hook customizado, `ResizeObserver` reactivo para mantener anclaje ante cargas tardías de imágenes o tarjetas, y un botón flotante dinámico con indicador de "Nuevos mensajes" cuando el usuario está arriba del viewport.
+- **Foco de Input Inteligente:** Implementación de un hook customizado (`useChatInputFocus`) que gestiona el cursor de forma inteligente y robusta, posicionándolo en la caja de entrada (`ChatInput` o `WelcomeChatInput`) al ingresar a una sesión, tras finalizar la carga de mensajes históricos, o inmediatamente después de que el agente finalice la emisión de su mensaje a través del WebSocket.
 - **Premium Floating Chat Input & Popovers:** Replaces the legacy 2-row chat input and fullscreen modals with a premium, unified floating card (`ChatInput`). It integrates:
   - **Inline Popovers:** Checkbox-based tool selectors (`ToolsPopover`) and searchable skills lists (`SkillsPopover`) directly above the action bar.
   - **Context Usage Indicator:** Compact token display (e.g. `12k / 128k`) using accurate LLM token counts with trailing estimation (`estimateContextTokens`) and a 2px dynamic, color-coded progress meter (`ContextProgressLine`) at the bottom edge of the input card.

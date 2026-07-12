@@ -66,7 +66,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
 
 
-## Completados (26)
+## Completados (65)
 
 Ver [COMPLETED/](./COMPLETED/)
 

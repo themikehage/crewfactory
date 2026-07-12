@@ -23,6 +23,7 @@ interface Props {
   loading?: boolean;
   value?: string;
   onChange?: (val: string) => void;
+  textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
 
 export function WelcomeChatInput({
@@ -39,11 +40,13 @@ export function WelcomeChatInput({
   loading = false,
   value,
   onChange,
+  textareaRef: externalTextareaRef,
 }: Props) {
   const l = useLiterals(u);
   const [internalInput, setInternalInput] = useState("");
   const [attachments, setAttachments] = useState<File[]>([]);
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const localTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const textareaRef = externalTextareaRef || localTextareaRef;
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const input = value !== undefined ? value : internalInput;
