@@ -161,11 +161,8 @@ export function formatDelegationResultMessage(
   const envelopeStr = sections.join("\n");
 
   return {
-    role: "toolResult",
-    toolCallId: toolCallId,
-    toolName: toolName,
+    role: "user",
     content: [{ type: "text", text: envelopeStr }],
-    isError: envelope.status === "error" || envelope.status === "blocked",
     timestamp: Date.now(),
   };
 }
