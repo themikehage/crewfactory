@@ -1,3 +1,4 @@
+COMPLETED
 # Info/Edit Button for Projects and Agents
 
 Anadir un boton de informacion en las vistas de proyectos y agentes que permita ver todos los datos disponibles (incluyendo los que actualmente estan ocultos) y editarlos si es necesario.

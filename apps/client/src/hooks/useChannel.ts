@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Channel, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
 import { wsClient } from "@/lib/ws-client";
+import { useConnectionAwareEffect } from "./useConnectionAware";
 
 function getToken() {
   return localStorage.getItem("token") || "";
@@ -102,20 +103,13 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings()]).finally(() => setLoading(false));
   }, [channelId, sessionId, fetchChannel, fetchMessages, fetchActiveStreamings]);
 
+  useConnectionAwareEffect(() => {
+    if (!channelId) return;
+    wsClient.send({ type: "channel_join", channelId });
+  }, [channelId]);
+
   useEffect(() => {
     if (!channelId) return;
-
-    const joinChannel = () => {
-      wsClient.send({ type: "channel_join", channelId });
-    };
-
-    if (wsClient.getState() === "connected") {
-      joinChannel();
-    }
-
-    const unsubState = wsClient.onStateChange((state) => {
-      if (state === "connected") joinChannel();
-    });
 
     const unsubMessage = wsClient.subscribe("*", (rawData: unknown) => {
       const data = rawData as Record<string, any>;
@@ -182,10 +176,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       }
     });
 
-    return () => {
-      unsubState();
-      unsubMessage();
-    };
+    return unsubMessage;
   }, [channelId]);
 
   const sendMessage = useCallback(

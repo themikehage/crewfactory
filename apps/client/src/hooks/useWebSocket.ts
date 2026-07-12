@@ -1,5 +1,6 @@
-﻿import { useEffect, useCallback, useState } from "react";
+import { useEffect, useCallback, useState } from "react";
 import { wsClient } from "@/lib/ws-client";
+import { useConnectionAwareEffect } from "./useConnectionAware";
 
 type EventHandler = (data: unknown) => void;
 
@@ -19,17 +20,9 @@ export function useWebSocket(sessionId: string | null): WebSocketState {
     return unsub;
   }, []);
 
-  useEffect(() => {
+  useConnectionAwareEffect(() => {
     if (!sessionId) return;
-    if (wsClient.getState() === "connected") {
-      wsClient.send({ type: "session_subscribe", sessionId });
-    }
-    const unsub = wsClient.onStateChange((state) => {
-      if (state === "connected") {
-        wsClient.send({ type: "session_subscribe", sessionId });
-      }
-    });
-    return unsub;
+    wsClient.send({ type: "session_subscribe", sessionId });
   }, [sessionId]);
 
   const send = useCallback(

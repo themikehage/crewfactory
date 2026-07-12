@@ -17,12 +17,16 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [unify-lab-channel-orchestration.md](./unify-lab-channel-orchestration.md) — Unificar orquestracion del laboratorio con `ChannelOrchestrator`: el lab debe consumir el subsistema de canales como cliente en lugar de reinventar el pipeline completo (gen, channel, dispatch, tokens, destroy). ~500 lineas eliminadas.
 
+### Bug Fixes
+
+- [fix-chat-render-loop.md](./fix-chat-render-loop.md) — Maximum update depth exceeded en ChatArea por `dependencies: [messages]` inline array que dispara efecto de `useChatScroll` en cada render
+
 ### Technical Debt
 
 - [debt-agentsession.md](./debt-agentsession.md) — AgentSession no usa la clase `Agent` de pi: pierde state machine, colas separadas, waitForIdle, errores estructurados, compaction, tool_execution_update
 - [debt-websocket.md](./debt-websocket.md) — WebSocket sin dedup en reconnect, sin indicador de conexion, sin ping de cliente, degradacion silenciosa, race en pending-prompt
 - [debt-vendor-fork.md](./debt-vendor-fork.md) — Fork sin version tracking, 33 imports rotos, 8 dead types, @ts-nocheck en 5 archivos, sin proceso de sync
-- [extract-session-utils.md](./extract-session-utils.md) — Extrae 16 ocurrencias de lógica duplicada de sesiones (body, filtro, path, name, meta) en un módulo compartido `session-utils.ts`
+
 
 ### Research
 
@@ -72,10 +76,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
 - [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
 - [delegation-notification-ui.md](./delegation-notification-ui.md) — Renderizado limpio de resultados de delegacion con contrato compartido server/cliente via `details.type` en `packages/shared/`
-- [extract-connection-aware-hook.md](./extract-connection-aware-hook.md) — Extraer hook `useConnectionAwareEffect` para eliminar codigo duplicado de WebSocket en useWebSocket y useChannel
-
-
-## Completados (67)
+## Completados (69)
 
 Ver [COMPLETED/](./COMPLETED/)
 

@@ -5,6 +5,12 @@ import type { SessionStatus } from "@/hooks/useSessionStatusWs";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionPopover.literals";
+import {
+  getSessionName,
+  buildCreateSessionBody,
+  getSessionContextPredicate,
+  getSessionMeta,
+} from "@/lib/session-utils";
 
 interface SessionItem {
   id: string;
@@ -99,40 +105,32 @@ export function SessionPopover({
   const [showExecutions, setShowExecutions] = useState(false);
 
   const filteredSessions = useMemo(() => {
+    const predicate = getSessionContextPredicate({ activeChannel, activeAgent, activeProjectName });
     return sessions.filter((s) => {
-      const isExec = s.id.startsWith("exec_") || (s as any).isExecution;
+      const isExec = getSessionMeta(s.id).isExecution || (s as any).isExecution;
       if (isExec && !showExecutions) return false;
-
-      if (activeChannel) return s.channelId === activeChannel.id;
-      if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-      if (activeProjectName) return s.projectName === activeProjectName && !s.agentId && !s.channelId;
-      return !s.projectName && !s.agentId && !s.channelId;
+      return predicate(s);
     });
   }, [sessions, activeProjectName, activeAgent, activeChannel, showExecutions]);
 
   const createSession = useCallback(async () => {
     setCreating(true);
     try {
-      const sessionCount = filteredSessions.length;
-      const sessionName = activeChannel
-        ? `#${activeChannel.name} - Session ${sessionCount + 1}`
-        : activeAgent
-          ? `${activeAgent.name} - Session ${sessionCount + 1}`
-          : activeProjectFriendlyName
-            ? `${activeProjectFriendlyName} - Session ${sessionCount + 1}`
-            : `Global Session ${sessionCount + 1}`;
+      const sessionName = getSessionName(
+        { activeChannel, activeAgent, activeProjectName, activeProjectFriendlyName },
+        filteredSessions.length
+      );
 
       const res = await apiFetch("/api/sessions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({
-          name: sessionName,
-          projectName: (activeAgent || activeChannel) ? undefined : (activeProjectName || undefined),
-          agentId: (activeChannel) ? undefined : (activeAgent ? activeAgent.id : undefined),
-          channelId: activeChannel ? activeChannel.id : undefined,
-        }),
+        body: JSON.stringify(buildCreateSessionBody(sessionName, {
+          activeChannel,
+          activeAgent,
+          activeProjectName,
+        })),
       });
       if (!res.ok) return;
       const session = await res.json();
@@ -156,12 +154,9 @@ export function SessionPopover({
       const remaining = sessions.filter((s) => s.id !== id);
       setSessions(remaining);
 
-      const filteredRemaining = remaining.filter((s) => {
-        if (activeChannel) return s.channelId === activeChannel.id;
-        if (activeAgent) return s.agentId === activeAgent.id && !s.channelId;
-        if (activeProjectName) return s.projectName === activeProjectName && !s.agentId && !s.channelId;
-        return !s.projectName && !s.agentId && !s.channelId;
-      });
+      const filteredRemaining = remaining.filter(
+        getSessionContextPredicate({ activeChannel, activeAgent, activeProjectName })
+      );
 
       if (activeSessionId === id) {
         onSelectSession(filteredRemaining[0]?.id ?? "");
@@ -267,7 +262,7 @@ export function SessionPopover({
             </div>
           ) : (
             filteredSessions.map((s) => {
-              const isExec = s.id.startsWith("exec_") || (s as any).isExecution;
+              const isExec = getSessionMeta(s.id).isExecution || (s as any).isExecution;
               const cfg = s.status ? statusConfig[s.status] : null;
               const isActive = activeSessionId === s.id;
               return (

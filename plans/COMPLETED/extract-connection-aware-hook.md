@@ -1,6 +1,7 @@
+COMPLETED
 # Extract useConnectionAwareEffect Hook
 
-- **Status:** pending
+- **Status:** completed
 - **Date:** 2026-07-12
 - **Type:** refactor
 

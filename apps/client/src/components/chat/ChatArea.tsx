@@ -12,6 +12,7 @@ import { literals as u } from "./ChatArea.literals";
 import { useRouter } from "@/hooks/useRouter";
 import { WelcomeChatInput } from "./WelcomeChatInput";
 import { useToast } from "@/contexts/ToastContext";
+import { getSessionPath, getSessionName, buildCreateSessionBody, getSessionMeta } from "@/lib/session-utils";
 
 import { FloatingTasks } from "./FloatingTasks";
 
@@ -57,21 +58,13 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [contextUsage, setContextUsage] = useState<ContextUsage | null>(null);
   const [settledApprovals, setSettledApprovals] = useState<Record<string, "confirm" | "deny">>({});
 
-  const getSessionPath = useCallback((id: string) => {
-    if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
-    if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
-    if (activeProjectName) return `/projects/${activeProjectName}/session/${id}`;
-    return `/session/${id}`;
-  }, [activeChannel, activeAgent, activeProjectName]);
+
 
   const createSessionAndSend = async (messageText: string, attachments?: File[]) => {
     const token = localStorage.getItem("token");
     if (!token) return;
 
-    let sessionName = "Global Session";
-    if (activeChannel) sessionName = `#${activeChannel.name} - Session`;
-    else if (activeAgent) sessionName = `${activeAgent.name} - Session`;
-    else if (activeProjectName) sessionName = `${activeProjectName} - Session`;
+    const sessionName = getSessionName({ activeChannel, activeAgent, activeProjectName });
 
     try {
       let finalText = messageText;
@@ -98,17 +91,16 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({
-          name: sessionName,
-          projectName: activeAgent || activeChannel ? undefined : activeProjectName || undefined,
-          agentId: activeChannel ? undefined : activeAgent ? activeAgent.id : undefined,
-          channelId: activeChannel ? activeChannel.id : undefined,
-        }),
+        body: JSON.stringify(buildCreateSessionBody(sessionName, {
+          activeChannel,
+          activeAgent,
+          activeProjectName,
+        })),
       });
 
       if (createRes.ok) {
         const session = await createRes.json();
-        const path = getSessionPath(session.id);
+        const path = getSessionPath(session.id, { activeChannel, activeAgent, activeProjectName });
 
         localStorage.setItem(`pending-prompt-${session.id}`, finalText);
         if (imagesToSave.length > 0) {
@@ -187,7 +179,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     send({ type: "compact", sessionId });
   }, [sessionId, send, compacting]);
 
-  const isReadOnlyExecution = sessionId?.startsWith("exec_") ?? false;
+  const { isReadOnly: isReadOnlyExecution, isSubagent, isDelegation, isChannelExecution } = getSessionMeta(sessionId);
 
   const {
     showScrollButton,
@@ -486,7 +478,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubToolUpdate();
       unsubToolApproval();
     };
-  }, [sessionId, subscribe, loadMessages, navigate, getSessionPath]);
+  }, [sessionId, subscribe, loadMessages, navigate, activeChannel, activeAgent, activeProjectName]);
 
   useEffect(() => {
     if (connected && !wasConnected && sessionId) {
@@ -619,11 +611,11 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   return (
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
-        {(sessionId.startsWith("sub_") || sessionId.startsWith("del_")) && (
+        {(isSubagent || isDelegation) && (
           <div className="px-4 py-2.5 bg-surface border-b border-border flex items-center gap-2 flex-shrink-0 z-10">
             {sessionMetadata?.parentSessionId && (
               <button
-                onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId))}
+                onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeChannel, activeAgent, activeProjectName }))}
                 className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                 title="Volver a la sesión padre"
               >
@@ -633,7 +625,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
               </button>
             )}
             <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent font-medium text-[10px] font-mono uppercase tracking-wider">
-              {sessionId.startsWith("sub_") ? "Subagent Session" : "Delegated Session"}
+              {isSubagent ? "Subagent Session" : "Delegated Session"}
             </span>
           </div>
         )}
@@ -692,7 +684,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     activeChannelId={activeChannel?.id}
                     serialTools={serialTools}
                     onOpenSubagentConsole={(toolCallId: string) => {
-                      navigate(getSessionPath(`sub_${toolCallId}`));
+                      navigate(getSessionPath(`sub_${toolCallId}`, { activeChannel, activeAgent, activeProjectName }));
                     }}
                     settledApprovals={settledApprovals}
                     onResolveApproval={handleResolveApproval}
@@ -723,7 +715,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
                     <path d="M7 11V7a5 5 0 0 1 10 0v4" />
                   </svg>
-                  {sessionId.includes("_channel_") ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
+                  {isChannelExecution ? "Ejecución CLI (Solo Lectura)" : "Ejecución de API (Solo Lectura)"}
                 </div>
                 <p className="text-[11px] text-center max-w-md font-sans">
                   Esta conversación corresponde a una ejecución automática externa. Podés navegar el historial de mensajes y tool calls, pero no es interactiva.
