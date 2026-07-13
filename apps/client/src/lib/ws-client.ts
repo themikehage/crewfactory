@@ -77,8 +77,37 @@ class WsClient {
   }
 
   private doConnect(): void {
-    const token = localStorage.getItem("token");
-    if (!token) return;
+    if (this.state !== "disconnected") return;
+    this.doConnectAsync().catch((err) => {
+      console.error("[wsClient] Connection error:", err);
+      this.setState("disconnected");
+      this.ws = null;
+      if (!this.intentionalClose) {
+        const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+        this.reconnectAttempts++;
+        this.reconnectTimeout = setTimeout(() => {
+          this.reconnectTimeout = null;
+          this.doConnect();
+        }, delay);
+      }
+    });
+  }
+
+  private async doConnectAsync(): Promise<void> {
+    let token: string | null = null;
+    try {
+      const res = await fetch("/api/auth/get-session", { credentials: "include" });
+      if (res.ok) {
+        const data = await res.json() as { session?: { token?: string } };
+        token = data?.session?.token ?? null;
+      }
+    } catch {}
+
+    if (!token) {
+      console.warn("[wsClient] No active session token found, skipping connection");
+      this.setState("disconnected");
+      return;
+    }
 
     this.setState("connecting");
 
