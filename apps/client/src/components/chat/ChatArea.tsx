@@ -381,7 +381,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           content: (result && typeof result === "object" && result.content)
             ? result.content
             : [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result || "") }],
-          isError: !!isError};
+          isError: !!isError,
+          details: result?.details};
         return [...prev, toolResultMsg];
       });
     });

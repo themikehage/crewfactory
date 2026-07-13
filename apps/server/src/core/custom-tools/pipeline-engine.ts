@@ -64,11 +64,12 @@ export async function executePipeline(
       const errorMsg = `Tool "${step.tool}" not found in session tools map`;
       stepLogs.push({ step: stepNum, tool: step.tool, description: step.description, status: "failed", error: errorMsg });
       if (onError === "stop") {
-        return {
-          content: [{ type: "text", text: `Pipeline failed at step ${stepNum} (${desc}): ${errorMsg}` }],
-          details: { stepLogs, lastOutput },
-          isError: true,
-        };
+          return {
+            content: [{ type: "text", text: `Pipeline failed at step ${stepNum} (${desc}): ${errorMsg}` }],
+            details: { stepLogs, lastOutput },
+            isError: true,
+            scope,
+          };
       }
       continue;
     }
@@ -88,6 +89,7 @@ export async function executePipeline(
             content: [{ type: "text", text: `Pipeline failed at step ${stepNum} (${desc}): ${textResult}` }],
             details: { stepLogs, lastOutput },
             isError: true,
+            scope,
           };
         }
       } else {
@@ -105,6 +107,7 @@ export async function executePipeline(
           content: [{ type: "text", text: `Pipeline failed at step ${stepNum} (${desc}) with exception: ${errorMsg}` }],
           details: { stepLogs, lastOutput },
           isError: true,
+          scope,
         };
       }
     }
@@ -114,5 +117,6 @@ export async function executePipeline(
     content: [{ type: "text", text: lastOutput || "Pipeline completed successfully" }],
     details: { stepLogs, lastOutput },
     isError: false,
+    scope,
   };
 }

@@ -1,5 +1,5 @@
 import { type CustomToolDefinition } from "./schemas";
-import { type PipelineContext, executePipeline } from "./pipeline-engine";
+import { type PipelineContext, executePipeline, resolveVariables } from "./pipeline-engine";
 
 export function createCustomToolRuntime(
   definition: CustomToolDefinition,
@@ -43,12 +43,14 @@ export function createCustomToolRuntime(
               });
             }
           );
-          // Attach UI definition and presentation if available
+          const scope = result.scope || {};
+          const resolvedUi = definition.ui ? resolveVariables(definition.ui, scope) : undefined;
           result.details = {
             ...result.details,
-            ...(definition.ui ? { ui: definition.ui } : {}),
+            ...(resolvedUi ? { ui: resolvedUi } : {}),
             ...(definition.presentation ? { presentation: definition.presentation } : { presentation: { defaultExpanded: true, accordionDefaultOpen: true } }),
           };
+          delete result.scope;
           return result;
         }
 
