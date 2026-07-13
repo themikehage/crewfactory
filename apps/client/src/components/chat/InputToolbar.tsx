@@ -84,12 +84,19 @@ export function InputToolbar({
           <Paperclip size={14} />
         </button>
 
-        {/* Model Selector compact */}
-        <ModelSelector
-          sessionId={sessionId}
-          disabled={disabled}
-          compact={true}
-        />
+        {/* Model Selector compact + context counter below */}
+        <div className="flex flex-col items-start gap-0.5">
+          <ModelSelector
+            sessionId={sessionId}
+            disabled={disabled}
+            compact={true}
+          />
+          <ContextIndicator
+            contextUsage={contextUsage}
+            onCompact={onCompact}
+            compacting={compacting}
+          />
+        </div>
 
         {/* Skills Button and Popover */}
         {sessionId && (
@@ -145,11 +152,6 @@ export function InputToolbar({
 
       {/* Right controls */}
       <div className="flex items-center gap-3">
-        <ContextIndicator
-          contextUsage={contextUsage}
-          onCompact={onCompact}
-          compacting={compacting}
-        />
         <SendStopButton
           streaming={streaming}
           disabled={disabled}
