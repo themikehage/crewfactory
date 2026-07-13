@@ -94,6 +94,7 @@ class WsClient {
   }
 
   private async doConnectAsync(): Promise<void> {
+    console.log("[wsClient] Initializing connection. Fetching session token...");
     let token: string | null = null;
     try {
       const res = await fetch("/api/auth/get-session", { credentials: "include" });
@@ -101,7 +102,9 @@ class WsClient {
         const data = await res.json() as { session?: { token?: string } };
         token = data?.session?.token ?? null;
       }
-    } catch {}
+    } catch (err) {
+      console.error("[wsClient] Failed to fetch session token:", err);
+    }
 
     if (!token) {
       console.warn("[wsClient] No active session token found, skipping connection");
@@ -109,14 +112,17 @@ class WsClient {
       return;
     }
 
+    console.log("[wsClient] Found session token. Connecting to WebSocket URL...");
     this.setState("connecting");
 
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     const url = `${protocol}//${location.host}/ws`;
+    console.log(`[wsClient] Connecting to: ${url}`);
     const ws = new WebSocket(url);
     this.ws = ws;
 
     ws.onopen = () => {
+      console.log("[wsClient] WebSocket opened. Sending auth frame...");
       this.reconnectAttempts = 0;
       ws.send(JSON.stringify({ type: "auth", token }));
     };
@@ -131,12 +137,14 @@ class WsClient {
         }
 
         if (data.type === "auth_success") {
+          console.log("[wsClient] Authentication successful!");
           this.setState("connected");
           this.flushOfflineQueue();
           return;
         }
 
         if (data.type === "auth_error") {
+          console.error("[wsClient] Authentication failed! Error:", data.error);
           this.intentionalClose = true;
           ws.close();
           return;
@@ -152,11 +160,13 @@ class WsClient {
       } catch {}
     };
 
-    ws.onclose = () => {
+    ws.onclose = (event) => {
+      console.warn(`[wsClient] WebSocket closed. intentionalClose: ${this.intentionalClose}, code: ${event.code}, reason: ${event.reason}`);
       this.ws = null;
       if (this.intentionalClose) return;
       this.setState("disconnected");
       const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+      console.log(`[wsClient] Scheduling reconnect in ${delay}ms (attempt: ${this.reconnectAttempts})`);
       this.reconnectAttempts++;
       this.reconnectTimeout = setTimeout(() => {
         this.reconnectTimeout = null;
@@ -164,7 +174,8 @@ class WsClient {
       }, delay);
     };
 
-    ws.onerror = () => {
+    ws.onerror = (err) => {
+      console.error("[wsClient] WebSocket error occurred:", err);
       ws.close();
     };
   }

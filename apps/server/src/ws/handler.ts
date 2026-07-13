@@ -247,12 +247,14 @@ async function subscribeWsToSession(
 export function onOpen(_evt: Event, _ws: WSContext) {
   const ws = _ws as unknown as AppWebSocket;
   ws.wsId = String(++wsCounter);
+  console.log(`[WS Server] Connection opened. wsId: ${ws.wsId}`);
   wsSocketMeta.set(ws.wsId, { missedPings: 0, ws });
 }
 
-export function onClose(_evt: any, _ws: WSContext) {
+export function onClose(evt: any, _ws: WSContext) {
   const ws = _ws as unknown as AppWebSocket;
   const wsId = ws.wsId;
+  console.log(`[WS Server] Connection closed. wsId: ${wsId}, code: ${evt?.code}, reason: ${evt?.reason}`);
 
   const user = userMap.get(wsId);
   userMap.delete(wsId);
@@ -312,8 +314,9 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   }
 
   if (data.type === "auth") {
+    const sessionToken = data.token as string;
+    console.log(`[WS Server] Auth request on wsId: ${ws.wsId} with token prefix: ${sessionToken ? sessionToken.slice(0, 8) : "none"}...`);
     try {
-      const sessionToken = data.token as string;
       const cleanToken = sessionToken.split(".")[0];
       
       const db = getDb();
@@ -328,12 +331,14 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
         .get(cleanToken, nowIso) as { username: string } | null;
 
       if (!row) {
+        console.warn(`[WS Server] Auth failed for wsId: ${ws.wsId}. Session token not found or expired in DB.`);
         safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid session" }));
         try { ws.close(); } catch {}
         return;
       }
 
       const username = row.username;
+      console.log(`[WS Server] Auth success for wsId: ${ws.wsId}. Resolved to user: ${username}`);
       const user: AuthPayload = { username };
       userMap.set(ws.wsId, user);
 
@@ -346,11 +351,13 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
       const sessionId = data.sessionId as string;
       if (sessionId) {
+        console.log(`[WS Server] Auto-subscribing wsId: ${ws.wsId} to sessionId: ${sessionId}`);
         await subscribeWsToSession(ws, user, sessionId);
       }
 
       safeSend(ws, JSON.stringify({ type: "auth_success", wsId: ws.wsId }));
-    } catch {
+    } catch (err: any) {
+      console.error(`[WS Server] Auth exception for wsId: ${ws.wsId}:`, err);
       safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid session" }));
       try { ws.close(); } catch {}
     }
