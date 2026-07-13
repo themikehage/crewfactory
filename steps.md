@@ -251,3 +251,12 @@
 - [x] 119.8 Implement synchronous session token lookup and programmatic session token generation for subprocess environments in auth/onboarding.ts
 - [x] 119.9 Verify 100% production compilation builds and clean typechecking of apps/server and apps/client
 
+## Phase 120: Robust API Error Detection and Surfacing
+- [x] 120.1 Implement `sanitizeUserErrorMessage` in `error-body.ts` to clean provider error message strings
+- [x] 120.2 Handle empty message validations as errors in `openai-completions.ts` and `agent-loop.ts`
+- [x] 120.3 Update `lazy.ts` to sanitize lazy setup error messages
+- [x] 120.4 Update `agent-session.ts` catch blocks to persist throws, update context, and emit events
+- [x] 120.5 Update client `ChatArea.tsx` and `MessageList.tsx` to handle, clear, and display custom API error cards
+- [x] 120.6 Verify monorepo builds and compile targets cleanly
+
+
