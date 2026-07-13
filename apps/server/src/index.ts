@@ -45,6 +45,8 @@ app.use(
 );
 app.use("/*", logger());
 
+app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
+
 app.on(["GET", "POST"], "/api/auth/**", (c) => auth.handler(c.req.raw));
 
 app.route("/api/auth", authRouter);
@@ -65,8 +67,6 @@ app.route("/api/experiments", experimentsRouter);
 app.route("/api/settings", settingsRouter);
 app.route("/api/gallery", galleryRouter);
 app.route("/api/factory", factoryRouter);
-
-app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
 app.get(
   "/ws",
