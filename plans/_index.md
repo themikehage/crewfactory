@@ -19,6 +19,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ### Bug Fixes
 
+- [fix-experiments-eager-fetch.md](./fix-experiments-eager-fetch.md) — `fetchExperiments()` se dispara en `/onboard` y `/` sin autenticacion, causando requests HTTP 401 innecesarios. SessionSidebar duplica el fetch. Plan: auth guard + hook `useExperiments` + dedup
 - [fix-chat-render-loop.md](./fix-chat-render-loop.md) — Maximum update depth exceeded en ChatArea por `dependencies: [messages]` inline array que dispara efecto de `useChatScroll` en cada render
 
 ### Technical Debt
