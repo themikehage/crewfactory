@@ -286,6 +286,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
     const unsubStart = subscribe("agent_start", () => {
       setStreaming(true);
+      setError(null);
     });
 
     const unsubEnd = subscribe("agent_end", () => {
@@ -388,6 +389,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     const unsubError = subscribe("agent_error", (data: unknown) => {
       const evt = data as Record<string, unknown>;
       setError(String(evt.error ?? l.unknownError));
+      setStreaming(false);
       setCompacting(false);
     });
 

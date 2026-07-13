@@ -191,6 +191,14 @@ async function runLoop(
 
 			// Stream assistant response
 			const message = await streamAssistantResponse(currentContext, config, signal, emit, streamFn);
+
+			// NEW: if the message has no content blocks, convert to a visible error
+			if (message.stopReason !== "error" && message.content.length === 0) {
+				message.content = [{ type: "text", text: "The model returned an empty response." }];
+				message.stopReason = "error";
+				message.errorMessage = "Empty response from provider";
+			}
+
 			newMessages.push(message);
 
 			if (message.stopReason === "error" || message.stopReason === "aborted") {

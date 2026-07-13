@@ -234,6 +234,10 @@ export class AgentSession {
     } else if (evt.type === "message_end") {
       if (evt.message) {
         this.sessionManager.appendMessage(evt.message);
+        if (evt.message.role === "assistant" && evt.message.stopReason === "error") {
+          console.warn(`[AgentSession API Error] Session ${this.sessionManager.getSessionId()}:`, evt.message.errorMessage || "API error response");
+          this.emit({ type: "agent_error", error: evt.message.errorMessage || "API error response" });
+        }
       }
       this.emit({
         type: "message_end",
@@ -280,6 +284,7 @@ export class AgentSession {
       });
     } else if (evt.type === "turn_end") {
       if (evt.message && evt.message.role === "assistant" && evt.message.errorMessage) {
+        console.warn(`[AgentSession API Error] Session ${this.sessionManager.getSessionId()}:`, evt.message.errorMessage);
         this.emit({ type: "agent_error", error: evt.message.errorMessage });
       }
     }
@@ -402,8 +407,7 @@ export class AgentSession {
       await this.agent.prompt(userMessage as any);
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
-      this.emit({ type: "agent_error", error: errorMsg });
-      this.emit({ type: "agent_end", messages: this.messages, willRetry: false });
+      this.handleSessionError(errorMsg);
     } finally {
       this.isStreaming = false;
       this.abortController = null;
@@ -449,8 +453,7 @@ export class AgentSession {
       await this.agent.continue();
     } catch (err: unknown) {
       const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
-      this.emit({ type: "agent_error", error: errorMsg });
-      this.emit({ type: "agent_end", messages: this.messages, willRetry: false });
+      this.handleSessionError(errorMsg);
     } finally {
       this.isStreaming = false;
       this.abortController = null;
@@ -667,6 +670,23 @@ export class AgentSession {
   dispose(): void {
     this.abort();
     this.eventListeners.clear();
+  }
+
+  private handleSessionError(errorMsg: string) {
+    console.error(`[AgentSession Error] Session ${this.sessionManager.getSessionId()}:`, errorMsg);
+    const assistantErrorMessage = {
+      role: "assistant" as const,
+      content: [],
+      stopReason: "error",
+      errorMessage: errorMsg,
+      timestamp: Date.now(),
+    };
+    this.sessionManager.appendMessage(assistantErrorMessage);
+    this.messages = this.sessionManager.buildSessionContext().messages;
+    this.emit({ type: "message_start", message: assistantErrorMessage });
+    this.emit({ type: "message_end", message: assistantErrorMessage });
+    this.emit({ type: "agent_error", error: errorMsg });
+    this.emit({ type: "agent_end", messages: this.messages, willRetry: false });
   }
 }
 

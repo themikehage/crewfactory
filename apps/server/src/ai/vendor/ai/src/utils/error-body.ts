@@ -125,3 +125,16 @@ export function safeJsonStringify(value: unknown): string {
 		return String(value);
 	}
 }
+
+export function sanitizeUserErrorMessage(raw: string): string {
+	if (raw.includes("403")) return "Authentication failed. Check your API key.";
+	if (raw.includes("429") || raw.includes("rate limit")) return "Rate limit exceeded. Please wait before trying again.";
+	if (raw.includes("401")) return "Invalid API key. Update it in Settings.";
+	if (raw.includes("insufficient_quota")) return "API quota exceeded. Check your billing.";
+	if (raw.includes("content_filter")) return "Response blocked by content safety filter.";
+	if (raw.includes("timeout") || raw.includes("timed out")) return "Request timed out. The model may be overloaded.";
+	// Generic fallback: mask keys (sk-...)
+	const clean = raw.replace(/\b(sk-[a-zA-Z0-9]{10,})/g, "sk-***");
+	return clean.length > 200 ? clean.slice(0, 200) + "..." : clean;
+}
+
