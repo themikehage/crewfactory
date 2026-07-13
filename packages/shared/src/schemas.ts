@@ -47,7 +47,7 @@ export const AVAILABLE_TOOLS = [
 export type ToolName = typeof AVAILABLE_TOOLS[number];
 
 export const ToolPermissionsSchema = z.object({
-  tools: z.array(z.enum(AVAILABLE_TOOLS)),
+  tools: z.array(z.string().min(1)),
 });
 export type ToolPermissions = z.infer<typeof ToolPermissionsSchema>;
 

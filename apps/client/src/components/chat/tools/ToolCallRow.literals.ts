@@ -59,6 +59,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     bodyWebFetchExtractedSize: "Extracted size",
     bodyWebFetchShowContent: "Show Page Content",
     bodyWebFetchHideContent: "Hide Page Content",
+    labelManageCustomTools: "custom tools",
   },
   es: {
     labelApproval: "aprobación",
@@ -118,5 +119,6 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     bodyWebFetchExtractedSize: "Tamaño extraído",
     bodyWebFetchShowContent: "Ver Contenido de la Página",
     bodyWebFetchHideContent: "Ocultar Contenido de la Página",
+    labelManageCustomTools: "herramientas personalizadas",
   },
 };

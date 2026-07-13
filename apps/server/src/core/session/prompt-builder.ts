@@ -2,6 +2,7 @@ import { TaskStateManager } from "../tools/task-state-manager";
 import { SessionPrefix } from "shared";
 import { promptComposer } from "../prompts/composer";
 import { assemblePromptAppends } from "../prompts/prompt-assembly";
+import { CUSTOM_TOOL_INSTRUCTIONS } from "../custom-tools";
 
 export interface BuildPromptsParams {
   username: string;
@@ -53,6 +54,21 @@ export class SessionPromptBuilder {
         `${cachedMcpToolNames.map((name: string) => `- ${name}`).join("\n")}\n` +
         `Use these tools when the task requires interacting with external databases, APIs, searching the web, or product integrations (like Slack, Linear, Jira, Google Drive). Do not assume you need to use bash if a specific MCP tool is more suitable.\n`
       );
+    }
+
+    try {
+      const { customToolStorage } = await import("../custom-tools/storage");
+      const customDefs = customToolStorage.loadAll(username).filter((d: any) => d.enabled !== false);
+      if (customDefs.length > 0) {
+        appendPrompts.push(
+          `\n\n## Custom Tools Available (User-Created):\n` +
+          `You have ${customDefs.length} custom tool(s) registered and active for this user:\n` +
+          `${customDefs.map((t: any) => `- ${t.name}: ${t.description}`).join("\n")}\n` +
+          `These are available as regular tools — invoke them by name like any other tool. Prefer them when the task matches their purpose.\n`
+        );
+      }
+    } catch (e) {
+      console.error("[PromptBuilder] Failed to load custom tools for prompt:", e);
     }
 
     if (agentDef?.systemPrompt) {
@@ -121,6 +137,8 @@ export class SessionPromptBuilder {
         console.error("Failed to parse tasks state for prompt injection:", e);
       }
     }
+
+    appendPrompts.push(CUSTOM_TOOL_INSTRUCTIONS);
 
     return appendPrompts;
   }

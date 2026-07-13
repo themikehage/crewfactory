@@ -85,6 +85,7 @@ export class AgentSession {
   }
 
   _refreshToolRegistry(): void {
+    const prevActiveNames = this.activeTools?.length ? this.activeTools.map((t: any) => t.name) : null;
     this.allToolsMap.clear();
     for (const toolDef of this.customTools) {
       const wrappedTool: AgentTool = {
@@ -92,10 +93,10 @@ export class AgentSession {
         label: toolDef.label || toolDef.name,
         description: toolDef.description,
         parameters: toolDef.parameters || toolDef.schema || {},
-        execute: async (toolCallId, params, signal) => {
+        execute: async (toolCallId, params, signal, onUpdate) => {
           const res = toolDef.name === "bash"
             ? await toolDef.execute(params, { signal, toolCallId })
-            : await toolDef.execute(toolCallId, params, signal);
+            : await toolDef.execute(toolCallId, params, signal, onUpdate);
           if (res && typeof res === "object" && "content" in res && Array.isArray(res.content)) {
             return res;
           }
@@ -116,7 +117,22 @@ export class AgentSession {
       };
       this.allToolsMap.set(toolDef.name, wrappedTool);
     }
-    this.activeTools = Array.from(this.allToolsMap.values());
+
+    if (prevActiveNames && prevActiveNames.length > 0) {
+      const prevSet = new Set(prevActiveNames);
+      const allNames = Array.from(this.allToolsMap.keys());
+      const newNames = allNames.filter((n) => !prevSet.has(n));
+      const activeNames = [...prevActiveNames, ...newNames];
+      this.activeTools = activeNames
+        .map((name) => this.allToolsMap.get(name))
+        .filter(Boolean) as AgentTool[];
+      if (this.activeTools.length === 0) {
+        this.activeTools = Array.from(this.allToolsMap.values());
+      }
+    } else {
+      this.activeTools = Array.from(this.allToolsMap.values());
+    }
+
     if (this.agent) {
       (this.agent.state as any).tools = this.activeTools;
     }
@@ -200,6 +216,30 @@ export class AgentSession {
         return result.ok ? result.apiKey : undefined;
       },
       beforeToolCall: this.beforeToolCall,
+      prepareNextTurn: async () => {
+        try {
+          const freshSystemPrompt = [
+            this.resourceLoader.getSystemPrompt() || "",
+            ...(this.resourceLoader.getAppendSystemPrompt() || []),
+          ].filter(Boolean).join("\n\n");
+          const freshMessages = this.sessionManager.buildSessionContext().messages;
+          return {
+            context: {
+              systemPrompt: freshSystemPrompt,
+              messages: freshMessages as any,
+              tools: this.activeTools,
+            },
+          };
+        } catch {
+          return {
+            context: {
+              systemPrompt: this.agent?.state?.systemPrompt || "",
+              messages: this.agent?.state?.messages || [],
+              tools: this.activeTools,
+            },
+          };
+        }
+      },
     });
 
     this.agent.subscribe(async (evt) => {

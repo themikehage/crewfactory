@@ -602,10 +602,60 @@ sessionsRouter.post(
     }
 
     const currentActive = session.getActiveToolNames();
+
+    const ALWAYS_ON = [
+      "request_approval",
+      "ask_question",
+      "render_images",
+      "render_html",
+      "render_chart",
+      "share_file",
+      "refresh_ui",
+      "spawn_subagent",
+      "delegate_task",
+      "decompose_tasks",
+      "update_task_status",
+      "complete_task_list",
+      "vision",
+      "generate_image",
+      "manage_factory",
+      "manage_custom_tools",
+    ] as const;
+    const BUILTIN_AND_ALWAYS = new Set<string>([
+      "read",
+      "write",
+      "edit",
+      "bash",
+      "grep",
+      "find",
+      "ls",
+      "exa_search",
+      "web_fetch",
+      ...ALWAYS_ON,
+      "memory_store",
+      "memory_recall",
+      "memory_forget",
+      "create_experiment",
+    ]);
+
     const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
     const memoryActive = currentActive.filter((tName) => tName.startsWith("memory_"));
     const exaActive = currentActive.filter((tName) => tName === "exa_search");
     const webFetchActive = currentActive.filter((tName) => tName === "web_fetch");
+    const customActive = currentActive.filter(
+      (tName) => !tName.startsWith("mcp_") && !tName.startsWith("memory_") && !BUILTIN_AND_ALWAYS.has(tName)
+    );
+
+    let enabledCustomFromStorage: string[] = [];
+    try {
+      const { customToolStorage } = await import("../core/custom-tools/storage");
+      enabledCustomFromStorage = customToolStorage
+        .loadAll(username)
+        .filter((d: any) => d.enabled !== false)
+        .map((d: any) => d.name);
+    } catch {}
+
+    const mergedCustom = Array.from(new Set([...customActive, ...enabledCustomFromStorage]));
 
     session.setActiveToolsByName(
       Array.from(
@@ -615,21 +665,8 @@ sessionsRouter.post(
           ...memoryActive,
           ...exaActive,
           ...webFetchActive,
-          "request_approval",
-          "ask_question",
-          "render_images",
-          "render_html",
-          "render_chart",
-          "share_file",
-          "refresh_ui",
-          "spawn_subagent",
-          "delegate_task",
-          "decompose_tasks",
-          "update_task_status",
-          "complete_task_list",
-          "vision",
-          "generate_image",
-          "manage_factory",
+          ...mergedCustom,
+          ...ALWAYS_ON,
         ])
       )
     );

@@ -18,6 +18,7 @@ import { MemoryResult } from "./MemoryResult";
 import { DecomposeResult } from "./DecomposeResult";
 import { useLiterals } from "@/lib";
 import { literals } from "./ToolCallRow.literals";
+import { CustomToolBody } from "./custom";
 
 export interface ToolContentBlock {
   type: string;
@@ -288,6 +289,15 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  manage_custom_tools: {
+    label: "manage_custom_tools",
+    colorClass: "text-primary",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" />
+      </svg>
+    ),
+  },
 };
 
 function getArgSummary(toolName: string, args: Record<string, unknown>, l: Record<string, string>): string {
@@ -351,7 +361,21 @@ function getArgSummary(toolName: string, args: Record<string, unknown>, l: Recor
       const obj = (args.objective as string) || "";
       return obj.length > 50 ? obj.slice(0, 50) + "…" : obj;
     }
-    default: return JSON.stringify(args).slice(0, 50);
+    default: {
+      const keys = Object.keys(args || {});
+      if (keys.length === 0) return "";
+      const entries = Object.entries(args)
+        .slice(0, 2)
+        .map(([k, v]) => {
+          const val = typeof v === "string" ? v : typeof v === "number" || typeof v === "boolean" ? String(v) : "";
+          if (!val) return k;
+          const short = val.length > 20 ? val.slice(0, 20) + "…" : val;
+          return `${k}: ${short}`;
+        })
+        .join(", ");
+      const more = keys.length > 2 ? ` +${keys.length - 2}` : "";
+      return (entries + more).slice(0, 60);
+    }
   }
 }
 
@@ -410,7 +434,12 @@ function getResultSummary(toolName: string, result: ToolResultData, l: Record<st
     case "memory_store": return l.resStored;
     case "memory_forget": return l.resForgotten;
     case "decompose_tasks": return l.resDecomposed;
-    default: return "done";
+    default: {
+      const details = result.details as any;
+      if (details?.ui) return "ui";
+      if (details?.stepLogs) return `${details.stepLogs.length} steps`;
+      return "done";
+    }
   }
 }
 
@@ -622,12 +651,25 @@ function ToolBody({
       return <MemoryResult mode="store" args={args} details={result?.details} l={l} />;
     case "memory_forget":
       return <MemoryResult mode="forget" details={result?.details} l={l} />;
-    default:
+    case "manage_custom_tools":
+      return (
+        <div className="flex items-center gap-2 p-2.5 rounded-lg bg-bg border border-primary/30 text-xs font-mono">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          <span>{text || "Custom tools metadata updated"}</span>
+        </div>
+      );
+    default: {
+      const uiDef = (result?.details as any)?.ui || (args as any)?.ui;
+      if (uiDef) {
+        const presentation = (result?.details as any)?.presentation || (args as any)?.presentation;
+        return <CustomToolBody ui={uiDef} presentation={presentation} sessionId={sessionId || null} />;
+      }
       return (
         <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
           {text}
         </pre>
       );
+    }
   }
 }
 
@@ -665,8 +707,25 @@ export function ToolCallRow({
     };
   }, [toolCallId, result]);
 
-  const [expanded, setExpanded] = useState(
-    !disabled && (
+  const resultPresentation = (result?.details as any)?.presentation;
+  const isCustomTool = ![
+    "read", "write", "edit", "bash", "grep", "find", "ls",
+    "request_approval", "ask_question", "render_images", "render_html", "render_chart",
+    "share_file", "refresh_ui", "spawn_subagent", "delegate_task",
+    "exa_search", "web_fetch", "decompose_tasks", "update_task_status", "complete_task_list",
+    "memory_store", "memory_recall", "memory_forget", "create_experiment",
+    "vision", "generate_image", "manage_factory", "manage_custom_tools"
+  ].includes(toolName) && !toolName.startsWith("mcp_");
+
+  const [expanded, setExpanded] = useState(() => {
+    if (disabled) return false;
+    if (resultPresentation?.defaultExpanded !== undefined) {
+      return !!resultPresentation.defaultExpanded;
+    }
+    if (isCustomTool) {
+      return true;
+    }
+    return (
       toolName === "edit" ||
       toolName === "bash" ||
       toolName === "request_approval" ||
@@ -681,13 +740,22 @@ export function ToolCallRow({
       toolName === "web_fetch" ||
       toolName === "memory_recall" ||
       toolName === "memory_store"
-    )
-  );
+    );
+  });
 
+  const hasUiDetails = (result?.details as any)?.ui || (args as any)?.ui;
   const meta = TOOL_META[toolName] ?? {
     label: toolName,
-    colorClass: "text-muted-foreground",
-    icon: <span className="w-3 h-3 rounded-full bg-text-secondary/30" />,
+    colorClass: "text-accent",
+    icon: hasUiDetails ? (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z" />
+        <polyline points="3.27 6.96 12 12.01 20.73 6.96" />
+        <line x1="12" y1="22.08" x2="12" y2="12" />
+      </svg>
+    ) : (
+      <span className="w-3 h-3 rounded-full bg-text-secondary/30" />
+    ),
   };
 
   const getToolLabel = (name: string): string => {
@@ -705,6 +773,7 @@ export function ToolCallRow({
       case "memory_recall":
       case "memory_store":
       case "memory_forget": return l.labelMemory;
+      case "manage_custom_tools": return l.labelManageCustomTools;
       default: return name;
     }
   };

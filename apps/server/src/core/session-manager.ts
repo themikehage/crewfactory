@@ -279,6 +279,15 @@ class SessionManager {
           resourceLoader,
         });
 
+        let customToolNames: string[] = [];
+        try {
+          const { customToolStorage } = await import("./custom-tools/storage");
+          const all = customToolStorage.loadAll(username);
+          customToolNames = all.filter((d: any) => d.enabled !== false).map((d: any) => d.name);
+        } catch (e) {
+          console.error("[SessionManager] Failed to load custom tool names:", e);
+        }
+
         const beforeToolCall = createBeforeToolCallHook({ sessionId });
 
         const { session } = await createAgentSession({
@@ -298,6 +307,7 @@ class SessionManager {
           hasExaKey,
           memoryEnabled,
           resolvedAgentId,
+          customToolNames,
         });
 
         session.setActiveToolsByName(combinedTools);

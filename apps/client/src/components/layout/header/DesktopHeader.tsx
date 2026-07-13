@@ -4,6 +4,7 @@ import { Logo } from "@/components/ui/Logo";
 interface DesktopHeaderProps {
   onHome: () => void;
   onToggleSidebar: () => void;
+  onNavigate: (path: string) => void;
   wsConnected: boolean;
   breadcrumbs: ReactNode;
 }
@@ -11,6 +12,7 @@ interface DesktopHeaderProps {
 export function DesktopHeader({
   onHome,
   onToggleSidebar,
+  onNavigate,
   wsConnected,
   breadcrumbs,
 }: DesktopHeaderProps) {
@@ -40,6 +42,18 @@ export function DesktopHeader({
         {breadcrumbs}
       </div>
       <div className="flex items-center gap-1.5">
+        <button
+          onClick={() => onNavigate("/sessions")}
+          className="p-1 text-muted-foreground hover:text-foreground rounded cursor-pointer"
+          title="Session Board"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+        </button>
         <span
           className={`w-2 h-2 rounded-full flex-shrink-0 ${wsConnected ? "bg-primary" : "bg-warning"}`}
           title={wsConnected ? "Connected" : "Reconnecting"}

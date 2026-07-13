@@ -323,6 +323,7 @@ export function MainLayout({
           onBack={handleBackClick}
           onMenuToggle={() => setSidebarOpen((prev) => !prev)}
           onNewSession={handleQuickCreate}
+          onNavigate={onNavigate}
           showNewSessionButton={showNewSessionButton}
           l={l}
         />
@@ -330,6 +331,7 @@ export function MainLayout({
         <DesktopHeader
           onHome={() => onSelectProject ? onSelectProject(null, null) : onNavigate("/")}
           onToggleSidebar={() => setSidebarOpen((p) => !p)}
+          onNavigate={onNavigate}
           wsConnected={wsConnected}
           breadcrumbs={breadcrumbsElement}
         />

@@ -9,6 +9,7 @@ interface MobileTopbarProps {
   onBack: () => void;
   onMenuToggle: () => void;
   onNewSession: () => void;
+  onNavigate: (path: string) => void;
   showNewSessionButton: boolean;
   l: Record<string, string>;
 }
@@ -19,6 +20,7 @@ export function MobileTopbar({
   title,
   onMenuToggle,
   onNewSession,
+  onNavigate,
   showNewSessionButton,
   l,
 }: MobileTopbarProps) {
@@ -47,6 +49,18 @@ export function MobileTopbar({
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        <button
+          onClick={() => onNavigate("/sessions")}
+          className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg active:bg-surface-hover transition-colors cursor-pointer"
+          aria-label="Session Board"
+        >
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+        </button>
         {showNewSessionButton && (
           <button
             onClick={onNewSession}

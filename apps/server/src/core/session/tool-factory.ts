@@ -15,6 +15,11 @@ import { createMemoryTools } from "../memory/memory-tools";
 import { createUiTools } from "../tools/ui-tools";
 import { createFactoryTool } from "../tools/factory-tool";
 import { userConfigManager } from "./user-config";
+import {
+  createManageCustomToolsTool,
+  customToolStorage,
+  createCustomToolRuntime,
+} from "../custom-tools";
 
 export interface CreateSessionToolsParams {
   username: string;
@@ -89,6 +94,21 @@ export class SessionToolFactory {
       parentSessionId: sessionId,
     });
 
+    const manageCustomToolsTool = createManageCustomToolsTool({
+      username,
+      sessionId,
+    });
+
+    const activeCustomDefs = customToolStorage.loadAll(username).filter((d: any) => d.enabled);
+    const activeCustomTools = activeCustomDefs.map((def: any) =>
+      createCustomToolRuntime(def, {
+        cwd: workspaceDir,
+        session: null as any, // resolved dynamically from sessionManager at execute time
+        username,
+        sessionId,
+      })
+    );
+
     const customTools = [
       customBashTool as any,
       readTool as any,
@@ -98,6 +118,8 @@ export class SessionToolFactory {
       findTool as any,
       lsTool as any,
       factoryTool as any,
+      manageCustomToolsTool as any,
+      ...activeCustomTools as any,
       ...uiTools as any,
       exaSearchTool as any,
       webFetchTool as any,
