@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 
 interface UseChatScrollOptions {
   threshold?: number;
-  dependencies?: unknown[];
+  messages?: unknown[];
   isStreaming?: boolean;
 }
 
@@ -10,7 +10,7 @@ export function useChatScroll(
   scrollContainerRef: React.RefObject<HTMLDivElement | null>,
   options: UseChatScrollOptions = {}
 ) {
-  const { threshold = 50, dependencies = [], isStreaming = false } = options;
+  const { threshold = 50, messages, isStreaming = false } = options;
   const [isAtBottom, setIsAtBottom] = useState(true);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const isAtBottomRef = useRef(true);
@@ -84,12 +84,11 @@ export function useChatScroll(
     } else {
       setShowScrollButton(true);
     }
-  }, [dependencies, isStreaming, scrollToBottom]);
+  }, [messages, isStreaming, scrollToBottom]);
 
   return {
     isAtBottom,
     showScrollButton,
-    setShowScrollButton,
     scrollToBottom,
     handleScroll
   };

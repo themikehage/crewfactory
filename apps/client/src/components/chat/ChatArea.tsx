@@ -171,7 +171,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     scrollToBottom,
     handleScroll
   } = useChatScroll(scrollContainerRef, {
-    dependencies: [messages],
+    messages,
     isStreaming: streaming
   });
 
