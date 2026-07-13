@@ -15,19 +15,19 @@ export function getUsername(c: any): string | null {
 
   const tokenFromQuery = c.req.query("token");
   if (tokenFromQuery) {
-    tokensToCheck.push(tokenFromQuery);
+    tokensToCheck.push(tokenFromQuery.split(".")[0]);
   }
 
   const authHeader = c.req.header("Authorization");
   if (authHeader?.startsWith("Bearer ")) {
-    tokensToCheck.push(authHeader.slice(7));
+    tokensToCheck.push(authHeader.slice(7).split(".")[0]);
   }
 
   const cookie = c.req.header("Cookie");
   if (cookie) {
     const match = cookie.match(/better-auth\.session_token=([^;]+)/);
     if (match) {
-      tokensToCheck.push(match[1]);
+      tokensToCheck.push(match[1].split(".")[0]);
     }
   }
 

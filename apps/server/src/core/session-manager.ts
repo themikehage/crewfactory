@@ -5,7 +5,7 @@ import {
   type AgentSession,
   type AgentSessionEvent,
 } from "../ai";
-import { existsSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   getUserDir,
@@ -158,6 +158,10 @@ class SessionManager {
           agentId,
           channelId
         );
+
+        if (!existsSync(sessionDir)) {
+          mkdirSync(sessionDir, { recursive: true });
+        }
 
         const metadataPath = join(sessionDir, "metadata.json");
         let resolvedProjectName = projectName;

@@ -68,9 +68,9 @@ authRouter.post("/register", zValidator("json", RegisterSchema), async (c) => {
       asResponse: true,
     });
 
-    const setCookie = signIn.headers.get("set-cookie");
-    if (setCookie) {
-      c.header("set-cookie", setCookie);
+    const setCookies = signIn.headers.getSetCookie();
+    for (const cookie of setCookies) {
+      c.res.headers.append("Set-Cookie", cookie);
     }
 
     return c.json({ user: { username } });
@@ -101,9 +101,9 @@ authRouter.post("/login", zValidator("json", LoginSchema), async (c) => {
       return c.json({ error: "Invalid credentials" }, 401);
     }
 
-    const setCookie = result.headers.get("set-cookie");
-    if (setCookie) {
-      c.header("set-cookie", setCookie);
+    const setCookies = result.headers.getSetCookie();
+    for (const cookie of setCookies) {
+      c.res.headers.append("Set-Cookie", cookie);
     }
 
     return c.json({ user: { username } });
