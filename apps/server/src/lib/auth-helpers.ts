@@ -10,42 +10,47 @@ export function getUsername(c: any): string | null {
     }
   } catch {}
 
-  // 2. Otherwise retrieve the token from query parameter or authorization header
-  const tokenFromQuery = c.req.query("token");
-  const authHeader = c.req.header("Authorization");
-  let token = "";
+  // 2. Retrieve all potential tokens from query parameter, authorization header, and Cookie
+  const tokensToCheck: string[] = [];
 
+  const tokenFromQuery = c.req.query("token");
   if (tokenFromQuery) {
-    token = tokenFromQuery;
-  } else if (authHeader?.startsWith("Bearer ")) {
-    token = authHeader.slice(7);
-  } else {
-    // Check if token is in Cookie
-    const cookie = c.req.header("Cookie");
-    if (cookie) {
-      const match = cookie.match(/better-auth\.session_token=([^;]+)/);
-      if (match) {
-        token = match[1];
-      }
+    tokensToCheck.push(tokenFromQuery);
+  }
+
+  const authHeader = c.req.header("Authorization");
+  if (authHeader?.startsWith("Bearer ")) {
+    tokensToCheck.push(authHeader.slice(7));
+  }
+
+  const cookie = c.req.header("Cookie");
+  if (cookie) {
+    const match = cookie.match(/better-auth\.session_token=([^;]+)/);
+    if (match) {
+      tokensToCheck.push(match[1]);
     }
   }
 
-  if (!token) return null;
+  if (tokensToCheck.length === 0) return null;
 
-  // 3. Synchronously query SQLite DB to resolve session token to username
+  // 3. Synchronously query SQLite DB to resolve the first token that matches a valid session
   try {
     const db = getDb();
-    const row = db
-      .query(`
-        SELECT user.username 
-        FROM session 
-        INNER JOIN user ON session.userId = user.id 
-        WHERE session.token = ? AND session.expiresAt > ?
-      `)
-      .get(token, Date.now()) as { username: string } | null;
+    for (const token of tokensToCheck) {
+      const row = db
+        .query(`
+          SELECT user.username 
+          FROM session 
+          INNER JOIN user ON session.userId = user.id 
+          WHERE session.token = ? AND session.expiresAt > ?
+        `)
+        .get(token, Date.now()) as { username: string } | null;
 
-    return row?.username ?? null;
-  } catch {
-    return null;
-  }
+      if (row?.username) {
+        return row.username;
+      }
+    }
+  } catch {}
+
+  return null;
 }

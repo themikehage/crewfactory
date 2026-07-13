@@ -9,7 +9,10 @@ export function createAuth() {
   return betterAuth({
     database: db,
     secret,
-    baseURL: process.env.BETTER_AUTH_URL || `http://localhost:${process.env.PORT || 3000}`,
+    baseURL: process.env.BETTER_AUTH_URL || 
+             (process.env.NODE_ENV === "production"
+               ? `http://localhost:${process.env.PORT || 3000}`
+               : "http://localhost:5173"),
     trustedOrigins: getTrustedOrigins(),
     emailAndPassword: {
       enabled: true,
@@ -71,5 +74,7 @@ function getTrustedOrigins(): string[] {
   const url = process.env.BETTER_AUTH_URL;
   if (url) origins.push(url);
   origins.push(`http://localhost:${process.env.PORT || 3000}`);
+  origins.push("http://localhost:5173");
+  origins.push("http://127.0.0.1:5173");
   return origins;
 }

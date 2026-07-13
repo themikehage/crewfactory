@@ -30,6 +30,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [needsSetup, setNeedsSetup] = useState(false);
 
   const clearAppState = () => {
+    localStorage.removeItem("token");
     localStorage.removeItem("active-project");
     localStorage.removeItem("active-project-id");
     localStorage.removeItem("active-project-name");
