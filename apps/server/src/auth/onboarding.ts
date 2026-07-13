@@ -33,11 +33,12 @@ export async function createProgrammaticSession(username: string): Promise<strin
   // Using native crypto randomBytes to generate a secure session token
   const { randomBytes } = await import("node:crypto");
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7; // 7 days
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+  const now = new Date().toISOString();
 
   db.query(
     "INSERT INTO session (id, token, expiresAt, createdAt, updatedAt, userId) VALUES (?, ?, ?, ?, ?, ?)"
-  ).run(token, token, expiresAt, Date.now(), Date.now(), user.id);
+  ).run(token, token, expiresAt, now, now, user.id);
 
   return token;
 }
@@ -53,11 +54,12 @@ export function createProgrammaticSessionSync(username: string): string {
 
   const { randomBytes } = require("node:crypto");
   const token = randomBytes(32).toString("base64url");
-  const expiresAt = Date.now() + 1000 * 60 * 60 * 24 * 7; // 7 days
+  const expiresAt = new Date(Date.now() + 1000 * 60 * 60 * 24 * 7).toISOString();
+  const now = new Date().toISOString();
 
   db.query(
     "INSERT INTO session (id, token, expiresAt, createdAt, updatedAt, userId) VALUES (?, ?, ?, ?, ?, ?)"
-  ).run(token, token, expiresAt, Date.now(), Date.now(), row.id);
+  ).run(token, token, expiresAt, now, now, row.id);
 
   return token;
 }

@@ -36,6 +36,8 @@ export function getUsername(c: any): string | null {
   // 3. Synchronously query SQLite DB to resolve the first token that matches a valid session
   try {
     const db = getDb();
+    const nowIso = new Date().toISOString();
+    
     for (const token of tokensToCheck) {
       const row = db
         .query(`
@@ -44,7 +46,7 @@ export function getUsername(c: any): string | null {
           INNER JOIN user ON session.userId = user.id 
           WHERE session.token = ? AND session.expiresAt > ?
         `)
-        .get(token, Date.now()) as { username: string } | null;
+        .get(token, nowIso) as { username: string } | null;
 
       if (row?.username) {
         return row.username;
