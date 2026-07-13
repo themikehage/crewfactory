@@ -20,6 +20,8 @@ import { DelegationsPanel } from "@/components/chat/DelegationsPanel";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
+import { SessionsProvider } from "@/contexts/SessionsContext";
 import { useRouter } from "@/hooks/useRouter";
 import { MainLayout } from "./MainLayout";
 import { apiFetch } from "@/lib/api";
@@ -497,7 +499,7 @@ export function AppRouter() {
   }
 
   return (
-    <>
+    <SessionsProvider>
       <MainLayout
         route={route}
         onNavigate={navigate}
@@ -594,6 +596,9 @@ export function AppRouter() {
         {route.page === "plugins" && (
           <PluginsPage />
         )}
+        {route.page === "sessions" && (
+          <SessionsKanbanPage onNavigate={navigate} />
+        )}
         {route.page === "channel" && (
           <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
         )}
@@ -672,6 +677,6 @@ export function AppRouter() {
           onConfirm={handleConfirmRun}
         />
       )}
-    </>
+    </SessionsProvider>
   );
 }

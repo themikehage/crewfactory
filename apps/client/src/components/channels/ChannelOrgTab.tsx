@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import type { ChannelMember, AgentInfo, ReplyMode, ChannelRole } from "shared";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLiterals } from "@/lib";
@@ -7,6 +7,7 @@ import { OrgFlowCanvas } from "./OrgFlowCanvas";
 import { OrgFlowMobile } from "./OrgFlowMobile";
 import { AgentDetailPanel } from "./AgentDetailPanel";
 import type { StreamingAgentState } from "@/hooks/useChannel";
+import { useSessions } from "@/contexts/SessionsContext";
 
 interface Props {
   members: ChannelMember[];
@@ -28,6 +29,16 @@ export function ChannelOrgTab({
   const l = useLiterals(u);
   const { isMobile } = useIsMobile();
   const [selectedMember, setSelectedMember] = useState<ChannelMember | null>(null);
+  const { getChannelMemberKanbanStatus } = useSessions();
+
+  const memberSessionStatuses = useMemo(() => {
+    const map: Record<string, "idle" | "working" | "unknown"> = {};
+    for (const m of members) {
+      const status = getChannelMemberKanbanStatus(m.agentId);
+      map[m.agentId] = status === "working" ? "working" : "idle";
+    }
+    return map;
+  }, [members, getChannelMemberKanbanStatus]);
 
   const selectedAgentInfo = selectedMember
     ? registeredAgents.find((a) => a.id === selectedMember.agentId)
@@ -82,6 +93,7 @@ export function ChannelOrgTab({
             members={members}
             registeredAgents={registeredAgents}
             streamingAgents={streamingAgents}
+            sessionStatuses={memberSessionStatuses}
             onEditAgent={setSelectedMember}
           />
         ) : (
@@ -89,6 +101,7 @@ export function ChannelOrgTab({
             members={members}
             registeredAgents={registeredAgents}
             streamingAgents={streamingAgents}
+            sessionStatuses={memberSessionStatuses}
             onEditAgent={setSelectedMember}
           />
         )}

@@ -20,6 +20,7 @@ interface Props {
   registeredAgents: AgentInfo[];
   streamingAgents: Record<string, StreamingAgentState>;
   onEditAgent: (member: ChannelMember) => void;
+  sessionStatuses?: Record<string, "idle" | "working" | "unknown">;
 }
 
 const LEVEL_ORDER = ["lead", "senior", "member", "observer"] as const;
@@ -31,7 +32,7 @@ const nodeTypes = {
   agentNode: AgentFlowNode,
 };
 
-export function OrgFlowCanvas({ members, registeredAgents, streamingAgents, onEditAgent }: Props) {
+export function OrgFlowCanvas({ members, registeredAgents, streamingAgents, onEditAgent, sessionStatuses }: Props) {
   const [nodes, setNodes, onNodesChange] = useNodesState<AgentNode>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -92,6 +93,7 @@ export function OrgFlowCanvas({ members, registeredAgents, streamingAgents, onEd
             member: m,
             agentInfo: info,
             streamingState: streaming,
+            sessionStatus: sessionStatuses?.[m.agentId] || "unknown",
             onEdit: () => onEditAgent(m),
           },
         });

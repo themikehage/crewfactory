@@ -4,6 +4,7 @@ import { useExperiments } from "@/hooks/useExperiments";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionSidebar.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { useSessions } from "@/contexts/SessionsContext";
 
 // --- Component ---
 
@@ -66,6 +67,7 @@ export function SessionSidebar({
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [loadingChannels, setLoadingChannels] = useState(true);
+  const { getAgentKanbanStatus } = useSessions();
 
   const [isOpenRepos, setIsOpenRepos] = useState(true);
   const [isOpenAgents, setIsOpenAgents] = useState(true);
@@ -237,6 +239,19 @@ export function SessionSidebar({
 
   const adminItems = useMemo(
     () => [
+      {
+        id: "sessions",
+        label: l.navSessions || "Session Board",
+        path: "/sessions",
+        icon: (
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+            <rect x="3" y="3" width="7" height="7" />
+            <rect x="14" y="3" width="7" height="7" />
+            <rect x="3" y="14" width="7" height="7" />
+            <rect x="14" y="14" width="7" height="7" />
+          </svg>
+        ),
+      },
       {
         id: "skills",
         label: l.navSkills,
@@ -420,13 +435,23 @@ export function SessionSidebar({
               ) : (
                 agents.map((agent) => {
                   const isActive = isSessionView && activeAgent?.id === agent.id && !activeChannel;
+                  const agentKanbanStatus = getAgentKanbanStatus(agent.id);
+                  const statusDot =
+                    agentKanbanStatus === "working"
+                      ? "bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+                      : agentKanbanStatus === "idle"
+                        ? "bg-text-secondary/30"
+                        : "bg-text-secondary/10";
                   return (
                     <button
                       key={agent.id}
                       onClick={() => handleSelectAgentClick({ id: agent.id, name: agent.name, avatarUrl: agent.avatarUrl })}
                       className={itemClass(isActive)}
                     >
-                      <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size={isMobile ? "sm" : "xs"} />
+                      <span className="relative flex-shrink-0">
+                        <AgentAvatar name={agent.name} avatarUrl={agent.avatarUrl} size={isMobile ? "sm" : "xs"} />
+                        <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-background ${statusDot}`} />
+                      </span>
                       <span className="truncate">{agent.name}</span>
                     </button>
                   );

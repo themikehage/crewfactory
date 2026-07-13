@@ -5,6 +5,7 @@ import { literals as u } from "./MembersPanel.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { REPLY_MODE_OPTIONS } from "@/lib/dropdown-options";
+import { useSessions } from "@/contexts/SessionsContext";
 
 interface Props {
   members: ChannelMember[];
@@ -23,6 +24,7 @@ export function MembersPanel({
 }: Props) {
 const l = useLiterals(u);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+  const { getChannelMemberKanbanStatus } = useSessions();
 
   const getAgentInfo = (agentId: string) => {
     return registeredAgents.find((a) => a.id === agentId);
@@ -47,6 +49,13 @@ const l = useLiterals(u);
     const name = info?.name || m.agentId;
     const role = info ? (info.role || "agent") : l.agentNotFound;
     const isOrphan = !info;
+    const memberStatus = getChannelMemberKanbanStatus(m.agentId);
+    const statusDot =
+      memberStatus === "working"
+        ? "bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+        : memberStatus === "idle"
+          ? "bg-text-secondary/30"
+          : "bg-text-secondary/10";
 
     let badgeStyle = "border-input bg-background text-muted-foreground";
     if (isOrphan) badgeStyle = "border-destructive/30 bg-destructive/10 text-destructive";
@@ -67,11 +76,14 @@ const l = useLiterals(u);
           <div className="min-w-0 flex-1">
             <div className="flex items-center justify-between gap-1.5">
               <div className="flex items-center gap-1.5 min-w-0">
-                <AgentAvatar
-                  name={name}
-                  avatarUrl={info?.avatarUrl}
-                  size="xs"
-                />
+                <span className="relative flex-shrink-0">
+                  <AgentAvatar
+                    name={name}
+                    avatarUrl={info?.avatarUrl}
+                    size="xs"
+                  />
+                  <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-background ${statusDot}`} />
+                </span>
                 <p className={`font-medium text-xs truncate ${isOrphan ? "text-destructive" : "text-foreground"}`}>
                   {isOrphan ? `⚠️ ${name}` : name}
                 </p>

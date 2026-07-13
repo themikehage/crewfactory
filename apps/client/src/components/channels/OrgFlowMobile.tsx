@@ -7,6 +7,7 @@ interface Props {
   registeredAgents: AgentInfo[];
   streamingAgents: Record<string, StreamingAgentState>;
   onEditAgent: (member: ChannelMember) => void;
+  sessionStatuses?: Record<string, "idle" | "working" | "unknown">;
 }
 
 const ROLE_LABELS: Record<string, { label: string; textStyle: string; badgeStyle: string }> = {
@@ -16,7 +17,7 @@ const ROLE_LABELS: Record<string, { label: string; textStyle: string; badgeStyle
   observer: { label: "Observers", textStyle: "text-muted-foreground/60", badgeStyle: "bg-background border-border/50 text-muted-foreground/60" },
 };
 
-export function OrgFlowMobile({ members, registeredAgents, streamingAgents, onEditAgent }: Props) {
+export function OrgFlowMobile({ members, registeredAgents, streamingAgents, onEditAgent, sessionStatuses }: Props) {
   const getAgentInfo = (agentId: string) => {
     return registeredAgents.find((a) => a.id === agentId);
   };
@@ -50,6 +51,14 @@ export function OrgFlowMobile({ members, registeredAgents, streamingAgents, onEd
             const isStreaming = !!streamingAgents[m.agentId];
             const streaming = streamingAgents[m.agentId];
 
+            const memberSessionStatus = sessionStatuses?.[m.agentId] || "unknown";
+            const memberSessionDot =
+              memberSessionStatus === "working"
+                ? "bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+                : memberSessionStatus === "idle"
+                  ? "bg-text-secondary/30"
+                  : "bg-text-secondary/10";
+
             return (
               <div
                 key={m.agentId}
@@ -63,7 +72,10 @@ export function OrgFlowMobile({ members, registeredAgents, streamingAgents, onEd
                 }`}
               >
                 <div className="flex items-center gap-3 min-w-0 flex-1">
-                  <AgentAvatar name={name} avatarUrl={info?.avatarUrl} size="sm" />
+                  <span className="relative flex-shrink-0">
+                    <AgentAvatar name={name} avatarUrl={info?.avatarUrl} size="sm" />
+                    <span className={`absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full border-2 border-background ${memberSessionDot}`} />
+                  </span>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">
                       <p className={`font-semibold text-xs truncate ${isOrphan ? "text-destructive" : "text-foreground"}`}>

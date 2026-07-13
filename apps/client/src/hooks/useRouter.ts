@@ -15,7 +15,8 @@ export type Route =
   | { page: "logs" }
   | { page: "laboratory"; experimentId?: string | null }
   | { page: "mcps" }
-  | { page: "plugins" };
+  | { page: "plugins" }
+  | { page: "sessions" };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
@@ -125,6 +126,7 @@ function parseRoute(): Route {
   if (path === "/logs") return { page: "logs" };
   if (path === "/mcps") return { page: "mcps" };
   if (path === "/plugins") return { page: "plugins" };
+  if (path === "/sessions") return { page: "sessions" };
   if (path.startsWith("/laboratory")) {
     if (path === "/laboratory" || path === "/laboratory/") {
       return { page: "laboratory", experimentId: null };

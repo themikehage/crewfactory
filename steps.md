@@ -272,4 +272,12 @@
 - [x] 121.10 Create ws/logger.ts structured logger, update about.md with WS cookie auth flow docs, add unit tests for auth-helpers and ws/factory (48 tests passing)
 - [x] 121.11 Verify production builds (client + server) and all acceptance criteria
 
-
+## Phase 122: Real-Time Session Visualization (Kanban, Sidebar Status, Org Chart)
+- [x] 122.1 Create centralized `SessionsContext` + `useSessions` hook with WebSocket live status merging
+- [x] 122.2 Add `/sessions` route to router and wire `SessionsProvider` in `AppRouter`
+- [x] 122.3 Create `SessionsKanbanPage` with idle/working/done kanban columns
+- [x] 122.4 Add session status dots to agents in `SessionSidebar` (like Slack)
+- [x] 122.5 Add session status dots to channel members in `MembersPanel`
+- [x] 122.6 Add session status indicators to `OrgFlowCanvas` and `OrgFlowMobile` node data
+- [x] 122.7 Add "Session Board" navigation link in sidebar admin section
+- [x] 122.8 Verify successful client compilation build

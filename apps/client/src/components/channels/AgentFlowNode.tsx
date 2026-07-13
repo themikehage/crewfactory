@@ -10,6 +10,7 @@ export type AgentNodeData = {
     thinking?: string;
     toolCalls?: Record<string, { toolName: string; args: any; result: any | null; isError: boolean }>;
   };
+  sessionStatus?: "idle" | "working" | "unknown";
   onEdit: () => void;
 };
 
@@ -64,6 +65,12 @@ export function AgentFlowNode({ data }: NodeProps<AgentNode>) {
   const skills = agentInfo?.skills || [];
 
   const isStreaming = !!streamingState;
+  const sessionDot =
+    data.sessionStatus === "working"
+      ? "bg-success shadow-[0_0_6px_rgba(74,222,128,0.6)]"
+      : data.sessionStatus === "idle"
+        ? "bg-text-secondary/30"
+        : "bg-text-secondary/10";
 
   return (
     <div className="relative group/node select-none">
@@ -85,7 +92,10 @@ export function AgentFlowNode({ data }: NodeProps<AgentNode>) {
         {/* Header */}
         <div className="flex items-start justify-between gap-1">
           <div className="flex items-center gap-1.5 min-w-0 flex-1">
-            <AgentAvatar name={name} avatarUrl={agentInfo?.avatarUrl} size="xs" />
+            <span className="relative flex-shrink-0">
+              <AgentAvatar name={name} avatarUrl={agentInfo?.avatarUrl} size="xs" />
+              <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-background ${sessionDot}`} />
+            </span>
             <span className={`font-semibold text-xs truncate ${isOrphan ? "text-destructive" : "text-foreground"}`}>
               {isOrphan ? `⚠️ ${name}` : name}
             </span>
