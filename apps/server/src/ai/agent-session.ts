@@ -680,7 +680,11 @@ export class AgentSession {
       stopReason: "error",
       errorMessage: errorMsg,
       timestamp: Date.now(),
-    };
+      api: "",
+      provider: "",
+      model: "",
+      usage: { tokensIn: 0, tokensOut: 0 },
+    } as any;
     this.sessionManager.appendMessage(assistantErrorMessage);
     this.messages = this.sessionManager.buildSessionContext().messages;
     this.emit({ type: "message_start", message: assistantErrorMessage });

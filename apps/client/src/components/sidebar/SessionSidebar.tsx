@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
+import { useExperiments } from "@/hooks/useExperiments";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionSidebar.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
@@ -27,12 +28,6 @@ interface ChannelItem {
   name: string;
   description?: string;
   maxChainDepth?: number;
-}
-
-interface ExperimentItem {
-  id: string;
-  name: string;
-  status: string;
 }
 
 interface Props {
@@ -66,12 +61,11 @@ export function SessionSidebar({
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [channels, setChannels] = useState<ChannelItem[]>([]);
-  const [experiments, setExperiments] = useState<ExperimentItem[]>([]);
+  const { experiments, loading: loadingExperiments } = useExperiments();
 
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [loadingChannels, setLoadingChannels] = useState(true);
-  const [loadingExperiments, setLoadingExperiments] = useState(true);
 
   const [isOpenRepos, setIsOpenRepos] = useState(true);
   const [isOpenAgents, setIsOpenAgents] = useState(true);
@@ -117,20 +111,6 @@ export function SessionSidebar({
       console.error("Failed to fetch channels:", err);
     } finally {
       setLoadingChannels(false);
-    }
-  }, []);
-
-  const fetchExperiments = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/experiments");
-      if (res.ok) {
-        const data = await res.json();
-        setExperiments(data.experiments || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch experiments:", err);
-    } finally {
-      setLoadingExperiments(false);
     }
   }, []);
 
@@ -193,8 +173,7 @@ export function SessionSidebar({
     fetchRepos();
     fetchAgents();
     fetchChannels();
-    fetchExperiments();
-  }, [fetchRepos, fetchAgents, fetchChannels, fetchExperiments]);
+  }, [fetchRepos, fetchAgents, fetchChannels]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -206,18 +185,15 @@ export function SessionSidebar({
         fetchAgents();
       } else if (type === "channel") {
         fetchChannels();
-      } else if (type === "experiment") {
-        fetchExperiments();
-      } else {
+      } else if (type !== "experiment") {
         fetchRepos();
         fetchAgents();
         fetchChannels();
-        fetchExperiments();
       }
     };
     window.addEventListener("entity-updated", handleUpdate);
     return () => window.removeEventListener("entity-updated", handleUpdate);
-  }, [fetchRepos, fetchAgents, fetchChannels, fetchExperiments]);
+  }, [fetchRepos, fetchAgents, fetchChannels]);
 
   const handleSelectExperimentClick = useCallback(
     (expId: string) => {

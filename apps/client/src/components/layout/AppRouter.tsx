@@ -198,8 +198,9 @@ export function AppRouter() {
   }, [runningExpId, runPromptValue, fetchExperiments]);
 
   useEffect(() => {
+    if (!user) return;
     fetchExperiments();
-  }, [fetchExperiments]);
+  }, [fetchExperiments, user]);
 
   const routeToStackItem = useCallback((r: typeof route): NavigationStackItem => {
     const isLab = r.page === "laboratory";

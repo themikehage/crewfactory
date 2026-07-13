@@ -1,5 +1,6 @@
 import { auth } from "../auth/index";
 import { existsSync, readFileSync } from "node:fs";
+import { getDb } from "../auth/db";
 import { sessionManager } from "../core/session-manager";
 import type { AuthPayload } from "../middleware/auth";
 import type { WSContext, WSMessageReceive } from "hono/ws";
@@ -313,17 +314,26 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
   if (data.type === "auth") {
     try {
       const sessionToken = data.token as string;
-      const cookieHeader = `better-auth.session_token=${sessionToken}`;
-      const fakeHeaders = new Headers({ cookie: cookieHeader });
-      const session = await auth.api.getSession({ headers: fakeHeaders });
+      const cleanToken = sessionToken.split(".")[0];
+      
+      const db = getDb();
+      const nowIso = new Date().toISOString();
+      const row = db
+        .query(`
+          SELECT user.username 
+          FROM session 
+          INNER JOIN user ON session.userId = user.id 
+          WHERE session.token = ? AND session.expiresAt > ?
+        `)
+        .get(cleanToken, nowIso) as { username: string } | null;
 
-      if (!session) {
+      if (!row) {
         safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid session" }));
         try { ws.close(); } catch {}
         return;
       }
 
-      const username = (session.user as any).username as string;
+      const username = row.username;
       const user: AuthPayload = { username };
       userMap.set(ws.wsId, user);
 
