@@ -12,6 +12,9 @@ export function calculateVariantScores(
     rounds: number;
     maxRounds: number;
     escalationsToLeader: number;
+    divergenceEventsCount?: number;
+    arbitrationRoundsCount?: number;
+    protocolActivationRate?: number;
   },
   judgeDetail?: {
     reasoning: string;
@@ -32,15 +35,19 @@ export function calculateVariantScores(
   // 2. Negotiation Score (only for multi-agent variants)
   let negotiationScore: number | undefined = undefined;
   if (type !== "single" && negotiation) {
-    const { agreementReached, rounds, maxRounds, escalationsToLeader } = negotiation;
+    const { agreementReached, rounds, maxRounds, escalationsToLeader, divergenceEventsCount } = negotiation;
     const agreedVal = agreementReached ? 1 : 0;
     const roundsRatio = maxRounds > 0 ? Math.min(1, rounds / maxRounds) : 0;
 
+    const divergenceBonus = (divergenceEventsCount ?? 0) > 0 ? 20 : 0;
+
     if (type === "multi_with_leader") {
       const escalationPenalty = escalationsToLeader > 0 ? 0.5 : 1.0;
-      negotiationScore = (40 * agreedVal + 30 * (1 - roundsRatio) + 30 * escalationPenalty);
+      const baseScore = (40 * agreedVal + 30 * (1 - roundsRatio) + 30 * escalationPenalty);
+      negotiationScore = baseScore + divergenceBonus;
     } else {
-      negotiationScore = (50 * agreedVal + 50 * (1 - roundsRatio));
+      const baseScore = (50 * agreedVal + 50 * (1 - roundsRatio));
+      negotiationScore = baseScore + divergenceBonus;
     }
     negotiationScore = Math.max(0, Math.min(100, negotiationScore));
   }

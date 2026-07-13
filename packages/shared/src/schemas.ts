@@ -385,6 +385,9 @@ export const VariantRunResultSchema = z.object({
   escalationsToLeader: z.number().optional(),
   agreementReached: z.boolean(),
   finalOutput: z.string(),
+  divergenceEventsCount: z.number().optional(),
+  arbitrationRoundsCount: z.number().optional(),
+  protocolActivationRate: z.number().optional(),
   scores: z.object({
     taskQuality: z.number(),
     efficiencyScore: z.number(),

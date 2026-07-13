@@ -309,7 +309,15 @@ experimentsRouter.post("/:id/judge", async (c) => {
       judgeResults.multiNoLeader.globalScore,
       noLeader.durationMs, noLeader.tokensIn, noLeader.tokensOut,
       baselineStats,
-      { agreementReached: noLeader.agreementReached, rounds: noLeader.negotiationRounds || 0, maxRounds: 5, escalationsToLeader: 0 },
+      { 
+        agreementReached: noLeader.agreementReached, 
+        rounds: noLeader.negotiationRounds || 0, 
+        maxRounds: 5, 
+        escalationsToLeader: 0,
+        divergenceEventsCount: noLeader.divergenceEventsCount,
+        arbitrationRoundsCount: noLeader.arbitrationRoundsCount,
+        protocolActivationRate: noLeader.protocolActivationRate
+      },
       { reasoning: judgeResults.multiNoLeader.reasoning, criteriaScores: judgeResults.multiNoLeader.scores }
     );
     exp.variants.multiWithLeader.result!.scores = calculateVariantScores(
@@ -317,7 +325,15 @@ experimentsRouter.post("/:id/judge", async (c) => {
       judgeResults.multiWithLeader.globalScore,
       withLeader.durationMs, withLeader.tokensIn, withLeader.tokensOut,
       baselineStats,
-      { agreementReached: withLeader.agreementReached, rounds: withLeader.negotiationRounds || 0, maxRounds: 5, escalationsToLeader: withLeader.escalationsToLeader || 0 },
+      { 
+        agreementReached: withLeader.agreementReached, 
+        rounds: withLeader.negotiationRounds || 0, 
+        maxRounds: 5, 
+        escalationsToLeader: withLeader.escalationsToLeader || 0,
+        divergenceEventsCount: withLeader.divergenceEventsCount,
+        arbitrationRoundsCount: withLeader.arbitrationRoundsCount,
+        protocolActivationRate: withLeader.protocolActivationRate
+      },
       { reasoning: judgeResults.multiWithLeader.reasoning, criteriaScores: judgeResults.multiWithLeader.scores }
     );
 

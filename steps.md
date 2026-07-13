@@ -281,3 +281,19 @@
 - [x] 122.6 Add session status indicators to `OrgFlowCanvas` and `OrgFlowMobile` node data
 - [x] 122.7 Add "Session Board" navigation link in sidebar admin section
 - [x] 122.8 Verify successful client compilation build
+
+## Phase 123: Hackathon Submission Assets (Qwen Cloud — Track 3 Agent Society)
+- [x] 123.1 Create gitignored assets/hackathon/ folder for screenshots and raw recordings
+- [x] 123.2 Create README.md with track identification, feature overview, architecture summary, and quick start
+- [x] 123.3 Create docs/architecture.md with Mermaid diagram showing Qwen Cloud → backend → frontend data flow
+- [x] 123.4 Create alibaba-cloud/deployment-proof.md documenting DashScope API usage and OSS upload utility
+- [x] 123.5 Create apps/server/src/alibaba-cloud/log-upload.ts OSS upload utility for benchmark reports
+- [x] 123.6 Add ALIBABA_ACCESS_KEY_ID/SECRET and OSS_BUCKET/REGION env vars to .env.example and docker-compose.yml
+- [x] 123.7 Create docs/demo-script.md with timestamped 3-minute walkthrough
+- [x] 123.8 Create docs/blog-post.md draft for Medium/dev.to bonus prize
+- [x] 123.9 Create plans/testing-hackathon.md with tiered test plan (negotiation, scoring, MCP, E2E)
+- [ ] 123.10 Record demo video <3 min, upload to YouTube unlisted, add link to README
+- [ ] 123.11 Deploy to Alibaba Cloud (ECS/Function Compute), add screenshots to deployment-proof.md
+- [ ] 123.12 Implement tests per plans/testing-hackathon.md (31+ tests across negotiation, scoring, MCP, WS)
+- [ ] 123.13 Publish blog post on Medium/dev.to, add link to Devpost submission
+- [ ] 123.14 Submit on Devpost with all required fields and assets

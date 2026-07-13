@@ -216,7 +216,10 @@ export class ExperimentRunner {
               agreementReached: noLeaderResult.agreementReached,
               rounds: noLeaderResult.negotiationRounds || 0,
               maxRounds: 5,
-              escalationsToLeader: 0
+              escalationsToLeader: 0,
+              divergenceEventsCount: noLeaderResult.divergenceEventsCount,
+              arbitrationRoundsCount: noLeaderResult.arbitrationRoundsCount,
+              protocolActivationRate: noLeaderResult.protocolActivationRate
             },
             { reasoning: judgeResults.multiNoLeader.reasoning, criteriaScores: judgeResults.multiNoLeader.scores }
           );
@@ -232,7 +235,10 @@ export class ExperimentRunner {
               agreementReached: withLeaderResult.agreementReached,
               rounds: withLeaderResult.negotiationRounds || 0,
               maxRounds: 5,
-              escalationsToLeader: withLeaderResult.escalationsToLeader || 0
+              escalationsToLeader: withLeaderResult.escalationsToLeader || 0,
+              divergenceEventsCount: withLeaderResult.divergenceEventsCount,
+              arbitrationRoundsCount: withLeaderResult.arbitrationRoundsCount,
+              protocolActivationRate: withLeaderResult.protocolActivationRate
             },
             { reasoning: judgeResults.multiWithLeader.reasoning, criteriaScores: judgeResults.multiWithLeader.scores }
           );
@@ -417,6 +423,9 @@ export class ExperimentRunner {
         negotiationRounds: result.negotiationRounds,
         escalationsToLeader: result.escalationsToLeader,
         agreementReached: result.agreementReached,
+        divergenceEventsCount: result.divergenceEventsCount,
+        arbitrationRoundsCount: result.arbitrationRoundsCount,
+        protocolActivationRate: result.protocolActivationRate,
         finalOutput: result.status === "aborted" ? "Cancelado por el usuario" : (rawOutput || `Ejecución finalizada con estado: ${result.status}`),
         scores: {
           taskQuality: 0,

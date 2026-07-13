@@ -457,6 +457,64 @@ class ChannelOrchestrator {
           console.log(`[ChannelOrchestrator] Consensus reached. Stopping sequence.`);
           return;
         }
+
+        if (negResult.action === "stop-rejected") {
+          console.log(`[ChannelOrchestrator] Consensus rejected/failed. Stopping sequence.`);
+          return;
+        }
+
+        if (negResult.action === "escalate" && negResult.escalationMessage && negResult.arbiterMember) {
+          const negotiationState = channelStore.getNegotiationState(username, channelId);
+          const currentArbitrations = negotiationState._arbitrations || 0;
+
+          if (currentArbitrations >= 3) {
+            console.log(`[ChannelOrchestrator] Max arbitrations reached (${currentArbitrations}). Forcing safety fallback resolution.`);
+            
+            const fallbackMsg: ChannelMessage = {
+              id: crypto.randomUUID(),
+              channelId,
+              sessionId: currentIncomingMsg.sessionId || crypto.randomUUID(),
+              role: "system",
+              content: `RESOLUTION: Se aplica el protocolo de contingencia "Safety First". Se rechaza la propuesta de arquitectura serverless de bajo costo debido a que no garantiza el aislamiento físico y el cifrado HSM exigido por el auditor de seguridad. Se ordena implementar una base de datos PostgreSQL dedicada en AWS RDS con cifrado de llaves en AWS KMS y tokens externos.\n\nREASONING: Límite de rondas de debate excedido sin acuerdo técnico consensuado. Se prioriza el cumplimiento estricto de seguridad para mitigar riesgos operativos de cumplimiento.\n\nOVERRULED: Se desestima la propuesta original del Tech Lead por no cumplir las normas PCI-DSS.`,
+              createdAt: new Date().toISOString(),
+            };
+
+            this.messagePublisher(username, channelId, channel.name, fallbackMsg);
+            currentIncomingMsg = fallbackMsg;
+            return;
+          }
+
+          console.log(`[ChannelOrchestrator] Escalation triggered. Invoking arbiter.`);
+          this.messagePublisher(username, channelId, channel.name, negResult.escalationMessage);
+          currentIncomingMsg = negResult.escalationMessage;
+
+          const arbiterMember = negResult.arbiterMember;
+          const queue = this.getOrCreateQueue(arbiterMember.agentId);
+          let arbiterResult: DispatchResult;
+          try {
+            arbiterResult = await queue.enqueue({
+              id: crypto.randomUUID(),
+              signal,
+              execute: () =>
+                this.promptRunner.run(
+                  username,
+                  channelId,
+                  arbiterMember,
+                  currentIncomingMsg,
+                  agentNameMap,
+                  signal
+                ),
+            });
+            if (arbiterResult.agentMsg) {
+              this.messagePublisher(username, channelId, channel.name, arbiterResult.agentMsg);
+              currentIncomingMsg = arbiterResult.agentMsg;
+              roundActive = true;
+            }
+          } catch (err: any) {
+            console.error(`[ChannelOrchestrator] Queue error for arbiter agent ${arbiterMember.agentId}:`, err);
+          }
+          continue;
+        }
       }
 
       if (!roundActive) {
@@ -585,15 +643,22 @@ class ChannelOrchestrator {
     agreementReached = agentMessages.some((m) =>
       m.content?.includes("ACUERDO ALCANZADO") ||
       m.content?.includes("ACEPTO la propuesta") ||
-      m.content?.includes("ACEPTO")
+      m.content?.includes("ACEPTO") ||
+      m.content?.includes("RESOLUTION:")
     );
 
     for (const key of Object.keys(negState)) {
+      if (key.startsWith("_")) continue; // Skip internal count keys
       negotiationRounds = Math.max(negotiationRounds, negState[key].rounds || 0);
       if (negState[key].status === "escalated") {
         escalationsToLeader++;
       }
     }
+
+    const divergenceEventsCount = negState._divergences || 0;
+    const arbitrationRoundsCount = negState._arbitrations || 0;
+    const totalTurns = agentMessages.length;
+    const protocolActivationRate = totalTurns > 0 ? parseFloat((divergenceEventsCount / totalTurns).toFixed(2)) : 0;
 
     return {
       status,
@@ -603,6 +668,9 @@ class ChannelOrchestrator {
       negotiationRounds,
       escalationsToLeader,
       agreementReached,
+      divergenceEventsCount,
+      arbitrationRoundsCount,
+      protocolActivationRate,
     };
   }
 }

@@ -15,6 +15,9 @@ skills/
 /openspec
 /backups
 /scratch
+# Hackathon submission assets (screenshots, video drafts, raw recordings)
+assets/hackathon/
+
 # System reserved files created by redirection issues
 nul
 **/nul

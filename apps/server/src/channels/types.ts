@@ -24,4 +24,7 @@ export interface RunToCompletionResult {
   negotiationRounds: number;
   escalationsToLeader: number;
   agreementReached: boolean;
+  divergenceEventsCount?: number;
+  arbitrationRoundsCount?: number;
+  protocolActivationRate?: number;
 }

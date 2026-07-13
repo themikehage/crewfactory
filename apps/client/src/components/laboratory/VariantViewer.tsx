@@ -224,7 +224,7 @@ export function VariantViewer({
                       <span>Tokens salida:</span>
                       <span className="text-foreground">{result.tokensOut}</span>
                     </div>
-                    {result.negotiationRounds !== undefined && (
+                     {result.negotiationRounds !== undefined && (
                       <div className="flex justify-between">
                         <span>Rondas debate:</span>
                         <span className="text-foreground">{result.negotiationRounds}</span>
@@ -236,8 +236,60 @@ export function VariantViewer({
                         <span className="text-foreground">{result.escalationsToLeader}</span>
                       </div>
                     )}
+                    {result.divergenceEventsCount !== undefined && (
+                      <div className="flex justify-between">
+                        <span>Divergencias detectadas:</span>
+                        <span className="text-foreground font-bold">{result.divergenceEventsCount}</span>
+                      </div>
+                    )}
+                    {result.arbitrationRoundsCount !== undefined && (
+                      <div className="flex justify-between">
+                        <span>Resoluciones ejecutadas:</span>
+                        <span className="text-foreground font-bold">{result.arbitrationRoundsCount}</span>
+                      </div>
+                    )}
+                    {result.protocolActivationRate !== undefined && (
+                      <div className="flex justify-between">
+                        <span>Tasa de activación del debate:</span>
+                        <span className="text-foreground font-bold">{Math.round(result.protocolActivationRate * 100)}%</span>
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Protocol Trace Panel for Deliberative Protocol */}
+                {result.divergenceEventsCount !== undefined && result.divergenceEventsCount > 0 && (
+                  <div className="space-y-3">
+                    <h4 className="text-xs uppercase font-bold text-muted-foreground tracking-wider">
+                      Trazabilidad de Deliberación
+                    </h4>
+                    <div className="bg-primary/5 border border-primary/20 rounded-xl p-3.5 space-y-3">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-primary rounded-full animate-ping" />
+                        <p className="text-xs font-bold text-primary uppercase tracking-wide">
+                          Conflicto Detectado y Resuelto
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-muted-foreground leading-relaxed">
+                        El sistema detectó de forma autónoma divergencias o vetos entre los agentes especialistas durante el debate. Se congeló la conversación y se invocó al árbitro líder, quien emitió una resolución vinculante que destrabó el conflicto.
+                      </p>
+                      <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-semibold uppercase tracking-wider text-muted-foreground pt-1.5 border-t border-primary/10">
+                        <div>
+                          <span className="block text-sm font-black text-foreground">{result.divergenceEventsCount}</span>
+                          Divergencias
+                        </div>
+                        <div>
+                          <span className="block text-sm font-black text-foreground">{result.arbitrationRoundsCount}</span>
+                          Resoluciones
+                        </div>
+                        <div>
+                          <span className="block text-sm font-black text-foreground">{Math.round(result.protocolActivationRate * 100)}%</span>
+                          Deliberación
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                )}
 
                 {/* Mostrar resultado final textual (o error) */}
                 {result.finalOutput && (
