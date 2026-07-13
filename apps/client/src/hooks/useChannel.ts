@@ -1,11 +1,10 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useRef } from "react";
 import type { Channel, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
 import { wsClient } from "@/lib/ws-client";
 import { useConnectionAwareEffect } from "./useConnectionAware";
 
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
+
 
 export interface StreamingAgentState {
   agentId: string;
@@ -30,9 +29,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const fetchChannel = useCallback(async () => {
     if (!channelId) return;
     try {
-      const res = await fetch(`/api/channels/${channelId}`, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await apiFetch(`/api/channels/${channelId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setChannel(data);
@@ -45,9 +42,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     if (!channelId) return;
     try {
       const url = `/api/channels/${channelId}/messages?limit=100${sessionId ? `&sessionId=${sessionId}` : ""}`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMessages(data.messages || []);
@@ -60,9 +55,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     if (!channelId) return;
     try {
       const url = `/api/channels/${channelId}/active-streamings${sessionId ? `?sessionId=${sessionId}` : ""}`;
-      const res = await fetch(url, {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await apiFetch(url);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -75,8 +68,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
               ...s,
               text: merged[agentId].text.length > s.text.length ? merged[agentId].text : s.text,
               thinking: (merged[agentId].thinking?.length || 0) > (s.thinking?.length || 0) ? merged[agentId].thinking : s.thinking,
-              toolCalls: { ...s.toolCalls, ...merged[agentId].toolCalls },
-            };
+              toolCalls: { ...s.toolCalls, ...merged[agentId].toolCalls }};
           } else {
             merged[agentId] = s;
           }
@@ -127,8 +119,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       } else if (data.type === "channel_agent_start") {
         setStreamingAgents((prev) => ({
           ...prev,
-          [data.agentId]: { agentId: data.agentId, agentName: data.agentName, text: "" },
-        }));
+          [data.agentId]: { agentId: data.agentId, agentName: data.agentName, text: "" }}));
       } else if (data.type === "channel_agent_token") {
         setStreamingAgents((prev) => {
           const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
@@ -158,10 +149,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
               result: {
                 toolName: data.toolName,
                 content: Array.isArray(data.result) ? data.result : [{ type: "text", text: String(data.result) }],
-                isError: data.isError,
-              },
-              isError: data.isError,
-            };
+                isError: data.isError},
+              isError: data.isError};
           }
           return { ...prev, [data.agentId]: { ...current, toolCalls: tools } };
         });
@@ -184,11 +173,10 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!channelId || !content.trim()) return;
       const sent = wsClient.send({ type: "channel_send", channelId, sessionId, message: content });
       if (!sent) {
-        await fetch(`/api/channels/${channelId}/send`, {
+        await apiFetch(`/api/channels/${channelId}/send`, {
           method: "POST",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-          body: JSON.stringify({ message: content, sessionId }),
-        });
+          headers: { "Content-Type": "application/json"},
+          body: JSON.stringify({ message: content, sessionId })});
       }
     },
     [channelId, sessionId]
@@ -199,22 +187,20 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     setStreamingAgents({});
     const sent = wsClient.send({ type: "channel_abort", channelId, sessionId });
     if (!sent) {
-      await fetch(`/api/channels/${channelId}/abort`, {
+      await apiFetch(`/api/channels/${channelId}/abort`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify({ sessionId }),
-      });
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify({ sessionId })});
     }
   }, [channelId, sessionId]);
 
   const addMember = useCallback(
     async (data: AddMember) => {
       if (!channelId) return;
-      const res = await fetch(`/api/channels/${channelId}/members`, {
+      const res = await apiFetch(`/api/channels/${channelId}/members`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify(data),
-      });
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify(data)});
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Failed to add member" }));
         throw new Error(err.error || `HTTP ${res.status}`);
@@ -228,11 +214,10 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const updateMember = useCallback(
     async (agentId: string, data: UpdateMember) => {
       if (!channelId) return;
-      const res = await fetch(`/api/channels/${channelId}/members/${agentId}`, {
+      const res = await apiFetch(`/api/channels/${channelId}/members/${agentId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify(data),
-      });
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify(data)});
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
       setChannel(updated);
@@ -243,10 +228,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const removeMember = useCallback(
     async (agentId: string) => {
       if (!channelId) return;
-      const res = await fetch(`/api/channels/${channelId}/members/${agentId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await apiFetch(`/api/channels/${channelId}/members/${agentId}`, {
+        method: "DELETE"});
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
       setChannel(updated);
@@ -257,11 +240,10 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const updateChannel = useCallback(
     async (data: UpdateChannel) => {
       if (!channelId) return;
-      const res = await fetch(`/api/channels/${channelId}`, {
+      const res = await apiFetch(`/api/channels/${channelId}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${getToken()}` },
-        body: JSON.stringify(data),
-      });
+        headers: { "Content-Type": "application/json"},
+        body: JSON.stringify(data)});
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
       setChannel(updated);
@@ -281,6 +263,5 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     updateChannel,
     addMember,
     updateMember,
-    removeMember,
-  };
+    removeMember};
 }

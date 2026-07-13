@@ -1,66 +1,148 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
-import jwt from "jsonwebtoken";
-import bcrypt from "bcryptjs";
-import { LoginSchema, ChangePasswordSchema } from "shared";
-import { authMiddleware, getAuthPayload } from "../middleware/auth";
-import { sessionManager } from "../core/session-manager";
+import { z } from "zod";
+import { auth } from "../auth/index";
+import { sessionMiddleware, getAuthPayload } from "../auth/middleware";
+import { isFirstRun, getUserByUsername } from "../auth/onboarding";
 
 export const authRouter = new Hono();
 
-function resolveHashB64(username: string): string {
-  const fileHash = sessionManager.userConfig.getUserPasswordHash(username);
-  return fileHash ?? process.env.AUTH_PASSWORD_HASH!;
-}
+const RegisterSchema = z.object({
+  username: z.string().min(3).max(32).regex(/^[a-zA-Z0-9_-]+$/),
+  password: z.string().min(8),
+  email: z.string().email().optional(),
+});
+
+const LoginSchema = z.object({
+  username: z.string().min(1),
+  password: z.string().min(1),
+});
+
+const ChangePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+authRouter.get("/status", async (c) => {
+  const needsSetup = await isFirstRun();
+
+  if (needsSetup) {
+    return c.json({ needsSetup: true, authenticated: false });
+  }
+
+  const session = await auth.api.getSession({ headers: c.req.raw.headers });
+  return c.json({
+    needsSetup: false,
+    authenticated: !!session,
+    user: session ? { username: (session.user as any).username } : null,
+  });
+});
+
+authRouter.post("/register", zValidator("json", RegisterSchema), async (c) => {
+  const { username, password, email } = c.req.valid("json");
+
+  const needsSetup = await isFirstRun();
+  if (!needsSetup) {
+    return c.json({ error: "Registration is closed. An account already exists." }, 403);
+  }
+
+  const internalEmail = email || `${username}@crewfactory.internal`;
+
+  try {
+    const result = await auth.api.signUpEmail({
+      body: {
+        email: internalEmail,
+        password,
+        name: username,
+        username,
+        role: "admin",
+      } as any,
+    });
+
+    if (!result) {
+      return c.json({ error: "Registration failed" }, 500);
+    }
+
+    const signIn = await auth.api.signInEmail({
+      body: { email: internalEmail, password },
+      asResponse: true,
+    });
+
+    const setCookie = signIn.headers.get("set-cookie");
+    if (setCookie) {
+      c.header("set-cookie", setCookie);
+    }
+
+    return c.json({ user: { username } });
+  } catch (err: any) {
+    const message = err?.message || "Registration failed";
+    if (message.toLowerCase().includes("already exists") || message.toLowerCase().includes("unique")) {
+      return c.json({ error: "Username already taken" }, 409);
+    }
+    return c.json({ error: message }, 500);
+  }
+});
 
 authRouter.post("/login", zValidator("json", LoginSchema), async (c) => {
   const { username, password } = c.req.valid("json");
 
-  if (username !== process.env.AUTH_USERNAME) {
+  const user = await getUserByUsername(username);
+  if (!user) {
     return c.json({ error: "Invalid credentials" }, 401);
   }
 
-  const hashB64 = resolveHashB64(username);
-  const hash = Buffer.from(hashB64, "base64").toString("utf-8");
-  const valid = await bcrypt.compare(password, hash);
-  if (!valid) {
+  try {
+    const result = await auth.api.signInEmail({
+      body: { email: user.email, password },
+      asResponse: true,
+    });
+
+    if (!result.ok) {
+      return c.json({ error: "Invalid credentials" }, 401);
+    }
+
+    const setCookie = result.headers.get("set-cookie");
+    if (setCookie) {
+      c.header("set-cookie", setCookie);
+    }
+
+    return c.json({ user: { username } });
+  } catch {
     return c.json({ error: "Invalid credentials" }, 401);
   }
-
-  const token = jwt.sign(
-    { username },
-    process.env.JWT_SECRET!,
-    { expiresIn: "7d" }
-  );
-
-  return c.json({ token, user: { username } });
 });
 
-authRouter.post("/password", authMiddleware, zValidator("json", ChangePasswordSchema), async (c) => {
+authRouter.post("/logout", async (c) => {
+  await auth.api.signOut({ headers: c.req.raw.headers });
+  return c.json({ ok: true });
+});
+
+authRouter.get("/me", sessionMiddleware, (c) => {
+  const payload = getAuthPayload(c);
+  return c.json({ user: payload });
+});
+
+authRouter.post("/password", sessionMiddleware, zValidator("json", ChangePasswordSchema), async (c) => {
   const { currentPassword, newPassword } = c.req.valid("json");
   const { username } = getAuthPayload(c);
 
-  const hashB64 = resolveHashB64(username);
-  const hash = Buffer.from(hashB64, "base64").toString("utf-8");
-  const valid = await bcrypt.compare(currentPassword, hash);
-  if (!valid) {
-    return c.json({ error: "Current password is incorrect" }, 401);
+  const user = await getUserByUsername(username);
+  if (!user) {
+    return c.json({ error: "User not found" }, 404);
   }
 
-  const newHash = await bcrypt.hash(newPassword, 10);
-  const newHashB64 = Buffer.from(newHash).toString("base64");
-  sessionManager.userConfig.setUserPasswordHash(username, newHashB64);
+  try {
+    const result = await auth.api.changePassword({
+      body: { currentPassword, newPassword, revokeOtherSessions: false },
+      headers: c.req.raw.headers,
+    });
 
-  const token = jwt.sign(
-    { username },
-    process.env.JWT_SECRET!,
-    { expiresIn: "7d" }
-  );
+    if (!result) {
+      return c.json({ error: "Current password is incorrect" }, 401);
+    }
 
-  return c.json({ token, user: { username } });
-});
-
-authRouter.get("/me", authMiddleware, (c) => {
-  const payload = getAuthPayload(c);
-  return c.json({ user: payload });
+    return c.json({ ok: true, user: { username } });
+  } catch (err: any) {
+    return c.json({ error: err?.message || "Failed to change password" }, 400);
+  }
 });

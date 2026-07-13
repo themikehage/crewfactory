@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { serveStatic } from "hono/bun";
 import { createBunWebSocket } from "hono/bun";
 import { existsSync } from "node:fs";
+import { auth } from "./auth/index";
 import { authRouter } from "./routes/auth";
 import { sessionsRouter } from "./routes/sessions";
 import { filesRouter } from "./routes/files";
@@ -32,8 +33,18 @@ const { upgradeWebSocket, websocket } = createBunWebSocket();
 
 const app = new Hono();
 
-app.use("/*", cors());
+app.use(
+  "/*",
+  cors({
+    origin: (origin) => origin || "*",
+    credentials: true,
+    allowHeaders: ["Content-Type", "Authorization"],
+    allowMethods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+  })
+);
 app.use("/*", logger());
+
+app.on(["GET", "POST"], "/api/auth/**", (c) => auth.handler(c.req.raw));
 
 app.route("/api/auth", authRouter);
 app.route("/api/sessions", sessionsRouter);

@@ -14,7 +14,7 @@ import { type AgentDefinition, SessionPrefix, getAgentDir } from "shared";
 import type { AgentServer } from "./types";
 import { createUiTools } from "../core/tools/ui-tools";
 import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
-import jwt from "jsonwebtoken";
+import { createProgrammaticSessionSync } from "../auth/onboarding";
 import { filterSecretsFromOutput } from "../core/bash-output-filter";
 import { memoryRegistry } from "../core/memory/registry";
 import { createMemoryTools } from "../core/memory/memory-tools";
@@ -94,11 +94,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const customBashTool = createBashToolDefinition(workspaceDir, {
     spawnHook: (context) => {
       const userEnv = coreSessionManager.userConfig.getUserEnv(username);
-      const token = jwt.sign(
-        { username },
-        process.env.JWT_SECRET!,
-        { expiresIn: "7d" }
-      );
+      const token = createProgrammaticSessionSync(username);
       return {
         ...context,
         env: {

@@ -8,10 +8,12 @@
 
 ## Features
 
-### Authentication
-- JWT-based login with bcrypt password hashing
-- Credentials via Coolify env vars (AUTH_USERNAME, AUTH_PASSWORD_HASH base64-encoded)
-- Protected routes and WebSocket connections
+### Authentication & First-Run Onboarding
+- **Better Auth Integration:** Cookie-based secure session management utilizing the framework's native SQLite adapter.
+- **First-Run Onboarding:** Automatic first-run setup flow: the system detects if no users are registered and redirects to a welcome page to create an admin account.
+- **Zero Env-Var Secrets:** Authentication secrets (`.auth-secret`) are securely auto-generated and persisted in the data directory upon first launch.
+- **Unified Session Verification:** SQLite-backed synchronous session resolution mapping active cookies, query tokens, or headers directly to active user records.
+- **Programmatic Session Tokens:** Automatically generates secure session tokens for background subagents and tool subprocess environments.
 
 ### Chat & Streaming
 - Multi-session chat (create, switch, delete sessions)

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback } from "react";
 import { RichMarkdown } from "@/components/chat/RichMarkdown";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
@@ -25,7 +26,6 @@ export function SkillsPage() {
   const [selectedSkill, setSelectedSkill] = useState<SkillInfo | null>(null);
   const [mobileShowDetails, setMobileShowDetails] = useState(false);
 
-  const token = localStorage.getItem("token");
   const [resetting, setResetting] = useState(false);
   const [showResetConfirm, setShowResetConfirm] = useState(false);
 
@@ -33,10 +33,8 @@ export function SkillsPage() {
     setShowResetConfirm(false);
     setResetting(true);
     try {
-      const res = await fetch("/api/skills/reset", {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/skills/reset", {
+        method: "POST"});
       if (!res.ok) throw new Error(l.loadError);
       
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "skill" } }));
@@ -47,7 +45,7 @@ export function SkillsPage() {
     } finally {
       setResetting(false);
     }
-  }, [token, addToast, l.loadError, l.resetSuccess, l.resetErrorPrefix]);
+  }, [addToast, l.loadError, l.resetSuccess, l.resetErrorPrefix]);
 
   const handleResetSkills = useCallback(() => {
     setShowResetConfirm(true);
@@ -55,9 +53,7 @@ export function SkillsPage() {
 
   const fetchSkills = useCallback(async () => {
     try {
-      const res = await fetch("/api/skills", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/skills");
       if (!res.ok) throw new Error(l.loadError);
       const data = await res.json();
       const sorted = (data.skills ?? []).sort((a: SkillInfo, b: SkillInfo) =>
@@ -72,7 +68,7 @@ export function SkillsPage() {
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchSkills();

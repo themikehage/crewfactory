@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast } from "@/contexts/ToastContext";
@@ -52,12 +53,7 @@ export function DashboardPage({ onSelectProject }: Props) {
   const fetchRepos = async () => {
     try {
       setLoading(true);
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/workspace-projects", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await apiFetch("/api/workspace-projects");
       if (!res.ok) {
         throw new Error(l.fetchError);
       }
@@ -84,16 +80,12 @@ export function DashboardPage({ onSelectProject }: Props) {
     if (!renameRepo || !newName.trim()) return;
 
     const id = renameRepo.id || renameRepo.name;
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`/api/workspace-projects/${id}`, {
+      const res = await apiFetch(`/api/workspace-projects/${id}`, {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ name: newName.trim() }),
-      });
+          "Content-Type": "application/json"},
+        body: JSON.stringify({ name: newName.trim() })});
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: l.renameError }));
         throw new Error(err.error || "Failed to rename project");
@@ -114,14 +106,9 @@ export function DashboardPage({ onSelectProject }: Props) {
 
     setDeleting(true);
     const id = deleteRepo.id || deleteRepo.name;
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`/api/workspace-projects/${id}`, {
-        method: "DELETE",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
-      });
+      const res = await apiFetch(`/api/workspace-projects/${id}`, {
+        method: "DELETE"});
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: l.deleteError }));
         throw new Error(err.error || "Failed to delete project");
@@ -154,19 +141,14 @@ export function DashboardPage({ onSelectProject }: Props) {
     setInfoSaving(true);
     setInfoError(null);
     const id = infoProject.id || infoProject.name;
-    const token = localStorage.getItem("token");
     try {
-      const res = await fetch(`/api/workspace-projects/${id}`, {
+      const res = await apiFetch(`/api/workspace-projects/${id}`, {
         method: "PATCH",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json"},
         body: JSON.stringify({
           name: infoName.trim(),
-          cloneUrl: infoCloneUrl.trim() || null,
-        }),
-      });
+          cloneUrl: infoCloneUrl.trim() || null})});
       if (!res.ok) {
         const err = await res.json().catch(() => ({ error: "Failed to update project" }));
         throw new Error(err.error || "Failed to update project");
@@ -197,18 +179,13 @@ export function DashboardPage({ onSelectProject }: Props) {
     setSubmitError(null);
 
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch("/api/workspace-projects", {
+      const res = await apiFetch("/api/workspace-projects", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
+          "Content-Type": "application/json"},
         body: JSON.stringify({
           name: projectName.trim(),
-          cloneUrl: cloneUrl.trim() || undefined,
-        }),
-      });
+          cloneUrl: cloneUrl.trim() || undefined})});
 
       if (!res.ok) {
         const errData = await res.json();

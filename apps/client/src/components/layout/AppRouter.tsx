@@ -2,6 +2,7 @@ import { useState, useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LoginPage } from "@/pages/LoginPage";
+import { OnboardingPage } from "@/pages/OnboardingPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { SkillsPage } from "@/pages/SkillsPage";
 import { AgentsPage } from "@/pages/AgentsPage";
@@ -29,7 +30,7 @@ import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentM
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 
 export function AppRouter() {
-  const { token, user, loading } = useAuth();
+  const { user, loading, needsSetup } = useAuth();
   const { route, navigate } = useRouter();
   const isMobileState = useIsMobile();
   const navigationStack = useNavigationStack();
@@ -481,7 +482,11 @@ export function AppRouter() {
     );
   }
 
-  if (!token || !user) {
+  if (needsSetup) {
+    return <OnboardingPage />;
+  }
+
+  if (!user) {
     return <LoginPage />;
   }
 

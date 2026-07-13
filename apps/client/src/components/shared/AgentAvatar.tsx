@@ -2,9 +2,7 @@ import { useMemo, useState } from "react";
 import type { FC } from "react";
 import { getAvatarComponent, isDefaultAvatar } from "@/lib/defaultAvatars";
 
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
+
 
 interface AgentAvatarProps {
   name: string;
@@ -17,29 +15,26 @@ const SIZE_MAP = {
   xs: 16,
   sm: 24,
   md: 32,
-  lg: 40,
-};
+  lg: 40};
 
 const TEXT_SIZE_MAP = {
   xs: "text-[7px]",
   sm: "text-[9px]",
   md: "text-xs",
-  lg: "text-sm",
-};
+  lg: "text-sm"};
 
 export const AgentAvatar: FC<AgentAvatarProps> = ({
   name,
   avatarUrl,
   size = "md",
-  className = "",
-}) => {
+  className = ""}) => {
   const [imgError, setImgError] = useState(false);
   const px = SIZE_MAP[size];
 
   const authedUrl = useMemo(() => {
     if (!avatarUrl) return "";
     if (isDefaultAvatar(avatarUrl)) return avatarUrl;
-    const token = getToken();
+    const token = "";
     if (!token || !avatarUrl.startsWith("/api/")) return avatarUrl;
     return `${avatarUrl}?token=${encodeURIComponent(token)}`;
   }, [avatarUrl]);

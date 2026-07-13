@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useRef, useMemo } from "react";
 import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
 import { useLiterals } from "@/lib";
@@ -51,8 +52,7 @@ export function LogsConsolePage({
   onSelectProject,
   onSelectAgent,
   onSelectChannel,
-  onNavigate,
-}: LogsConsolePageProps) {
+  onNavigate}: LogsConsolePageProps) {
   const l = useLiterals(u);
   const [activeTab, setActiveTab] = useState<"sessions" | "logs">("sessions");
   
@@ -93,13 +93,11 @@ export function LogsConsolePage({
   const fetchSessionsData = async () => {
     try {
       setSessionsLoading(true);
-      const token = localStorage.getItem("token");
-
       // Cargar sesiones, canales y agentes en paralelo
       const [resSessions, resChannels, resAgents] = await Promise.all([
-        fetch("/api/sessions", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/channels", { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/agents", { headers: { Authorization: `Bearer ${token}` } }),
+        apiFetch("/api/sessions"),
+        apiFetch("/api/channels"),
+        apiFetch("/api/agents"),
       ]);
 
       if (resSessions.ok) {
@@ -129,10 +127,7 @@ export function LogsConsolePage({
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch("/api/logs", {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch("/api/logs");
         if (res.ok) {
           const data = await res.json();
           setLogs(groupConsecutiveDeltas(data.logs || []));
@@ -149,9 +144,6 @@ export function LogsConsolePage({
 
   // Conexión en tiempo real por WebSocket para la pestaña de Logs
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
     const url = `${protocol}//${location.host}/ws`;
 
@@ -160,7 +152,7 @@ export function LogsConsolePage({
 
     ws.onopen = () => {
       setWsConnected(true);
-      ws.send(JSON.stringify({ type: "auth", token }));
+      ws.send(JSON.stringify({ type: "auth" }));
     };
 
     ws.onmessage = (event) => {
@@ -217,8 +209,7 @@ export function LogsConsolePage({
       const liveStatus = liveSessionStatuses[s.id];
       return {
         ...s,
-        status: liveStatus || s.status || "sleeping",
-      };
+        status: liveStatus || s.status || "sleeping"};
     });
 
     // Ordenar por updatedAt desc (las de actividad más reciente primero)

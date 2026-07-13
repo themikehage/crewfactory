@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { auth } from "../auth/index";
 import { existsSync, readFileSync } from "node:fs";
 import { sessionManager } from "../core/session-manager";
 import type { AuthPayload } from "../middleware/auth";
@@ -312,10 +312,19 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
   if (data.type === "auth") {
     try {
-      const user = jwt.verify(
-        data.token as string,
-        process.env.JWT_SECRET!
-      ) as AuthPayload;
+      const sessionToken = data.token as string;
+      const cookieHeader = `better-auth.session_token=${sessionToken}`;
+      const fakeHeaders = new Headers({ cookie: cookieHeader });
+      const session = await auth.api.getSession({ headers: fakeHeaders });
+
+      if (!session) {
+        safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid session" }));
+        try { ws.close(); } catch {}
+        return;
+      }
+
+      const username = (session.user as any).username as string;
+      const user: AuthPayload = { username };
       userMap.set(ws.wsId, user);
 
       let userSockSet = userSockets.get(user.username);
@@ -332,7 +341,7 @@ export async function onMessage(evt: MessageEvent<WSMessageReceive>, _ws: WSCont
 
       safeSend(ws, JSON.stringify({ type: "auth_success", wsId: ws.wsId }));
     } catch {
-      safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid token" }));
+      safeSend(ws, JSON.stringify({ type: "auth_error", error: "Invalid session" }));
       try { ws.close(); } catch {}
     }
     return;

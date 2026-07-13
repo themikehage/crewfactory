@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@xyflow/react": "^12.11.2",
+    "better-auth": "^1.6.23",
     "clsx": "^2",
     "framer-motion": "^11",
     "lucide-react": "^1.23.0",

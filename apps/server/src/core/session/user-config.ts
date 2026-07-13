@@ -10,6 +10,7 @@ import { AuthStorage, ModelRegistry } from "../../ai";
 import { registerQwenProvider } from "../providers/qwen-provider";
 import { registerOpenCodeGoProvider } from "../providers/opencode-go-provider";
 import { encryptEnv, decryptEnv } from "../../lib/env-crypto";
+import { auth } from "../../auth/index";
 
 export interface UserContext {
   authStorage: AuthStorage;
@@ -34,7 +35,7 @@ export class UserConfigManager {
     const raw = readFileSync(envPath, "utf-8");
     if (!raw.trim()) return {};
 
-    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
+    const jwtSecret = auth.options.secret;
     try {
       const decrypted = decryptEnv(raw, jwtSecret);
       return JSON.parse(decrypted);
@@ -59,7 +60,7 @@ export class UserConfigManager {
   setUserEnvMap(username: string, env: Record<string, string>): void {
     this.ensureUserDir(username);
     const envPath = getEnvPath(username);
-    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
+    const jwtSecret = auth.options.secret;
     const encrypted = encryptEnv(JSON.stringify(env), jwtSecret);
     writeFileSync(envPath, encrypted, "utf-8");
   }

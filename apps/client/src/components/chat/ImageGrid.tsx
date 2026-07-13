@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useState, useEffect, useRef } from "react";
 
 interface ImageItem {
@@ -100,10 +101,9 @@ export function AuthenticatedImage({ src, alt, className, ...props }: Authentica
 
     const loadImg = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(src, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
+        const token = "";
+        const res = await apiFetch(src, {
+          headers: token ? {  } : {}});
         if (!res.ok) return;
         const blob = await res.blob();
         if (active) {
@@ -147,8 +147,7 @@ export function ImageGrid({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null,
-}: Props) {
+  activeChannelId = null}: Props) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -164,12 +163,11 @@ export function ImageGrid({
   const downloadImage = useCallback(async (resolvedUrl: string, filename?: string) => {
     setDownloading(resolvedUrl);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(resolvedUrl, {
+      const token = "";
+      const res = await apiFetch(resolvedUrl, {
         headers: resolvedUrl.startsWith("/api/") && token
-          ? { Authorization: `Bearer ${token}` }
-          : {},
-      });
+          ? {  }
+          : {}});
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);
@@ -201,12 +199,11 @@ export function ImageGrid({
 
   const openImageInNewTab = async (resolvedUrl: string) => {
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(resolvedUrl, {
+      const token = "";
+      const res = await apiFetch(resolvedUrl, {
         headers: resolvedUrl.startsWith("/api/") && token
-          ? { Authorization: `Bearer ${token}` }
-          : {},
-      });
+          ? {  }
+          : {}});
       if (!res.ok) throw new Error("Failed to load image");
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);

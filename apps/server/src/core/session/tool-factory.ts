@@ -1,4 +1,4 @@
-import jwt from "jsonwebtoken";
+import { createProgrammaticSessionSync } from "../../auth/onboarding";
 import {
   createBashToolDefinition,
   createReadToolDefinition,
@@ -42,11 +42,7 @@ export class SessionToolFactory {
     const customBashTool = createBashToolDefinition(workspaceDir, {
       spawnHook: (context) => {
         const userEnv = userConfigManager.getUserEnv(username);
-        const token = jwt.sign(
-          { username },
-          process.env.JWT_SECRET!,
-          { expiresIn: "7d" }
-        );
+        const token = createProgrammaticSessionSync(username);
         return {
           ...context,
           env: {

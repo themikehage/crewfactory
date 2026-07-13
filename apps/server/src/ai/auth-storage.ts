@@ -1,6 +1,7 @@
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { dirname } from "node:path";
 import { encryptEnv, decryptEnv } from "../lib/env-crypto";
+import { auth } from "../auth/index";
 
 export type AuthStatus = {
   configured: boolean;
@@ -29,7 +30,7 @@ export class AuthStorage {
     const raw = readFileSync(this.authPath, "utf-8");
     if (!raw.trim()) return {};
 
-    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
+    const jwtSecret = auth.options.secret;
     try {
       const decrypted = decryptEnv(raw, jwtSecret);
       return JSON.parse(decrypted);
@@ -49,7 +50,7 @@ export class AuthStorage {
   private save(): void {
     const dir = dirname(this.authPath);
     if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
-    const jwtSecret = process.env.JWT_SECRET || "dev-fallback-secret-key-crewfactory-default-1234567890";
+    const jwtSecret = auth.options.secret;
     const encrypted = encryptEnv(JSON.stringify(this.data), jwtSecret);
     writeFileSync(this.authPath, encrypted, "utf-8");
   }

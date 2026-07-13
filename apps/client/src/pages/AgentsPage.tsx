@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useAgents } from "@/hooks/useAgents";
@@ -16,23 +17,20 @@ const STATUS_COLORS: Record<string, string> = {
   idle: "text-primary bg-primary/10 border-primary/30",
   streaming: "text-blue-400 bg-blue-400/10 border-blue-400/30",
   error: "text-destructive bg-destructive/10 border-error/30",
-  stopped: "text-muted-foreground bg-card border-input",
-};
+  stopped: "text-muted-foreground bg-card border-input"};
 
 const STATUS_DOT: Record<string, string> = {
   starting: "bg-warning animate-pulse",
   idle: "bg-primary",
   streaming: "bg-blue-400 animate-pulse",
   error: "bg-destructive",
-  stopped: "bg-text-secondary",
-};
+  stopped: "bg-text-secondary"};
 
 const ROLE_COLORS: Record<string, string> = {
   "web-builder": "text-purple-400 bg-purple-400/10 border-purple-400/20",
   researcher: "text-sky-400 bg-sky-400/10 border-sky-400/20",
   supervisor: "text-amber-400 bg-amber-400/10 border-amber-400/20",
-  default: "text-muted-foreground bg-card border-input",
-};
+  default: "text-muted-foreground bg-card border-input"};
 
 function roleColor(role: string) {
   return ROLE_COLORS[role] ?? ROLE_COLORS.default;
@@ -53,16 +51,14 @@ const DEFAULT_FORM: AgentDefinition = {
   model: "",
   skills: [],
   port: undefined,
-  serialTools: ["request_approval", "ask_question"],
-};
+  serialTools: ["request_approval", "ask_question"]};
 
 function AgentCard({
   agent,
   onDelete,
   onEdit,
   onChat,
-  onExecutions,
-}: {
+  onExecutions}: {
   agent: AgentInfo;
   onDelete: (id: string) => void;
   onEdit: (agent: AgentInfo) => void;
@@ -177,8 +173,7 @@ function RegisterModal({
   onClose,
   onSubmit,
   onUploadAvatar,
-  onDeleteAvatar,
-}: {
+  onDeleteAvatar}: {
   agent?: AgentInfo | null;
   onClose: () => void;
   onSubmit: (def: AgentDefinition) => Promise<unknown>;
@@ -198,10 +193,7 @@ function RegisterModal({
     if (agent) {
       const fetchDetail = async () => {
         try {
-          const token = localStorage.getItem("token");
-          const res = await fetch(`/api/agents/${agent.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
+          const res = await apiFetch(`/api/agents/${agent.id}`);
           if (res.ok) {
             const data = await res.json();
             if (data.definition) {
@@ -272,8 +264,7 @@ function RegisterModal({
           ? DEFAULT_AVATAR_PREFIX + selectedDefaultAvatar
           : avatarPreview && !avatarPreview.startsWith("blob:") && !isDefaultAvatar(avatarPreview)
             ? avatarPreview
-            : undefined,
-      };
+            : undefined};
       const result = await onSubmit(def);
       const agentId = agent?.id || (result as AgentInfo)?.id;
       if (avatarFile && agentId && onUploadAvatar) {
@@ -432,8 +423,7 @@ function RegisterModal({
                 onChange={(e) =>
                   setForm((prev) => ({
                     ...prev,
-                    port: e.target.value ? parseInt(e.target.value) : undefined,
-                  }))
+                    port: e.target.value ? parseInt(e.target.value) : undefined}))
                 }
                 placeholder={l.portPlaceholder}
                 className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50 font-mono"
@@ -576,8 +566,7 @@ function RegisterModal({
   onClose,
   onInstall,
   isInstalled,
-  installing,
-}: {
+  installing}: {
   blueprint: any;
   onClose: () => void;
   onInstall: (id: string) => Promise<void>;
@@ -836,10 +825,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
     setLoadingBlueprints(true);
     setBlueprintsError(null);
     try {
-      const token = localStorage.getItem("token") || "";
-      const res = await fetch("/api/gallery/blueprints", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/gallery/blueprints");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setBlueprints(data.blueprints || []);
@@ -852,10 +838,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
 
   const fetchChannels = useCallback(async () => {
     try {
-      const token = localStorage.getItem("token") || "";
-      const res = await fetch("/api/channels", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/channels");
       if (res.ok) {
         const data = await res.json();
         setChannels(data.channels || []);
@@ -875,11 +858,8 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
   const handleInstall = useCallback(async (bpId: string) => {
     setInstallingId(bpId);
     try {
-      const token = localStorage.getItem("token") || "";
-      const res = await fetch(`/api/gallery/blueprints/${bpId}/install`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/gallery/blueprints/${bpId}/install`, {
+        method: "POST"});
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Failed to install");
       
@@ -1266,8 +1246,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
 
 function ExecutionsModal({
   agent,
-  onClose,
-}: {
+  onClose}: {
   agent: { id: string; name: string };
   onClose: () => void;
 }) {
@@ -1284,10 +1263,7 @@ function ExecutionsModal({
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token") || "";
-        const res = await fetch(`/api/agents/${agent.id}/executions`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch(`/api/agents/${agent.id}/executions`);
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const data = await res.json();
         setExecutions(data.executions || []);
@@ -1303,10 +1279,7 @@ function ExecutionsModal({
   const loadDetail = async (execId: string) => {
     setLoadingDetail(true);
     try {
-      const token = localStorage.getItem("token") || "";
-      const res = await fetch(`/api/agents/${agent.id}/executions/${execId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/agents/${agent.id}/executions/${execId}`);
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setExecDetail(data);

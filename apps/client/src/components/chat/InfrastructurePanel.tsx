@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback } from "react";
 import type { IntegrationTemplate } from "shared";
 
@@ -14,23 +15,15 @@ export function InfrastructurePanel({ activeProjectName, onSendPrompt }: Props) 
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const token = localStorage.getItem("token");
-
   const fetchData = useCallback(async () => {
     if (!activeProjectName) return;
     setLoading(true);
     setError("");
     try {
       const [tplRes, envRes, bindRes] = await Promise.all([
-        fetch("/api/integrations/templates", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch("/api/env", {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
-        fetch(`/api/integrations/bindings/${activeProjectName}`, {
-          headers: { Authorization: `Bearer ${token}` },
-        }),
+        apiFetch("/api/integrations/templates"),
+        apiFetch("/api/env"),
+        apiFetch(`/api/integrations/bindings/${activeProjectName}`),
       ]);
 
       if (!tplRes.ok || !envRes.ok || !bindRes.ok) {
@@ -49,7 +42,7 @@ export function InfrastructurePanel({ activeProjectName, onSendPrompt }: Props) 
     } finally {
       setLoading(false);
     }
-  }, [activeProjectName, token]);
+  }, [activeProjectName]);
 
   useEffect(() => {
     fetchData();
@@ -60,14 +53,11 @@ export function InfrastructurePanel({ activeProjectName, onSendPrompt }: Props) 
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/integrations/bindings/${activeProjectName}`, {
+      const res = await apiFetch(`/api/integrations/bindings/${activeProjectName}`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(bindings),
-      });
+          "Content-Type": "application/json"},
+        body: JSON.stringify(bindings)});
 
       if (!res.ok) throw new Error("Failed to save repository linkages");
       await fetchData();
@@ -156,8 +146,7 @@ export function InfrastructurePanel({ activeProjectName, onSendPrompt }: Props) 
                               onChange={(e) =>
                                 setBindings((prev) => ({
                                   ...prev,
-                                  [repoVar]: e.target.value,
-                                }))
+                                  [repoVar]: e.target.value}))
                               }
                               placeholder={`Enter ${repoVar}`}
                               className="w-full px-2.5 py-1.5 bg-background border border-input/30 rounded text-xs text-foreground placeholder-text-secondary/50 outline-none focus:border-primary font-mono"

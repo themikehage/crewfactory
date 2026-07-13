@@ -170,8 +170,7 @@ function AgentTurn({
   activeAgentAvatarUrl,
   activeChannelId,
   serialTools = [],
-  onOpenSubagentConsole,
-}: {
+  onOpenSubagentConsole}: {
   messages: Message[];
   sessionId: string | null;
   onNavigate?: (id: string) => void;
@@ -264,8 +263,7 @@ function AgentTurn({
                           ? (matchedResult.content as Array<{ type: string; text?: string; data?: string; mimeType?: string }>)
                           : [{ type: "text", text: String(matchedResult.content) }],
                         isError: matchedResult.isError ?? false,
-                        details: matchedResult.details,
-                      }
+                        details: matchedResult.details}
                     : null;
 
                   const isPending = pendingInteractiveIds.includes(block.id);
@@ -339,8 +337,7 @@ function extractUserAttachments(text: string): UserAttachment[] {
     attachments.push({
       path,
       name,
-      type: getFileType(path),
-    });
+      type: getFileType(path)});
   }
   return attachments;
 }
@@ -357,20 +354,17 @@ function DelegationNotification({ msg }: { msg: Message }) {
     success: "border-l-green-500/60",
     error: "border-l-red-500/60",
     blocked: "border-l-yellow-500/60",
-    partial: "border-l-yellow-500/60",
-  };
+    partial: "border-l-yellow-500/60"};
   const dotColors: Record<string, string> = {
     success: "bg-green-500",
     error: "bg-red-500",
     blocked: "bg-yellow-500",
-    partial: "bg-yellow-500",
-  };
+    partial: "bg-yellow-500"};
   const statusLabels: Record<string, string> = {
     success: "Completed",
     error: "Error",
     blocked: "Blocked",
-    partial: "Partial",
-  };
+    partial: "Partial"};
 
   const status = (d.status as string) || "success";
   const borderColor = borderColors[status] || "border-l-accent/60";
@@ -431,8 +425,7 @@ function UserBubble({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null,
-}: {
+  activeChannelId = null}: {
   msg: Message;
   onNavigate?: (id: string) => void;
   sessionId: string | null;
@@ -452,7 +445,7 @@ function UserBubble({
   const images = attachments.filter(a => a.type === "image");
   const nonImages = attachments.filter(a => a.type !== "image");
 
-  const token = localStorage.getItem("token");
+  const token = "";
 
   return (
     <div className="flex gap-3 justify-end my-1">
@@ -520,8 +513,7 @@ function UserBubble({
 function ToolApprovalCard({
   msg,
   onResolve,
-  settledAction,
-}: {
+  settledAction}: {
   msg: Message;
   onResolve?: (toolCallId: string, action: "confirm" | "deny") => void;
   settledAction?: "confirm" | "deny";
@@ -603,8 +595,7 @@ export const MessageList: FC<Props> = ({
   serialTools,
   onOpenSubagentConsole,
   settledApprovals,
-  onResolveApproval,
-}) => {
+  onResolveApproval}) => {
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useCallback, useEffect } from "react";
 import { useChannel } from "@/hooks/useChannel";
 import { ChannelMessageList } from "./ChannelMessageList";
@@ -27,16 +28,14 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
     { id: "__user__", name: "user" },
     ...channelMembers.map((m) => ({
       id: m.agentId,
-      name: registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId,
-    })),
+      name: registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId})),
   ];
 
   const loadChannelDetails = useCallback(async () => {
-    const token = localStorage.getItem("token");
     try {
       const [chRes, agRes] = await Promise.all([
-        fetch(`/api/channels/${activeChannel.id}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/agents", { headers: { Authorization: `Bearer ${token}` } }),
+        apiFetch(`/api/channels/${activeChannel.id}`),
+        apiFetch("/api/agents"),
       ]);
       if (chRes.ok) {
         const data = await chRes.json();
@@ -55,44 +54,35 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
   }, [loadChannelDetails]);
 
   const handleAddMember = async (data: AddMember) => {
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${activeChannel.id}/members`, {
+    await apiFetch(`/api/channels/${activeChannel.id}/members`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify(data)});
     await loadChannelDetails();
     await fetchChannel();
   };
 
   const handleUpdateMember = async (agentId: string, data: UpdateMember) => {
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${activeChannel.id}/members/${agentId}`, {
+    await apiFetch(`/api/channels/${activeChannel.id}/members/${agentId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify(data)});
     await loadChannelDetails();
     await fetchChannel();
   };
 
   const handleRemoveMember = async (agentId: string) => {
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${activeChannel.id}/members/${agentId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiFetch(`/api/channels/${activeChannel.id}/members/${agentId}`, {
+      method: "DELETE"});
     await loadChannelDetails();
     await fetchChannel();
   };
 
   const handleSaveContext = async (context: ChannelContextItem[]) => {
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${activeChannel.id}/context`, {
+    await apiFetch(`/api/channels/${activeChannel.id}/context`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ context }),
-    });
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify({ context })});
     await fetchChannel();
   };
 

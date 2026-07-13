@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useCallback, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useChannels } from "@/hooks/useChannels";
@@ -11,8 +12,7 @@ import { Button } from "@/components/ui/Button";
 
 function CreateChannelModal({
   onClose,
-  onCreate,
-}: {
+  onCreate}: {
   onClose: () => void;
   onCreate: (data: CreateChannel) => Promise<void>;
 }) {
@@ -116,8 +116,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("/api/agents", { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch("/api/agents")
       .then((res) => (res.ok ? res.json() : null))
       .then((data) => {
         if (data) setRegisteredAgents(data.agents || []);
@@ -126,11 +125,10 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
   }, []);
 
   const loadChannelDetails = useCallback(async (channelId: string) => {
-    const token = localStorage.getItem("token");
     try {
       const [chRes, agRes] = await Promise.all([
-        fetch(`/api/channels/${channelId}`, { headers: { Authorization: `Bearer ${token}` } }),
-        fetch("/api/agents", { headers: { Authorization: `Bearer ${token}` } }),
+        apiFetch(`/api/channels/${channelId}`),
+        apiFetch("/api/agents"),
       ]);
       if (chRes.ok) {
         const data = await chRes.json();
@@ -155,46 +153,37 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
 
   const handleSaveContext = async (context: ChannelContextItem[]) => {
     if (!contextChannel) return;
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${contextChannel.id}/context`, {
+    await apiFetch(`/api/channels/${contextChannel.id}/context`, {
       method: "PUT",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify({ context }),
-    });
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify({ context })});
     await fetchChannels();
   };
 
   const handleAddMember = async (data: AddMember) => {
     if (!managingChannel) return;
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${managingChannel.id}/members`, {
+    await apiFetch(`/api/channels/${managingChannel.id}/members`, {
       method: "POST",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify(data)});
     await loadChannelDetails(managingChannel.id);
     await fetchChannels();
   };
 
   const handleUpdateMember = async (agentId: string, data: UpdateMember) => {
     if (!managingChannel) return;
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${managingChannel.id}/members/${agentId}`, {
+    await apiFetch(`/api/channels/${managingChannel.id}/members/${agentId}`, {
       method: "PATCH",
-      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-      body: JSON.stringify(data),
-    });
+      headers: { "Content-Type": "application/json"},
+      body: JSON.stringify(data)});
     await loadChannelDetails(managingChannel.id);
     await fetchChannels();
   };
 
   const handleRemoveMember = async (agentId: string) => {
     if (!managingChannel) return;
-    const token = localStorage.getItem("token");
-    await fetch(`/api/channels/${managingChannel.id}/members/${agentId}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${token}` },
-    });
+    await apiFetch(`/api/channels/${managingChannel.id}/members/${agentId}`, {
+      method: "DELETE"});
     await loadChannelDetails(managingChannel.id);
     await fetchChannels();
   };

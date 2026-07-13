@@ -58,8 +58,15 @@ function usePreviewStatus(projectName: string) {
     let reconnectAttempts = 0;
     let closed = false;
 
-    const connect = () => {
-      const t = localStorage.getItem("token");
+    const connect = async () => {
+      let t: string | null = null;
+      try {
+        const res = await fetch("/api/auth/get-session", { credentials: "include" });
+        if (res.ok) {
+          const data = await res.json() as { session?: { token?: string } };
+          t = data?.session?.token ?? null;
+        }
+      } catch {}
       if (!t || closed) return;
 
       const sock = new WebSocket(wsUrl);

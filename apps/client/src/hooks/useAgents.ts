@@ -1,9 +1,8 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback } from "react";
 import type { AgentInfo, AgentDefinition } from "shared";
 
-function getToken() {
-  return localStorage.getItem("token") || "";
-}
+
 
 export function useAgents() {
   const [agents, setAgents] = useState<AgentInfo[]>([]);
@@ -14,9 +13,7 @@ export function useAgents() {
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/agents", {
-        headers: { Authorization: `Bearer ${getToken()}` },
-      });
+      const res = await apiFetch("/api/agents");
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setAgents(data.agents || []);
@@ -32,14 +29,11 @@ export function useAgents() {
   }, [fetchAgents]);
 
   const registerAgent = useCallback(async (definition: AgentDefinition): Promise<AgentInfo> => {
-    const res = await fetch("/api/agents", {
+    const res = await apiFetch("/api/agents", {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: JSON.stringify(definition),
-    });
+        "Content-Type": "application/json"},
+      body: JSON.stringify(definition)});
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
       throw new Error(err.error || `HTTP ${res.status}`);
@@ -51,10 +45,8 @@ export function useAgents() {
   }, [fetchAgents]);
 
   const stopAgent = useCallback(async (id: string): Promise<void> => {
-    const res = await fetch(`/api/agents/${id}`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
+    const res = await apiFetch(`/api/agents/${id}`, {
+      method: "DELETE"});
     if (!res.ok && res.status !== 404) {
       throw new Error(`HTTP ${res.status}`);
     }
@@ -63,14 +55,11 @@ export function useAgents() {
   }, [fetchAgents]);
 
   const promptAgent = useCallback(async (id: string, message: string): Promise<string> => {
-    const res = await fetch(`/api/agents/${id}/prompt`, {
+    const res = await apiFetch(`/api/agents/${id}/prompt`, {
       method: "POST",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: JSON.stringify({ message, stream: false }),
-    });
+        "Content-Type": "application/json"},
+      body: JSON.stringify({ message, stream: false })});
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
       throw new Error(err.error || `HTTP ${res.status}`);
@@ -87,14 +76,11 @@ export function useAgents() {
   }, []);
 
   const updateAgent = useCallback(async (id: string, updates: Partial<Omit<AgentDefinition, "id">>): Promise<AgentInfo> => {
-    const res = await fetch(`/api/agents/${id}`, {
+    const res = await apiFetch(`/api/agents/${id}`, {
       method: "PATCH",
       headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${getToken()}`,
-      },
-      body: JSON.stringify(updates),
-    });
+        "Content-Type": "application/json"},
+      body: JSON.stringify(updates)});
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
       throw new Error(err.error || `HTTP ${res.status}`);
@@ -108,11 +94,9 @@ export function useAgents() {
   const uploadAvatar = useCallback(async (id: string, file: File): Promise<string> => {
     const formData = new FormData();
     formData.append("file", file);
-    const res = await fetch(`/api/agents/${id}/avatar`, {
+    const res = await apiFetch(`/api/agents/${id}/avatar`, {
       method: "POST",
-      headers: { Authorization: `Bearer ${getToken()}` },
-      body: formData,
-    });
+      body: formData});
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
       throw new Error(err.error || `HTTP ${res.status}`);
@@ -123,10 +107,8 @@ export function useAgents() {
   }, [fetchAgents]);
 
   const deleteAvatar = useCallback(async (id: string): Promise<void> => {
-    const res = await fetch(`/api/agents/${id}/avatar`, {
-      method: "DELETE",
-      headers: { Authorization: `Bearer ${getToken()}` },
-    });
+    const res = await apiFetch(`/api/agents/${id}/avatar`, {
+      method: "DELETE"});
     if (!res.ok) {
       const err = await res.json().catch(() => ({ error: "Unknown error" }));
       throw new Error(err.error || `HTTP ${res.status}`);

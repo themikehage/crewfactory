@@ -1,4 +1,6 @@
+COMPLETED
 # Plan: Better Auth Integration & First-Run Onboarding
+
 
 ## Vision
 Replace the custom JWT+bcrypt single-user auth with **Better Auth** for a self-hosted experience like Coolify: the user accesses the app URL, creates their admin account on first run, and logs in normally afterwards. Zero env-var management for credentials -- secrets are auto-generated and persisted on disk.

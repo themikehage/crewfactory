@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState } from "react";
 import { resolveImageUrl } from "../ImageGrid";
 import { Button } from "@/components/ui/Button";
@@ -38,8 +39,7 @@ const EXT_ICONS: Record<string, string> = {
   mp3: "MP3",
   wav: "WAV",
   mp4: "MP4",
-  mov: "MP4",
-};
+  mov: "MP4"};
 
 const EXT_COLORS: Record<string, string> = {
   PDF: "bg-red-500/20 text-red-400",
@@ -51,8 +51,7 @@ const EXT_COLORS: Record<string, string> = {
   IMG: "bg-purple-500/20 text-purple-400",
   SVG: "bg-pink-500/20 text-pink-400",
   JSON: "bg-cyan-500/20 text-cyan-400",
-  HTML: "bg-indigo-500/20 text-indigo-400",
-};
+  HTML: "bg-indigo-500/20 text-indigo-400"};
 
 function getExtension(filePath: string): string {
   const name = filePath.split(/[\\/]/).pop() || "";
@@ -76,8 +75,7 @@ export function ShareFileCard({
   sessionId,
   activeProjectName,
   activeAgentId,
-  activeChannelId,
-}: Props) {
+  activeChannelId}: Props) {
   const [downloading, setDownloading] = useState(false);
   const fileName = filePath.split(/[\\/]/).pop() || filePath;
   const displayName = title || fileName;
@@ -98,10 +96,9 @@ export function ShareFileCard({
   const handleDownload = async () => {
     setDownloading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(fullDownloadUrl, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
-      });
+      const token = "";
+      const res = await apiFetch(fullDownloadUrl, {
+        headers: token ? {  } : {}});
       if (!res.ok) throw new Error("Download failed");
       const blob = await res.blob();
       const blobUrl = URL.createObjectURL(blob);

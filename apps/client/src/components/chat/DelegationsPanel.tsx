@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useLiterals } from "@/lib";
@@ -34,10 +35,7 @@ export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = n
     if (!sessionId) return;
     setLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/delegations`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/sessions/${sessionId}/delegations`);
       if (res.ok) {
         const data = await res.json();
         setDelegations(data.delegations ?? []);

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
@@ -143,8 +144,7 @@ export function HtmlFileFetcher({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null,
-}: {
+  activeChannelId = null}: {
   url: string;
   title: string;
   sessionId: string | null;
@@ -163,12 +163,11 @@ export function HtmlFileFetcher({
     setLoading(true);
     setError(null);
 
-    const token = localStorage.getItem("token");
-    fetch(resolvedUrl, {
+    const token = "";
+    apiFetch(resolvedUrl, {
       headers: resolvedUrl.startsWith("/api/") && token
-        ? { Authorization: `Bearer ${token}` }
-        : {},
-    })
+        ? {  }
+        : {}})
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.text();
@@ -218,8 +217,7 @@ function MediaRenderer({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null,
-}: {
+  activeChannelId = null}: {
   markers: FileMarker[];
   sessionId: string | null;
   activeProjectName?: string | null;
@@ -235,7 +233,7 @@ function MediaRenderer({
 
   if (markers.length === 0) return null;
 
-  const token = localStorage.getItem("token");
+  const token = "";
 
   return (
     <div className="space-y-3">
@@ -355,8 +353,7 @@ export function ToolResultInspector({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null,
-}: Props) {
+  activeChannelId = null}: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   const resultStr = typeof result === "string"

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback } from "react";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SettingsPage.literals";
@@ -21,13 +22,11 @@ export function SettingsPage() {
   const [envLoading, setEnvLoading] = useState(true);
   const [envError, setEnvError] = useState("");
 
-  const token = localStorage.getItem("token");
+  const token = "";
 
   const fetchEnvVars = useCallback(async () => {
     try {
-      const res = await fetch("/api/env", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/env");
       if (!res.ok) throw new Error("Failed to load environment variables");
       const data = await res.json();
       setEnvVars(data.env ?? []);
@@ -37,7 +36,7 @@ export function SettingsPage() {
     } finally {
       setEnvLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchEnvVars();

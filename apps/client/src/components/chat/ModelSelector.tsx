@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useRouter } from "@/hooks/useRouter";
 import { PortalPopover } from "./PortalPopover";
@@ -67,20 +68,15 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
 
   const applyModelToSession = useCallback(
     async (model: SelectedModel, sid: string) => {
-      const token = localStorage.getItem("token");
       try {
-        const res = await fetch(`/api/sessions/${sid}/model`, {
+        const res = await apiFetch(`/api/sessions/${sid}/model`, {
           method: "POST",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
+            "Content-Type": "application/json"},
           body: JSON.stringify({
             provider: model.provider,
             modelId: model.modelId,
-            thinkingLevel: "medium",
-          }),
-        });
+            thinkingLevel: "medium"})});
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           setError(data.error ?? "Failed to set model");
@@ -107,10 +103,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
   }, [controlled, value]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("/api/providers", {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    apiFetch("/api/providers")
       .then((res) => res.json())
       .then((data) => {
         const configured = (data.providers ?? [])
@@ -135,8 +128,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
           const fallbackSelection = {
             provider: firstProvider.id,
             modelId: firstModel.id,
-            modelName: firstModel.name,
-          };
+            modelName: firstModel.name};
           setSelected(fallbackSelection);
           localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSelection));
           setError(null);
@@ -152,8 +144,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
         const fallbackSelection = {
           provider: firstProvider.id,
           modelId: firstModel.id,
-          modelName: firstModel.name,
-        };
+          modelName: firstModel.name};
         setSelected(fallbackSelection);
         localStorage.setItem(STORAGE_KEY, JSON.stringify(fallbackSelection));
         setError(null);

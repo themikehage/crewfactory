@@ -61,8 +61,7 @@ export function AssistantTextBlock({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null,
-}: {
+  activeChannelId = null}: {
   text: string;
   sessionId: string | null;
   activeProjectName?: string | null;
@@ -108,7 +107,7 @@ export function AssistantTextBlock({
   );
 
   if (htmlOutput || markers.length > 0) {
-    const token = localStorage.getItem("token");
+    const token = "";
     return (
       <div className="relative group">
         {copyButton}

@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useRef, useEffect, useCallback, type KeyboardEvent } from "react";
 import { useLiterals, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
@@ -92,8 +93,7 @@ function getMarkdownLanguage(fileName: string): string {
     ".sql": "sql",
     ".sh": "bash",
     ".bash": "bash",
-    ".xml": "xml",
-  };
+    ".xml": "xml"};
   return map[ext] || "";
 }
 
@@ -116,24 +116,20 @@ export async function processAttachments(
       imagesToPass.push({
         type: "image",
         data: base64Data,
-        mimeType: file.type,
-      });
+        mimeType: file.type});
 
       const formData = new FormData();
       formData.append("file", file);
 
-      const token = localStorage.getItem("token");
       const params = new URLSearchParams();
       if (scope.activeProjectName) params.append("project", scope.activeProjectName);
       if (scope.activeAgentId) params.append("agentId", scope.activeAgentId);
       if (scope.activeChannelId) params.append("channelId", scope.activeChannelId);
       const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+        body: formData});
 
       if (res.ok) {
         const data = await res.json();
@@ -152,18 +148,15 @@ export async function processAttachments(
       const formData = new FormData();
       formData.append("file", file);
 
-      const token = localStorage.getItem("token");
       const params = new URLSearchParams();
       if (scope.activeProjectName) params.append("project", scope.activeProjectName);
       if (scope.activeAgentId) params.append("agentId", scope.activeAgentId);
       if (scope.activeChannelId) params.append("channelId", scope.activeChannelId);
       const url = `/api/workspace/assets/uploads${params.toString() ? `?${params.toString()}` : ""}`;
 
-      const res = await fetch(url, {
+      const res = await apiFetch(url, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+        body: formData});
 
       if (res.ok) {
         const data = await res.json();
@@ -223,8 +216,7 @@ export function ChatInput({
   contextUsage = null,
   onCompact,
   compacting = false,
-  textareaRef: externalTextareaRef,
-}: Props) {
+  textareaRef: externalTextareaRef}: Props) {
   const l = useLiterals(u);
   const { addToast } = useToast();
   const [input, setInput] = useState("");
@@ -324,8 +316,7 @@ export function ChatInput({
         id: Math.random().toString(36).substring(2, 9),
         file,
         type: isImg ? ("image" as const) : ("document" as const),
-        previewUrl: isImg ? URL.createObjectURL(file) : undefined,
-      };
+        previewUrl: isImg ? URL.createObjectURL(file) : undefined};
     });
     setAttachments((prev) => [...prev, ...newAttachments]);
     e.target.value = "";
@@ -411,15 +402,11 @@ export function ChatInput({
     onToolsChange?.(tools);
     if (!sessionId) return;
     try {
-      const token = localStorage.getItem("token");
-      await fetch(`/api/sessions/${sessionId}/tools`, {
+      await apiFetch(`/api/sessions/${sessionId}/tools`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ tools }),
-      });
+          "Content-Type": "application/json"},
+        body: JSON.stringify({ tools })});
     } catch {}
   };
 
@@ -449,10 +436,7 @@ export function ChatInput({
     }
     const fetchTools = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/tools`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch(`/api/sessions/${sessionId}/tools`);
         if (res.ok) {
           const data = await res.json();
           setActiveTools(data.tools ?? DEFAULT_TOOLS);
@@ -473,10 +457,7 @@ export function ChatInput({
     }
     setSkillsLoading(true);
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/skills`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/sessions/${sessionId}/skills`);
       if (res.ok) {
         const data = await res.json();
         setSkills(data.skills ?? []);

@@ -239,3 +239,15 @@
 - [x] 118.2 Implement inline `ProjectInfoModal` details/editing panel on `DashboardPage` and add translations
 - [x] 118.3 Add collapsible Advanced Configuration drawer with checkboxes for `serialTools` inside `RegisterModal` and add translations
 - [x] 118.4 Move implemented plan to completed folder and verify client/server compilations
+
+## Phase 119: Better Auth Integration & First-Run Onboarding
+- [x] 119.1 Install better-auth and configure SQLite native database schema initialization dynamically in db.ts
+- [x] 119.2 Implement username-based register and login flows with emailAndPassword authentication
+- [x] 119.3 Implement /api/auth/status checking first-run and active sessions
+- [x] 119.4 Rewrite AuthContext to support httpOnly cookie credentials and three-way loading state routing
+- [x] 119.5 Create OnboardingPage welcome form for admin account registration
+- [x] 119.6 Migrate all client fetch operations to apiFetch and eliminate localStorage raw JWT token dependency
+- [x] 119.7 Replace server process.env.JWT_SECRET usages with persistent database-generated auth.options.secret
+- [x] 119.8 Implement synchronous session token lookup and programmatic session token generation for subprocess environments in auth/onboarding.ts
+- [x] 119.9 Verify 100% production compilation builds and clean typechecking of apps/server and apps/client
+

@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
-import jwt from "jsonwebtoken";
+import { createProgrammaticSessionSync } from "../../auth/onboarding";
 import {
   createAgentSession,
   AuthStorage,
@@ -98,11 +98,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       const customBashTool = createBashToolDefinition(workspaceDir, {
         spawnHook: (context) => {
           const userEnv = sessionManager.userConfig.getUserEnv(username);
-          const token = jwt.sign(
-            { username },
-            process.env.JWT_SECRET!,
-            { expiresIn: "7d" }
-          );
+          const token = createProgrammaticSessionSync(username);
           return {
             ...context,
             env: {

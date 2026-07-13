@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect } from "react";
 import type { Experiment } from "@/types/laboratory";
 import { wsClient } from "@/lib/ws-client";
@@ -8,8 +9,7 @@ type VariantKey = "single" | "multiNoLeader" | "multiWithLeader";
 const VARIANT_LABELS: Record<VariantKey, string> = {
   single: "Baseline",
   multiNoLeader: "H. Horizontal",
-  multiWithLeader: "H. Jerárquico",
-};
+  multiWithLeader: "H. Jerárquico"};
 
 interface JudgeReportProps {
   exp: Experiment;
@@ -22,8 +22,7 @@ export function JudgeReport({
   exp,
   onJudge,
   isJudging,
-  onNavigate,
-}: JudgeReportProps) {
+  onNavigate}: JudgeReportProps) {
   const [models, setModels] = useState<Array<{ id: string; name: string; provider: string }>>([]);
   const [selectedJudgeModel, setSelectedJudgeModel] = useState<string>("");
   const [streamingText, setStreamingText] = useState("");
@@ -54,8 +53,7 @@ export function JudgeReport({
   }, [exp.id]);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
-    fetch("/api/models", { headers: { Authorization: `Bearer ${token}` } })
+    apiFetch("/api/models")
       .then((r) => r.json())
       .then((data) => setModels(data.models || []))
       .catch((e) => console.error("Failed to load models for LLM Judge:", e));
@@ -88,8 +86,7 @@ export function JudgeReport({
               { value: "", label: "Default (Lab Model)" },
               ...models.map((m) => ({
                 value: `${m.provider}/${m.id}`,
-                label: `${m.provider}/${m.name || m.id}`,
-              })),
+                label: `${m.provider}/${m.name || m.id}`})),
             ]}
             disabled={isJudging}
             placeholder="Default (Lab Model)"

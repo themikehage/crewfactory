@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useChatScroll } from "@/hooks/useChatScroll";
@@ -61,9 +62,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
 
   const createSessionAndSend = async (messageText: string, attachments?: File[]) => {
-    const token = localStorage.getItem("token");
-    if (!token) return;
-
     const sessionName = getSessionName({ activeChannel, activeAgent, activeProjectName });
 
     try {
@@ -75,8 +73,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           const result = await processAttachments(attachments, {
             activeProjectName,
             activeAgentId: activeAgent?.id,
-            activeChannelId: activeChannel?.id,
-          });
+            activeChannelId: activeChannel?.id});
           finalText = messageText + result.extraText;
           imagesToSave = result.images;
         } catch (attachErr) {
@@ -85,18 +82,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         }
       }
 
-      const createRes = await fetch("/api/sessions", {
+      const createRes = await apiFetch("/api/sessions", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`
-        },
+          "Content-Type": "application/json"},
         body: JSON.stringify(buildCreateSessionBody(sessionName, {
           activeChannel,
           activeAgent,
-          activeProjectName,
-        })),
-      });
+          activeProjectName}))});
 
       if (createRes.ok) {
         const session = await createRes.json();
@@ -121,43 +114,36 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       return [
         {
           label: l.pillListAgents || "List Agents",
-          promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles.",
-        },
+          promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles."},
         {
           label: l.pillStartLab || "Start Experiment",
-          promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory.",
-        }
+          promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory."}
       ];
     }
     if (activeAgent) {
       return [
         {
           label: l.pillAgentRole || "Describe Role",
-          promptText: l.pillAgentRolePrompt || "Explain your system prompt, context, and capabilities.",
-        }
+          promptText: l.pillAgentRolePrompt || "Explain your system prompt, context, and capabilities."}
       ];
     }
     if (activeProjectName) {
       return [
         {
           label: l.pillAnalyzeCode || "Analyze Workspace",
-          promptText: l.pillAnalyzeCodePrompt || "Analyze the current repository structure and describe its architecture.",
-        },
+          promptText: l.pillAnalyzeCodePrompt || "Analyze the current repository structure and describe its architecture."},
         {
           label: l.pillRunTests || "Run Tests",
-          promptText: l.pillRunTestsPrompt || "Run the project's test suite and report if any checks fail.",
-        }
+          promptText: l.pillRunTestsPrompt || "Run the project's test suite and report if any checks fail."}
       ];
     }
     return [
       {
         label: l.pillCreateRepo || "Create Repo",
-        promptText: l.pillCreateRepoPrompt || "Help me create a new code repository.",
-      },
+        promptText: l.pillCreateRepoPrompt || "Help me create a new code repository."},
       {
         label: l.pillListAgents || "List Agents",
-        promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles.",
-      },
+        promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles."},
     ];
   };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
@@ -165,8 +151,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
-    status: "idle",
-  });
+    status: "idle"});
   const [compacting, setCompacting] = useState(false);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const [wasConnected, setWasConnected] = useState(connected);
@@ -193,30 +178,24 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const chatInputRef = useChatInputFocus({
     sessionId,
     loadingMessages,
-    streaming,
-  });
+    streaming});
 
   const handleResolveApproval = useCallback((toolCallId: string, action: "confirm" | "deny") => {
     send({
       type: "ui_action",
       componentId: toolCallId,
-      action,
-    });
+      action});
     setSettledApprovals((prev) => ({ ...prev, [toolCallId]: action }));
   }, [send]);
 
   const handleToggleTasksStatus = useCallback(async (newStatus: "running" | "paused") => {
     if (!sessionId) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/tasks/status`, {
+      const res = await apiFetch(`/api/sessions/${sessionId}/tasks/status`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ status: newStatus }),
-      });
+          "Content-Type": "application/json"},
+        body: JSON.stringify({ status: newStatus })});
       if (res.ok) {
         const data = await res.json();
         setTasksState(data);
@@ -237,10 +216,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       setLoadingMessages(true);
     }
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/messages`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/sessions/${sessionId}/messages`);
       if (res.ok) {
         const data = await res.json();
         const msgs = data.messages ?? [];
@@ -273,10 +249,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
     const fetchTools = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/tools`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch(`/api/sessions/${sessionId}/tools`);
         if (res.ok) {
           const data = await res.json();
           setSandboxTools(data.tools ?? ALL_TOOL_NAMES);
@@ -288,10 +261,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
     const fetchTasks = async () => {
       try {
-        const token = localStorage.getItem("token");
-        const res = await fetch(`/api/sessions/${sessionId}/tasks`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await apiFetch(`/api/sessions/${sessionId}/tasks`);
         if (res.ok) {
           const data = await res.json();
           setTasksState(data);
@@ -410,8 +380,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           content: (result && typeof result === "object" && result.content)
             ? result.content
             : [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result || "") }],
-          isError: !!isError,
-        };
+          isError: !!isError};
         return [...prev, toolResultMsg];
       });
     });
@@ -458,8 +427,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           toolName: data.toolName,
           content: data.reason || "Action requires approval",
           args: data.args,
-          timestamp: Date.now(),
-        } as any;
+          timestamp: Date.now()} as any;
         return [...prev, approvalMsg];
       });
     });
@@ -502,15 +470,11 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         window.dispatchEvent(
           new CustomEvent("renameSession", { detail: { sessionId, name } })
         );
-        const token = localStorage.getItem("token");
-        fetch(`/api/sessions/${sessionId}`, {
+        apiFetch(`/api/sessions/${sessionId}`, {
           method: "PATCH",
           headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ name }),
-        }).catch(() => {});
+            "Content-Type": "application/json"},
+          body: JSON.stringify({ name })}).catch(() => {});
       }
 
       if (option === "steer") {
@@ -525,12 +489,10 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         const userMsg: Message = { role: "user", content: message };
         setMessages((prev) => [...prev, userMsg]);
         if (activeChannel) {
-          const token = localStorage.getItem("token");
-          fetch(`/api/channels/${activeChannel.id}/send`, {
+          apiFetch(`/api/channels/${activeChannel.id}/send`, {
             method: "POST",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ message }),
-          }).catch(() => {});
+            headers: { "Content-Type": "application/json"},
+            body: JSON.stringify({ message })}).catch(() => {});
         } else {
           send({ type: "prompt", message, sessionId, tools, images });
         }
@@ -570,15 +532,11 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const handleNavigate = useCallback(async (targetId: string) => {
     if (!sessionId) return;
     try {
-      const token = localStorage.getItem("token");
-      const res = await fetch(`/api/sessions/${sessionId}/navigate`, {
+      const res = await apiFetch(`/api/sessions/${sessionId}/navigate`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ targetId }),
-      });
+          "Content-Type": "application/json"},
+        body: JSON.stringify({ targetId })});
       if (res.ok) {
         await loadMessages();
       } else {

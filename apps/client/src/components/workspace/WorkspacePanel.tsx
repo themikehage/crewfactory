@@ -1,3 +1,4 @@
+import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { WorkspaceFileTree } from "./WorkspaceFileTree";
 import { WorkspaceFileEditor } from "./WorkspaceFileEditor";
@@ -35,13 +36,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
   }, [activeProjectName, activeAgentId, activeChannelId]);
 
   // Helper for auth headers
-  const getHeaders = useCallback(() => {
-    const token = localStorage.getItem("token") || "";
-    return {
-      Authorization: `Bearer ${token}`,
-      "Content-Type": "application/json",
-    };
-  }, []);
+  
 
   // Fetch file or folder contents
   const loadWorkspace = useCallback(
@@ -49,11 +44,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token") || "";
-        const res = await fetch(getWorkspaceUrl(path), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await apiFetch(getWorkspaceUrl(path), {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -66,8 +57,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
           } else {
             setPathContents((prev) => ({
               ...prev,
-              [path]: data.children || [],
-            }));
+              [path]: data.children || []}));
           }
         }
       } catch (err: any) {
@@ -126,11 +116,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
       setLoading(true);
       setError(null);
       try {
-        const token = localStorage.getItem("token") || "";
-        const res = await fetch(getWorkspaceUrl(file.path), {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
+        const res = await apiFetch(getWorkspaceUrl(file.path), {
         });
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
@@ -174,8 +160,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
           path: targetPath,
           isDirectory: false,
           size: 0,
-          lastModified: new Date().toISOString(),
-        });
+          lastModified: new Date().toISOString()});
       }
     };
     window.addEventListener("openWorkspaceFile", handleOpenFile);
@@ -187,11 +172,10 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
   // Save modified text file content
   const handleSaveFile = useCallback(
     async (path: string, content: string) => {
-      const res = await fetch(getWorkspaceUrl(path), {
+      const res = await apiFetch(getWorkspaceUrl(path), {
         method: "PUT",
-        headers: getHeaders(),
-        body: JSON.stringify({ type: "file", content }),
-      });
+        
+        body: JSON.stringify({ type: "file", content })});
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
         throw new Error(data.error || "Save operation failed");
@@ -199,7 +183,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
       const data = await res.json();
       setSelectedFile(data);
     },
-    [getHeaders, getWorkspaceUrl]
+    [, getWorkspaceUrl]
   );
 
   // Create new file or folder
@@ -207,11 +191,10 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
     async (parentPath: string, name: string, type: "file" | "folder") => {
       const fullPath = parentPath ? `${parentPath}/${name}` : name;
       try {
-        const res = await fetch(getWorkspaceUrl(fullPath), {
+        const res = await apiFetch(getWorkspaceUrl(fullPath), {
           method: "PUT",
-          headers: getHeaders(),
-          body: JSON.stringify({ type }),
-        });
+          
+          body: JSON.stringify({ type })});
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to create resource");
@@ -228,18 +211,17 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
         setError(err.message || "Create failed");
       }
     },
-    [getHeaders, loadWorkspace, getWorkspaceUrl]
+    [, loadWorkspace, getWorkspaceUrl]
   );
 
   // Rename file or folder
   const handleRename = useCallback(
     async (oldPath: string, newPath: string) => {
       try {
-        const res = await fetch(getWorkspaceUrl(oldPath), {
+        const res = await apiFetch(getWorkspaceUrl(oldPath), {
           method: "PATCH",
-          headers: getHeaders(),
-          body: JSON.stringify({ newPath }),
-        });
+          
+          body: JSON.stringify({ newPath })});
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to rename resource");
@@ -258,7 +240,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
         setError(err.message || "Rename failed");
       }
     },
-    [getHeaders, selectedFile, loadWorkspace, getWorkspaceUrl]
+    [, selectedFile, loadWorkspace, getWorkspaceUrl]
   );
 
   const executeDelete = useCallback(
@@ -266,10 +248,8 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
       if (!pendingDeletePath) return;
       setDeleting(true);
       try {
-        const res = await fetch(getWorkspaceUrl(pendingDeletePath), {
-          method: "DELETE",
-          headers: getHeaders(),
-        });
+        const res = await apiFetch(getWorkspaceUrl(pendingDeletePath), {
+          method: "DELETE"});
         if (!res.ok) {
           const data = await res.json().catch(() => ({}));
           throw new Error(data.error || "Failed to delete resource");
@@ -288,7 +268,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
         setPendingDeletePath(null);
       }
     },
-    [pendingDeletePath, getHeaders, selectedFile, loadWorkspace, getWorkspaceUrl]
+    [pendingDeletePath, selectedFile, loadWorkspace, getWorkspaceUrl]
   );
 
   const handleDelete = useCallback(
@@ -313,8 +293,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
             if (filteredChildren.length > 0 || item.name.toLowerCase().includes(query)) {
               return {
                 ...item,
-                children: filteredChildren,
-              };
+                children: filteredChildren};
             }
           } else if (item.name.toLowerCase().includes(query)) {
             return item;
