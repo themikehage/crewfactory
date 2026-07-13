@@ -11,9 +11,11 @@ export function createAuth() {
     database: db,
     secret,
     baseURL: process.env.BETTER_AUTH_URL || 
-             (process.env.NODE_ENV === "production"
-               ? `http://localhost:${process.env.PORT || 3000}`
-               : "http://localhost:5173"),
+             (process.env.SERVICE_FQDN_CREWFACTORY_3000
+               ? `https://${process.env.SERVICE_FQDN_CREWFACTORY_3000}`
+               : process.env.NODE_ENV === "production"
+                 ? `http://localhost:${process.env.PORT || 3000}`
+                 : "http://localhost:5173"),
     trustedOrigins: getTrustedOrigins(),
     emailAndPassword: {
       enabled: true,
