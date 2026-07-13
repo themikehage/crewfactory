@@ -5,6 +5,8 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "./PreviewPanel.literals";
 import { Button } from "@/components/ui/Button";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { apiFetch } from "@/lib/api";
+import { wsClient } from "@/lib/ws-client";
 
 interface Props {
   activeProjectName: string | null;
@@ -23,14 +25,10 @@ const FRAMEWORK_LABELS: Record<string, string> = {
 function usePreviewStatus(projectName: string) {
   const [state, setState] = useState<PreviewState | null>(null);
   const [buildLogs, setBuildLogs] = useState<string[]>([]);
-  const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
     if (!projectName) return;
-    const t = localStorage.getItem("token") || "";
-    fetch(`/api/preview/state?project=${encodeURIComponent(projectName)}`, {
-      headers: { Authorization: `Bearer ${t}` },
-    })
+    apiFetch(`/api/preview/state?project=${encodeURIComponent(projectName)}`)
       .then((r) => r.json())
       .then((data) => setState(data))
       .catch(() => {});
@@ -38,11 +36,8 @@ function usePreviewStatus(projectName: string) {
 
   const fetchConfig = useCallback(async () => {
     if (!projectName) return null;
-    const t = localStorage.getItem("token") || "";
     try {
-      const r = await fetch(`/api/preview/config?project=${encodeURIComponent(projectName)}`, {
-        headers: { Authorization: `Bearer ${t}` },
-      });
+      const r = await apiFetch(`/api/preview/config?project=${encodeURIComponent(projectName)}`);
       return await r.json();
     } catch {
       return null;
@@ -52,70 +47,29 @@ function usePreviewStatus(projectName: string) {
   useEffect(() => {
     if (!projectName) return;
 
-    const wsProto = location.protocol === "https:" ? "wss:" : "ws:";
-    const wsUrl = `${wsProto}//${location.host}/ws`;
-    let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-    let reconnectAttempts = 0;
-    let closed = false;
+    const unsubStatus = wsClient.subscribe("preview_status", (raw) => {
+      const data = raw as any;
+      if (data.projectName !== projectName) return;
+      setState((prev) => ({
+        projectName: data.projectName,
+        status: data.status || prev?.status || "idle",
+        distExists: data.distExists ?? prev?.distExists ?? false,
+        indexHtmlExists: data.indexHtmlExists ?? prev?.indexHtmlExists ?? false,
+        lastBuildAt: data.lastBuildAt ?? prev?.lastBuildAt ?? null,
+        error: data.error,
+        config: data.config || prev?.config,
+      }));
+    });
 
-    const connect = async () => {
-      let t: string | null = null;
-      try {
-        const res = await fetch("/api/auth/get-session", { credentials: "include" });
-        if (res.ok) {
-          const data = await res.json() as { session?: { token?: string } };
-          t = data?.session?.token ?? null;
-        }
-      } catch {}
-      if (!t || closed) return;
-
-      const sock = new WebSocket(wsUrl);
-      wsRef.current = sock;
-      sock.onopen = () => {
-        reconnectAttempts = 0;
-        sock.send(JSON.stringify({ type: "auth", token: t }));
-      };
-
-      sock.onmessage = (ev) => {
-        try {
-          const data = JSON.parse(ev.data);
-          if (data.type === "preview_status" && data.projectName === projectName) {
-            setState((prev) => ({
-              projectName: data.projectName,
-              status: data.status || prev?.status || "idle",
-              distExists: data.distExists ?? prev?.distExists ?? false,
-              indexHtmlExists: data.indexHtmlExists ?? prev?.indexHtmlExists ?? false,
-              lastBuildAt: data.lastBuildAt ?? prev?.lastBuildAt ?? null,
-              error: data.error,
-              config: data.config || prev?.config,
-            }));
-          }
-          if (data.type === "preview_build_log" && data.projectName === projectName) {
-            setBuildLogs((prev) => [...prev, data.line]);
-          }
-        } catch {}
-      };
-
-      sock.onclose = () => {
-        wsRef.current = null;
-        if (closed) return;
-        const delay = Math.min(1000 * 2 ** reconnectAttempts, 30000);
-        reconnectAttempts++;
-        reconnectTimer = setTimeout(connect, delay);
-      };
-
-      sock.onerror = () => sock.close();
-    };
-
-    connect();
+    const unsubLog = wsClient.subscribe("preview_build_log", (raw) => {
+      const data = raw as any;
+      if (data.projectName !== projectName) return;
+      setBuildLogs((prev) => [...prev, data.line]);
+    });
 
     return () => {
-      closed = true;
-      if (reconnectTimer) clearTimeout(reconnectTimer);
-      if (wsRef.current) {
-        wsRef.current.close();
-        wsRef.current = null;
-      }
+      unsubStatus();
+      unsubLog();
     };
   }, [projectName]);
 
@@ -175,12 +129,10 @@ const l = useLiterals(u);
   const handleSaveConfig = useCallback(async () => {
     if (!projectName) return;
     setSaving(true);
-    const t = localStorage.getItem("token") || "";
     try {
-      await fetch(`/api/preview/config?project=${encodeURIComponent(projectName)}`, {
+      await apiFetch(`/api/preview/config?project=${encodeURIComponent(projectName)}`, {
         method: "POST",
         headers: {
-          Authorization: `Bearer ${t}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify(configForm),
@@ -196,11 +148,9 @@ const l = useLiterals(u);
     if (!projectName) return;
     setBuildLogs([]);
     setLogOpen(true);
-    const t = localStorage.getItem("token") || "";
     try {
-      await fetch(`/api/preview/build?project=${encodeURIComponent(projectName)}`, {
+      await apiFetch(`/api/preview/build?project=${encodeURIComponent(projectName)}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${t}` },
       });
     } catch {}
   }, [projectName, setBuildLogs]);

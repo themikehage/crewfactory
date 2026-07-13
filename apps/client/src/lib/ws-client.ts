@@ -3,6 +3,7 @@ type ConnectionState = "disconnected" | "connecting" | "connected";
 type StateHandler = (state: ConnectionState) => void;
 
 class WsClient {
+  private static readonly MAX_QUEUE_SIZE = 50;
   private ws: WebSocket | null = null;
   private messageHandlers = new Map<string, Set<EventHandler>>();
   private stateHandlers = new Set<StateHandler>();
@@ -14,6 +15,14 @@ class WsClient {
 
   getState(): ConnectionState {
     return this.state;
+  }
+
+  isConnected(): boolean {
+    return this.state === "connected" && this.ws?.readyState === WebSocket.OPEN;
+  }
+
+  getQueueSize(): number {
+    return this.offlineQueue.length;
   }
 
   connect(): void {
@@ -39,15 +48,32 @@ class WsClient {
       this.ws.send(JSON.stringify(data));
       return true;
     }
+    if (this.offlineQueue.length >= WsClient.MAX_QUEUE_SIZE) {
+      const dropped = this.offlineQueue.shift();
+      console.warn(
+        `[wsClient] Offline queue full (${WsClient.MAX_QUEUE_SIZE}), dropping oldest message:`,
+        dropped?.type ?? "unknown"
+      );
+    }
     this.offlineQueue.push(data);
     return false;
   }
 
   private flushOfflineQueue(): void {
-    while (this.offlineQueue.length > 0 && this.ws?.readyState === WebSocket.OPEN && this.state === "connected") {
+    while (
+      this.offlineQueue.length > 0 &&
+      this.ws?.readyState === WebSocket.OPEN &&
+      this.state === "connected"
+    ) {
       const data = this.offlineQueue.shift();
       if (data) {
-        this.ws.send(JSON.stringify(data));
+        try {
+          this.ws.send(JSON.stringify(data));
+        } catch (err) {
+          console.error("[wsClient] Failed to flush queued message:", err);
+          this.offlineQueue.unshift(data);
+          break;
+        }
       }
     }
   }
@@ -94,25 +120,7 @@ class WsClient {
   }
 
   private async doConnectAsync(): Promise<void> {
-    console.log("[wsClient] Initializing connection. Fetching session token...");
-    let token: string | null = null;
-    try {
-      const res = await fetch("/api/auth/get-session", { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json() as { session?: { token?: string } };
-        token = data?.session?.token ?? null;
-      }
-    } catch (err) {
-      console.error("[wsClient] Failed to fetch session token:", err);
-    }
-
-    if (!token) {
-      console.warn("[wsClient] No active session token found, skipping connection");
-      this.setState("disconnected");
-      return;
-    }
-
-    console.log("[wsClient] Found session token. Connecting to WebSocket URL...");
+    console.log("[wsClient] Initializing connection...");
     this.setState("connecting");
 
     const protocol = location.protocol === "https:" ? "wss:" : "ws:";
@@ -122,9 +130,8 @@ class WsClient {
     this.ws = ws;
 
     ws.onopen = () => {
-      console.log("[wsClient] WebSocket opened. Sending auth frame...");
+      console.log("[wsClient] WebSocket opened. Cookie auth will be attempted server-side.");
       this.reconnectAttempts = 0;
-      ws.send(JSON.stringify({ type: "auth", token }));
     };
 
     ws.onmessage = (event) => {

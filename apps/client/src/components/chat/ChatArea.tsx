@@ -596,6 +596,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
             <button onClick={() => setError(null)} className="ml-2 underline">Dismiss</button>
           </div>
         )}
+        {!connected && (
+          <div className="px-3 sm:px-4 py-1.5 bg-warning/10 border-b border-warning/20 text-warning text-xs flex-shrink-0 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full bg-warning animate-pulse" />
+            Reconnecting... messages will be queued
+          </div>
+        )}
         <div
           ref={scrollContainerRef}
           onScroll={handleScroll}

@@ -2,6 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import type { IntegrationTemplate, QuickAction } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./IntegrationsTab.literals";
+import { apiFetch } from "@/lib/api";
 
 interface EnvVar {
   key: string;
@@ -9,13 +10,11 @@ interface EnvVar {
 }
 
 interface IntegrationsTabProps {
-  token: string | null;
   envVars: EnvVar[];
   fetchEnvVars: () => Promise<void>;
 }
 
 export function IntegrationsTab({
-  token,
   envVars,
   fetchEnvVars,
 }: IntegrationsTabProps) {
@@ -46,9 +45,7 @@ const l = useLiterals(u);
 
   const fetchTemplates = useCallback(async () => {
     try {
-      const res = await fetch("/api/integrations/templates", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/integrations/templates");
       if (!res.ok) throw new Error("Failed to load integration templates");
       const data = await res.json();
       setTemplates(data.templates ?? []);
@@ -58,7 +55,7 @@ const l = useLiterals(u);
     } finally {
       setTemplatesLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchTemplates();
@@ -67,11 +64,10 @@ const l = useLiterals(u);
   const handleSaveTemplates = async (updatedTemplates: IntegrationTemplate[]) => {
     setTemplatesError("");
     try {
-      const res = await fetch("/api/integrations/templates", {
+      const res = await apiFetch("/api/integrations/templates", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ templates: updatedTemplates }),
       });
@@ -92,11 +88,10 @@ const l = useLiterals(u);
     setSavingConfigEnv(true);
     setTemplatesError("");
     try {
-      const res = await fetch("/api/env", {
+      const res = await apiFetch("/api/env", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ key: formattedKey, value: configuringEnvVal }),
       });

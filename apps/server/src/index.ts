@@ -24,7 +24,8 @@ import { settingsRouter } from "./routes/settings";
 import { galleryRouter } from "./routes/gallery";
 import { factoryRouter } from "./routes/factory";
 import { memoryRegistry } from "./core/memory/registry";
-import { onOpen, onClose, onMessage } from "./ws/handler";
+import { createWsContext } from "./ws/factory";
+import { ensureAuthTables } from "./auth/migrate";
 import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
 
 const PREVIEW_HOST = (process.env.PREVIEW_HOST ?? "").toLowerCase();
@@ -69,12 +70,18 @@ app.get("/api/health", (c) => c.json({ status: "ok", time: Date.now() }));
 
 app.get(
   "/ws",
-  upgradeWebSocket(() => ({
-    onOpen,
-    onMessage,
-    onClose,
-  }))
+  upgradeWebSocket((c) => {
+    const rawHeaders = c.req.raw.headers;
+    const wsContext = createWsContext();
+    return {
+      onOpen: (evt: Event, ws: any) => wsContext.onOpen(evt, ws, rawHeaders),
+      onMessage: (evt: any, ws: any) => wsContext.onMessage(evt, ws),
+      onClose: (evt: any, ws: any) => wsContext.onClose(evt, ws),
+    };
+  })
 );
+
+await ensureAuthTables();
 
 const STATIC_EXTENSIONS = /\.(webmanifest|js|json|png|ico|svg|css)$/;
 

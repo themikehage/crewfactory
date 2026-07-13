@@ -17,7 +17,7 @@
 
 ### Chat & Streaming
 - Multi-session chat (create, switch, delete sessions)
-- Real-time streaming via a **single shared WebSocket connection** (`wsClient` singleton) with automatic exponential-backoff reconnect, server-initiated 30s ping-pong keepalive checks to prune dead sockets, and an offline message queue on the client to prevent losing prompts.
+- Real-time streaming via a **single shared WebSocket connection** (`wsClient` singleton) with automatic exponential-backoff reconnect, server-initiated 30s ping-pong keepalive checks to prune dead sockets, bounded offline queue (max 50, drops oldest with warning) and `isConnected()` guard. **Cookie-based auth**: after Better Auth migration, WS authenticates via httpOnly cookie (`better-auth.session_token` / `__Secure-` prefix) in `onOpen` handshake using `auth.api.getSession` with fallback sync DB lookup for programmatic tokens, not via JS-accessible token. Server uses factory pattern (`ws/factory.ts`) with closure-captured `wsId` via `crypto.randomUUID()`, registry pattern (`ws/registry.ts`) with `WeakMap`-free explicit cleanup (no `ws.wsId` mutation, no global counter), structured logger (`ws/logger.ts`), and auto-subscribes on `prompt` transactionally to avoid lost events race.
 - **Hook de Conexión WebSocket Reentrante (`useConnectionAwareEffect`):** Hook customizado que implementa el patrón "send now + replay on reconnect" de forma segura con un `useRef` wrapper. Centraliza la lógica de suscripciones de sesiones (`useWebSocket`) y canales (`useChannel`), aislando los listeners de estado de la subscripción de mensajes y previniendo fugas o ejecuciones duplicadas durante ciclos de desconexión.
 - Message rendering: user, assistant, tool calls, thinking blocks (with compact single-line preview when collapsed and `animate-pulse` border during streaming)
 - Abort active generation
@@ -426,9 +426,16 @@ packages/shared/  Shared Zod schemas and types
 - `routes/mcp.ts` — REST endpoints for MCP catalog, server configs management, manual connections, testing, and status queries.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
 - `routes/channels.ts` — REST endpoints for channel CRUD, member administration, and message dispatch.
-- `ws/handler.ts` — Single WebSocket endpoint handling auth (JWT), session subscription (`session_subscribe`), channel dispatch, and event broadcasting. Uses `wsSocketMeta` reverse index for O(1) cleanup on disconnect. Wires `channelOrchestrator` and `eventBroker` broadcasters via injected functions (`setChannelBroadcastHandler`, `setEventBroadcaster`) to avoid circular dependencies.
+- `ws/factory.ts` — Factory creating closure-captured WS connection contexts (`crypto.randomUUID()` id, no `ws.wsId` mutation). Handles cookie auth via `auth.api.getSession` + fallback sync lookup, pong tracking, prompt auto-subscribe transactionally, channel join/send, and UI approvals. Uses structured logger.
+- `ws/registry.ts` — Singleton registry managing `userSockets`, `sessionSockets`, `channelSockets` Maps and per-connection meta (`missedPings`, `sessionId`, `channelId`) with explicit cleanup, no global counter, no raw object mutation.
+- `ws/logger.ts` — Structured logger for WS layer with levelled `info/warn/error/debug` and contextual `wsId/username/sessionId`.
+- `ws/handler.ts` — Compatibility shim and broadcast façade (`broadcastToUser/Channel/Session`) backed by registry. Legacy `onOpen/onClose/onMessage` wrappers delegate to factory contexts. Wires `channelOrchestrator` and `eventBroker` broadcasters.
 - `lib/event-broker.ts` — Singleton buffering recent global log events per user (up to 150) and broadcasting to user WS sockets via injected `setEventBroadcaster()` (no dynamic require).
-- `middleware/auth.ts` — JWT verification middleware for REST routes
+- `auth/db.ts` — Pure DB factory, no manual CREATE TABLE; schema owned by Better Auth via `getMigrations` + `runMigrations` in `auth/migrate.ts`.
+- `auth/migrate.ts` — Runs Better Auth migrations programmatically on server startup.
+- `auth/onboarding.ts` — Programmatic session creation using `randomUUID` id + `base64url` token, compatible with Better Auth schema, no manual table ownership.
+- `lib/auth-helpers.ts` — Single source of truth for session validation: `extractToken` without JWT split, `parseExpiresAt/isExpired` shared util, `SESSION_COOKIE_KEYS` with `__Secure-` prefix support, `validateSessionFromHeaders` using `auth.api.getSession` primary + sync DB fallback, `getSessionTokensFromCookieHeader` for WS hot path.
+- `middleware/auth.ts` — Better Auth session middleware for REST routes
 - `preview-server.ts` — Standalone static file server on port 3001 with path-based isolation for project preview (no auth tokens in URLs)
 
 ### Key Client Modules
@@ -443,8 +450,10 @@ packages/shared/  Shared Zod schemas and types
 - `components/channels/ChannelMessageList.tsx` — Multi-agent message list with agent badges, avatars, and RichMarkdown.
 - `components/channels/ChannelMembersModal.tsx` — Floating modal for member management and targeted agent selection.
 - `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
-- `lib/ws-client.ts` — **Singleton WebSocket client** shared across the entire app. Handles auth handshake, type-keyed event dispatch, exponential-backoff reconnect, and `session_subscribe` protocol. Replaces the per-hook WS connections that previously caused 3 simultaneous connections.
-- `hooks/useWebSocket.ts` — Thin React wrapper over `wsClient`. Sends `session_subscribe` on connect and exposes `send`/`subscribe`.
+- `lib/ws-client.ts` — **Singleton WebSocket client** shared across the entire app. Handles cookie-based auth (no localStorage fallback), type-keyed event dispatch, exponential-backoff reconnect, bounded offline queue (max 50, drops oldest with warning, `isConnected()` guard), and `session_subscribe` protocol. Uses singleton for `preview_status`/`preview_build_log` to avoid second WS connection. Replaces the per-hook WS connections that previously caused 3 simultaneous connections.
+- `hooks/useWebSocket.ts` — Thin React wrapper over `wsClient`. Sends `session_subscribe` on connect via `useConnectionAwareEffect` with dedup and exposes `send`/`subscribe` + `connected` for offline banner.
+- `hooks/useConnectionAware.ts` — Reentrant hook implementing "send now + replay on reconnect" with `useRef` wrapper, dep-key dedup (JSON.stringify), `wasConnected` tracking, and `hasRunForCurrentDeps` guard to prevent duplicate handlers on StrictMode remount.
+- `components/preview/PreviewPanel.tsx` — Live preview using dedicated preview server (3001) for origin isolation, now reusing `wsClient` singleton for `preview_status`/`preview_build_log` instead of separate `new WebSocket()`.
 - `hooks/useSessionStatusWs.ts` — Pure hook subscribing to `session_status` events via `wsClient`. No module-level mutable state.
 - `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
 - `hooks/useRouter.ts` — Custom routing hook. Emits a global `popstate` event on pushState navigation to automatically sync independent hook states across SPA components.

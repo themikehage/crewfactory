@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./EnvVarsTab.literals";
 import { Button } from "@/components/ui/Button";
+import { apiFetch } from "@/lib/api";
 
 interface EnvVar {
   key: string;
@@ -9,7 +10,6 @@ interface EnvVar {
 }
 
 interface EnvVarsTabProps {
-  token: string | null;
   envVars: EnvVar[];
   envLoading: boolean;
   envError: string;
@@ -18,7 +18,6 @@ interface EnvVarsTabProps {
 }
 
 export function EnvVarsTab({
-  token,
   envVars,
   envLoading,
   envError,
@@ -47,11 +46,10 @@ const l = useLiterals(u);
     setSavingEnv(true);
     setEnvError("");
     try {
-      const res = await fetch("/api/env", {
+      const res = await apiFetch("/api/env", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ key: formattedKey, value: newEnvVal }),
       });
@@ -74,9 +72,8 @@ const l = useLiterals(u);
   const handleDeleteEnvVar = async (key: string) => {
     setEnvError("");
     try {
-      const res = await fetch(`/api/env/${key}`, {
+      const res = await apiFetch(`/api/env/${key}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to delete environment variable");
       await fetchEnvVars();
@@ -113,9 +110,7 @@ const l = useLiterals(u);
     setLocalEnvLoading(true);
     setEnvError("");
     try {
-      const res = await fetch(`/api/env/reveal/${key}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/env/reveal/${key}`);
       if (!res.ok) throw new Error("Failed to reveal secret");
       const data = await res.json();
       setRevealedVars(prev => ({
@@ -158,11 +153,10 @@ const l = useLiterals(u);
         variables[key] = value;
       }
 
-      const res = await fetch("/api/env", {
+      const res = await apiFetch("/api/env", {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ variables }),
       });

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { resolve, normalize, sep, join, basename, dirname } from "node:path";
 import { existsSync, readdirSync, statSync, mkdirSync, writeFileSync, unlinkSync, rmSync, renameSync, readFileSync } from "node:fs";
 import { getUsername } from "../lib/auth-helpers";
+import { sessionMiddleware } from "../auth/middleware";
 import { sessionManager } from "../core/session-manager";
 import {
   getWorkspaceDir, getProjectsDir, getProjectWorkspaceDir,
@@ -10,6 +11,8 @@ import {
 } from "shared";
 
 export const filesRouter = new Hono();
+
+filesRouter.use("/*", sessionMiddleware);
 
 function validateWorkspacePath(username: string, relativePath: string, projectName?: string, agentId?: string, channelId?: string): string {
   const workspaceBase = getWorkspaceDir(username);

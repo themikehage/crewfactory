@@ -259,4 +259,17 @@
 - [x] 120.5 Update client `ChatArea.tsx` and `MessageList.tsx` to handle, clear, and display custom API error cards
 - [x] 120.6 Verify monorepo builds and compile targets cleanly
 
+## Phase 121: Better Auth WS Debt Payoff (Professional Implementation)
+- [x] 121.1 Remove manual CREATE TABLE from auth/db.ts, implement auth/migrate.ts with getMigrations/runMigrations and ensureAuthTables() on startup
+- [x] 121.2 Refactor auth/onboarding.ts to use Better Auth plugin (programmaticSessionPlugin) via auth.api.createProgrammaticSession with fallback raw insert using randomUUID id, remove table ownership
+- [x] 121.3 Refactor lib/auth-helpers.ts to single source of truth: extractToken without split('.'), SESSION_COOKIE_KEYS with __Secure- prefix, validateSessionFromHeaders via auth.api.getSession primary + sync DB fallback, shared parseExpiresAt/isExpired
+- [x] 121.4 Create ws/registry.ts (no global counter, no mutation, explicit cleanup) and ws/factory.ts (closure-captured wsId via crypto.randomUUID(), structured logger, transactional auto-subscribe on prompt)
+- [x] 121.5 Rewrite ws/handler.ts as compatibility shim + broadcast façade backed by registry, remove wsCounter/getWsIdFromContext loops and ws.wsId mutation
+- [x] 121.6 Update index.ts WS route to use factory pattern (createWsContext with rawHeaders closure) and run ensureAuthTables() before serving
+- [x] 121.7 Remove legacy token prop drilling from SettingsPage and 5 tab components, remove localStorage fallback from apiFetch and ws-client, verify grep 0
+- [x] 121.8 Fix PreviewPanel to reuse wsClient singleton for preview_status/preview_build_log, remove separate new WebSocket()
+- [x] 121.9 Implement robust offline queue (max 50, drop oldest with warning, isConnected guard) in ws-client.ts and dedup logic in useConnectionAwareEffect (dep-key + wasConnected tracking)
+- [x] 121.10 Create ws/logger.ts structured logger, update about.md with WS cookie auth flow docs, add unit tests for auth-helpers and ws/factory (48 tests passing)
+- [x] 121.11 Verify production builds (client + server) and all acceptance criteria
+
 

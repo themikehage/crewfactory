@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./McpTab.literals";
+import { apiFetch } from "@/lib/api";
 
 interface McpServerConfig {
   enabled: boolean;
@@ -13,11 +14,7 @@ interface McpConfig {
   mcpServers: Record<string, McpServerConfig>;
 }
 
-interface McpTabProps {
-  token: string | null;
-}
-
-export function McpTab({ token }: McpTabProps) {
+export function McpTab() {
 const l = useLiterals(u);
   const [mcpConfig, setMcpConfig] = useState<McpConfig | null>(null);
   const [mcpLoading, setMcpLoading] = useState(true);
@@ -26,9 +23,7 @@ const l = useLiterals(u);
 
   const fetchMcpConfig = useCallback(async () => {
     try {
-      const res = await fetch("/api/mcp", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/mcp");
       if (!res.ok) throw new Error("Failed to load MCP configuration");
       const data = await res.json();
       setMcpConfig(data);
@@ -38,7 +33,7 @@ const l = useLiterals(u);
     } finally {
       setMcpLoading(false);
     }
-  }, [token]);
+  }, []);
 
   useEffect(() => {
     fetchMcpConfig();
@@ -48,11 +43,10 @@ const l = useLiterals(u);
     setMcpSaving(true);
     setMcpError("");
     try {
-      const res = await fetch("/api/mcp", {
+      const res = await apiFetch("/api/mcp", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify(updatedConfig),
       });

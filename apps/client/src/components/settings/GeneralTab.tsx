@@ -5,12 +5,9 @@ import { ThemeToggle } from "./ThemeToggle";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./GeneralTab.literals";
 import { Dropdown } from "@/components/ui/Dropdown";
+import { apiFetch } from "@/lib/api";
 
-interface GeneralTabProps {
-  token: string | null;
-}
-
-export function GeneralTab({ token }: GeneralTabProps) {
+export function GeneralTab() {
   const { user, logout, changePassword } = useAuth();
   const l = useLiterals(u);
 
@@ -85,16 +82,11 @@ export function GeneralTab({ token }: GeneralTabProps) {
     setVisionResult(null);
     setVisionError(null);
     try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const res = await fetch("/api/settings/test-vision", {
+      const res = await apiFetch("/api/settings/test-vision", {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           modelId: visionModel,
           prompt: visionTestPrompt,
@@ -129,16 +121,11 @@ export function GeneralTab({ token }: GeneralTabProps) {
       setImageBlobUrl(null);
     }
     try {
-      const headers: HeadersInit = {
-        "Content-Type": "application/json",
-      };
-      if (token) {
-        headers.Authorization = `Bearer ${token}`;
-      }
-
-      const res = await fetch("/api/settings/test-image-gen", {
+      const res = await apiFetch("/api/settings/test-image-gen", {
         method: "POST",
-        headers,
+        headers: {
+          "Content-Type": "application/json",
+        },
         body: JSON.stringify({
           modelId: imageGenModel,
           prompt: imageTestPrompt,
@@ -154,8 +141,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
       if (data.ok && data.imageUrl) {
         setImageResult(data.imageUrl);
 
-        const imgHeaders: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-        const fileRes = await fetch(data.imageUrl + "?raw=true", { headers: imgHeaders });
+        const fileRes = await apiFetch(data.imageUrl + "?raw=true");
         if (!fileRes.ok) {
           throw new Error("Failed to download generated image for preview.");
         }
@@ -175,23 +161,21 @@ export function GeneralTab({ token }: GeneralTabProps) {
   useEffect(() => {
     const loadData = async () => {
       try {
-        const headers: HeadersInit = token ? { Authorization: `Bearer ${token}` } : {};
-        
-        const settingsRes = await fetch("/api/settings", { headers });
+        const settingsRes = await apiFetch("/api/settings");
         if (settingsRes.ok) {
           const settingsData = await settingsRes.json();
           setVisionModel(settingsData.visionModel || "");
           setImageGenModel(settingsData.imageGenModel || "");
         }
 
-        const modelsRes = await fetch("/api/models", { headers });
+        const modelsRes = await apiFetch("/api/models");
         if (modelsRes.ok) {
           const modelsData = await modelsRes.json();
           const filtered = (modelsData.models || []).filter((m: any) => m.input?.includes("image"));
           setVisionModels(filtered);
         }
 
-        const imgModelsRes = await fetch("/api/models/images", { headers });
+        const imgModelsRes = await apiFetch("/api/models/images");
         if (imgModelsRes.ok) {
           const imgModelsData = await imgModelsRes.json();
           setImageGenModels(imgModelsData.models || []);
@@ -203,16 +187,15 @@ export function GeneralTab({ token }: GeneralTabProps) {
       }
     };
     loadData();
-  }, [token]);
+  }, []);
 
   const handleUpdateVisionModel = async (model: string) => {
     setVisionModel(model);
     try {
-      await fetch("/api/settings", {
+      await apiFetch("/api/settings", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ visionModel: model }),
       });
@@ -224,11 +207,10 @@ export function GeneralTab({ token }: GeneralTabProps) {
   const handleUpdateImageGenModel = async (model: string) => {
     setImageGenModel(model);
     try {
-      await fetch("/api/settings", {
+      await apiFetch("/api/settings", {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ imageGenModel: model }),
       });
@@ -242,9 +224,7 @@ export function GeneralTab({ token }: GeneralTabProps) {
     setImportError("");
     setImportSuccess("");
     try {
-      const res = await fetch(`/api/backup/export?type=${exportType}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch(`/api/backup/export?type=${exportType}`);
       if (!res.ok) {
         const errData = await res.json();
         throw new Error(errData.error || "Failed to download backup");
@@ -282,9 +262,8 @@ export function GeneralTab({ token }: GeneralTabProps) {
       const formData = new FormData();
       formData.append("file", importFile);
 
-      const res = await fetch(`/api/backup/import?mode=${importMode}`, {
+      const res = await apiFetch(`/api/backup/import?mode=${importMode}`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       });
 

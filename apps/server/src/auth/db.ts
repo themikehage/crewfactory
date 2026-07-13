@@ -16,57 +16,9 @@ export function getDb(): Database {
   const dbPath = join(dataPath, "crewfactory.db");
   _db = new Database(dbPath);
   _db.exec("PRAGMA journal_mode = WAL;");
-  
-  // Initialize Better Auth schema tables
-  _db.exec(`
-    CREATE TABLE IF NOT EXISTS user (
-      id TEXT PRIMARY KEY,
-      name TEXT NOT NULL,
-      email TEXT NOT NULL UNIQUE,
-      emailVerified INTEGER NOT NULL,
-      image TEXT,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL,
-      username TEXT UNIQUE,
-      role TEXT
-    );
-  `);
-  _db.exec(`
-    CREATE TABLE IF NOT EXISTS session (
-      id TEXT PRIMARY KEY,
-      expiresAt INTEGER NOT NULL,
-      token TEXT NOT NULL UNIQUE,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL,
-      ipAddress TEXT,
-      userAgent TEXT,
-      userId TEXT NOT NULL REFERENCES user(id)
-    );
-  `);
-  _db.exec(`
-    CREATE TABLE IF NOT EXISTS account (
-      id TEXT PRIMARY KEY,
-      accountId TEXT NOT NULL,
-      providerId TEXT NOT NULL,
-      userId TEXT NOT NULL REFERENCES user(id),
-      accessToken TEXT,
-      refreshToken TEXT,
-      idToken TEXT,
-      expiresAt INTEGER,
-      password TEXT,
-      createdAt INTEGER NOT NULL,
-      updatedAt INTEGER NOT NULL
-    );
-  `);
-  _db.exec(`
-    CREATE TABLE IF NOT EXISTS verification (
-      id TEXT PRIMARY KEY,
-      identifier TEXT NOT NULL,
-      value TEXT NOT NULL,
-      expiresAt INTEGER NOT NULL,
-      createdAt INTEGER,
-      updatedAt INTEGER
-    );
-  `);
   return _db;
+}
+
+export function getDbPath(): string {
+  return join(CREWFACTORY_DATA_PATH(), "crewfactory.db");
 }

@@ -22,8 +22,6 @@ export function SettingsPage() {
   const [envLoading, setEnvLoading] = useState(true);
   const [envError, setEnvError] = useState("");
 
-  const token = "";
-
   const fetchEnvVars = useCallback(async () => {
     try {
       const res = await apiFetch("/api/env");
@@ -86,11 +84,10 @@ export function SettingsPage() {
             <MCPMarketplacePage />
           ) : (
             <div className="max-w-2xl mx-auto px-3 sm:px-6 pb-6 space-y-6">
-              {activeTab === "general" && <GeneralTab token={token} />}
-              {activeTab === "providers" && <ProvidersTab token={token} />}
+              {activeTab === "general" && <GeneralTab />}
+              {activeTab === "providers" && <ProvidersTab />}
               {activeTab === "env" && (
                 <EnvVarsTab
-                  token={token}
                   envVars={envVars}
                   envLoading={envLoading}
                   envError={envError}
@@ -99,7 +96,7 @@ export function SettingsPage() {
                 />
               )}
               {activeTab === "integrations" && (
-                <IntegrationsTab token={token} envVars={envVars} fetchEnvVars={fetchEnvVars} />
+                <IntegrationsTab envVars={envVars} fetchEnvVars={fetchEnvVars} />
               )}
             </div>
           )}

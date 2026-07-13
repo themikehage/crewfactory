@@ -1,6 +1,7 @@
 import { betterAuth } from "better-auth";
 import { getDb } from "./db";
 import { CREWFACTORY_DATA_PATH } from "shared";
+import { programmaticSessionPlugin } from "./plugins/programmatic-session";
 
 export function createAuth() {
   const secret = getOrCreateSecret();
@@ -46,6 +47,7 @@ export function createAuth() {
         enabled: false,
       },
     },
+    plugins: [programmaticSessionPlugin()],
   });
 }
 

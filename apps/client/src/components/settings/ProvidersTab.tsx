@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, Fragment } from "react";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ProvidersTab.literals";
+import { apiFetch } from "@/lib/api";
 
 interface ModelInfo {
   id: string;
@@ -17,11 +18,7 @@ interface ProviderInfo {
   models: ModelInfo[];
 }
 
-interface ProvidersTabProps {
-  token: string | null;
-}
-
-export function ProvidersTab({ token }: ProvidersTabProps) {
+export function ProvidersTab() {
 const l = useLiterals(u);
   const [providers, setProviders] = useState<ProviderInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -35,9 +32,7 @@ const l = useLiterals(u);
 
   const fetchProviders = useCallback(async () => {
     try {
-      const res = await fetch("/api/providers", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await apiFetch("/api/providers");
       if (!res.ok) throw new Error("Failed to load providers");
       const data = await res.json();
       const sorted = (data.providers ?? []).sort((a: ProviderInfo, b: ProviderInfo) => {
@@ -52,15 +47,14 @@ const l = useLiterals(u);
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, []);
 
   const handleRefreshModels = async (providerId: string) => {
     setRefreshing((prev) => ({ ...prev, [providerId]: true }));
     setError("");
     try {
-      const res = await fetch(`/api/providers/${providerId}/refresh`, {
+      const res = await apiFetch(`/api/providers/${providerId}/refresh`, {
         method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
@@ -84,11 +78,10 @@ const l = useLiterals(u);
     setSaving(true);
     setError("");
     try {
-      const res = await fetch(`/api/providers/${selectedProvider}/key`, {
+      const res = await apiFetch(`/api/providers/${selectedProvider}/key`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({ apiKey }),
       });
@@ -107,9 +100,8 @@ const l = useLiterals(u);
   const handleRemoveKey = async (providerId: string) => {
     setError("");
     try {
-      const res = await fetch(`/api/providers/${providerId}/key`, {
+      const res = await apiFetch(`/api/providers/${providerId}/key`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
       });
       if (!res.ok) throw new Error("Failed to remove API key");
       await fetchProviders();
