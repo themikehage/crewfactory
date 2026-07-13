@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
+import { useSessions } from "@/contexts/SessionsContext";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./LogsConsolePage.literals";
 import type { GlobalLogEvent } from "shared";
@@ -52,9 +52,10 @@ export function LogsConsolePage({
   onSelectProject,
   onSelectAgent,
   onSelectChannel,
-  onNavigate}: LogsConsolePageProps) {
+  onNavigate,
+}: LogsConsolePageProps) {
   const l = useLiterals(u);
-  const [activeTab, setActiveTab] = useState<"sessions" | "logs">("sessions");
+  const [activeTab, setActiveTab] = useState<"logs" | "sessions">("logs");
   
   // Estados para pestaña de Sesiones
   const [sessions, setSessions] = useState<SessionItem[]>([]);
@@ -78,7 +79,7 @@ export function LogsConsolePage({
   const wsRef = useRef<WebSocket | null>(null);
 
   // Hook global de WebSocket para recibir estados reactivos en tiempo real
-  const liveSessionStatuses = useSessionStatusWs();
+  const { statuses: liveSessionStatuses } = useSessions();
 
   // Diccionarios de lookup rápidos para nombres
   const channelNamesMap = useMemo(() => {

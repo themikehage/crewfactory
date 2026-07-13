@@ -12,9 +12,10 @@ interface Props {
   currentMemberAgentIds: string[];
   onClose: () => void;
   onAdd: (data: AddMember) => Promise<void>;
+  hasLeader?: boolean;
 }
 
-export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose, onAdd }: Props) {
+export function AddMemberModal({ availableAgents, currentMemberAgentIds, onClose, onAdd, hasLeader = false }: Props) {
 const l = useLiterals(u);
   const candidates = availableAgents.filter((a) => !currentMemberAgentIds.includes(a.id));
 
@@ -50,6 +51,11 @@ const l = useLiterals(u);
       prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
     );
   };
+
+  const roleOptions = ROLE_OPTIONS.map((o) => ({
+    ...o,
+    disabled: o.value === "lead" ? hasLeader : false,
+  }));
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -107,7 +113,7 @@ const l = useLiterals(u);
                 <Dropdown<ChannelRole>
                   value={role}
                   onChange={setRole}
-                  options={[...ROLE_OPTIONS]}
+                  options={roleOptions}
                   matchWidth
                 />
               </div>

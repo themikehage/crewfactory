@@ -16,7 +16,7 @@
 - **Programmatic Session Tokens:** Automatically generates secure session tokens for background subagents and tool subprocess environments.
 
 ### Real-Time Session Visualization
-- **Centralized Sessions Context (`SessionsContext`)**: React context providing the entire session list with live status merging via WebSocket `session_status` events. Replaces scattered `useSessionStatusWs()` usage with a single provider-driven hook (`useSessions()`) exposing derived data: `workingCount`, `idleCount`, `doneCount`, `workingSessions`, `idleSessions`, `doneSessions`, and agent-centric helpers (`getAgentStatus`, `getAgentKanbanStatus`, `getChannelMemberStatus`, `getChannelMemberKanbanStatus`).
+- **Centralized Sessions Context (`SessionsContext`)**: React context providing the entire session list with live status merging. It loads a live status snapshot on mount from `/api/sessions/statuses` and merges subsequent real-time updates via WebSocket `session_status` events. Replaces scattered `useSessionStatusWs()` usage with a single provider-driven hook (`useSessions()`) exposing derived data: `workingCount`, `idleCount`, `doneCount`, `workingSessions`, `idleSessions`, `doneSessions`, and agent-centric helpers (`getAgentStatus`, `getAgentKanbanStatus`, `getChannelMemberStatus`, `getChannelMemberKanbanStatus`).
 - **Sidebar Agent Status (Like Slack)**: Each agent in the sidebar `SessionSidebar` now shows a colored dot (green = has active/streaming session, gray = idle) based on real-time session state, providing instant awareness of agent activity.
 - **Channel Members Panel Status**: `MembersPanel` shows session-based status dots next to each member's avatar, indicating whether they have active sessions outside the channel.
 - **Channel Org Chart Session Status**: `OrgFlowCanvas` (desktop) and `OrgFlowMobile` render a session-status indicator dot on each agent node, complementing the existing channel-streaming indicator.
@@ -127,6 +127,13 @@
 - **Detalle y Edición de Proyectos:** Botón de información `(i)` en las tarjetas de proyecto para ver y editar el nombre o `cloneUrl`, además de visualizar datos técnicos del proyecto como ID, fecha de creación y ruta absoluta en disco.
 - **Configuración Avanzada de Agentes (RegisterModal):** Drawer colapsable que permite configurar las `serialTools` (herramientas interactivas como `request_approval` y `ask_question`), e inspeccionar de solo lectura el `blueprintId` y fecha de creación del agente.
 
+### Web Exploration & Web Fetch Tool (`web_fetch`)
+- **Semantic Search & Direct Fetch:** Complementary retrieval layer. While `exa_search` performs semantic search queries across the web returning lists of snippets and URLs, `web_fetch` allows direct extraction of clean text/markdown from arbitrary URLs.
+- **SSRF & DNS Rebinding Security Layer:** Deep request filtering. Blocks non-HTTP protocols, private IP ranges (CIDR masks covering 10.x, 172.16.x, 192.168.x, 127.x, 169.254.x), localhosts, and cloud metadata endpoints. Resolves DNS once via asynchronous lookup before connection to prevent DNS rebinding, and manually validates redirects at each hop (max 5 hops) to ensure no redirection to private ranges occurs.
+- **Content Extraction Pipeline:** Uses `@mozilla/readability` (Firefox Reader Mode algorithm) inside lightweight `linkedom` virtual DOM to isolate core semantic contents (headings, paragraphs, lists, tables), stripping sidebars, navs, footers, and ads. `turndown` converts clean HTML to structural Markdown. If readability fails, a fallback regex-based HTML-to-text converter is engaged.
+- **Sliding-Window Rate Limiting & Cache:** Enforces a sliding-window rate limit of 30 requests per minute per host, and clamps global concurrency to 3 simultaneous fetches. An in-memory LRU cache stores up to 200 entries with a 5-minute TTL, utilizing ETag conditional HTTP headers to minimize latency and bandwidth. Aborts connections immediately if response size exceeds 10MB during stream reading.
+- **Premium Expandable UI:** Integrates with `ToolCallRow` rendering an interactive card showing page title, domain, fetch duration, cache status, original vs extracted size, and an expandable content panel.
+
 ### Custom Tool System (Agent-Defined Tools)
 
 - **On-Demand Tool Creation**: El agente LLM puede crear, editar, activar/desactivar y eliminar tools personalizadas via la tool `manage_custom_tools` sin intervencion del usuario.
@@ -236,9 +243,15 @@
 ### Layered Prompt System
 - **Dynamic Composition**: Splits the agent's prompt into 4 decoupled, conditional, and prioritized layers resolved at runtime based on the deployment context:
   1. **Identity**: Pure agent definition (name, role, and main expertise system prompt).
-  2. **Role**: Injected conditionally based on the agent's channel role (e.g., Lead coordinates utilizing @mentions, while Members participate in silent mode with chronology controls).
-  3. **Instance**: Injected conditionally depending on the execution mode (individual Solo mode instructions or Channel roster participants and mode details).
+  2. **Role**: Injected conditionally based on the agent's channel role. Supported roles include:
+     - `lead`: coordinates the execution, delegates tasks utilizing @mentions, and acts as the arbiter.
+     - `senior`: intermediate authority who proactively proposes technical alternatives, reviews peer work, and alerts on risks.
+     - `member`: standard active participant collaborating with peer agents and silent mode triggers.
+     - `observer`: passive observer that never actively participates and always returns `(silent)` in its responses.
+  3. **Instance**: Injected conditionally depending on the execution mode (individual Solo mode instructions or Channel roster participants and mode details). Roster details are enriched dynamically with each member's `role` and `replyMode`. Target/broadcast mode fragments dynamically substitute the current agent's `{replyMode}` and the channel's `{leaderName}` variables.
   4. **Protocol**: Injected conditionally based on channel settings (Negotiation rules or Arbitration decision-making).
+- **Single-Leader Enforcement**: Validation on both server-side routes and frontend dropdown configurations ensures a channel can have at most 1 active `lead`.
+- **Arbitration Unification**: Unified arbiter resolution (`isArbiter`) checks `negotiationProtocol.arbiterAgentId` configuration first, falling back to the `lead` role when no specific arbiter is selected.
 - **Registry & Composer**: Powered by `PromptFragmentRegistry` resolving default system fragments and overrides from `prompt-overrides.json`, combined with `PromptComposer` to assemble the final unified system prompt.
 - **Agent Server Dynamic Mutator**: Integrated with `DefaultResourceLoader.setAppendSystemPrompt` to update active session system instructions dynamically before executing prompts in `ChannelOrchestrator` or standard chats.
 - **Centralized Prompt Assembly**: Implements `PromptAssemblyFactory` (`prompt-assembly.ts`) to centralize system prompt building across standard sessions, group channels, standalone agent servers, and subagent executors, resolving raw prompt bypass bugs.

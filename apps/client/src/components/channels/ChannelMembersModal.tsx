@@ -35,6 +35,14 @@ const l = useLiterals(u);
     return registeredAgents.find((a) => a.id === agentId);
   };
 
+  const getRoleOptions = (currentMemberId: string) => {
+    const otherHasLeader = members.some((m) => m.role === "lead" && m.agentId !== currentMemberId);
+    return ROLE_OPTIONS.map((o) => ({
+      ...o,
+      disabled: o.value === "lead" ? otherHasLeader : false,
+    }));
+  };
+
   const handleModeChange = async (agentId: string, mode: ReplyMode) => {
     setUpdatingId(agentId);
     try {
@@ -172,7 +180,7 @@ const l = useLiterals(u);
                     <Dropdown<ChannelRole>
                       value={m.role || "member"}
                       onChange={(val) => handleRoleChange(m.agentId, val)}
-                      options={[...ROLE_OPTIONS]}
+                      options={getRoleOptions(m.agentId)}
                       disabled={updatingId === m.agentId || isOrphan}
                       matchWidth
                     />
@@ -249,6 +257,7 @@ const l = useLiterals(u);
             currentMemberAgentIds={members.map((m) => m.agentId)}
             onClose={() => setShowAddModal(false)}
             onAdd={onAddMember}
+            hasLeader={members.some((m) => m.role === "lead")}
           />
         )}
       </AnimatePresence>

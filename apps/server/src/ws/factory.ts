@@ -134,7 +134,7 @@ async function subscribeWsToSession(
         const payload = JSON.stringify({
           type: "session_status",
           sessionId,
-          status: "active",
+          status: "sleeping",
         });
         for (const s of sockets) {
           try {
@@ -378,6 +378,7 @@ export function createWsContext(): WsConnectionContext {
           const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
           const memoryActive = currentActive.filter((tName) => tName.startsWith("memory_"));
           const exaActive = currentActive.filter((tName) => tName === "exa_search");
+          const webFetchActive = currentActive.filter((tName) => tName === "web_fetch");
           session.setActiveToolsByName(
             Array.from(
               new Set([
@@ -385,6 +386,7 @@ export function createWsContext(): WsConnectionContext {
                 ...mcpActive,
                 ...memoryActive,
                 ...exaActive,
+                ...webFetchActive,
                 "request_approval",
                 "ask_question",
                 "render_images",

@@ -27,6 +27,7 @@ export const ALL_TOOLS: ToolDefinition[] = [
   { id: "spawn_subagent", name: "Spawn Subagent", desc: "Delegate a task to a fresh subagent with isolated context" },
   { id: "delegate_task", name: "Delegate Task", desc: "Delegate task to another agent, project, channel, or session" },
   { id: "exa_search", name: "Exa Search", desc: "Search the web using Exa AI (semantic search engine)", gateKey: "EXA_API_KEY" },
+  { id: "web_fetch", name: "Web Fetch", desc: "Fetch and extract content from any URL as clean Markdown" },
 ];
 
 interface Props {

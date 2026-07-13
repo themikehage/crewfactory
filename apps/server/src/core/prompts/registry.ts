@@ -3,6 +3,8 @@ import { join } from "node:path";
 import { identityFragments } from "./fragments/identity";
 import { leaderFragments } from "./fragments/role-leader";
 import { memberFragments } from "./fragments/role-member";
+import { seniorFragments } from "./fragments/role-senior";
+import { observerFragments } from "./fragments/role-observer";
 import { instanceFragments } from "./fragments/instance";
 import { protocolFragments } from "./fragments/protocol";
 
@@ -25,6 +27,8 @@ export class PromptFragmentRegistry {
       ...identityFragments,
       ...leaderFragments,
       ...memberFragments,
+      ...seniorFragments,
+      ...observerFragments,
       ...instanceFragments,
       ...protocolFragments,
     ];

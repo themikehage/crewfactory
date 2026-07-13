@@ -44,6 +44,7 @@ export function resolveActiveTools({
     ...sessionTools,
     "bash",
     "exa_search",
+    "web_fetch",
     ...alwaysOnTools,
   ]);
   if (memoryEnabled) {

@@ -1,7 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { Trash2 } from "lucide-react";
-import { useSessionStatusWs } from "@/hooks/useSessionStatusWs";
-import type { SessionStatus } from "@/hooks/useSessionStatusWs";
+import { useSessions, type SessionStatus } from "@/contexts/SessionsContext";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionPopover.literals";
@@ -58,7 +57,7 @@ export function SessionPopover({
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
-  const sessionStatuses = useSessionStatusWs();
+  const { statuses: sessionStatuses } = useSessions();
 
   const fetchSessions = useCallback(async () => {
     try {

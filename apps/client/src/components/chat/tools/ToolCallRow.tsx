@@ -13,6 +13,7 @@ import { ImageGrid } from "../ImageGrid";
 import { HtmlPreview } from "../HtmlPreview";
 import { ShareFileCard } from "./ShareFileCard";
 import { ExaSearchResult } from "./ExaSearchResult";
+import { WebFetchResult } from "./WebFetchResult";
 import { MemoryResult } from "./MemoryResult";
 import { DecomposeResult } from "./DecomposeResult";
 import { useLiterals } from "@/lib";
@@ -45,6 +46,14 @@ export interface ToolResultData {
     importance?: number;
     tags?: string[];
     deletedId?: string;
+    title?: string;
+    cached?: boolean;
+    truncated?: boolean;
+    extractionMethod?: string;
+    fetchDurationMs?: number;
+    originalSize?: number;
+    extractedSize?: number;
+    url?: string;
   };
 }
 
@@ -221,6 +230,17 @@ const TOOL_META: Record<string, { label: string; colorClass: string; icon: React
       </svg>
     ),
   },
+  web_fetch: {
+    label: "web_fetch",
+    colorClass: "text-highlight",
+    icon: (
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="2" y1="12" x2="22" y2="12" />
+        <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+      </svg>
+    ),
+  },
   memory_store: {
     label: "memory_store",
     colorClass: "text-accent",
@@ -314,6 +334,10 @@ function getArgSummary(toolName: string, args: Record<string, unknown>, l: Recor
       const q = (args.query as string) || "";
       return q.length > 60 ? q.slice(0, 60) + "…" : q;
     }
+    case "web_fetch": {
+      const url = (args.url as string) || "";
+      return url.length > 60 ? url.slice(0, 60) + "…" : url;
+    }
     case "memory_recall": {
       const q = (args.query as string) || "";
       return q.length > 60 ? q.slice(0, 60) + "…" : q;
@@ -374,6 +398,10 @@ function getResultSummary(toolName: string, result: ToolResultData, l: Record<st
     case "exa_search": {
       const n = result.details?.totalResults ?? 0;
       return `${n} ${n !== 1 ? l.resExaResults : l.resExaResult}`;
+    }
+    case "web_fetch": {
+      const title = result.details?.title || "";
+      return title ? `"${title}"` : l.resCompleted;
     }
     case "memory_recall": {
       const n = result.details?.count ?? 0;
@@ -586,6 +614,8 @@ function ToolBody({
       );
     case "exa_search":
       return <ExaSearchResult text={text} details={result?.details} l={l} />;
+    case "web_fetch":
+      return <WebFetchResult text={text} details={result?.details} l={l} />;
     case "memory_recall":
       return <MemoryResult mode="recall" details={result?.details} l={l} />;
     case "memory_store":
@@ -648,6 +678,7 @@ export function ToolCallRow({
       toolName === "spawn_subagent" ||
       toolName === "delegate_task" ||
       toolName === "exa_search" ||
+      toolName === "web_fetch" ||
       toolName === "memory_recall" ||
       toolName === "memory_store"
     )
@@ -670,6 +701,7 @@ export function ToolCallRow({
       case "spawn_subagent": return l.labelSubagent;
       case "delegate_task": return l.labelDelegation;
       case "exa_search": return l.labelExaSearch;
+      case "web_fetch": return l.labelWebFetch;
       case "memory_recall":
       case "memory_store":
       case "memory_forget": return l.labelMemory;

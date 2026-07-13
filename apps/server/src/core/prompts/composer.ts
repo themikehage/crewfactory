@@ -1,16 +1,21 @@
 import { promptFragmentRegistry, type PromptFragment } from "./registry";
 
+export interface DeploymentMember {
+  agentId: string;
+  agentName: string;
+  role: string;
+  replyMode: string;
+}
+
 export interface DeploymentContext {
-  mode: "solo" | "broadcast" | "targeted";
+  mode: "broadcast" | "targeted" | "solo";
   channelId?: string;
   agentRole?: string;
-  members?: {
-    agentId: string;
-    agentName: string;
-    role: string;
-  }[];
+  members?: DeploymentMember[];
   negotiationProtocol?: boolean;
   isArbiter?: boolean;
+  selfReplyMode?: string;
+  leaderName?: string;
 }
 
 export interface LayeredPrompt {
@@ -39,7 +44,11 @@ export class PromptComposer {
 
     // Layer 2: Role (Skip in solo mode)
     if (deployment.mode !== "solo") {
-      const roleToLoad = deployment.agentRole === "lead" ? "role.leader" : "role.member";
+      const roleToLoad =
+        deployment.agentRole === "lead" ? "role.leader" :
+        deployment.agentRole === "senior" ? "role.senior" :
+        deployment.agentRole === "observer" ? "role.observer" :
+        "role.member";
       const roleFrags = promptFragmentRegistry.listByCategory("role", workspaceDir)
         .filter(f => f.key.startsWith(roleToLoad));
       fragments.push(...roleFrags);
@@ -55,7 +64,7 @@ export class PromptComposer {
       if (rosterFrag && deployment.members) {
         const rosterLines = [
           "- @user (the human user)",
-          ...deployment.members.map(m => `- @${m.agentName} (id: ${m.agentId}, role: ${m.role})`)
+          ...deployment.members.map(m => `- @${m.agentName} (id: ${m.agentId}, role: ${m.role}, replyMode: ${m.replyMode})`)
         ].join("\n");
         const content = rosterFrag.content.replace("{roster}", rosterLines);
         fragments.push({ ...rosterFrag, content });
@@ -66,7 +75,14 @@ export class PromptComposer {
         ? "instance.channel.broadcast" 
         : "instance.channel.targeted";
       const modeFrag = promptFragmentRegistry.get(modeFragKey, workspaceDir);
-      if (modeFrag) fragments.push(modeFrag);
+      if (modeFrag) {
+        const selfReplyMode = deployment.selfReplyMode || "broadcast";
+        const leaderName = deployment.leaderName || "none";
+        const content = modeFrag.content
+          .replace(/{replyMode}/g, selfReplyMode)
+          .replace(/{leaderName}/g, leaderName);
+        fragments.push({ ...modeFrag, content });
+      }
     }
 
     // Layer 4: Protocol

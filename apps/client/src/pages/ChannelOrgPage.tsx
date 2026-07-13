@@ -63,6 +63,7 @@ export function ChannelOrgPage({ channelId, onNavigate }: Props) {
           currentMemberAgentIds={channel.members.map((m) => m.agentId)}
           onClose={() => setShowAddMemberModal(false)}
           onAdd={addMember}
+          hasLeader={channel.members.some((m) => m.role === "lead")}
         />
       )}
     </div>

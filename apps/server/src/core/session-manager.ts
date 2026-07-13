@@ -135,6 +135,17 @@ class SessionManager {
     });
   }
 
+  getLiveStatuses(username: string): Record<string, "streaming" | "active" | "sleeping"> {
+    const result: Record<string, "streaming" | "active" | "sleeping"> = {};
+    const prefix = `${username}:`;
+    for (const [key, entry] of this.sessions) {
+      if (!key.startsWith(prefix)) continue;
+      const sessionId = key.slice(prefix.length);
+      result[sessionId] = entry.session.isStreaming ? "streaming" : "active";
+    }
+    return result;
+  }
+
   async getOrCreateSession(
     username: string,
     sessionId: string,

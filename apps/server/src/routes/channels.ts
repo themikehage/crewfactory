@@ -105,6 +105,18 @@ channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
 
   const id = c.req.param("id");
   const data = c.req.valid("json");
+
+  const arbiterAgentId = data.negotiationProtocol?.arbiterAgentId;
+  if (arbiterAgentId) {
+    const channel = channelStore.getChannel(username, id);
+    if (channel) {
+      const valid = channel.members.some((m) => m.agentId === arbiterAgentId);
+      if (!valid) {
+        return c.json({ error: "arbiterAgentId must be an existing channel member" }, 400);
+      }
+    }
+  }
+
   const updated = channelStore.updateChannel(username, id, data);
   if (!updated) return c.json({ error: "Channel not found" }, 404);
   return c.json(updated);
@@ -158,6 +170,13 @@ channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => 
     return c.json({ error: `Agent "${data.agentId}" not registered or not owned by you` }, 400);
   }
 
+  if (data.role === "lead") {
+    const existingLead = channel.members.find((m) => m.role === "lead" && m.agentId !== data.agentId);
+    if (existingLead) {
+      return c.json({ error: "Channel already has a leader. Remove or reassign the current leader first." }, 409);
+    }
+  }
+
   const existingIndex = channel.members.findIndex((m) => m.agentId === data.agentId);
   const updatedMembers = [...channel.members];
   const memberWithRole = {
@@ -185,6 +204,14 @@ channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSch
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   const data = c.req.valid("json");
+
+  if (data.role === "lead") {
+    const existingLead = channel.members.find((m) => m.role === "lead" && m.agentId !== agentId);
+    if (existingLead) {
+      return c.json({ error: "Channel already has a leader. Remove or reassign the current leader first." }, 409);
+    }
+  }
+
   const index = channel.members.findIndex((m) => m.agentId === agentId);
   if (index === -1) return c.json({ error: "Member not found in channel" }, 404);
 

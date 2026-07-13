@@ -48,9 +48,10 @@ describe("Layered Prompt System Tests", () => {
       mode: "broadcast",
       agentRole: "member",
       members: [
-        { agentId: "ceo", agentName: "CEO", role: "lead" },
-        { agentId: "dev", agentName: "Dev", role: "member" }
-      ]
+        { agentId: "ceo", agentName: "CEO", role: "lead", replyMode: "broadcast" },
+        { agentId: "dev", agentName: "Dev", role: "member", replyMode: "broadcast" }
+      ],
+      selfReplyMode: "broadcast"
     };
 
     const result = promptComposer.compose(agentDef, deployment);
@@ -64,7 +65,7 @@ describe("Layered Prompt System Tests", () => {
     expect(result.composed).toContain("Build UI components.");
     expect(result.composed).toContain("PROTOCOLO DE COLABORACIÓN ENTRE PARES:");
     expect(result.composed).toContain("MODO DE CANAL: Colaboración Horizontal (Leaderless).");
-    expect(result.composed).toContain("- @Dev (id: dev, role: member)");
+    expect(result.composed).toContain("- @Dev (id: dev, role: member, replyMode: broadcast)");
   });
 
   test("PromptComposer - Targeted / Leader / Negotiation & Arbitration Context", () => {
@@ -77,11 +78,13 @@ describe("Layered Prompt System Tests", () => {
       mode: "targeted",
       agentRole: "lead",
       members: [
-        { agentId: "ceo", agentName: "CEO", role: "lead" },
-        { agentId: "dev", agentName: "Dev", role: "member" }
+        { agentId: "ceo", agentName: "CEO", role: "lead", replyMode: "broadcast" },
+        { agentId: "dev", agentName: "Dev", role: "member", replyMode: "mention-only" }
       ],
       negotiationProtocol: true,
-      isArbiter: true
+      isArbiter: true,
+      selfReplyMode: "broadcast",
+      leaderName: "CEO"
     };
 
     const result = promptComposer.compose(agentDef, deployment);
@@ -98,5 +101,50 @@ describe("Layered Prompt System Tests", () => {
     expect(result.composed).toContain("PROTOCOLO DE COORDINACIÓN (LÍDER):");
     expect(result.composed).toContain("MODO DE CANAL: Jerárquico (With Leader).");
     expect(result.composed).toContain("PROTOCOLO DE ARBITRAJE:");
+    expect(result.composed).toContain("- @Dev (id: dev, role: member, replyMode: mention-only)");
+  });
+
+  test("PromptComposer - Senior Role Context", () => {
+    const agentDef = {
+      name: "SeniorDev",
+      role: "Senior Developer",
+      systemPrompt: "Architect solutions."
+    };
+    const deployment: DeploymentContext = {
+      mode: "broadcast",
+      agentRole: "senior",
+      members: [
+        { agentId: "ceo", agentName: "CEO", role: "lead", replyMode: "broadcast" },
+        { agentId: "sdev", agentName: "SeniorDev", role: "senior", replyMode: "broadcast" }
+      ],
+      selfReplyMode: "broadcast"
+    };
+
+    const result = promptComposer.compose(agentDef, deployment);
+    expect(result.applied).toContain("role.senior.communication");
+    expect(result.applied).not.toContain("role.member.communication");
+    expect(result.composed).toContain("PROTOCOLO DE COLABORACIÓN SENIOR:");
+  });
+
+  test("PromptComposer - Observer Role Context", () => {
+    const agentDef = {
+      name: "Auditor",
+      role: "Observer Auditor",
+      systemPrompt: "Audit logs."
+    };
+    const deployment: DeploymentContext = {
+      mode: "broadcast",
+      agentRole: "observer",
+      members: [
+        { agentId: "ceo", agentName: "CEO", role: "lead", replyMode: "broadcast" },
+        { agentId: "auditor", agentName: "Auditor", role: "observer", replyMode: "mention-only" }
+      ],
+      selfReplyMode: "mention-only"
+    };
+
+    const result = promptComposer.compose(agentDef, deployment);
+    expect(result.applied).toContain("role.observer.protocol");
+    expect(result.applied).not.toContain("role.member.communication");
+    expect(result.composed).toContain("PROTOCOLO DE OBSERVACIÓN SILENCIOSA:");
   });
 });

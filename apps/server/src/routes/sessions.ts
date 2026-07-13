@@ -24,6 +24,12 @@ sessionsRouter.get("/", async (c) => {
   return c.json({ sessions });
 });
 
+sessionsRouter.get("/statuses", async (c) => {
+  const { username } = getAuthPayload(c);
+  const statuses = sessionManager.getLiveStatuses(username);
+  return c.json({ statuses });
+});
+
 sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
   const { name, projectName, agentId, channelId, experimentId } = c.req.valid("json");
   const { username } = getAuthPayload(c);
@@ -599,6 +605,7 @@ sessionsRouter.post(
     const mcpActive = currentActive.filter((tName) => tName.startsWith("mcp_"));
     const memoryActive = currentActive.filter((tName) => tName.startsWith("memory_"));
     const exaActive = currentActive.filter((tName) => tName === "exa_search");
+    const webFetchActive = currentActive.filter((tName) => tName === "web_fetch");
 
     session.setActiveToolsByName(
       Array.from(
@@ -607,6 +614,7 @@ sessionsRouter.post(
           ...mcpActive,
           ...memoryActive,
           ...exaActive,
+          ...webFetchActive,
           "request_approval",
           "ask_question",
           "render_images",
@@ -635,6 +643,7 @@ function getGatedToolStatus(username: string): Record<string, "available" | "mis
   const env = sessionManager.userConfig.getUserEnv(username);
   return {
     exa_search: (env.EXA_API_KEY || process.env.EXA_API_KEY) ? "available" : "missing_key",
+    web_fetch: "available",
   };
 }
 

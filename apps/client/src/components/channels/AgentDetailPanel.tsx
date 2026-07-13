@@ -208,7 +208,10 @@ export function AgentDetailPanel({
                   <Dropdown<ChannelRole>
                     value={role}
                     onChange={setRole}
-                    options={[...ROLE_OPTIONS]}
+                    options={ROLE_OPTIONS.map((o) => ({
+                      ...o,
+                      disabled: o.value === "lead" ? allMembers.some((m) => m.role === "lead" && m.agentId !== member.agentId) : false,
+                    }))}
                     disabled={isOrphan}
                     matchWidth
                   />

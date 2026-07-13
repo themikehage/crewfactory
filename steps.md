@@ -297,3 +297,22 @@
 - [ ] 123.12 Implement tests per plans/testing-hackathon.md (31+ tests across negotiation, scoring, MCP, WS)
 - [ ] 123.13 Publish blog post on Medium/dev.to, add link to Devpost submission
 - [ ] 123.14 Submit on Devpost with all required fields and assets
+
+## Phase 124: Layered Prompt System Audit Improvements
+- [x] 124.1 Create `role-senior.ts` and `role-observer.ts` fragments with proper protocol and silent mode behavior
+- [x] 124.2 Update `registry.ts` and `composer.ts` to map and load senior and observer prompt roles
+- [x] 124.3 Implement single-leader enforcement on backend (POST/PATCH member endpoints returning 409 status code)
+- [x] 124.4 Update frontend `AgentDetailPanel.tsx`, `AddMemberModal.tsx`, and `ChannelMembersModal.tsx` to disable/prevent multiple lead selection
+- [x] 124.5 Inject agent-specific `selfReplyMode` and channel `leaderName` into DeploymentContext and substitute inside target/broadcast prompt fragments
+- [x] 124.6 Enrich roster presentation showing member replyMode inside the composer logic
+- [x] 124.7 Unify arbiter check prioritizing `negotiationProtocol.arbiterAgentId` configuration over default lead role
+- [x] 124.8 Update unit tests inside `layered-prompt.test.ts` to cover new role prompt mappings and verify clean typecheck builds
+
+## Phase 125: WebFetch Tool (Security & Performance)
+- [x] 125.1 Implement core security layer (security.ts) blocking SSRF and DNS Rebinding
+- [x] 125.2 Implement content extraction pipeline (extractor.ts) with readability, turndown, and regex fallback
+- [x] 125.3 Implement caching layer with TTL and LRU eviction (cache.ts) and sliding window rate limiter (rate-limiter.ts)
+- [x] 125.4 Define custom tool interface and execute pipeline (web-fetch-tool.ts) and register in SessionToolFactory
+- [x] 125.5 Integrate web_fetch in AVAILABLE_TOOLS schema, tool activation engine, WS factory, and server routing permissions
+- [x] 125.6 Build custom WebFetchResult React component and integrate in ToolsSelector and ToolCallRow
+- [x] 125.7 Verify builds and SSRF protection layer successfully

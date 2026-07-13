@@ -73,9 +73,18 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
     }
   }, []);
 
+  const fetchStatuses = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/sessions/statuses");
+      if (!res.ok) return;
+      const data = await res.json();
+      setStatuses((prev) => ({ ...data.statuses, ...prev }));
+    } catch {}
+  }, []);
+
   useEffect(() => {
-    fetchSessions();
-  }, [fetchSessions]);
+    fetchSessions().then(() => fetchStatuses());
+  }, [fetchSessions, fetchStatuses]);
 
   useEffect(() => {
     const unsub = wsClient.subscribe("session_status", (data: unknown) => {
@@ -93,10 +102,25 @@ export function SessionsProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleUpdate = () => {
       fetchSessions();
+      fetchStatuses();
     };
     window.addEventListener("entity-updated", handleUpdate);
     return () => window.removeEventListener("entity-updated", handleUpdate);
-  }, [fetchSessions]);
+  }, [fetchSessions, fetchStatuses]);
+
+  useEffect(() => {
+    if (sessions.length === 0) return;
+    setStatuses((prev) => {
+      const next = { ...prev };
+      for (const s of sessions) {
+        if (s.status && !(s.id in next)) {
+          next[s.id] = s.status;
+        }
+      }
+      return next;
+    });
+  }, [sessions]);
+
 
   const mergedSessions = useMemo(() => {
     return sessions.map((s) => ({

@@ -10,6 +10,7 @@ import {
 } from "../../ai";
 import { filterSecretsFromOutput } from "../bash-output-filter";
 import { createExaSearchTool } from "../tools/exa-search-tool";
+import { createWebFetchTool } from "../tools/web-fetch";
 import { createMemoryTools } from "../memory/memory-tools";
 import { createUiTools } from "../tools/ui-tools";
 import { createFactoryTool } from "../tools/factory-tool";
@@ -61,6 +62,7 @@ export class SessionToolFactory {
     });
 
     const exaSearchTool = createExaSearchTool({ username });
+    const webFetchTool = createWebFetchTool({ username });
     const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
 
     const uiTools = createUiTools(workspaceDir, username, false, {
@@ -98,6 +100,7 @@ export class SessionToolFactory {
       factoryTool as any,
       ...uiTools as any,
       exaSearchTool as any,
+      webFetchTool as any,
       ...memoryTools as any,
     ];
 
