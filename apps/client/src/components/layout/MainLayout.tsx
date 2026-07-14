@@ -133,7 +133,7 @@ export function MainLayout({
     return "Factory";
   }, [activeProjectId, activeProjectName, activeAgent, activeChannel, route.page, l]);
 
-  const sessionId = route.page === "chat" ? route.sessionId : null;
+  const sessionId = (route.page === "chat" || (route.page === "laboratory" && !route.experimentId)) ? (route.sessionId ?? null) : null;
 
   useSessionResolver({
     sessionId,
@@ -235,24 +235,22 @@ export function MainLayout({
 
   const rightToolbarElement = (
     <>
-      {route.page === "laboratory" ? (
-        lab?.selectedExpId ? (
-          <LabActionsToolbar
-            selectedExpId={lab.selectedExpId}
-            experiments={lab.experiments || []}
-            selectedRunId={lab.selectedRunId}
-            pastRuns={lab.pastRuns}
-            runPopoverOpen={lab.runPopoverOpen}
-            setRunPopoverOpen={lab.setRunPopoverOpen}
-            onSelectRun={lab.onSelectRun}
-            onRunExperiment={lab.onRunExperiment}
-            onStopExperiment={lab.onStopExperiment}
-            onEditExperiment={lab.onEditExperiment}
-            onDeleteExperiment={lab.onDeleteExperiment}
-            onJudgeExperiment={lab.onJudgeExperiment}
-            onExportExperiment={lab.onExportExperiment}
-          />
-        ) : null
+      {route.page === "laboratory" && lab?.selectedExpId ? (
+        <LabActionsToolbar
+          selectedExpId={lab.selectedExpId}
+          experiments={lab.experiments || []}
+          selectedRunId={lab.selectedRunId}
+          pastRuns={lab.pastRuns}
+          runPopoverOpen={lab.runPopoverOpen}
+          setRunPopoverOpen={lab.setRunPopoverOpen}
+          onSelectRun={lab.onSelectRun}
+          onRunExperiment={lab.onRunExperiment}
+          onStopExperiment={lab.onStopExperiment}
+          onEditExperiment={lab.onEditExperiment}
+          onDeleteExperiment={lab.onDeleteExperiment}
+          onJudgeExperiment={lab.onJudgeExperiment}
+          onExportExperiment={lab.onExportExperiment}
+        />
       ) : (
         <>
           {!isMobile && (
@@ -269,7 +267,7 @@ export function MainLayout({
               )}
             </button>
           )}
-          {activeAgent && (
+          {activeAgent && activeAgent.id !== "lab-architect" && (
             <button
               onClick={() => setShowAgentEdit(true)}
               className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"

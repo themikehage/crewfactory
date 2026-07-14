@@ -27,13 +27,16 @@ export function buildCreateSessionBody(
 
 export function getSessionContextPredicate(
   context: SessionContext
-): (session: { projectName?: string; agentId?: string; channelId?: string }) => boolean {
+): (session: { projectName?: string; agentId?: string; channelId?: string; experimentId?: string }) => boolean {
   const { activeChannel, activeAgent, activeProjectName } = context;
   return (session) => {
     if (activeChannel) {
       return session.channelId === activeChannel.id;
     }
     if (activeAgent) {
+      if (activeAgent.id === "lab-architect") {
+        return session.agentId === "lab-architect" && !session.experimentId && !session.channelId;
+      }
       return session.agentId === activeAgent.id && !session.channelId;
     }
     if (activeProjectName) {
@@ -53,6 +56,9 @@ export function getSessionPath(sessionId: string, context: SessionContext): stri
     return `/channels/${activeChannel.id}/session/${sessionId}`;
   }
   if (activeAgent) {
+    if (activeAgent.id === "lab-architect") {
+      return `/laboratory/session/${sessionId}`;
+    }
     return `/agents/${activeAgent.id}/session/${sessionId}`;
   }
   if (activeProjectName) {

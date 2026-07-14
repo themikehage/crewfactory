@@ -14,6 +14,7 @@ interface Props {
   isEditorOpen: boolean;
   setIsEditorOpen: (open: boolean) => void;
   editingExpId: string | null;
+  sessionId?: string | null;
 }
 
 export function LaboratoryPage({
@@ -23,6 +24,7 @@ export function LaboratoryPage({
   isEditorOpen,
   setIsEditorOpen,
   editingExpId,
+  sessionId,
 }: Props) {
   const l = useLiterals(u);
 
@@ -34,6 +36,13 @@ export function LaboratoryPage({
 
   const [labSessionId, setLabSessionId] = useState<string | null>(null);
   const labArchitectAgent = useMemo(() => ({ id: "lab-architect" as const, name: "Lab Architect" }), []);
+
+  // Update labSessionId when prop sessionId changes
+  useEffect(() => {
+    if (sessionId) {
+      setLabSessionId(sessionId);
+    }
+  }, [sessionId]);
 
   // Initialize translated criteria when literals load
   useEffect(() => {
@@ -76,6 +85,9 @@ export function LaboratoryPage({
 
         if (found) {
           setLabSessionId(found.id);
+          if (!sessionId && onNavigate) {
+            onNavigate(`/laboratory/session/${found.id}`);
+          }
         } else {
           // Create new session
           const createRes = await apiFetch("/api/sessions", {
@@ -90,6 +102,9 @@ export function LaboratoryPage({
           if (createRes.ok && active) {
             const newSession = await createRes.json();
             setLabSessionId(newSession.id);
+            if (onNavigate) {
+              onNavigate(`/laboratory/session/${newSession.id}`);
+            }
           }
         }
       } catch (err) {
@@ -97,11 +112,13 @@ export function LaboratoryPage({
       }
     };
 
-    resolveLabSession();
+    if (!sessionId) {
+      resolveLabSession();
+    }
     return () => {
       active = false;
     };
-  }, []);
+  }, [sessionId, onNavigate]);
 
   // Listen to select-lab-experiment custom event
   useEffect(() => {

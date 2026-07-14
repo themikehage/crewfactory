@@ -55,7 +55,6 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [audit-slow-operations.md](./audit-slow-operations.md) — Auditoria de rendimiento: decompose tasks, LLM judge, y export experiment: paths configurables via env vars, entrypoint con inicializacion, volumenes nombrados en /app/data, y migracion automatica de datos legacy.
 - [multi-agent-primitives-refactor.md](./multi-agent-primitives-refactor.md) — Refactorizacion a 4 primitivas componibles (spawn, delegate, negotiate, arbitrate). Consolida 7+ flujos multi-agente, elimina duplicacion, extrae protocolos reutilizables.
 - [laboratory-agent-experience.md](./laboratory-agent-experience.md) — Laboratorio como sesion de chat con agente + tool `create_experiment`. Iteracion conversacional sobre experimentos, formulario editable convertido en tab de visualizacion, y eliminacion de IaGenerator (800 lineas).
-- [laboratory-sessions.md](./laboratory-sessions.md) — Filtrar sesiones `lab_run_*` de la lista principal y mostrar las sesiones del experimento en una vista dedicada con soporte de solo lectura.
 - [agent-channel-gallery.md](./agent-channel-gallery.md) — Galería comunitaria de plantillas de agentes y canales, con instalación en 1 clic, exportación, y curación vía PRs.
 - [agent-manager-tool.md](./agent-manager-tool.md) — Tool agent_manager para delegar tareas a agentes programáticos persistentes y supervisar su ejecución en tiempo real.
 - [channel-agent-validation.md](./channel-agent-validation.md) — Validacion de agentes en canales: cascade cleanup al eliminar agente, filtrado de miembros ghost en lecturas, e indicadores visuales en el cliente para agentes huerfano.
@@ -84,7 +83,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
 - [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
 - [delegation-notification-ui.md](./delegation-notification-ui.md) — Renderizado limpio de resultados de delegacion con contrato compartido server/cliente via `details.type` en `packages/shared/`
-## Completados (69)
+## Completados (70)
 
 Ver [COMPLETED/](./COMPLETED/)
 

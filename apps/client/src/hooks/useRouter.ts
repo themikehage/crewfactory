@@ -13,7 +13,7 @@ export type Route =
   | { page: "channel"; channelId: string }
   | { page: "org"; channelId: string }
   | { page: "logs" }
-  | { page: "laboratory"; experimentId?: string | null }
+  | { page: "laboratory"; experimentId?: string | null; sessionId?: string | null }
   | { page: "mcps" }
   | { page: "plugins" }
   | { page: "sessions" };
@@ -129,10 +129,14 @@ function parseRoute(): Route {
   if (path === "/sessions") return { page: "sessions" };
   if (path.startsWith("/laboratory")) {
     if (path === "/laboratory" || path === "/laboratory/") {
-      return { page: "laboratory", experimentId: null };
+      return { page: "laboratory", experimentId: null, sessionId: null };
+    }
+    if (path.startsWith("/laboratory/session/")) {
+      const sessionId = path.slice("/laboratory/session/".length);
+      return { page: "laboratory", experimentId: null, sessionId: sessionId || null };
     }
     const experimentId = path.slice("/laboratory/".length);
-    return { page: "laboratory", experimentId: experimentId || null };
+    return { page: "laboratory", experimentId: experimentId || null, sessionId: null };
   }
 
   return { page: "chat", sessionId: null };

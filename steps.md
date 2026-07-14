@@ -565,3 +565,12 @@
 - [x] 131.4 Propagate ChatInput disabled state based on WebSocket connection status and disable WelcomeChatInput/ChatInput when offline (M8)
 - [x] 131.5 Add connection state status indicators (colored dots) in DesktopHeader.tsx and MobileTopbar.tsx (M6)
 - [x] 131.6 Verify compilation, typecheck, and monorepo build status
+
+## Phase 132: Laboratory Sessions
+- [x] 132.1 Filter out lab execution sessions starting with 'lab_run_' in session-lister.ts
+- [x] 132.2 Implement router subpath support for '/laboratory/session/:sessionId' in useRouter.ts
+- [x] 132.3 Integrate lab-architect agent in session-utils and useSessionActions for scoped design sessions
+- [x] 132.4 Mount standard workspace session navigation toolbar inside MainLayout for general laboratory agent screen
+- [x] 132.5 Accept sessionId inside LaboratoryPage component and handle dynamic resolve / redirect flows
+- [x] 132.6 Update SessionsKanbanPage to route lab-architect sessions to laboratory design page
+- [x] 132.7 Verify client/server compiles successfully and works robustly

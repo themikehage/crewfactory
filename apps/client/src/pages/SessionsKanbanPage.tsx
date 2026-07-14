@@ -102,7 +102,11 @@ export function SessionsKanbanPage({ onNavigate }: Props) {
     if (session.channelId) {
       path = `/channels/${session.channelId}/session/${session.id}`;
     } else if (session.agentId) {
-      path = `/agents/${session.agentId}/session/${session.id}`;
+      if (session.agentId === "lab-architect") {
+        path = `/laboratory/session/${session.id}`;
+      } else {
+        path = `/agents/${session.agentId}/session/${session.id}`;
+      }
     } else if (session.projectName) {
       path = `/projects/${session.projectName}/session/${session.id}`;
     } else {

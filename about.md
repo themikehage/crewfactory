@@ -225,6 +225,7 @@
 - **Canales Temporales Resilientes:** Generación dinámica y transparente en el backend de los canales asociados a cada variante (`lab_{experimentId}_{variantKey}`). Ante una solicitud GET, si el canal no está en el almacén pero el experimento existe, se recrea al vuelo garantizando la disponibilidad de la interfaz antes y después de las ejecuciones, eliminando errores `404 (Not Found)`.
 - **Orquestación Unificada de Canales:** En lugar de implementar un ciclo de vida independiente, el laboratorio delega toda la ejecución al backend de canales a través de `ChannelOrchestrator.runToCompletion()`. Esto unifica el manejo de la profundidad de cadenas, el control de abortos, la detección de equilibrio y la agregación unificada de tokens de manera centralizada.
 - **Historial de Ejecuciones:** Registro y persistencia de corridas históricas con sus respectivas métricas, accesibles desde la barra de herramientas del laboratorio.
+- **Sesiones de Diseño del Laboratorio:** Soporte completo para sesiones múltiples con el agente arquitecto del laboratorio (`lab-architect`) en `/laboratory/session/:sessionId`. Permite crear, renombrar, eliminar y alternar entre distintas sesiones de diseño desde la interfaz del laboratorio. Las ejecuciones temporales de experimentos (`lab_run_`) son filtradas para evitar fugas en el historial global y en la vista de Kanban.
 
 
 

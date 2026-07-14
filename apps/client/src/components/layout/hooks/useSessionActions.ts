@@ -21,7 +21,12 @@ export function useSessionActions({
   const getSessionPath = useCallback(
     (id: string) => {
       if (activeChannel) return `/channels/${activeChannel.id}/session/${id}`;
-      if (activeAgent) return `/agents/${activeAgent.id}/session/${id}`;
+      if (activeAgent) {
+        if (activeAgent.id === "lab-architect") {
+          return `/laboratory/session/${id}`;
+        }
+        return `/agents/${activeAgent.id}/session/${id}`;
+      }
       if (activeProjectId) return `/projects/${activeProjectId}/session/${id}`;
       return `/session/${id}`;
     },
@@ -35,7 +40,13 @@ export function useSessionActions({
       } else {
         let basePath = "";
         if (activeChannel) basePath = `/channels/${activeChannel.id}/chat`;
-        else if (activeAgent) basePath = `/agents/${activeAgent.id}/chat`;
+        else if (activeAgent) {
+          if (activeAgent.id === "lab-architect") {
+            basePath = "/laboratory";
+          } else {
+            basePath = `/agents/${activeAgent.id}/chat`;
+          }
+        }
         else if (activeProjectId) basePath = `/projects/${activeProjectId}/chat`;
         onNavigate(basePath || "/");
       }

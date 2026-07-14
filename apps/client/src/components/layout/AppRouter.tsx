@@ -545,7 +545,7 @@ export function AppRouter() {
         onNavigate={navigate}
         activeProjectName={activeProjectFriendlyName}
         activeProjectId={activeProjectId}
-        activeAgent={activeAgent}
+        activeAgent={route.page === "laboratory" && !route.experimentId ? { id: "lab-architect", name: "Lab Architect" } : activeAgent}
         activeChannel={activeChannel}
         onSelectProject={handleSelectProject}
         onSelectAgent={handleSelectAgent}
@@ -615,6 +615,7 @@ export function AppRouter() {
             isEditorOpen={isLabEditorOpen}
             setIsEditorOpen={setIsLabEditorOpen}
             editingExpId={editingLabExpId}
+            sessionId={route.sessionId}
           />
         )}
         {route.page === "laboratory" && route.experimentId && (

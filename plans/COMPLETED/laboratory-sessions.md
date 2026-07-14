@@ -1,3 +1,4 @@
+COMPLETED
 # Laboratory Sessions
 
 Mostrar las sesiones de ejecucion del laboratorio en una vista dedicada y evitar que se filtren en la lista de sesiones del agente principal.
