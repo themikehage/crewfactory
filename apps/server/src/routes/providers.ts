@@ -3,6 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { sessionManager } from "../core/session-manager";
 import { SetApiKeySchema } from "shared";
+import { saveProviderModels, clearProviderModels } from "../core/providers/provider-persistence";
 
 export const providersRouter = new Hono();
 
@@ -93,6 +94,17 @@ providersRouter.post(
     authStorage.set(providerId, { type: "api_key", key: apiKey });
     modelRegistry.refresh();
 
+    // Auto-sync dynamic models asynchronously
+    if (modelRegistry.isDynamic(providerId)) {
+      modelRegistry.refreshProviderModels(providerId)
+        .then((models) => {
+          saveProviderModels(username, providerId, models);
+        })
+        .catch((err) => {
+          console.error(`[AutoSync] Failed to sync models for provider ${providerId}:`, err);
+        });
+    }
+
     const authStatus = buildAuthStatus(authStorage, providerId);
     return c.json({ success: true, authStatus });
   }
@@ -104,11 +116,15 @@ providersRouter.delete("/:id/key", (c) => {
   const { authStorage, modelRegistry } =
     sessionManager.userConfig.getUserContext(username);
 
-    authStorage.remove(providerId);
-    modelRegistry.refresh();
+  authStorage.remove(providerId);
+  modelRegistry.refresh();
 
-    const authStatus = buildAuthStatus(authStorage, providerId);
-    return c.json({ success: true, authStatus });
+  if (modelRegistry.isDynamic(providerId)) {
+    clearProviderModels(username, providerId);
+  }
+
+  const authStatus = buildAuthStatus(authStorage, providerId);
+  return c.json({ success: true, authStatus });
 });
 
 providersRouter.post("/:id/refresh", async (c) => {
@@ -117,7 +133,8 @@ providersRouter.post("/:id/refresh", async (c) => {
   const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
 
   try {
-    await modelRegistry.refreshProviderModels(providerId);
+    const models = await modelRegistry.refreshProviderModels(providerId);
+    saveProviderModels(username, providerId, models);
     return c.json({ success: true, models: modelRegistry.getAll().filter(m => (m.provider as string) === providerId) });
   } catch (err: any) {
     return c.json({ success: false, error: err.message || "Failed to refresh models" }, 500);

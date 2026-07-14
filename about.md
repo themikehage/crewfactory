@@ -62,7 +62,8 @@
 ### Provider Management
 - Dynamic provider configuration via web UI (no env vars needed)
 - Native OpenAI-compatible cloud providers, Qwen Cloud, and OpenCode Go (Anthropic, OpenAI, Google, DeepSeek, Groq, Mistral, Qwen, OpenCode Go, etc. routed via compatible endpoints)
-- API key management: add/remove keys per provider, persisted to auth.json
+- API key management: add/remove keys per provider, persisted to auth.json.
+- **Auto-Sync & Model Persistence:** Al guardar una API key para proveedores dinámicos (Qwen o OpenCode Go), se dispara automáticamente una sincronización de modelos remotos de forma asíncrona. Los modelos sincronizados se guardan en el archivo `provider-models.json` del usuario en disco, persistiendo al reiniciar el servidor. Si se elimina la clave, se limpian los modelos almacenados y se vuelve a los defaults.
 - Model selector below chat input: shows only configured providers, nested dropdown for model selection
 - Model persistence in localStorage, applied to sessions via SDK's setModel()
 - Auth status indicators (configured/not configured per provider)

@@ -574,3 +574,12 @@
 - [x] 132.5 Accept sessionId inside LaboratoryPage component and handle dynamic resolve / redirect flows
 - [x] 132.6 Update SessionsKanbanPage to route lab-architect sessions to laboratory design page
 - [x] 132.7 Verify client/server compiles successfully and works robustly
+
+## Phase 133: Provider Auto-Sync & Dynamic Model Persistence
+- [x] 133.1 Add getProviderModelsPath helper to paths.ts
+- [x] 133.2 Implement isDynamic helper and return update models from refreshProviderModels in model-registry.ts
+- [x] 133.3 Create provider-persistence.ts helper library for user config persistence
+- [x] 133.4 Update qwen-provider.ts and opencode-go-provider.ts to load persisted models
+- [x] 133.5 Pass username when registering providers in user-config.ts
+- [x] 133.6 Integrate save/clear/sync logic inside providers.ts set, remove, and refresh key routes
+- [x] 133.7 Verify compilation build and execute local test integration flows

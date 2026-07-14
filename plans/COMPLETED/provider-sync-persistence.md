@@ -1,3 +1,4 @@
+COMPLETED
 # Provider: Auto-Sync & Persistencia de Modelos Dinámicos
 
 ## Problemas

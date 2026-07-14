@@ -101,8 +101,8 @@ export class UserConfigManager {
     const modelRegistry = ModelRegistry.create(authStorage, () => this.getUserEnv(username));
 
     modelRegistry.refresh();
-    registerQwenProvider(modelRegistry);
-    registerOpenCodeGoProvider(modelRegistry);
+    registerQwenProvider(modelRegistry, username);
+    registerOpenCodeGoProvider(modelRegistry, username);
 
     const ctx: UserContext = { authStorage, modelRegistry };
     this.users.set(username, ctx);

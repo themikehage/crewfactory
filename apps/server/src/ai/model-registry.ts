@@ -163,9 +163,13 @@ export class ModelRegistry {
     return this.providers.get(provider)?.name ?? provider;
   }
 
-  async refreshProviderModels(providerName: string): Promise<void> {
+  isDynamic(providerName: string): boolean {
+    return !!this.providers.get(providerName)?.dynamic;
+  }
+
+  async refreshProviderModels(providerName: string): Promise<any[]> {
     const config = this.providers.get(providerName);
-    if (!config || !config.dynamic) return;
+    if (!config || !config.dynamic) return [];
 
     const apiKeyVar = config.apiKey.startsWith("$")
       ? config.apiKey.slice(1)
@@ -217,6 +221,7 @@ export class ModelRegistry {
         config.models = updatedModels;
         this.refresh();
       }
+      return updatedModels;
     } catch (error) {
       console.error(`[ModelRegistry] Failed to refresh models for provider ${providerName}:`, error);
       throw error;
