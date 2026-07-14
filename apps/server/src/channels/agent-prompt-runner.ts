@@ -72,6 +72,12 @@ export function buildAgentPrompt(
   );
 }
 
+function isSubstantiveMessage(content: string): boolean {
+  if (content.trim().length <= 10) return false;
+  const trivial = /^(hola|para|ok|si|no|gracias|dale|listo|stop|hey|hi|hello|\.\.\.)$/i;
+  return !trivial.test(content.trim());
+}
+
 export class AgentPromptRunner {
   constructor(
     private activeStreams: Map<string, Map<string, ActiveAgentStream>>,
@@ -96,14 +102,6 @@ export class AgentPromptRunner {
       const isObserver = member.role === "observer";
       if (isObserver) {
         return { agentMsg: null };
-      }
-
-      if (incomingMsg.role === "agent") {
-        const mentions = parseMentions(incomingMsg.content, channel.members, agentNameMap);
-        const wasMentioned = mentions.some((m) => m === member.agentId);
-        if (!wasMentioned) {
-          return { agentMsg: null };
-        }
       }
     }
 
@@ -175,10 +173,13 @@ export class AgentPromptRunner {
     const channelDbPath = getChannelMemoryDbPath(username, channelId);
     const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);
 
-    const [agentMemCtx, channelMemCtx] = await Promise.all([
-      agentEntry.server.memory.buildContext(incomingMsg.content),
-      channelMemory.buildContext(incomingMsg.content),
-    ]);
+    const substantive = isSubstantiveMessage(incomingMsg.content);
+    const [agentMemCtx, channelMemCtx] = substantive
+      ? await Promise.all([
+          agentEntry.server.memory.buildContext(incomingMsg.content, { sessionId: incomingMsg.sessionId }),
+          channelMemory.buildContext(incomingMsg.content, { sessionId: incomingMsg.sessionId }),
+        ])
+      : ["", ""];
 
     let memoryPrefix = "";
     if (agentMemCtx) {
@@ -186,8 +187,8 @@ export class AgentPromptRunner {
     }
     if (channelMemCtx) {
       const channelFormatted = channelMemCtx.replace(
-        "--- Relevant Memories ---",
-        "--- Relevant Channel Memories ---"
+        "--- Memories from previous sessions (historical context only — do not resume or re-execute past tasks unless explicitly asked) ---",
+        "--- Channel Memories from previous sessions (historical context only — do not resume or re-execute past tasks unless explicitly asked) ---"
       );
       memoryPrefix += `${channelFormatted}\n\n`;
     }
@@ -356,7 +357,8 @@ export class AgentPromptRunner {
         parseResult.content.slice(0, 500),
         "episodic",
         0.5,
-        ["interaction", `channel:${channelId}`]
+        ["interaction", `channel:${channelId}`],
+        incomingMsg.sessionId
       );
     }
 

@@ -5,7 +5,7 @@ export class NullMemoryProvider implements MemoryProvider {
     return [];
   }
 
-  async store(content: string, type: MemoryType, importance?: number, tags?: string[]): Promise<void> {
+  async store(content: string, type: MemoryType, importance?: number, tags?: string[], sessionId?: string): Promise<void> {
     // No-op
   }
 
@@ -13,7 +13,11 @@ export class NullMemoryProvider implements MemoryProvider {
     // No-op
   }
 
-  async buildContext(query: string): Promise<string> {
+  async clear(): Promise<void> {
+    // No-op
+  }
+
+  async buildContext(query: string, opts?: { sessionId?: string }): Promise<string> {
     return "";
   }
 

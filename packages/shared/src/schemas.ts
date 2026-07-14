@@ -471,6 +471,13 @@ export const LabBlueprintSchema = z.object({
 });
 export type LabBlueprint = z.infer<typeof LabBlueprintSchema>;
 
+export const MaxChainDepthSchema = z.object({
+  single: z.number().int().min(1).max(50).default(3),
+  multiNoLeader: z.number().int().min(1).max(50).default(8),
+  multiWithLeader: z.number().int().min(1).max(50).default(15),
+});
+export type MaxChainDepth = z.infer<typeof MaxChainDepthSchema>;
+
 export const LabExperimentSchema = z.object({
   id: z.string(),
   name: z.string(),
@@ -486,6 +493,7 @@ export const LabExperimentSchema = z.object({
     multiNoLeader: VariantRunSchema,
     multiWithLeader: VariantRunSchema,
   }),
+  maxChainDepth: MaxChainDepthSchema.optional(),
   createdAt: z.string(),
   startedAt: z.string().optional(),
   completedAt: z.string().optional(),

@@ -267,6 +267,45 @@ channelsRouter.get("/:id/negotiation-state", (c) => {
   return c.json({ state });
 });
 
+channelsRouter.get("/:id/memories", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const { memoryRegistry } = await import("../core/memory/registry");
+  const { getChannelMemoryDbPath } = await import("shared");
+
+  const dbPath = getChannelMemoryDbPath(username, id);
+  const memory = await memoryRegistry.get(`channel:${id}`, dbPath, true);
+
+  const query = c.req.query("q") || "";
+  const memories = await memory.recall(query, { limit: 100 });
+  return c.json({ memories });
+});
+
+channelsRouter.delete("/:id/memories", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const { memoryRegistry } = await import("../core/memory/registry");
+  const { getChannelMemoryDbPath } = await import("shared");
+
+  const dbPath = getChannelMemoryDbPath(username, id);
+  const memory = await memoryRegistry.get(`channel:${id}`, dbPath, true);
+
+  if (memory.clear) {
+    await memory.clear();
+  }
+  return c.json({ success: true });
+});
+
 channelsRouter.get("/:id/active-streamings", (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);

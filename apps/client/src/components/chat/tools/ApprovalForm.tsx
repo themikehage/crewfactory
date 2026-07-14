@@ -57,6 +57,10 @@ export function ApprovalForm({ toolCallId, args, result, sessionId }: Props) {
     return () => clearTimeout(timer);
   }, [localAction, addToast]);
 
+  useEffect(() => {
+    if (isResolved) setLocalAction(null);
+  }, [isResolved]);
+
   const handleAction = (action: "confirm" | "cancel") => {
     if (isResolved || localAction !== null || !sessionId) return;
     if (wsClient.getState() !== "connected") {

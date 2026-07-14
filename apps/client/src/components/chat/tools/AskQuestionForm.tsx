@@ -67,6 +67,10 @@ export function AskQuestionForm({ toolCallId, args, result, sessionId }: Props) 
     return () => clearTimeout(timer);
   }, [submitting, addToast]);
 
+  useEffect(() => {
+    if (isResolved) setSubmitting(false);
+  }, [isResolved]);
+
   const handleOptionToggle = (option: string) => {
     if (isResolved || submitting) return;
     const newSelected = new Set(selected);

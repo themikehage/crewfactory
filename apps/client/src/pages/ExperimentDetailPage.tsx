@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
+import { wsClient } from "@/lib/ws-client";
 import { AnimatePresence, motion } from "framer-motion";
 import type { Experiment } from "@/types/laboratory";
 import { VariantViewer } from "@/components/laboratory/VariantViewer";
@@ -36,8 +37,33 @@ export function ExperimentDetailPage({
   const [labSessionId, setLabSessionId] = useState<string | null>(null);
   const labArchitectAgent = useMemo(() => ({ id: "lab-architect" as const, name: "Lab Architect" }), []);
   const [isJudging, setIsJudging] = useState(false);
+  const [fullExperiment, setFullExperiment] = useState<Experiment | null>(null);
 
-  const activeExp = experiments.find((e) => e.id === experimentId) || null;
+  const activeExp = fullExperiment || experiments.find((e) => e.id === experimentId) || null;
+
+  useEffect(() => {
+    setFullExperiment(null);
+    if (!experimentId) return;
+    let active = true;
+    apiFetch(`/api/experiments/${experimentId}`).then((res) => {
+      if (!res.ok || !active) return;
+      res.json().then((data) => {
+        if (active) setFullExperiment(data.experiment);
+      });
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [experimentId]);
+
+  useEffect(() => {
+    if (!experimentId) return;
+    const unsub = wsClient.subscribe("experiment_status", (rawData: unknown) => {
+      const data = rawData as { experimentId: string; experiment?: Experiment };
+      if (data.experimentId === experimentId && data.experiment) {
+        setFullExperiment(data.experiment);
+      }
+    });
+    return () => unsub();
+  }, [experimentId]);
 
   // Resolve chat session for lab-architect
   useEffect(() => {
@@ -144,6 +170,7 @@ export function ExperimentDetailPage({
               <ExperimentConfigTab
                 experiment={displayExp}
                 onUpdate={(updated) => {
+                  setFullExperiment(updated);
                   setExperiments((prev) => prev.map((e) => (e.id === updated.id ? updated : e)));
                 }}
               />

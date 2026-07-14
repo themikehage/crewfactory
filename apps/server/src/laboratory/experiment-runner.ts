@@ -106,10 +106,11 @@ export class ExperimentRunner {
     try {
       if (signal.aborted) return;
 
+      const depth = exp.maxChainDepth;
       const VARIANT_CONFIGS: VariantConfig[] = [
-        { variantKey: "single",         replyMode: "user-only",  maxChainDepth: 3,  hasNegotiationProtocol: false, minAgents: 1, sessionNameSuffix: "Baseline" },
-        { variantKey: "multiNoLeader",  replyMode: "broadcast",  maxChainDepth: 8,  hasNegotiationProtocol: false, minAgents: 2, sessionNameSuffix: "Horizontal" },
-        { variantKey: "multiWithLeader",replyMode: "targeted",   maxChainDepth: 15, hasNegotiationProtocol: true,  minAgents: 3, sessionNameSuffix: "Jerárquico" },
+        { variantKey: "single",         replyMode: "user-only",  maxChainDepth: depth?.single ?? 3,  hasNegotiationProtocol: false, minAgents: 1, sessionNameSuffix: "Baseline" },
+        { variantKey: "multiNoLeader",  replyMode: "broadcast",  maxChainDepth: depth?.multiNoLeader ?? 8,  hasNegotiationProtocol: false, minAgents: 2, sessionNameSuffix: "Horizontal" },
+        { variantKey: "multiWithLeader",replyMode: "targeted",   maxChainDepth: depth?.multiWithLeader ?? 15, hasNegotiationProtocol: true,  minAgents: 3, sessionNameSuffix: "Jerárquico" },
       ];
 
       let baselineStats: { durationMs: number; totalTokens: number } | null = null;

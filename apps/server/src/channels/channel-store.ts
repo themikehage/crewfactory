@@ -9,7 +9,11 @@ export interface NegotiationPairState {
   status: "open" | "agreed" | "rejected" | "escalated";
 }
 
-export type NegotiationState = Record<string, NegotiationPairState>;
+export interface NegotiationState {
+  [key: string]: any;
+  _arbitrations?: number;
+  _divergences?: number;
+}
 
 class ChannelStore {
   private getBaseDir(username: string): string {

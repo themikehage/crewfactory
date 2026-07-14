@@ -1,3 +1,4 @@
+COMPLETED
 # Channel Non-Streaming Render
 
 ## Problem

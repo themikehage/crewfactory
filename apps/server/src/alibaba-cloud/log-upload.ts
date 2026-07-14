@@ -71,7 +71,7 @@ export async function uploadToOss(
   const response = await fetch(url, {
     method: "PUT",
     headers,
-    body,
+    body: body as any,
     signal: AbortSignal.timeout(30000),
   });
 

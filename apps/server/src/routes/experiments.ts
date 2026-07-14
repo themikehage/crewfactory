@@ -15,12 +15,38 @@ export const experimentsRouter = new Hono();
 
 experimentsRouter.use("/*", authMiddleware);
 
-// Get all experiments
+function stripExperiment(exp: LabExperiment): LabExperiment {
+  const stripVariant = (v: typeof exp.variants.single) => ({
+    ...v,
+    agents: v.agents.map((a) => ({ ...a, systemPrompt: "" })),
+    result: v.result
+      ? {
+          ...v.result,
+          finalOutput: "",
+          scores: {
+            ...v.result.scores,
+            judgeReasoning: undefined,
+          },
+        }
+      : undefined,
+  });
+
+  return {
+    ...exp,
+    variants: {
+      single: stripVariant(exp.variants.single),
+      multiNoLeader: stripVariant(exp.variants.multiNoLeader),
+      multiWithLeader: stripVariant(exp.variants.multiWithLeader),
+    },
+  };
+}
+
+// Get all experiments (lightweight — full payload on GET /:id)
 experimentsRouter.get("/", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   const list = await ExperimentStore.listExperiments(username);
-  return c.json({ experiments: list });
+  return c.json({ experiments: list.map(stripExperiment) });
 });
 
 // Get default model for the user
@@ -301,7 +327,10 @@ experimentsRouter.post("/:id/judge", async (c) => {
       "single",
       judgeResults.single.globalScore,
       single.durationMs, single.tokensIn, single.tokensOut,
-      null, undefined,
+      null,
+      1,
+      0,
+      undefined,
       { reasoning: judgeResults.single.reasoning, criteriaScores: judgeResults.single.scores }
     );
     exp.variants.multiNoLeader.result!.scores = calculateVariantScores(
@@ -309,6 +338,8 @@ experimentsRouter.post("/:id/judge", async (c) => {
       judgeResults.multiNoLeader.globalScore,
       noLeader.durationMs, noLeader.tokensIn, noLeader.tokensOut,
       baselineStats,
+      exp.variants.multiNoLeader.agents.length,
+      noLeader.negotiationRounds || 0,
       { 
         agreementReached: noLeader.agreementReached, 
         rounds: noLeader.negotiationRounds || 0, 
@@ -325,6 +356,8 @@ experimentsRouter.post("/:id/judge", async (c) => {
       judgeResults.multiWithLeader.globalScore,
       withLeader.durationMs, withLeader.tokensIn, withLeader.tokensOut,
       baselineStats,
+      exp.variants.multiWithLeader.agents.length,
+      withLeader.negotiationRounds || 0,
       { 
         agreementReached: withLeader.agreementReached, 
         rounds: withLeader.negotiationRounds || 0, 

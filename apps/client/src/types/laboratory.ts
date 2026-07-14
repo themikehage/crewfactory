@@ -45,6 +45,12 @@ export interface Variant {
   result?: VariantRunResult;
 }
 
+export interface MaxChainDepth {
+  single: number;
+  multiNoLeader: number;
+  multiWithLeader: number;
+}
+
 export interface Experiment {
   id: string;
   name: string;
@@ -60,6 +66,7 @@ export interface Experiment {
     multiNoLeader: Variant;
     multiWithLeader: Variant;
   };
+  maxChainDepth?: MaxChainDepth;
   createdAt: string;
   startedAt?: string;
   completedAt?: string;
