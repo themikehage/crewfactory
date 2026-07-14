@@ -21,6 +21,8 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [fix-experiments-eager-fetch.md](./fix-experiments-eager-fetch.md) — `fetchExperiments()` se dispara en `/onboard` y `/` sin autenticacion, causando requests HTTP 401 innecesarios. SessionSidebar duplica el fetch. Plan: auth guard + hook `useExperiments` + dedup
 - [fix-chat-render-loop.md](./fix-chat-render-loop.md) — Maximum update depth exceeded en ChatArea por `dependencies: [messages]` inline array que dispara efecto de `useChatScroll` en cada render
+- [fix-experiment-flickering.md](./fix-experiment-flickering.md) — El contenido de variantes de experimento aparece y desaparece (flickering) por 4 causas: useChannel limpia mensajes prematuramente, el canal se destruye al finalizar cada variante, no hay handler de experiment_status en el cliente, y ejecucion fire-and-forget. Fix en 3 fases: flickering inmediato, preservar historial, canales persistentes con "send message to channel".
+- [channel-non-streaming-render.md](./channel-non-streaming-render.md) — Los canales multi-agente renderizan mensajes en streaming caracter-por-caracter, creando caos visual cuando varios agentes escriben a la vez. Fix: buffer que oculta mensajes parciales y solo muestra el mensaje completo al recibir channel_message, con indicador sutil de typing.
 
 ### Technical Debt
 
