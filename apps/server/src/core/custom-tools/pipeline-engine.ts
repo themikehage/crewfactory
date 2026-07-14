@@ -8,11 +8,26 @@ export interface PipelineContext {
   sessionId: string;
 }
 
+function getNestedValue(obj: Record<string, any>, path: string): any {
+  const keys = path.split(".");
+  let current: any = obj;
+  for (const key of keys) {
+    if (current === null || current === undefined) return undefined;
+    if (typeof current === "string") {
+      try { current = JSON.parse(current); } catch { return undefined; }
+    }
+    if (typeof current !== "object") return undefined;
+    current = current[key];
+  }
+  return current;
+}
+
 export function resolveVariables(template: any, scope: Record<string, any>): any {
   if (typeof template === "string") {
-    return template.replace(/\{(\w+)\}/g, (match, key) => {
-      if (key in scope) {
-        return String(scope[key]);
+    return template.replace(/\{([\w.]+)\}/g, (match, key) => {
+      const value = getNestedValue(scope, key);
+      if (value !== undefined) {
+        return typeof value === "object" ? JSON.stringify(value) : String(value);
       }
       return match;
     });
