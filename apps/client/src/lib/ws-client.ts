@@ -1,5 +1,5 @@
 type EventHandler = (data: unknown) => void;
-type ConnectionState = "disconnected" | "connecting" | "connected";
+export type ConnectionState = "disconnected" | "connecting" | "connected" | "permanently_disconnected";
 type StateHandler = (state: ConnectionState) => void;
 
 class WsClient {
@@ -12,6 +12,26 @@ class WsClient {
   private reconnectAttempts = 0;
   private intentionalClose = false;
   private offlineQueue: Array<Record<string, unknown>> = [];
+  private pingInterval: ReturnType<typeof setInterval> | null = null;
+  private lastPong = Date.now();
+
+  private startPingTimer(): void {
+    this.stopPingTimer();
+    this.lastPong = Date.now();
+    this.pingInterval = setInterval(() => {
+      if (Date.now() - this.lastPong > 45000) {
+        console.warn("[wsClient] No ping received from server in 45s, reconnecting...");
+        this.ws?.close();
+      }
+    }, 15000);
+  }
+
+  private stopPingTimer(): void {
+    if (this.pingInterval) {
+      clearInterval(this.pingInterval);
+      this.pingInterval = null;
+    }
+  }
 
   getState(): ConnectionState {
     return this.state;
@@ -37,6 +57,7 @@ class WsClient {
       clearTimeout(this.reconnectTimeout);
       this.reconnectTimeout = null;
     }
+    this.stopPingTimer();
     this.ws?.close();
     this.ws = null;
     this.offlineQueue = [];
@@ -132,6 +153,7 @@ class WsClient {
     ws.onopen = () => {
       console.log("[wsClient] WebSocket opened. Cookie auth will be attempted server-side.");
       this.reconnectAttempts = 0;
+      this.startPingTimer();
     };
 
     ws.onmessage = (event) => {
@@ -139,6 +161,7 @@ class WsClient {
         const data = JSON.parse(event.data as string);
 
         if (data.type === "ping") {
+          this.lastPong = Date.now();
           this.send({ type: "pong" });
           return;
         }
@@ -153,6 +176,7 @@ class WsClient {
         if (data.type === "auth_error") {
           console.error("[wsClient] Authentication failed! Error:", data.error);
           this.intentionalClose = true;
+          this.setState("permanently_disconnected");
           ws.close();
           return;
         }
@@ -170,6 +194,7 @@ class WsClient {
     ws.onclose = (event) => {
       console.warn(`[wsClient] WebSocket closed. intentionalClose: ${this.intentionalClose}, code: ${event.code}, reason: ${event.reason}`);
       this.ws = null;
+      this.stopPingTimer();
       if (this.intentionalClose) return;
       this.setState("disconnected");
       const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);

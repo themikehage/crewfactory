@@ -1,5 +1,6 @@
 import { Menu, Plus } from "lucide-react";
 import { Logo } from "@/components/ui/Logo";
+import type { ConnectionState } from "@/lib/ws-client";
 
 interface MobileTopbarProps {
   isMobile: boolean;
@@ -12,6 +13,7 @@ interface MobileTopbarProps {
   onNavigate: (path: string) => void;
   showNewSessionButton: boolean;
   l: Record<string, string>;
+  wsState: ConnectionState;
 }
 
 export function MobileTopbar({
@@ -23,6 +25,7 @@ export function MobileTopbar({
   onNavigate,
   showNewSessionButton,
   l,
+  wsState,
 }: MobileTopbarProps) {
   if (!isMobile) return null;
 
@@ -49,6 +52,14 @@ export function MobileTopbar({
       </div>
 
       <div className="flex items-center gap-1.5 flex-shrink-0">
+        <span
+          className={`w-2 h-2 rounded-full mr-1 flex-shrink-0 ${
+            wsState === "connected" ? "bg-success" :
+            wsState === "connecting" ? "bg-warning animate-pulse" :
+            "bg-error"
+          }`}
+          title={`WebSocket: ${wsState}`}
+        />
         <button
           onClick={() => onNavigate("/sessions")}
           className="w-11 h-11 flex items-center justify-center text-muted-foreground hover:text-foreground rounded-lg active:bg-surface-hover transition-colors cursor-pointer"

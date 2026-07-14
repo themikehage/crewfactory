@@ -95,10 +95,21 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         const session = await createRes.json();
         const path = getSessionPath(session.id, { activeChannel, activeAgent, activeProjectName });
 
-        localStorage.setItem(`pending-prompt-${session.id}`, finalText);
-        if (imagesToSave.length > 0) {
-          localStorage.setItem(`pending-images-${session.id}`, JSON.stringify(imagesToSave));
+        const pendingData = {
+          text: finalText,
+          images: imagesToSave.length > 0 ? imagesToSave : undefined,
+          timestamp: Date.now()
+        };
+
+        (window as any).__pendingPrompts = (window as any).__pendingPrompts || {};
+        (window as any).__pendingPrompts[session.id] = pendingData;
+
+        try {
+          localStorage.setItem(`pending-prompt-${session.id}`, JSON.stringify(pendingData));
+        } catch (err) {
+          console.error("Failed to store pending prompt in localStorage:", err);
         }
+
         navigate(path);
       } else {
         addToast("error", "Error al crear la sesión");
@@ -157,6 +168,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [wasConnected, setWasConnected] = useState(connected);
   const scrollContainerRef = useRef<HTMLDivElement>(null);
   const firstMessageSentRef = useRef(false);
+  const receivedMessageIds = useRef<Set<string>>(new Set());
 
   const handleCompact = useCallback(() => {
     if (!sessionId || compacting) return;
@@ -221,6 +233,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         const data = await res.json();
         const msgs = data.messages ?? [];
         setMessages(msgs);
+        msgs.forEach((m: any) => {
+          const id = m.responseId || m.id;
+          if (id) {
+            receivedMessageIds.current.add(id);
+          }
+        });
         setSessionMetadata(data.metadata ?? null);
         if (msgs.length > 0) {
           firstMessageSentRef.current = true;
@@ -244,6 +262,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       return;
     }
 
+    receivedMessageIds.current.clear();
     loadMessages();
     firstMessageSentRef.current = false;
 
@@ -299,6 +318,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const msg = evt.message as Message | undefined;
       if (!msg) return;
       if (msg.role === "user") return;
+
+      const msgId = msg.responseId || msg.id;
+      if (msgId && receivedMessageIds.current.has(msgId)) {
+        return;
+      }
+      if (msgId) {
+        receivedMessageIds.current.add(msgId);
+      }
 
       setMessages((prev) => {
         const index = findMsgIndex(prev, msg);
@@ -507,22 +534,41 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   useEffect(() => {
     if (!sessionId) return;
     const pendingKey = `pending-prompt-${sessionId}`;
-    const pendingPrompt = localStorage.getItem(pendingKey);
     const pendingImagesKey = `pending-images-${sessionId}`;
-    const pendingImagesStr = localStorage.getItem(pendingImagesKey);
-    let pendingImages: Array<{ type: "image"; data: string; mimeType: string }> | undefined = undefined;
-    if (pendingImagesStr) {
-      try {
-        pendingImages = JSON.parse(pendingImagesStr);
-      } catch (e) {
-        console.error("Failed to parse pending images:", e);
+
+    // 1. Try memory
+    let pending = (window as any).__pendingPrompts?.[sessionId];
+
+    // 2. Try localStorage if memory was empty (e.g. F5)
+    if (!pending) {
+      const pendingStr = localStorage.getItem(pendingKey);
+      if (pendingStr) {
+        try {
+          const parsed = JSON.parse(pendingStr);
+          if (parsed && typeof parsed.timestamp === "number" && Date.now() - parsed.timestamp < 30000) {
+            pending = parsed;
+          }
+        } catch (e) {
+          // Fallback for legacy plain text prompt
+          pending = {
+            text: pendingStr,
+            timestamp: Date.now()
+          };
+        }
       }
     }
-    if (pendingPrompt) {
-      localStorage.removeItem(pendingKey);
-      localStorage.removeItem(pendingImagesKey);
+
+    // Clean up memory
+    if ((window as any).__pendingPrompts?.[sessionId]) {
+      delete (window as any).__pendingPrompts[sessionId];
+    }
+    // Clean up localStorage keys (including legacy one)
+    localStorage.removeItem(pendingKey);
+    localStorage.removeItem(pendingImagesKey);
+
+    if (pending && pending.text) {
       setTimeout(() => {
-        handleSend(pendingPrompt, undefined, undefined, pendingImages);
+        handleSend(pending.text, undefined, undefined, pending.images);
       }, 500);
     }
   }, [sessionId, handleSend]);
@@ -561,7 +607,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           suggestions={getSuggestions()}
           showModelSelector={true}
           allowAttachments={!activeChannel}
-          disabled={streaming}
+          disabled={streaming || !connected}
           loading={streaming}
           textareaRef={chatInputRef}
         />
@@ -630,7 +676,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                   suggestions={getSuggestions()}
                   showModelSelector={true}
                   allowAttachments={!activeChannel}
-                  disabled={streaming}
+                  disabled={streaming || !connected}
                   loading={streaming}
                   textareaRef={chatInputRef}
                 />
@@ -703,6 +749,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 onCompact={handleCompact}
                 compacting={compacting}
                 textareaRef={chatInputRef}
+                disabled={!connected}
               />
             )}
           </div>

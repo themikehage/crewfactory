@@ -1,11 +1,12 @@
 import type { ReactNode } from "react";
 import { Logo } from "@/components/ui/Logo";
+import type { ConnectionState } from "@/lib/ws-client";
 
 interface DesktopHeaderProps {
   onHome: () => void;
   onToggleSidebar: () => void;
   onNavigate: (path: string) => void;
-  wsConnected: boolean;
+  wsState: ConnectionState;
   breadcrumbs: ReactNode;
 }
 
@@ -13,7 +14,7 @@ export function DesktopHeader({
   onHome,
   onToggleSidebar,
   onNavigate,
-  wsConnected,
+  wsState,
   breadcrumbs,
 }: DesktopHeaderProps) {
   return (
@@ -55,11 +56,15 @@ export function DesktopHeader({
           </svg>
         </button>
         <span
-          className={`w-2 h-2 rounded-full flex-shrink-0 ${wsConnected ? "bg-primary" : "bg-warning"}`}
-          title={wsConnected ? "Connected" : "Reconnecting"}
+          className={`w-2 h-2 rounded-full flex-shrink-0 ${
+            wsState === "connected" ? "bg-success" :
+            wsState === "connecting" ? "bg-warning animate-pulse" :
+            "bg-error"
+          }`}
+          title={`WebSocket: ${wsState}`}
         />
         <span className="text-[10px] text-muted-foreground/60">
-          {wsConnected ? "online" : "offline"}
+          {wsState === "connected" ? "online" : wsState === "connecting" ? "connecting" : "offline"}
         </span>
       </div>
     </header>

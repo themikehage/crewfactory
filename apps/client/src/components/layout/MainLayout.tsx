@@ -1,12 +1,13 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { Plus, Settings } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
 import type { Route } from "@/hooks/useRouter";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";
 import { MobileTopbar } from "./MobileTopbar";
-import { wsClient } from "@/lib/ws-client";
+import { wsClient, type ConnectionState } from "@/lib/ws-client";
 import { useWorkspaceNavigation } from "./hooks/useWorkspaceNavigation";
 import { useSessionActions } from "./hooks/useSessionActions";
 import { Breadcrumbs } from "./header/Breadcrumbs";
@@ -18,6 +19,9 @@ import { MobileSidebarOverlay } from "./sidebar/MobileSidebarOverlay";
 import { MobileBottomBar } from "./mobile/MobileBottomBar";
 import { SessionSidebar } from "@/components/sidebar/SessionSidebar";
 import { SessionPopover } from "@/components/sidebar/SessionPopover";
+import { RegisterModal } from "@/components/agents/RegisterModal";
+import { useAgents } from "@/hooks/useAgents";
+import type { AgentDefinition, AgentInfo } from "shared";
 
 type VariantTab = "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare";
 
@@ -75,11 +79,13 @@ export function MainLayout({
   const l = useLiterals(u);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
-  const [wsConnected, setWsConnected] = useState(() => wsClient.getState() === "connected");
+  const [wsState, setWsState] = useState<ConnectionState>(() => wsClient.getState());
+  const [showAgentEdit, setShowAgentEdit] = useState(false);
+  const { updateAgent, uploadAvatar, deleteAvatar } = useAgents();
 
   useEffect(() => {
     const unsub = wsClient.onStateChange((state) => {
-      setWsConnected(state === "connected");
+      setWsState(state);
     });
     return unsub;
   }, []);
@@ -105,6 +111,12 @@ export function MainLayout({
       onBack();
     }
   }, [onBack]);
+
+  const handleUpdateAgent = useCallback(async (def: AgentDefinition) => {
+    if (!activeAgent) return;
+    const { id, ...updates } = def;
+    await updateAgent(activeAgent.id, updates);
+  }, [activeAgent, updateAgent]);
 
   const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && route.page === "chat";
 
@@ -257,6 +269,15 @@ export function MainLayout({
               )}
             </button>
           )}
+          {activeAgent && (
+            <button
+              onClick={() => setShowAgentEdit(true)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
+              title="Configurar agente"
+            >
+              <Settings size={14} />
+            </button>
+          )}
           <button
             onClick={() => setSessionPopoverOpen((p) => !p)}
             className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
@@ -313,7 +334,7 @@ export function MainLayout({
   );
 
   return (
-    <div className="h-dvh flex flex-col bg-background text-foreground overflow-hidden font-sans">
+    <><div className="h-dvh flex flex-col bg-background text-foreground overflow-hidden font-sans">
       {isMobile ? (
         <MobileTopbar
           isMobile={isMobile}
@@ -326,13 +347,14 @@ export function MainLayout({
           onNavigate={onNavigate}
           showNewSessionButton={showNewSessionButton}
           l={l}
+          wsState={wsState}
         />
       ) : (
         <DesktopHeader
           onHome={() => onSelectProject ? onSelectProject(null, null) : onNavigate("/")}
           onToggleSidebar={() => setSidebarOpen((p) => !p)}
           onNavigate={onNavigate}
-          wsConnected={wsConnected}
+          wsState={wsState}
           breadcrumbs={breadcrumbsElement}
         />
       )}
@@ -383,5 +405,17 @@ export function MainLayout({
         )}
       </div>
     </div>
+      <AnimatePresence>
+        {showAgentEdit && activeAgent && (
+          <RegisterModal
+            agent={{ id: activeAgent.id, name: activeAgent.name, avatarUrl: activeAgent.avatarUrl, role: "", status: "idle" as const, createdAt: "" } as unknown as AgentInfo}
+            onClose={() => setShowAgentEdit(false)}
+            onSubmit={handleUpdateAgent}
+            onUploadAvatar={uploadAvatar}
+            onDeleteAvatar={deleteAvatar}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 }

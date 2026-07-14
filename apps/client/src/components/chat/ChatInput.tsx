@@ -200,6 +200,7 @@ interface Props {
   onCompact?: () => void;
   compacting?: boolean;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
+  disabled?: boolean;
 }
 
 export function ChatInput({
@@ -216,7 +217,9 @@ export function ChatInput({
   contextUsage = null,
   onCompact,
   compacting = false,
-  textareaRef: externalTextareaRef}: Props) {
+  textareaRef: externalTextareaRef,
+  disabled = false,
+}: Props) {
   const l = useLiterals(u);
   const { addToast } = useToast();
   const [input, setInput] = useState("");
@@ -512,7 +515,7 @@ export function ChatInput({
         {/* Floating Input Card */}
         <InputCard
           streaming={streaming}
-          disabled={runnerActive}
+          disabled={runnerActive || disabled}
           focused={focused}
           attachments={attachments}
           onRemoveAttachment={removeAttachment}
@@ -532,7 +535,7 @@ export function ChatInput({
             <InputToolbar
               sessionId={sessionId}
               streaming={streaming}
-              disabled={runnerActive}
+              disabled={runnerActive || disabled}
               activeTools={activeTools}
               onToolsChange={handleToolsChange}
               skills={skills}
