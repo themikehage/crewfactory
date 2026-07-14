@@ -30,6 +30,7 @@ import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";
 import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentModal";
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
+import { wsClient } from "@/lib/ws-client";
 
 export function AppRouter() {
   const { user, loading, needsSetup } = useAuth();
@@ -203,6 +204,45 @@ export function AppRouter() {
     if (!user) return;
     fetchExperiments();
   }, [fetchExperiments, user]);
+
+  useEffect(() => {
+    const unsub = wsClient.subscribe("experiment_status", (rawData: unknown) => {
+      const data = rawData as {
+        experimentId: string;
+        status: "running" | "completed" | "failed";
+        activeVariant?: "single" | "multiNoLeader" | "multiWithLeader" | "judging";
+        experiment?: Experiment;
+        error?: string;
+      };
+
+      setExperiments((prev) => {
+        return prev.map((exp) => {
+          if (exp.id !== data.experimentId) return exp;
+
+          if (data.experiment) {
+            return data.experiment;
+          }
+
+          const updated = { ...exp, status: data.status };
+          if (data.activeVariant !== undefined) {
+            updated.activeVariant = data.activeVariant;
+          }
+          return updated;
+        });
+      });
+
+      // Refresh runs list if the experiment completed or failed
+      if (data.status === "completed" || data.status === "failed") {
+        if (currentExpId === data.experimentId) {
+          fetchPastRuns(data.experimentId);
+        }
+      }
+    });
+
+    return () => {
+      unsub();
+    };
+  }, [currentExpId, fetchPastRuns]);
 
   const routeToStackItem = useCallback((r: typeof route): NavigationStackItem => {
     const isLab = r.page === "laboratory";

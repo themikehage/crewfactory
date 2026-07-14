@@ -1,3 +1,4 @@
+COMPLETED
 # Fix Experiment Flickering & Sequential Variant Execution
 
 ## Problem

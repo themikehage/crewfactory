@@ -23,6 +23,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
 
   const channelIdRef = useRef(channelId);
   const sessionIdRef = useRef(sessionId);
+  const prevChannelIdRef = useRef<string | null>(null);
   channelIdRef.current = channelId;
   sessionIdRef.current = sessionId;
 
@@ -30,6 +31,10 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     if (!channelId) return;
     try {
       const res = await apiFetch(`/api/channels/${channelId}`);
+      if (res.status === 404) {
+        setChannel(null);
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setChannel(data);
@@ -43,6 +48,10 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     try {
       const url = `/api/channels/${channelId}/messages?limit=100${sessionId ? `&sessionId=${sessionId}` : ""}`;
       const res = await apiFetch(url);
+      if (res.status === 404) {
+        // Fail silently
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
       setMessages(data.messages || []);
@@ -56,6 +65,9 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     try {
       const url = `/api/channels/${channelId}/active-streamings${sessionId ? `?sessionId=${sessionId}` : ""}`;
       const res = await apiFetch(url);
+      if (res.status === 404) {
+        return;
+      }
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
@@ -86,12 +98,18 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setMessages([]);
       setStreamingAgents({});
       setLoading(false);
+      prevChannelIdRef.current = null;
       return;
     }
-    setMessages([]);
-    setStreamingAgents({});
-    setLoading(true);
-    setError(null);
+
+    if (prevChannelIdRef.current !== channelId) {
+      setMessages([]);
+      setStreamingAgents({});
+      setLoading(true);
+      setError(null);
+    }
+    prevChannelIdRef.current = channelId;
+
     Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings()]).finally(() => setLoading(false));
   }, [channelId, sessionId, fetchChannel, fetchMessages, fetchActiveStreamings]);
 

@@ -36,6 +36,10 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [state-of-the-art-2026.md](./state-of-the-art-2026.md) — Estado del arte de plataformas AI agenticas (Cursor, Devin Desktop, Claude Code, Copilot, Codex) con 14 funcionalidades priorizadas para CrewFactory
 - [sandboxing.md](./sandboxing.md) — Sandboxing profesional: Permission Engine, Docker sandbox, Network Proxy, Secret Filter, Resource Limits, UI de configuracion
 
+### Performance
+
+- [laboratory-efficiency-audit.md](./laboratory-efficiency-audit.md) — Auditoria de eficiencia del laboratorio: scoring injusto, system prompt inflado (1,370t desperdiciados por call), 9 AgentServer duplicados por experimento, DivergenceDetector O(n), bypass de (silent). **Ademas: 2 patrones humanos que no aplican a IA** (halago antes de corregir, repeticion de entrega completa) con solucion `Output Protocol` para canales en general: lider entrega propuesta completa, especialistas solo sugieren diff quirurgico. ~70-75% menos tokens. 8 fases.
+
 ### Features
 
 - [better-auth-onboarding.md](./better-auth-onboarding.md) — **Better Auth + First-Run Onboarding**: Reemplazar JWT+bcrypt custom con Better Auth. Onboarding estilo Coolify: el usuario crea su cuenta admin en el primer acceso, sin manejar variables de entorno ni encriptacion. Sesiones httpOnly via cookies, SQLite como DB, multi-user ready, auto-migracion de credenciales legacy.

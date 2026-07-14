@@ -14,6 +14,7 @@ export interface RunToCompletionConfig {
   sessionId: string;
   sessionName: string;
   signal?: AbortSignal;
+  preserveChannel?: boolean;
 }
 
 export interface RunToCompletionResult {

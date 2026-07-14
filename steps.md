@@ -316,3 +316,25 @@
 - [x] 125.5 Integrate web_fetch in AVAILABLE_TOOLS schema, tool activation engine, WS factory, and server routing permissions
 - [x] 125.6 Build custom WebFetchResult React component and integrate in ToolsSelector and ToolCallRow
 - [x] 125.7 Verify builds and SSRF protection layer successfully
+
+## Phase 126: Channel Non-Streaming Render (Buffer Mode)
+- [x] 126.1 Add streamingRenderMode field to shared schemas (Channel, CreateChannel, UpdateChannel)
+- [x] 126.2 Persist streamingRenderMode field in the server-side channel-store
+- [x] 126.3 Add streamingRenderMode dropdown selector to ChannelSettingsModal and support translations
+- [x] 126.4 Update ChannelMessageList mapping logic to respect streamingRenderMode and conditionalize activeStreamList rendering
+- [x] 126.5 Update ChannelMessages mapping logic and add typing indicator when streamingRenderMode is 'complete'
+- [x] 126.6 Add typing indicator bar in ChannelChatArea above the ChatInput in complete mode
+- [x] 126.7 Pass streamingRenderMode prop from ChannelDetailPage to ChannelMessages
+- [x] 126.8 Verify clean compilation and successful builds of apps/server and apps/client
+
+## Phase 127: Laboratory Efficiency Audit
+- [x] 127.1 Normalise scoring formula by agent count and implement logarithmic ratio penalty
+- [x] 127.2 Implement early-exit score parsing fast check and sliding window scans in DivergenceDetector
+- [x] 127.3 Implement experiment-member prompt assembly mode and minimal LAB_APPEND_INSTRUCTIONS
+- [x] 127.4 Add prompt caching and skip reload scans for laboratory channels
+- [x] 127.5 Implement pre-LLM silent bypass check for observers and non-mentioned agents
+- [x] 127.6 Add output-format prompt fragments (full-proposal, diff-suggestion, normal) as Capa 5
+- [x] 127.7 Enforce diff suggestion formats using custom initial courtesy string stripper post-processors
+- [x] 127.8 Integrate outputMode configuration option dropdown in AgentDetailPanel client view
+- [x] 127.9 Verify clean compilation and successful workspace builds
+

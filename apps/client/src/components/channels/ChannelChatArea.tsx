@@ -170,7 +170,17 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
           mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
           sessionId={sessionId}
           activeChannelId={activeChannel.id}
+          streamingRenderMode={channel?.streamingRenderMode ?? "live"}
         />
+
+        {isStreaming && channel?.streamingRenderMode === "complete" && (
+          <div className="px-4 py-1.5 bg-card/30 border-t border-b border-border/30 flex items-center gap-2 text-xs text-muted-foreground flex-shrink-0 animate-fadeIn">
+            <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+            <span>
+              {Object.values(streamingAgents).map((a) => a.agentName || a.agentId).join(", ")} responding...
+            </span>
+          </div>
+        )}
 
         {sessionId && !variantMode && (
           <ChatInput

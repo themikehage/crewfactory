@@ -61,7 +61,16 @@ export class DivergenceDetector {
       };
     }
 
-    // 2. Parse scores across all messages in the session history to detect score delta
+    // 2. Parse scores across recent messages to detect score delta (O(1) fast check)
+    const SCORE_FAST_CHECK = /SCORE\s*[:=\[]|:\s*\d+\/10/i;
+    const scanWindow = messages.slice(-3);
+    const hasAnyScore = scanWindow.some(
+      (m) => m.role === "agent" && m.content && SCORE_FAST_CHECK.test(m.content)
+    );
+    if (!hasAnyScore) {
+      return null;
+    }
+
     // Map of topic -> Map of agentName -> score
     const scoresByTopic = new Map<string, Map<string, number>>();
 
@@ -84,7 +93,7 @@ export class DivergenceDetector {
       /Puntúo\s+([a-zA-Z0-9_áéíóúñ-]+)\s+con\s+(\d+)\/10/gi
     ];
 
-    for (const msg of messages) {
+    for (const msg of scanWindow) {
       if (msg.role !== "agent" || !msg.content) continue;
       const agentName = msg.agentName || msg.agentId || "unknown";
 

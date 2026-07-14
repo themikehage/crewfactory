@@ -1,10 +1,11 @@
-import type { Channel } from "shared";
+import type { Channel, ChannelMember } from "shared";
 
 export interface DeploymentMember {
   agentId: string;
   agentName: string;
   role: string;
   replyMode: string;
+  outputMode?: "full-proposal" | "diff-suggestion" | "normal";
 }
 
 export interface DeploymentContext {
@@ -16,6 +17,14 @@ export interface DeploymentContext {
   isArbiter?: boolean;
   selfReplyMode?: string;
   leaderName?: string;
+  outputMode?: "full-proposal" | "diff-suggestion" | "normal";
+}
+
+export function getOutputMode(member: ChannelMember, channel?: Channel): "full-proposal" | "diff-suggestion" | "normal" {
+  if (member.outputMode) return member.outputMode;
+  if (member.role === "lead") return "full-proposal";
+  if (channel?.negotiationProtocol) return "diff-suggestion";
+  return "normal";
 }
 
 export function buildDeploymentContext(
@@ -38,6 +47,8 @@ export function buildDeploymentContext(
   const leaderMember = channel.members.find((m) => m.role === "lead");
   const leaderName = leaderMember ? (agentNameMap.get(leaderMember.agentId) || leaderMember.agentId) : undefined;
 
+  const selfOutputMode = selfMember ? getOutputMode(selfMember, channel) : "normal";
+
   return {
     mode: isBroadcast ? "broadcast" : hasLeader ? "targeted" : "broadcast",
     channelId: channel.id,
@@ -47,10 +58,12 @@ export function buildDeploymentContext(
       agentName: agentNameMap.get(m.agentId) || m.agentId,
       role: m.role || "member",
       replyMode: m.replyMode || "broadcast",
+      outputMode: getOutputMode(m, channel),
     })),
     negotiationProtocol: !!channel.negotiationProtocol,
     isArbiter,
     selfReplyMode: selfMember?.replyMode || "broadcast",
     leaderName,
+    outputMode: selfOutputMode,
   };
 }

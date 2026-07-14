@@ -7,10 +7,11 @@ import { seniorFragments } from "./fragments/role-senior";
 import { observerFragments } from "./fragments/role-observer";
 import { instanceFragments } from "./fragments/instance";
 import { protocolFragments } from "./fragments/protocol";
+import { outputFormatFragments } from "./fragments/output-format";
 
 export interface PromptFragment {
   key: string;
-  category: "identity" | "role" | "instance" | "protocol";
+  category: "identity" | "role" | "instance" | "protocol" | "output-format";
   content: string;
   priority: number;
 }
@@ -31,6 +32,7 @@ export class PromptFragmentRegistry {
       ...observerFragments,
       ...instanceFragments,
       ...protocolFragments,
+      ...outputFormatFragments,
     ];
     for (const f of all) {
       this.defaults.set(f.key, f);

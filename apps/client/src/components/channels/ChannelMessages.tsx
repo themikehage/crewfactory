@@ -8,9 +8,15 @@ interface Props {
   messages: ChannelMessage[];
   streamingAgents: Record<string, StreamingAgentState>;
   agentAvatarMap?: Record<string, string | undefined>;
+  streamingRenderMode?: "live" | "complete";
 }
 
-export function ChannelMessages({ messages, streamingAgents, agentAvatarMap = {} }: Props) {
+export function ChannelMessages({
+  messages,
+  streamingAgents,
+  agentAvatarMap = {},
+  streamingRenderMode = "live",
+}: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -71,7 +77,7 @@ export function ChannelMessages({ messages, streamingAgents, agentAvatarMap = {}
         </div>
       ))}
 
-      {activeStreamList.map((stream) => (
+      {streamingRenderMode !== "complete" && activeStreamList.map((stream) => (
         <div key={stream.agentId} className="flex flex-col items-start">
           <div className="flex items-center gap-2 mb-1 px-1">
             <AgentAvatar
@@ -108,6 +114,15 @@ export function ChannelMessages({ messages, streamingAgents, agentAvatarMap = {}
           </div>
         </div>
       ))}
+
+      {streamingRenderMode === "complete" && activeStreamList.length > 0 && (
+        <div className="flex items-center gap-2 p-2 bg-card/30 border border-input/30 rounded-xl text-xs text-muted-foreground self-start animate-fadeIn">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
+          <span>
+            {activeStreamList.map((a) => a.agentName || a.agentId).join(", ")} responding...
+          </span>
+        </div>
+      )}
 
       <div ref={bottomRef} />
     </div>

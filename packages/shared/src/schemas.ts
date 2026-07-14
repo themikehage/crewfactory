@@ -228,6 +228,7 @@ export const ChannelMemberSchema = z.object({
   replyMode: ReplyModeSchema,
   targetAgentIds: z.array(z.string()).optional(),
   role: ChannelRoleSchema.optional(),
+  outputMode: z.enum(["full-proposal", "diff-suggestion", "normal"]).optional(),
 });
 export type ChannelMember = z.infer<typeof ChannelMemberSchema>;
 
@@ -261,6 +262,7 @@ export const ChannelSchema = z.object({
   maxChainDepth: z.number().int().min(1).max(50).optional(),
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
+  streamingRenderMode: z.enum(["live", "complete"]).optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   createdAt: z.string(),
@@ -276,6 +278,7 @@ export const CreateChannelSchema = z.object({
   maxChainDepth: z.number().int().min(1).max(50).optional(),
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
+  streamingRenderMode: z.enum(["live", "complete"]).optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -289,6 +292,7 @@ export const UpdateChannelSchema = z.object({
   maxChainDepth: z.number().int().min(1).max(50).optional(),
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
+  streamingRenderMode: z.enum(["live", "complete"]).optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -300,6 +304,7 @@ export const AddMemberSchema = z.object({
   replyMode: ReplyModeSchema,
   targetAgentIds: z.array(z.string()).optional(),
   role: ChannelRoleSchema.optional(),
+  outputMode: z.enum(["full-proposal", "diff-suggestion", "normal"]).optional(),
 });
 export type AddMember = z.infer<typeof AddMemberSchema>;
 
@@ -307,6 +312,7 @@ export const UpdateMemberSchema = z.object({
   replyMode: ReplyModeSchema.optional(),
   targetAgentIds: z.array(z.string()).optional(),
   role: ChannelRoleSchema.optional(),
+  outputMode: z.enum(["full-proposal", "diff-suggestion", "normal"]).optional(),
 });
 export type UpdateMember = z.infer<typeof UpdateMemberSchema>;
 
@@ -395,6 +401,12 @@ export const VariantRunResultSchema = z.object({
     globalScore: z.number(),
     judgeReasoning: z.string().optional(),
     criteriaScores: z.record(z.number()).optional(),
+    efficiencyDetail: z.object({
+      numAgents: z.number(),
+      effectiveRounds: z.number(),
+      adjustedDuration: z.number(),
+      adjustedTokens: z.number(),
+    }).optional(),
   }),
 });
 export type VariantRunResult = z.infer<typeof VariantRunResultSchema>;

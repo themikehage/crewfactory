@@ -20,6 +20,10 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     agentNotFound: "Agent not found",
     agentNotFoundDesc: "This agent was deleted from the workspace. You can remove it from this channel below.",
     deletedAgent: "Deleted Agent",
+    outputMode: "Output Mode",
+    outputModeFull: "Full Proposal",
+    outputModeDiff: "Diff Suggestion",
+    outputModeNormal: "Direct Response",
   },
   es: {
     agentDetails: "Detalles del Agente",
@@ -40,5 +44,9 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     agentNotFound: "Agente no encontrado",
     agentNotFoundDesc: "Este agente fue eliminado del espacio de trabajo. Puedes removerlo de este canal abajo.",
     deletedAgent: "Agente eliminado",
+    outputMode: "Modo de Entrega (Output)",
+    outputModeFull: "Propuesta Completa",
+    outputModeDiff: "Sugerencia en Diff",
+    outputModeNormal: "Respuesta Directa",
   },
 };

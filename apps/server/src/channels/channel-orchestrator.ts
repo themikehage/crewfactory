@@ -549,27 +549,55 @@ class ChannelOrchestrator {
       sessionId,
       sessionName,
       signal,
+      preserveChannel,
     } = config;
 
-    // 1. Clean stale channel
-    try {
-      channelStore.deleteChannel(username, channelId);
-    } catch {}
+    // 1. Clean stale channel / check preserve
+    if (!preserveChannel) {
+      try {
+        channelStore.deleteChannel(username, channelId);
+      } catch {}
 
-    // 2. Create channel
-    channelStore.createChannel(username, {
-      id: channelId,
-      name: channelName,
-      description,
-      maxChainDepth,
-      showThinking,
-      showTools,
-      context: contextItems,
-      negotiationProtocol,
-    } as any);
+      // 2. Create channel
+      channelStore.createChannel(username, {
+        id: channelId,
+        name: channelName,
+        description,
+        maxChainDepth,
+        showThinking,
+        showTools,
+        context: contextItems,
+        negotiationProtocol,
+      } as any);
 
-    // 3. Set members
-    channelStore.updateMembers(username, channelId, members as any);
+      // 3. Set members
+      channelStore.updateMembers(username, channelId, members as any);
+    } else {
+      const existing = channelStore.getChannel(username, channelId);
+      if (!existing) {
+        channelStore.createChannel(username, {
+          id: channelId,
+          name: channelName,
+          description,
+          maxChainDepth,
+          showThinking,
+          showTools,
+          context: contextItems,
+          negotiationProtocol,
+        } as any);
+      } else {
+        channelStore.updateChannel(username, channelId, {
+          name: channelName,
+          description,
+          maxChainDepth,
+          showThinking,
+          showTools,
+          context: contextItems,
+          negotiationProtocol,
+        } as any);
+      }
+      channelStore.updateMembers(username, channelId, members as any);
+    }
 
     // 4. Create session + metadata
     const { sessionManager } = await import("../core/session-manager");

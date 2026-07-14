@@ -5,10 +5,12 @@ import { resolveModelWithFallback } from "../core/agent-utils";
 import { type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
 import { memoryRegistry } from "../core/memory/registry";
 import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
-import { buildDeploymentContext } from "../core/channel/deployment-context";
-import { parseAgentResponse } from "./response-parser";
+import { buildDeploymentContext, getOutputMode } from "../core/channel/deployment-context";
+import { parseAgentResponse, enforceDiffFormat } from "./response-parser";
 import { parseMentions } from "./mention-parser";
 import type { DispatchResult } from "./agent-work-queue";
+
+const _promptCache = new Map<string, string[]>();
 
 export interface ActiveAgentStream {
   agentId: string;
@@ -88,6 +90,22 @@ export class AgentPromptRunner {
 
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) return { agentMsg: null };
+
+    // Pre-LLM silent bypass
+    if (channel.members.length > 1) {
+      const isObserver = member.role === "observer";
+      if (isObserver) {
+        return { agentMsg: null };
+      }
+
+      if (incomingMsg.role === "agent") {
+        const mentions = parseMentions(incomingMsg.content, channel.members, agentNameMap);
+        const wasMentioned = mentions.some((m) => m === member.agentId);
+        if (!wasMentioned) {
+          return { agentMsg: null };
+        }
+      }
+    }
 
     const agentEntry = agentRegistry.get(member.agentId);
     if (!agentEntry || agentEntry.status === "stopped") {
@@ -179,15 +197,28 @@ export class AgentPromptRunner {
     const deployment = buildDeploymentContext(channel, member.agentId, agentNameMap);
 
     const workspaceDir = agentEntry.server.session.cwd;
-    const appendSystemPrompts = assemblePromptAppends({
-      mode: "channel-member",
-      workspaceDir,
-      agentDef: agentEntry.server.definition,
-      deployment,
-    });
-    if (typeof (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt === "function") {
-      (agentEntry.server.session.resourceLoader as any).setAppendSystemPrompt(appendSystemPrompts);
-      await agentEntry.server.session.resourceLoader.reload();
+    const isLabChannel = channelId.startsWith("lab_");
+    const cacheKey = isLabChannel ? `lab:${member.agentId}:${channelId}` : `${member.agentId}:${channelId}`;
+
+    let appendSystemPrompts = _promptCache.get(cacheKey);
+    if (!appendSystemPrompts) {
+      appendSystemPrompts = assemblePromptAppends({
+        mode: isLabChannel ? "experiment-member" : "channel-member",
+        workspaceDir,
+        agentDef: agentEntry.server.definition,
+        deployment,
+      });
+      _promptCache.set(cacheKey, appendSystemPrompts);
+    }
+
+    const resourceLoader = agentEntry.server.session.resourceLoader as any;
+    if (resourceLoader && typeof resourceLoader.setAppendSystemPrompt === "function") {
+      if (resourceLoader._appendSystemPrompt !== appendSystemPrompts) {
+        resourceLoader.setAppendSystemPrompt(appendSystemPrompts);
+        if (!isLabChannel) {
+          await resourceLoader.reload();
+        }
+      }
     }
 
     const promptText =
@@ -312,6 +343,8 @@ export class AgentPromptRunner {
       channel,
       fullResponse
     );
+
+    parseResult.content = enforceDiffFormat(parseResult.content, deployment.outputMode || "normal");
 
     if (
       memoryEnabled &&

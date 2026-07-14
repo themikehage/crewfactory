@@ -7,6 +7,8 @@ export function calculateVariantScores(
   tokensIn: number,
   tokensOut: number,
   baseline: { durationMs: number; totalTokens: number } | null,
+  numAgents: number,
+  effectiveRounds?: number,
   negotiation?: {
     agreementReached: boolean;
     rounds: number;
@@ -22,13 +24,16 @@ export function calculateVariantScores(
   }
 ): VariantRunResult["scores"] {
   const totalTokens = tokensIn + tokensOut;
+  const agentCount = Math.max(1, numAgents);
+  const adjustedDuration = durationMs / agentCount;
+  const adjustedTokens = totalTokens / agentCount;
 
   // 1. Efficiency Score
   let efficiencyScore = 100;
   if (type !== "single" && baseline) {
-    const timeRatio = durationMs / (baseline.durationMs || 1);
-    const tokenRatio = totalTokens / (baseline.totalTokens || 1);
-    const penalty = (0.5 * timeRatio + 0.5 * tokenRatio) * 10;
+    const timeRatio = adjustedDuration / (baseline.durationMs || 1);
+    const tokenRatio = adjustedTokens / (baseline.totalTokens || 1);
+    const penalty = (0.5 * Math.log2(1 + timeRatio) + 0.5 * Math.log2(1 + tokenRatio)) * 15;
     efficiencyScore = Math.max(0, Math.min(100, 100 - penalty));
   }
 
@@ -66,6 +71,12 @@ export function calculateVariantScores(
     efficiencyScore: Math.round(efficiencyScore),
     negotiationScore: negotiationScore !== undefined ? Math.round(negotiationScore) : undefined,
     globalScore: Math.round(globalScore),
+    efficiencyDetail: {
+      numAgents: agentCount,
+      effectiveRounds: effectiveRounds ?? 0,
+      adjustedDuration: Math.round(adjustedDuration),
+      adjustedTokens: Math.round(adjustedTokens),
+    },
     ...(judgeDetail ? {
       judgeReasoning: judgeDetail.reasoning,
       criteriaScores: judgeDetail.criteriaScores,

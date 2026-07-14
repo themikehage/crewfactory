@@ -107,7 +107,7 @@ export function ChannelDetailPage({ channelId, onNavigate }: Props) {
 
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
         <div className="flex-1 flex flex-col min-w-0 h-full">
-          <ChannelMessages messages={messages} streamingAgents={streamingAgents} agentAvatarMap={agentAvatarMap} />
+          <ChannelMessages messages={messages} streamingAgents={streamingAgents} agentAvatarMap={agentAvatarMap} streamingRenderMode={channel.streamingRenderMode ?? "live"} />
           <ChannelInput onSend={sendMessage} />
         </div>
 

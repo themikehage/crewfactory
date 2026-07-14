@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import type { ChannelMember, AgentInfo, ReplyMode, ChannelRole } from "shared";
+import type { ChannelMember, AgentInfo, ReplyMode, ChannelRole, UpdateMember } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./AgentDetailPanel.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
@@ -19,7 +19,7 @@ interface Props {
     thinking?: string;
     toolCalls?: Record<string, { toolName: string; args: any; result: any | null; isError: boolean }>;
   };
-  onUpdateMember: (agentId: string, updates: { role?: ChannelRole; replyMode?: ReplyMode; targetAgentIds?: string[] }) => Promise<void>;
+  onUpdateMember: (agentId: string, updates: UpdateMember) => Promise<void>;
   onRemoveMember: (agentId: string) => Promise<void>;
   mode: "slide-over" | "bottom-sheet";
 }
@@ -40,18 +40,20 @@ export function AgentDetailPanel({
   const [role, setRole] = useState<ChannelRole>(member.role || "member");
   const [replyMode, setReplyMode] = useState<ReplyMode>(member.replyMode);
   const [targetAgentIds, setTargetAgentIds] = useState<string[]>(member.targetAgentIds || []);
+  const [outputMode, setOutputMode] = useState<"full-proposal" | "diff-suggestion" | "normal">(member.outputMode || "normal");
   const [isSaving, setIsSaving] = useState(false);
 
   useEffect(() => {
     setRole(member.role || "member");
     setReplyMode(member.replyMode);
     setTargetAgentIds(member.targetAgentIds || []);
+    setOutputMode(member.outputMode || "normal");
   }, [member]);
 
   const handleSave = async () => {
     setIsSaving(true);
     try {
-      await onUpdateMember(member.agentId, { role, replyMode, targetAgentIds });
+      await onUpdateMember(member.agentId, { role, replyMode, targetAgentIds, outputMode });
     } catch (e) {
       console.error("Failed to update member:", e);
     } finally {
@@ -223,6 +225,21 @@ export function AgentDetailPanel({
                     value={replyMode}
                     onChange={setReplyMode}
                     options={[...REPLY_MODE_OPTIONS]}
+                    disabled={isOrphan}
+                    matchWidth
+                  />
+                </div>
+
+                <div className="flex flex-col gap-1">
+                  <label className="text-xs font-semibold text-muted-foreground">{l.outputMode}</label>
+                  <Dropdown<"full-proposal" | "diff-suggestion" | "normal">
+                    value={outputMode}
+                    onChange={setOutputMode}
+                    options={[
+                      { value: "full-proposal", label: l.outputModeFull },
+                      { value: "diff-suggestion", label: l.outputModeDiff },
+                      { value: "normal", label: l.outputModeNormal },
+                    ]}
                     disabled={isOrphan}
                     matchWidth
                   />

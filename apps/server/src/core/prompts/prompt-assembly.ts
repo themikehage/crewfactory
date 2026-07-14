@@ -6,13 +6,15 @@ import {
   PERSISTENT_MEMORY_INSTRUCTIONS,
   SUBAGENT_DELEGATION_INSTRUCTIONS,
   TASK_DELEGATION_INSTRUCTIONS,
+  LAB_APPEND_INSTRUCTIONS,
 } from "./system-instructions";
 
 export type PromptAssemblyMode =
   | "standard-session" // Global/project chat sessions
   | "channel-member"   // Channel orchestrator agent invocations
   | "agent-startup"    // Standalone agent server bootstrap
-  | "subagent-spawn";  // Spawned subagent executor
+  | "subagent-spawn"  // Spawned subagent executor
+  | "experiment-member"; // Laboratory experiment agent invocations
 
 export interface PromptAssemblyContext {
   mode: PromptAssemblyMode;
@@ -76,6 +78,19 @@ export function assemblePromptAppends(ctx: PromptAssemblyContext): string[] {
         formatEnvironmentContext(ctx.workspaceDir),
         layered.composed,
         ...STANDARD_APPEND_INSTRUCTIONS,
+      ];
+    }
+    case "experiment-member": {
+      const deployment = ctx.deployment || { mode: "solo" };
+      const layered = promptComposer.compose(
+        ctx.agentDef || { name: "", role: "", systemPrompt: "" },
+        deployment,
+        ctx.workspaceDir
+      );
+      return [
+        formatEnvironmentContext(ctx.workspaceDir),
+        layered.composed,
+        ...LAB_APPEND_INSTRUCTIONS,
       ];
     }
     case "subagent-spawn": {

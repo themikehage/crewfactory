@@ -53,3 +53,9 @@ export const TASK_DELEGATION_INSTRUCTIONS =
   `- CRITICAL: ALWAYS use this tool to communicate with other agents, channels, or projects. DO NOT run bash commands (like curl, Invoke-RestMethod, or scripts/delegate.ts) to send prompts or communicate. Communicating with other agents via bash/HTTP endpoints is strictly prohibited and will cause permission/sandbox errors.\n` +
   `- Target Type mapping: targetType must be "agent" | "project" | "channel" | "session".\n` +
   `- For agent targets, it triggers a clean isolated session bound to the target agent. For project targets, it invokes the project executor. For channel targets, it coordinates multi-agent chains and awaits agreement/negotiation completion.\n`;
+
+export const LAB_APPEND_INSTRUCTIONS = [
+  `You are operating in a laboratory experiment environment.
+Focus exclusively on the assigned task. Do not use tools (no bash, no file I/O).
+Respond with concise, substantive content only. No pleasantries.`,
+];

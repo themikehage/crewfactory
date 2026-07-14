@@ -87,12 +87,21 @@ export function ExperimentDetailPage({
   // Live Experiment state used for tabs
   const displayExp = selectedRunId === "latest" ? activeExp : selectedRunData;
 
-  // Auto switch tab to compare if judging
+  // Auto switch tab to active variant / compare tab when running
   useEffect(() => {
-    if (activeExp && activeExp.activeVariant === "judging" && activeVariantTab !== "compare") {
-      setActiveVariantTab("compare");
+    if (activeExp && activeExp.status === "running" && activeExp.activeVariant) {
+      if (activeExp.activeVariant === "judging") {
+        if (activeVariantTab !== "compare") {
+          setActiveVariantTab("compare");
+        }
+      } else {
+        const variantTabs = ["single", "multiNoLeader", "multiWithLeader"];
+        if (variantTabs.includes(activeExp.activeVariant) && activeVariantTab !== activeExp.activeVariant) {
+          setActiveVariantTab(activeExp.activeVariant as any);
+        }
+      }
     }
-  }, [activeExp?.activeVariant, activeVariantTab, setActiveVariantTab]);
+  }, [activeExp?.status, activeExp?.activeVariant, activeVariantTab, setActiveVariantTab]);
 
   if (!displayExp) {
     return (

@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import type { ChannelMember, AgentInfo, ReplyMode, ChannelRole } from "shared";
+import type { ChannelMember, AgentInfo, UpdateMember } from "shared";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChannelOrgTab.literals";
@@ -14,7 +14,7 @@ interface Props {
   registeredAgents: AgentInfo[];
   streamingAgents: Record<string, StreamingAgentState>;
   onAddMemberClick: () => void;
-  onUpdateMember: (agentId: string, updates: { role?: ChannelRole; replyMode?: ReplyMode; targetAgentIds?: string[] }) => Promise<void>;
+  onUpdateMember: (agentId: string, updates: UpdateMember) => Promise<void>;
   onRemoveMember: (agentId: string) => Promise<void>;
 }
 

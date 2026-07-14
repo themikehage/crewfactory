@@ -89,3 +89,13 @@ export function parseAgentResponse(
     isSilent,
   };
 }
+
+export function enforceDiffFormat(response: string, outputMode: "full-proposal" | "diff-suggestion" | "normal"): string {
+  if (outputMode !== "diff-suggestion") return response;
+
+  // Stripear automaticamente cualquier cortesia/felicitacion inicial
+  return response.replace(
+    /^(excelente|perfecto|gracias|buen|muy buena|me gusta|estoy de acuerdo|coincido|de acuerdo|buena idea|me parece bien)[^.!?\n]*[.!?]?\s*/i,
+    ""
+  ).trim();
+}

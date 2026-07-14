@@ -255,6 +255,18 @@ channelsRouter.get("/:id/messages", (c) => {
   return c.json({ messages });
 });
 
+channelsRouter.get("/:id/negotiation-state", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const channel = channelStore.getChannel(username, id);
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+
+  const state = channelStore.getNegotiationState(username, id);
+  return c.json({ state });
+});
+
 channelsRouter.get("/:id/active-streamings", (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);

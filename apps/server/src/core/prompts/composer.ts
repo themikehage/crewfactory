@@ -5,6 +5,7 @@ export interface DeploymentMember {
   agentName: string;
   role: string;
   replyMode: string;
+  outputMode?: "full-proposal" | "diff-suggestion" | "normal";
 }
 
 export interface DeploymentContext {
@@ -16,6 +17,7 @@ export interface DeploymentContext {
   isArbiter?: boolean;
   selfReplyMode?: string;
   leaderName?: string;
+  outputMode?: "full-proposal" | "diff-suggestion" | "normal";
 }
 
 export interface LayeredPrompt {
@@ -94,6 +96,12 @@ export class PromptComposer {
         const negFrag = promptFragmentRegistry.get("protocol.negotiation", workspaceDir);
         if (negFrag) fragments.push(negFrag);
       }
+    }
+
+    // Layer 5: Output Format
+    if (deployment.mode !== "solo" && deployment.outputMode) {
+      const outputFrag = promptFragmentRegistry.get(`output-format.${deployment.outputMode}`, workspaceDir);
+      if (outputFrag) fragments.push(outputFrag);
     }
 
     return {

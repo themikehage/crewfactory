@@ -136,6 +136,14 @@ export class ExperimentRunner {
         exp.variants[config.variantKey].result = result;
         await ExperimentStore.saveExperiment(username, exp);
 
+        broadcastToUser(username, {
+          type: "experiment_status",
+          experimentId: exp.id,
+          status: "running",
+          activeVariant: config.variantKey,
+          experiment: exp
+        });
+
         if (config.variantKey === "single") {
           singleResult = result;
           baselineStats = { durationMs: result.durationMs, totalTokens: result.tokensIn + result.tokensOut };
@@ -201,6 +209,8 @@ export class ExperimentRunner {
             singleResult.tokensIn,
             singleResult.tokensOut,
             null,
+            exp.variants.single.agents.length || 1,
+            1,
             undefined,
             { reasoning: judgeResults.single.reasoning, criteriaScores: judgeResults.single.scores }
           );
@@ -212,6 +222,8 @@ export class ExperimentRunner {
             noLeaderResult.tokensIn,
             noLeaderResult.tokensOut,
             baselineStats,
+            exp.variants.multiNoLeader.agents.length || 1,
+            noLeaderResult.negotiationRounds || 0,
             {
               agreementReached: noLeaderResult.agreementReached,
               rounds: noLeaderResult.negotiationRounds || 0,
@@ -231,6 +243,8 @@ export class ExperimentRunner {
             withLeaderResult.tokensIn,
             withLeaderResult.tokensOut,
             baselineStats,
+            exp.variants.multiWithLeader.agents.length || 1,
+            withLeaderResult.negotiationRounds || 0,
             {
               agreementReached: withLeaderResult.agreementReached,
               rounds: withLeaderResult.negotiationRounds || 0,
@@ -406,7 +420,8 @@ export class ExperimentRunner {
         taskPrompt: exp.taskPrompt,
         sessionId,
         sessionName: `${exp.name} - ${sessionNameSuffix}`,
-        signal
+        signal,
+        preserveChannel: true
       });
 
       // 5. Gather output
@@ -457,11 +472,6 @@ export class ExperimentRunner {
           await agentRegistry.stop(regId, false);
         } catch {}
       }
-
-      // 7. Clean up channel
-      try {
-        channelStore.deleteChannel(username, channelId);
-      } catch {}
     }
   }
 }
