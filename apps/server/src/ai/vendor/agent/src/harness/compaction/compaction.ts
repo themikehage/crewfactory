@@ -253,7 +253,7 @@ export function estimateTokens(message: AgentMessage): number {
 		case "system" as any:
 		case "custom":
 		case "toolResult": {
-			chars = estimateTextAndImageContentChars(message.content);
+			chars = estimateTextAndImageContentChars((message as any).content);
 			return Math.ceil(chars / 4);
 		}
 		case "bashExecution": {

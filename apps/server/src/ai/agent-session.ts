@@ -743,7 +743,7 @@ export class AgentSession {
     if (this.agent) {
       (this.agent.state as any).messages.push(systemMsg);
     }
-    this.sessionManager.appendMessage(systemMsg);
+    this.sessionManager.appendMessage(systemMsg as any);
   }
 
   dispose(): void {
