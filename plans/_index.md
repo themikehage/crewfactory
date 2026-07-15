@@ -13,6 +13,15 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - **15 Low** → [fix-low.md](./fix-low.md) — Context type mismatch, token naming, steer warning, undefined return, compact stub, auth error feedback, EXEC/LAB silent, TOCTOU race, disconnect feedback, network errors, turn events, unknown event log, barrel export
 - **10 Delegation** → [fix-delegation.md](./fix-delegation.md) — role:user en vez de toolResult, doble toolCallId, forwardSubagentEvents sin fallback, parent muerto silencioso, wakeMessage duplicado, includeFullHistory sin truncar, FloatingDelegations no renderizado, DelegationsPanel sin WS events, type guards, sanitize URL
 
+### Subagent System Hardening (Audit 2026-07-15)
+
+- **#1 CRITICAL** → [security-subagent-sandbox.md](./security-subagent-sandbox.md) — `beforeToolCall` no se pasa a `createAgentSession()` en subagentes. El sandbox de permisos (deny-first, then-ask, then-allow) nunca se aplica a sesiones de `spawn_subagent` ni `delegate_task`. Fix: wire `createBeforeToolCallHook({ isSubagent: true })` + `SUBAGENT_DENY_RULES`.
+- **#2 CRITICAL** → [security-recursive-cancellation.md](./security-recursive-cancellation.md) — `abortAll()` solo cancela hijos directos. Los subagentes nieto quedan huérfanos y siguen ejecutándose tras cancelación del padre. Fix: algoritmo BFS transitivo + `AbortToken` con limpieza en cascada + `destroySession()` recursivo.
+- **#3 HIGH** → [security-subagent-depth-limit.md](./security-subagent-depth-limit.md) — Sin límite de profundidad configurable. La prevención actual es binaria (tools excluidas hardcodeadas). Fix: contador de profundidad en metadata de sesión + validación `maxDepth` configurable (default: 1) + env var `CREWFACTORY_SUBAGENT_MAX_DEPTH`.
+- **#4 HIGH** → [security-subagent-permission-inheritance.md](./security-subagent-permission-inheritance.md) — Subagentes con lista de tools hardcodeada, sin herencia de restricciones del padre (modo Read-Only ignorado), sin diferenciación por tipo de subagente. Fix: `ToolPermissionRule[]` con last-match-wins + `buildSubagentRules()` con herencia de DENY + `UserPermissionStore` con persistencia atómica.
+- **#5 MEDIUM** → [feature-subagent-extend.md](./feature-subagent-extend.md) — Subagentes sin capacidad de recibir contexto incremental mid-ejecución. Si el padre descubre nueva información, debe cancelar y re-crear. Fix: `extensionQueue` en `AgentSession` + `extend_subagent` tool + integración en AgentLoop.
+- **#6 MEDIUM** → [feature-subagent-promote.md](./feature-subagent-promote.md) — Sin capacidad de transicionar subagentes entre foreground/background en tiempo de ejecución. Fix: `SubagentHandle` con `wait()`/`promote()`/`demote()` + tools `wait_for_subagent`/`promote_subagent`/`demote_subagent` + UI de control de modo.
+
 ### Refactoring
 
 - [unify-lab-channel-orchestration.md](./unify-lab-channel-orchestration.md) — Unificar orquestracion del laboratorio con `ChannelOrchestrator`: el lab debe consumir el subsistema de canales como cliente en lugar de reinventar el pipeline completo (gen, channel, dispatch, tokens, destroy). ~500 lineas eliminadas.
@@ -87,6 +96,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 ### Channels
 
 - [autoconsulting-channel.md](./autoconsulting-channel.md) — Canal multi-agente de consultora autonoma: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Pipeline completo desde brief hasta build in public.
+- [channel-benchmarks.md](./channel-benchmarks.md) — Benchmarks sobre canales EXISTENTES. Invierte el flujo actual: el canal es el origen, no el destino. Permite validar y optimizar canales reales comparando multi-agente vs single-agent.
 
 ## Completados (73)
 
