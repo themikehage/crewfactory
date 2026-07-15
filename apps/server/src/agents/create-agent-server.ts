@@ -20,6 +20,7 @@ import { memoryRegistry } from "../core/memory/registry";
 import { createMemoryTools } from "../core/memory/memory-tools";
 import { mcpRegistry } from "../core/mcp-registry";
 import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
+import { createBeforeToolCallHook } from "../core/session/before-tool-call-hook";
 
 function ensureAgentWorkspace(username: string, id: string): string {
   const dir = getAgentDir(username, id);
@@ -124,6 +125,11 @@ export async function createAgentServer(definition: AgentDefinition, username: s
 
   const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
 
+  const beforeToolCall = createBeforeToolCallHook({
+    sessionId: `agent_server_${definition.id}`,
+    isSubagent: true,
+  });
+
   const { session } = await createAgentSession({
     cwd: workspaceDir,
     sessionManager,
@@ -131,6 +137,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     modelRegistry,
     resourceLoader,
     customTools: [customBashTool as any, ...uiTools as any, ...memoryTools as any],
+    beforeToolCall,
   });
 
   const activeToolNames = [

@@ -11,6 +11,7 @@ import {
   getUserDir,
   getSessionDir,
   getMemoryDbPath,
+  SessionPrefix,
 } from "shared";
 import { mcpRegistry } from "./mcp-registry";
 import { memoryRegistry } from "./memory/registry";
@@ -294,7 +295,12 @@ class SessionManager {
           console.error("[SessionManager] Failed to load custom tool names:", e);
         }
 
-        const beforeToolCall = createBeforeToolCallHook({ sessionId });
+        const isSubagent = sessionId.startsWith(SessionPrefix.SUBAGENT) || sessionId.startsWith(SessionPrefix.DELEGATE);
+        const beforeToolCall = createBeforeToolCallHook({
+          sessionId,
+          isSubagent,
+          parentSessionId: existingMeta ? (existingMeta as any).parentSessionId : undefined,
+        });
 
         const { session } = await createAgentSession({
           cwd: workspaceDir,

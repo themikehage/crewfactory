@@ -86,12 +86,43 @@ const ASK_RULES: PermissionRule[] = [
   },
 ];
 
+const SUBAGENT_DENY_RULES: PermissionRule[] = [
+  {
+    tool: "bash",
+    pattern: /\brm\s+-[rRfF]{1,4}\s+(\/(etc|var|usr|home|tmp\/crewfactory))/,
+    allow: false,
+    reason: "Subagent: deletion of critical system or workspace root directories is blocked."
+  },
+  {
+    tool: "bash",
+    pattern: /\b(curl|wget)\b[^|]*\|\s*(ba)?sh\b/,
+    allow: false,
+    reason: "Subagent: piping remote network scripts directly into a shell execution is blocked."
+  },
+  {
+    tool: "write",
+    pattern: /\.env(\..+)?$/i,
+    allow: false,
+    reason: "Subagent: modification of environment files is blocked."
+  },
+  {
+    tool: "edit",
+    pattern: /\.env(\..+)?$/i,
+    allow: false,
+    reason: "Subagent: modification of environment files is blocked."
+  }
+];
+
 export class PermissionEngine {
-  evaluate(toolName: string, args: Record<string, unknown>): PermissionVerdict {
+  evaluate(toolName: string, args: Record<string, unknown>, options?: { isSubagent?: boolean }): PermissionVerdict {
     const subject = this.extractSubject(toolName, args);
 
     // 1. Evaluar reglas DENY
-    for (const rule of DENY_RULES) {
+    const denyRules = options?.isSubagent
+      ? [...DENY_RULES, ...SUBAGENT_DENY_RULES]
+      : DENY_RULES;
+
+    for (const rule of denyRules) {
       if (this.matches(rule, toolName, subject)) {
         return { allow: false, reason: rule.reason };
       }

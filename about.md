@@ -81,6 +81,7 @@
 - **API con Auditoría de Revelado:** Eliminación del revelado masivo de secretos. Incorporación del endpoint seguro `/api/env/reveal/:key` con logs de auditoría dedicados en `/tmp/crewfactory/_audit/{user}/env-access.log`.
 - **Interfaz Masked de Usuario:** Enmascaramiento completo por defecto en la vista de variables de entorno del cliente (`EnvVarsTab`) con botones de revelado individual puntual.
 - **Protección de Procesos de Infraestructura (Anti-Suicidio):** Intercepción en tiempo de ejecución de comandos destructivos en la herramienta `bash` para bloquear de forma preventiva cualquier intento de finalizar procesos asociados a los puertos críticos (`3000`, `3001`, `4104`, `5173`) o el PID del servidor principal.
+- **Security Subagent Sandbox (beforeToolCall Integration):** Nested subagent sessions (spawned via `spawn_subagent` or delegated via `delegate_task`) and programmatic agents run inside a sandboxed environment where critical system directory deletion (`rm -rf`), downloading remote scripts to execute (`curl | bash`), and modifying environment files (`.env`) are strictly blocked. Interactive tool executions requiring user verification (`allow: "ask"`) automatically propagate approval requests to the parent UI session so they can be reviewed and authorized by the user in real-time.
 
 ### PWA (Progressive Web App)
 - Installable on mobile via manifest.json with `display: standalone`

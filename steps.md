@@ -617,3 +617,12 @@
 - [x] 136.6 Add polling fallback effect inside client usePipelineRun.ts hook
 - [x] 136.7 Verify successful compilation build of client and server packages
 
+## Phase 137: Security Subagent Sandbox
+- [x] 137.1 Resolve temporal dead zone (TDZ) circular dependency in `agent-registry.ts` and `ws/handler.ts` by introducing `agent-stop-callback.ts`
+- [x] 137.2 Define subagent strict rules `SUBAGENT_DENY_RULES` and extend evaluation options in `permission-engine.ts`
+- [x] 137.3 Update `before-tool-call-hook.ts` parameters to receive parent session and subagent flags, and route approvals appropriately
+- [x] 137.4 Inject the `beforeToolCall` hook in `spawn-subagent-tool.ts` and pass context metadata
+- [x] 137.5 Wire `isSubagent` and `parentSessionId` inside standard and delegated sessions in `session-manager.ts`
+- [x] 137.6 Wire `beforeToolCall` with `isSubagent: true` inside programmatic agent servers in `create-agent-server.ts`
+- [x] 137.7 Implement automated tests in `subagent-permissions.test.ts` and verify all tests pass successfully
+- [x] 137.8 Update system documentation in `about.md` and `steps.md`

@@ -16,6 +16,7 @@ import { assemblePromptAppends } from "../prompts/prompt-assembly";
 import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
+import { createBeforeToolCallHook } from "../session/before-tool-call-hook";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -131,6 +132,12 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       });
       await subResourceLoader.reload();
 
+      const beforeToolCall = createBeforeToolCallHook({
+        sessionId: subagentSessionId,
+        isSubagent: true,
+        parentSessionId,
+      });
+
       const { session: subSession } = await createAgentSession({
         cwd: workspaceDir,
         sessionManager: subSessionManager,
@@ -138,6 +145,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         modelRegistry,
         resourceLoader: subResourceLoader,
         customTools: [customBashTool as any, ...uiTools as any],
+        beforeToolCall,
       });
 
       // Enable subagent tools

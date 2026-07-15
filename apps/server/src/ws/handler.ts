@@ -1,6 +1,6 @@
 import type { WSContext } from "hono/ws";
 import { wsRegistry, startHeartbeat } from "./registry";
-import { setAgentStopCallback } from "../agents";
+import { setAgentStopCallback } from "../agents/agent-stop-callback";
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { setEventBroadcaster } from "../lib/event-broker";
 

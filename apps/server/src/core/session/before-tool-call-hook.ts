@@ -1,16 +1,21 @@
 import { permissionEngine } from "../sandbox";
 import { uiApprovalRegistry } from "../ui-approval-registry";
+import { SessionPrefix } from "shared";
 
 export interface CreateBeforeToolCallHookParams {
   sessionId: string;
+  isSubagent?: boolean;
+  parentSessionId?: string;
 }
 
-export function createBeforeToolCallHook({ sessionId }: CreateBeforeToolCallHookParams) {
+export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionId }: CreateBeforeToolCallHookParams) {
+  const resolvedIsSubagent = isSubagent || sessionId.startsWith(SessionPrefix.SUBAGENT) || sessionId.startsWith(SessionPrefix.DELEGATE);
+
   return async (context: any, signal?: AbortSignal): Promise<any> => {
     const { toolCall, args } = context;
     const toolName = toolCall.name;
 
-    const verdict = permissionEngine.evaluate(toolName, args as Record<string, unknown>);
+    const verdict = permissionEngine.evaluate(toolName, args as Record<string, unknown>, { isSubagent: resolvedIsSubagent });
     if (verdict.allow === false) {
       return { block: true, reason: `[Permission Denied] ${verdict.reason}` };
     }
@@ -32,7 +37,8 @@ export function createBeforeToolCallHook({ sessionId }: CreateBeforeToolCallHook
 
       try {
         const { broadcastToSession } = await import("../../ws/handler");
-        broadcastToSession(sessionId, {
+        const targetSessionId = parentSessionId || sessionId;
+        broadcastToSession(targetSessionId, {
           type: "tool_approval_request",
           toolCallId,
           toolName,
