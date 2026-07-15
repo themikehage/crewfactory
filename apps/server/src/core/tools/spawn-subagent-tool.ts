@@ -18,6 +18,8 @@ import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDeleg
 import { delegationRegistry } from "../delegation-registry";
 import { createBeforeToolCallHook } from "../session/before-tool-call-hook";
 import { AbortToken } from "../abort-token";
+import { getAppConfig } from "../../config/app-config";
+import { getSubagentDepth } from "../session/session-depth";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -57,7 +59,19 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       required: ["task"],
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
-      // Determine parent entity metadata
+      const userSettings = sessionManager.userConfig.getUserSettings(username);
+      const appConfig = getAppConfig();
+      const maxDepth = userSettings.subagentMaxDepth !== undefined
+        ? Number(userSettings.subagentMaxDepth)
+        : appConfig.subagent.maxDepth;
+
+      const currentDepth = getSubagentDepth(username, parentSessionId);
+      if (currentDepth >= maxDepth) {
+        throw new Error(
+          `Subagent depth limit reached (${maxDepth}). Current depth: ${currentDepth}. Cannot spawn nested subagents.`
+        );
+      }
+
       const parentMeta = sessionManager.metadataStore.getSessionMetadata(username, parentSessionId) || {};
       let parentEntityType = "global";
       let parentEntityId: string | null = null;
@@ -73,13 +87,11 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         parentEntityId = parentMeta.projectName;
       }
 
-      // 1. Create a directory for the subagent session
       const userDir = sessionManager.userConfig.ensureUserDir(username);
       const subagentSessionId = `${SessionPrefix.SUBAGENT}${toolCallId}`;
       const subagentDir = join(userDir, "sessions", parentSessionId, "subagents", subagentSessionId);
       mkdirSync(subagentDir, { recursive: true });
 
-      // 2. Write initial metadata.json
       const metadata = {
         subagentId: subagentSessionId,
         parentSessionId,
@@ -91,6 +103,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         completedAt: null as string | null,
         status: "running",
         isSubagent: true,
+        subagentDepth: currentDepth + 1,
       };
       writeFileSync(join(subagentDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
 

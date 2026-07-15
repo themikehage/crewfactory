@@ -7,6 +7,8 @@ import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
 import { AbortToken } from "../abort-token";
+import { getAppConfig } from "../../config/app-config";
+import { getSubagentDepth } from "../session/session-depth";
 
 export interface DelegateTaskOptions {
   workspaceDir: string;
@@ -50,11 +52,25 @@ Allows keeping parent context clean by returning a structured summary instead of
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
       const { targetType, targetId, task, includeFullHistory = false } = args;
+      const userSettings = sessionManager.userConfig.getUserSettings(username);
+      const appConfig = getAppConfig();
+      const maxDepth = userSettings.subagentMaxDepth !== undefined
+        ? Number(userSettings.subagentMaxDepth)
+        : appConfig.subagent.maxDepth;
+
+      const currentDepth = getSubagentDepth(username, parentSessionId);
+      const effectiveDepth = targetType === "channel" ? currentDepth : currentDepth + 1;
+
+      if (effectiveDepth > maxDepth) {
+        throw new Error(
+          `Delegation depth limit reached (${maxDepth}). The delegation to this target would exceed the configured limit.`
+        );
+      }
+
       const delegateSessionId = `${SessionPrefix.DELEGATE}${toolCallId}`;
 
       const childToken = new AbortToken(parentSignal, `delegate:${delegateSessionId}`);
 
-      // Guardar metadata inicial para la sesion delegada para persistir parentSessionId
       sessionManager.metadataStore.saveSessionMetadata(username, delegateSessionId, {
         name: `Delegation: ${targetType} - ${targetId}`,
         createdAt: new Date().toISOString(),
@@ -63,6 +79,7 @@ Allows keeping parent context clean by returning a structured summary instead of
         targetType,
         targetId,
         task: task.slice(0, 500),
+        subagentDepth: effectiveDepth,
       });
 
       const runPromise = async () => {

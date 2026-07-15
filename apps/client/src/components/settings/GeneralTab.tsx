@@ -34,6 +34,7 @@ export function GeneralTab() {
   const [visionModels, setVisionModels] = useState<Array<{ id: string; name: string; provider: string }>>([]);
   const [imageGenModels, setImageGenModels] = useState<Array<{ id: string; name: string; provider: string; description?: string; cost?: number; rpm?: number; concurrency?: number | null }>>([]);
   const [settingsLoading, setSettingsLoading] = useState(true);
+  const [subagentMaxDepth, setSubagentMaxDepth] = useState<number>(1);
 
   // Vision Diagnostic Test State
   const [visionTestPrompt, setVisionTestPrompt] = useState("Describe this image in one word");
@@ -166,6 +167,7 @@ export function GeneralTab() {
           const settingsData = await settingsRes.json();
           setVisionModel(settingsData.visionModel || "");
           setImageGenModel(settingsData.imageGenModel || "");
+          setSubagentMaxDepth(settingsData.subagentMaxDepth ?? 1);
         }
 
         const modelsRes = await apiFetch("/api/models");
@@ -216,6 +218,21 @@ export function GeneralTab() {
       });
     } catch (err) {
       console.error("Failed to update image generation model settings:", err);
+    }
+  };
+
+  const handleUpdateSubagentMaxDepth = async (depth: number) => {
+    setSubagentMaxDepth(depth);
+    try {
+      await apiFetch("/api/settings", {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ subagentMaxDepth: depth }),
+      });
+    } catch (err) {
+      console.error("Failed to update subagent max depth settings:", err);
     }
   };
 
@@ -518,6 +535,39 @@ export function GeneralTab() {
             </div>
           </div>
         )}
+      </div>
+
+      <div className="bg-card rounded-lg p-4 border border-input/30 space-y-4">
+        <h3 className="text-foreground font-semibold text-sm">{l.subagents}</h3>
+        <p className="text-muted-foreground text-[11px]">
+          {l.subagentMaxDepthDesc}
+        </p>
+        <div className="space-y-3 pt-1">
+          <div className="flex items-center justify-between text-xs font-semibold text-foreground">
+            <span>{l.subagentMaxDepth}</span>
+            <span className="bg-primary/10 text-primary px-2.5 py-0.5 rounded-full font-mono text-[10px]">
+              {subagentMaxDepth === 0
+                ? l.noSubagents
+                : subagentMaxDepth === 1
+                ? l.directSubagentsOnly
+                : l.nestedSubagents.replace("{depth}", String(subagentMaxDepth))}
+            </span>
+          </div>
+          <input
+            type="range"
+            min="0"
+            max="5"
+            step="1"
+            value={subagentMaxDepth}
+            onChange={(e) => handleUpdateSubagentMaxDepth(parseInt(e.target.value, 10))}
+            className="w-full accent-accent bg-background cursor-pointer h-1.5 rounded-lg border-none outline-none"
+          />
+          {subagentMaxDepth > 1 && (
+            <p className="text-warning text-[10px] bg-warning/5 border border-warning/15 p-2 rounded-lg leading-relaxed">
+              {l.warningMaxDepth}
+            </p>
+          )}
+        </div>
       </div>
 
       <div className="bg-card rounded-lg p-4 border border-input/30 space-y-2">

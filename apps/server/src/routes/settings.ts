@@ -4,6 +4,7 @@ import { sessionManager } from "../core/session-manager";
 import { runVisionModel } from "../core/tools/vision-tool";
 import { runImageGenModel } from "../core/tools/image-gen-tool";
 import { getWorkspaceDir } from "shared";
+import { getAppConfig } from "../config/app-config";
 
 export const settingsRouter = new Hono();
 
@@ -12,14 +13,17 @@ settingsRouter.use("/*", authMiddleware);
 settingsRouter.get("/", (c) => {
   const { username } = getAuthPayload(c);
   const settings = sessionManager.userConfig.getUserSettings(username);
+  const appConfig = getAppConfig();
 
-  // Fallbacks razonables por defecto
   return c.json({
     memoryEnabled: settings.memoryEnabled ?? true,
     memoryAutoStore: settings.memoryAutoStore ?? false,
     memoryEmbeddings: settings.memoryEmbeddings ?? true,
     visionModel: settings.visionModel ?? "",
     imageGenModel: settings.imageGenModel ?? "",
+    subagentMaxDepth: settings.subagentMaxDepth !== undefined
+      ? Number(settings.subagentMaxDepth)
+      : appConfig.subagent.maxDepth,
   });
 });
 
@@ -32,6 +36,7 @@ settingsRouter.patch("/", async (c) => {
       memoryEmbeddings?: boolean;
       visionModel?: string;
       imageGenModel?: string;
+      subagentMaxDepth?: number;
     }>();
 
     const updates: Record<string, any> = {};
@@ -50,6 +55,12 @@ settingsRouter.patch("/", async (c) => {
     }
     if (body.imageGenModel !== undefined) {
       updates.imageGenModel = String(body.imageGenModel);
+    }
+    if (body.subagentMaxDepth !== undefined) {
+      const depthVal = Number(body.subagentMaxDepth);
+      if (!isNaN(depthVal) && Number.isInteger(depthVal) && depthVal >= 0) {
+        updates.subagentMaxDepth = depthVal;
+      }
     }
 
     sessionManager.userConfig.saveUserSettings(username, updates);
