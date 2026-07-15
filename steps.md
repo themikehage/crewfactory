@@ -638,3 +638,14 @@
 - [x] 138.8 Implement automated unit tests for `AbortToken` and `DelegationRegistry` BFS in `apps/server/src/__tests__/delegation-recursive-cancellation.test.ts`
 - [x] 138.9 Verify clean compilation and ensure all unit tests pass successfully
 - [x] 138.10 Update system documentation in `about.md` and `steps.md`
+
+## Phase 139: Nested Subagent Depth Limit
+- [x] 139.1 Create global app configuration system in `apps/server/src/config/app-config.ts`
+- [x] 139.2 Implement recursive subagent depth calculation utility in `apps/server/src/core/session/session-depth.ts`
+- [x] 139.3 Integrate depth validation checks in `spawn_subagent` and persist depth in session metadata
+- [x] 139.4 Integrate depth validation checks in `delegate_task` based on targetType
+- [x] 139.5 Expose subagentMaxDepth configurations in settings endpoints (GET and PATCH)
+- [x] 139.6 Update translations and add a general settings depth control slider on the UI
+- [x] 139.7 Implement automated tests in `subagent-depth-limit.test.ts` and verify build compiles cleanly
+- [x] 139.8 Update system documentation in `about.md` and `steps.md`
+
