@@ -87,6 +87,10 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [autoconsulting-channel.md](./autoconsulting-channel.md) — Canal multi-agente de consultora autonoma: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Pipeline completo desde brief hasta build in public.
 
+### Scoping (Agents & Tools)
+
+- [agent-tools-scoping.md](./agent-tools-scoping.md) — Agentes scoped a canal/proyecto (no globales) y tools asignables a agentes especificos. Arquitectura completa con cambios en paths, schemas, registry, API routes, tool factory, y frontend.
+
 ## Completados (71)
 
 Ver [COMPLETED/](./COMPLETED/)
