@@ -1,3 +1,4 @@
+COMPLETED
 # Plan 1: Sandbox de Seguridad para Subagentes — `beforeToolCall`
 
 **Severidad:** Crítica  
