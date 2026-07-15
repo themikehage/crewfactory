@@ -5,7 +5,7 @@ import {
   type AgentSession,
   type AgentSessionEvent,
 } from "../ai";
-import { existsSync, writeFileSync, readdirSync, mkdirSync } from "node:fs";
+import { existsSync, writeFileSync, readdirSync, mkdirSync, readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import {
   getUserDir,
@@ -95,11 +95,26 @@ class SessionManager {
   }
 
   async destroySession(username: string, sessionId: string): Promise<void> {
+    // 1. Cancelar TODAS las delegaciones del árbol (BFS)
+    try {
+      const { delegationRegistry } = await import("./delegation-registry");
+      delegationRegistry.abortAllRecursive(sessionId);
+    } catch (err) {
+      console.error("[SessionManager.destroySession] Failed to propagate recursive abort:", err);
+    }
+
+    // 2. Encontrar y destruir sesiones hijas recursivamente
+    const children = this.findChildSessions(username, sessionId);
+    for (const childId of children) {
+      await this.destroySession(username, childId);
+    }
+
+    // 3. Destruir la sesión actual
     const key = this.getSessionKey(username, sessionId);
     const entry = this.sessions.get(key);
     if (entry) {
       entry.unsubscribe();
-      entry.session.dispose();
+      await entry.session.dispose();
       this.sessions.delete(key);
     }
     this.pendingSessions.delete(key);
@@ -110,6 +125,56 @@ class SessionManager {
     if (existsSync(sessionDir)) {
       rmSync(sessionDir, { recursive: true, force: true });
     }
+  }
+
+  private findChildSessions(username: string, parentSessionId: string): string[] {
+    const children: string[] = [];
+    const prefix = `${username}:`;
+
+    // 1. En memoria
+    for (const [key, entry] of this.sessions.entries()) {
+      if (!key.startsWith(prefix)) continue;
+      const sId = key.slice(prefix.length);
+      const metadata = this.metadataStore.getSessionMetadata(username, sId);
+      if (metadata?.parentSessionId === parentSessionId) {
+        children.push(sId);
+      }
+    }
+
+    // 2. Subagentes en disco bajo la carpeta del padre
+    const parentSessionDir = getSessionDir(username, parentSessionId);
+    const subagentsDir = join(parentSessionDir, "subagents");
+    if (existsSync(subagentsDir)) {
+      try {
+        for (const dir of readdirSync(subagentsDir)) {
+          if (!children.includes(dir)) {
+            children.push(dir);
+          }
+        }
+      } catch {}
+    }
+
+    // 3. Sesiones de tipo delegate (guardadas directamente en userDir/sessions/)
+    const sessionsDir = join(getUserDir(username), "sessions");
+    if (existsSync(sessionsDir)) {
+      try {
+        for (const dir of readdirSync(sessionsDir)) {
+          if (dir.startsWith(SessionPrefix.DELEGATE)) {
+            const metaPath = join(sessionsDir, dir, "metadata.json");
+            if (existsSync(metaPath)) {
+              try {
+                const meta = JSON.parse(readFileSync(metaPath, "utf-8"));
+                if (meta.parentSessionId === parentSessionId && !children.includes(dir)) {
+                  children.push(dir);
+                }
+              } catch {}
+            }
+          }
+        }
+      } catch {}
+    }
+
+    return children;
   }
 
   async destroyAllSessions(username: string): Promise<void> {

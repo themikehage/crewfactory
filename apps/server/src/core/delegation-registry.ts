@@ -109,22 +109,45 @@ class DelegationRegistry {
     return this.getAll(username, parentSessionId).find(d => d.toolCallId === toolCallId);
   }
 
-  // Permite abortar en cascada todas las delegaciones de una sesión padre
-  abortAll(parentSessionId: string): void {
-    for (const [toolCallId, active] of this.activePromises.entries()) {
-      if (active.parentSessionId === parentSessionId) {
-        active.abort();
+  // Permite abortar en cascada recursiva (BFS) todas las delegaciones del árbol
+  abortAllRecursive(rootSessionId: string): void {
+    const pending = new Set<string>([rootSessionId]);
+    const cancelled = new Set<string>();
+
+    let found = true;
+    while (found) {
+      found = false;
+      for (const [toolCallId, active] of this.activePromises.entries()) {
+        if (cancelled.has(toolCallId)) continue;
+
+        const parentInPending = pending.has(active.parentSessionId);
+        const subagentInPending = active.subagentSessionId && pending.has(active.subagentSessionId);
+
+        if (parentInPending || subagentInPending) {
+          try {
+            active.abort();
+          } catch (err) {
+            console.error(`[DelegationRegistry] Error aborting toolCallId ${toolCallId}:`, err);
+          }
+          cancelled.add(toolCallId);
+
+          if (active.subagentSessionId) {
+            pending.add(active.subagentSessionId);
+          }
+          found = true;
+        }
       }
     }
   }
 
-  // Permite abortar una delegación/subagente desde su propia sesión
+  // Permite abortar en cascada todas las delegaciones de una sesión padre (Retrocompatibilidad)
+  abortAll(parentSessionId: string): void {
+    this.abortAllRecursive(parentSessionId);
+  }
+
+  // Permite abortar una delegación/subagente desde su propia sesión (Retrocompatibilidad)
   abortBySubagentSessionId(subagentSessionId: string): void {
-    for (const [toolCallId, active] of this.activePromises.entries()) {
-      if (active.subagentSessionId === subagentSessionId) {
-        active.abort();
-      }
-    }
+    this.abortAllRecursive(subagentSessionId);
   }
 }
 

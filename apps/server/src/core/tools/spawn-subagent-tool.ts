@@ -17,6 +17,7 @@ import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
 import { createBeforeToolCallHook } from "../session/before-tool-call-hook";
+import { AbortToken } from "../abort-token";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -163,12 +164,14 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       }
 
       // 4. Handle abort signal chaining
-      const onAbort = () => {
-        subSession.abort();
-      };
-      if (parentSignal) {
-        parentSignal.addEventListener("abort", onAbort, { once: true });
-      }
+      const childToken = new AbortToken(parentSignal, `spawn:${subagentSessionId}`);
+      childToken.register(
+        () => {
+          subSession.abort();
+          delegationRegistry.abortAllRecursive(subagentSessionId);
+        },
+        `session:${subagentSessionId}`
+      );
 
       // Subscribe to subagent session logs and forward them via parent session WebSocket
       const subagentUnsub = forwardSubagentEvents(subSession, parentSessionId, subagentSessionId, toolCallId);
@@ -188,7 +191,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
           subagentSessionId,
         },
         () => {
-          subSession.abort();
+          childToken.abortAll();
         }
       );
 
@@ -268,9 +271,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         })
         .finally(() => {
           subagentUnsub();
-          if (parentSignal) {
-            parentSignal.removeEventListener("abort", onAbort);
-          }
+          childToken.abortAll();
         });
 
       // Return immediately

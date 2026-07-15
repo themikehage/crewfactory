@@ -415,7 +415,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     },
     async stop() {
       if (session.isStreaming) await session.abort();
-      session.dispose();
+      await session.dispose();
       await memory.shutdown();
       if (bunServer) {
         bunServer.stop(true);

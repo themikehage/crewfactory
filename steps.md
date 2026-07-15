@@ -626,3 +626,15 @@
 - [x] 137.6 Wire `beforeToolCall` with `isSubagent: true` inside programmatic agent servers in `create-agent-server.ts`
 - [x] 137.7 Implement automated tests in `subagent-permissions.test.ts` and verify all tests pass successfully
 - [x] 137.8 Update system documentation in `about.md` and `steps.md`
+
+## Phase 138: Recursive Cancellation of Subagent Tree (BFS)
+- [x] 138.1 Implement robust `AbortToken` class for LIFO cascade cleanup in `apps/server/src/core/abort-token.ts`
+- [x] 138.2 Implement BFS-based `abortAllRecursive` algorithm in `apps/server/src/core/delegation-registry.ts`
+- [x] 138.3 Update `AgentSession` to support async `dispose` and call `abortAllRecursive` in `abort`
+- [x] 138.4 Refactor `sessionManager.destroySession` to recursively clean up child sessions in memory and on disk
+- [x] 138.5 Integrate `AbortToken` to handle abort signal chaining inside `spawn-subagent-tool.ts`
+- [x] 138.6 Integrate `AbortToken` to handle abort signal chaining inside `delegate-tool.ts`
+- [x] 138.7 Update stop method in `create-agent-server.ts` to await `session.dispose`
+- [x] 138.8 Implement automated unit tests for `AbortToken` and `DelegationRegistry` BFS in `apps/server/src/__tests__/delegation-recursive-cancellation.test.ts`
+- [x] 138.9 Verify clean compilation and ensure all unit tests pass successfully
+- [x] 138.10 Update system documentation in `about.md` and `steps.md`

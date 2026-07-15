@@ -6,6 +6,7 @@ import type { ModelRegistry, AuthStorage, DefaultResourceLoader } from "../../ai
 import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
+import { AbortToken } from "../abort-token";
 
 export interface DelegateTaskOptions {
   workspaceDir: string;
@@ -51,15 +52,7 @@ Allows keeping parent context clean by returning a structured summary instead of
       const { targetType, targetId, task, includeFullHistory = false } = args;
       const delegateSessionId = `${SessionPrefix.DELEGATE}${toolCallId}`;
 
-      const abortControllers: any[] = [];
-      const onAbort = () => {
-        for (const ac of abortControllers) {
-          try { ac.abort(); } catch { }
-        }
-      };
-      if (parentSignal) {
-        parentSignal.addEventListener("abort", onAbort, { once: true });
-      }
+      const childToken = new AbortToken(parentSignal, `delegate:${delegateSessionId}`);
 
       // Guardar metadata inicial para la sesion delegada para persistir parentSessionId
       sessionManager.metadataStore.saveSessionMetadata(username, delegateSessionId, {
@@ -92,9 +85,10 @@ Allows keeping parent context clean by returning a structured summary instead of
               targetId
             );
 
-            abortControllers.push({
-              abort: () => session.abort(),
-            });
+            childToken.register(() => {
+              session.abort();
+              delegationRegistry.abortAllRecursive(delegateSessionId);
+            }, `agent:${targetId}`);
 
             const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
@@ -120,9 +114,10 @@ Allows keeping parent context clean by returning a structured summary instead of
               targetId
             );
 
-            abortControllers.push({
-              abort: () => session.abort(),
-            });
+            childToken.register(() => {
+              session.abort();
+              delegationRegistry.abortAllRecursive(delegateSessionId);
+            }, `project:${targetId}`);
 
             const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
@@ -147,9 +142,10 @@ Allows keeping parent context clean by returning a structured summary instead of
               throw new Error(`Channel "${targetId}" not found for user "${username}"`);
             }
 
-            abortControllers.push({
-              abort: () => channelOrchestrator.abortDispatch(username, targetId, delegateSessionId),
-            });
+            childToken.register(() => {
+              channelOrchestrator.abortDispatch(username, targetId, delegateSessionId);
+              delegationRegistry.abortAllRecursive(delegateSessionId);
+            }, `channel:${targetId}`);
 
             await channelOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
 
@@ -168,9 +164,10 @@ Allows keeping parent context clean by returning a structured summary instead of
           } else if (targetType === "session") {
             const session = await sessionManager.getOrCreateSession(username, targetId);
 
-            abortControllers.push({
-              abort: () => session.abort(),
-            });
+            childToken.register(() => {
+              session.abort();
+              delegationRegistry.abortAllRecursive(targetId);
+            }, `session:${targetId}`);
 
             const unsub = forwardSubagentEvents(session, parentSessionId, targetId, toolCallId);
 
@@ -200,9 +197,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             risks: "Execution encountered an error.",
           };
         } finally {
-          if (parentSignal) {
-            parentSignal.removeEventListener("abort", onAbort);
-          }
+          childToken.abortAll();
         }
 
         if (parentSignal?.aborted) {
@@ -255,7 +250,7 @@ Allows keeping parent context clean by returning a structured summary instead of
           subagentSessionId: delegateSessionId,
         },
         () => {
-          onAbort();
+          childToken.abortAll();
         }
       );
 

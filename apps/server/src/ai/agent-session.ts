@@ -540,8 +540,7 @@ export class AgentSession {
     const sId = this.sessionManager.getSessionId();
     try {
       const { delegationRegistry } = await import("../core/delegation-registry");
-      delegationRegistry.abortBySubagentSessionId(sId);
-      delegationRegistry.abortAll(sId);
+      delegationRegistry.abortAllRecursive(sId);
     } catch (err) {
       console.error("[AgentSession.abort] Failed to propagate abort to delegation registry:", err);
     }
@@ -737,8 +736,8 @@ export class AgentSession {
     // Disabled to avoid corrupting vendor token estimation and session history.
   }
 
-  dispose(): void {
-    this.abort();
+  async dispose(): Promise<void> {
+    await this.abort();
     this.eventListeners.clear();
   }
 
