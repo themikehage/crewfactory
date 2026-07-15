@@ -65,7 +65,12 @@ export class SessionMetadataStore {
     if (!existsSync(metadataPath)) return [...AVAILABLE_TOOLS];
     try {
       const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
-      return Array.isArray(metadata.tools) ? metadata.tools : [...AVAILABLE_TOOLS];
+      let tools = Array.isArray(metadata.tools) ? metadata.tools : [...AVAILABLE_TOOLS];
+      if (tools.includes("run_pipeline")) {
+        tools = tools.map((t) => (t === "run_pipeline" ? "manage_pipelines" : t));
+        this.persistSessionTools(username, sessionId, tools);
+      }
+      return tools;
     } catch {
       return [...AVAILABLE_TOOLS];
     }
