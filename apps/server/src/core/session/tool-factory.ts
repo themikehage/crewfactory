@@ -20,6 +20,7 @@ import {
   customToolStorage,
   createCustomToolRuntime,
 } from "../custom-tools";
+import { scopeConfigManager } from "../scope";
 
 export interface CreateSessionToolsParams {
   username: string;
@@ -30,6 +31,7 @@ export interface CreateSessionToolsParams {
   modelRegistry: any;
   authStorage: any;
   resourceLoader: any;
+  contextAgentId?: string;
 }
 
 export class SessionToolFactory {
@@ -43,6 +45,7 @@ export class SessionToolFactory {
       modelRegistry,
       authStorage,
       resourceLoader,
+      contextAgentId,
     } = params;
 
     const customBashTool = createBashToolDefinition(workspaceDir, {
@@ -99,7 +102,13 @@ export class SessionToolFactory {
       sessionId,
     });
 
-    const activeCustomDefs = customToolStorage.loadAll(username).filter((d: any) => d.enabled);
+    const resolvedToolNames = contextAgentId
+      ? new Set(scopeConfigManager.resolveToolsForAgent(username, contextAgentId))
+      : null;
+
+    const activeCustomDefs = customToolStorage.loadAll(username).filter((d: any) =>
+      d.enabled && (resolvedToolNames === null || resolvedToolNames.has(d.name))
+    );
     const activeCustomTools = activeCustomDefs.map((def: any) =>
       createCustomToolRuntime(def, {
         cwd: workspaceDir,

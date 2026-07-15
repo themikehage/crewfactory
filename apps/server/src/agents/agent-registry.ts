@@ -1,6 +1,7 @@
 import { createAgentServer } from "./create-agent-server";
-import { type AgentDefinition, type AgentInfo, type AgentStatus, SessionPrefix, getUserDir, CREWFACTORY_DATA_PATH, USERS_DIR } from "shared";
+import { type AgentDefinition, type AgentInfo, type AgentStatus, SessionPrefix, getUserDir, CREWFACTORY_DATA_PATH, USERS_DIR, type AgentScopeTarget } from "shared";
 import type { AgentEntry } from "./types";
+import { scopeConfigManager } from "../core/scope";
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 
@@ -61,7 +62,7 @@ class AgentRegistry {
     }
   }
 
-  async register(username: string, definition: AgentDefinition, saveToDisk = true): Promise<AgentEntry> {
+  async register(username: string, definition: AgentDefinition, saveToDisk = true, scope?: AgentScopeTarget): Promise<AgentEntry> {
     if (this.agents.has(definition.id)) {
       throw new Error(`Agent "${definition.id}" is already registered`);
     }
@@ -86,7 +87,9 @@ class AgentRegistry {
 
       if (saveToDisk) {
         const agentDir = this.getAgentDir(username, definition.id);
-        writeFileSync(join(agentDir, "definition.json"), JSON.stringify(definition, null, 2), "utf-8");
+        const { scope: defScope, ...defWithoutScope } = definition;
+        writeFileSync(join(agentDir, "definition.json"), JSON.stringify(defWithoutScope, null, 2), "utf-8");
+        await scopeConfigManager.registerAgent(username, definition.id, scope || defScope);
       }
 
       return entry;
@@ -105,9 +108,31 @@ class AgentRegistry {
   }
 
   list(username: string): AgentInfo[] {
+    const globalIds = new Set(scopeConfigManager.getGlobalAgentIds(username));
     const result: AgentInfo[] = [];
     for (const [id, entry] of this.agents) {
-      if (entry.username === username && !id.startsWith(SessionPrefix.LAB)) {
+      if (entry.username === username && !id.startsWith(SessionPrefix.LAB) && globalIds.has(id)) {
+        result.push({
+          id,
+          name: entry.server.definition.name,
+          role: entry.server.definition.role,
+          status: entry.status,
+          port: entry.server.definition.port,
+          createdAt: entry.createdAt,
+          skills: entry.server.definition.skills,
+          avatarUrl: entry.server.definition.avatarUrl,
+          blueprintId: entry.server.definition.blueprintId,
+        });
+      }
+    }
+    return result;
+  }
+
+  listScoped(username: string, parentType: "channels" | "projects", parentId: string): AgentInfo[] {
+    const scopedIds = new Set(scopeConfigManager.getScopedAgentIds(username, parentType, parentId));
+    const result: AgentInfo[] = [];
+    for (const [id, entry] of this.agents) {
+      if (entry.username === username && scopedIds.has(id)) {
         result.push({
           id,
           name: entry.server.definition.name,
@@ -158,6 +183,7 @@ class AgentRegistry {
       if (existsSync(agentDir)) {
         rmSync(agentDir, { recursive: true, force: true });
       }
+      await scopeConfigManager.removeAgentFromScope(entry.username, id);
     }
   }
 
@@ -173,11 +199,21 @@ class AgentRegistry {
       ...updates,
     };
 
+    const currentMembership = scopeConfigManager.getAgentMembership(username, id);
+    let targetScope: AgentScopeTarget | undefined = updates.scope;
+    if (!targetScope && currentMembership) {
+      if (currentMembership.type === "global") {
+        targetScope = { type: "global" };
+      } else {
+        targetScope = { type: currentMembership.type as "channel" | "project", id: currentMembership.id };
+      }
+    }
+
     // Stop active instance without removing disk
     await this.stop(id, false);
 
     // Save updated definition to disk and re-register
-    const newEntry = await this.register(username, newDefinition, true);
+    const newEntry = await this.register(username, newDefinition, true, targetScope);
     newEntry.createdAt = oldCreatedAt;
 
     return newEntry;

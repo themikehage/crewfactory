@@ -7,6 +7,7 @@ import { channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema } from "shared";
+import { scopeConfigManager } from "../core/scope";
 import { eventBroker } from "../lib/event-broker";
 
 export const channelsRouter = new Hono();
@@ -16,15 +17,17 @@ channelsRouter.use("/*", authMiddleware);
 function cleanChannelGhostMembers(channel: any, username: string): any {
   if (!channel || !channel.members) return channel;
 
-  const validAgents = agentRegistry.list(username);
-  const validAgentIds = new Set(validAgents.map((a) => a.id));
-
-  const cleanedMembers = channel.members.filter((m: any) => validAgentIds.has(m.agentId));
+  const cleanedMembers = channel.members.filter((m: any) => {
+    return !!agentRegistry.get(m.agentId, username);
+  });
+  
   const finalMembers = cleanedMembers.map((m: any) => {
     if (m.targetAgentIds) {
       return {
         ...m,
-        targetAgentIds: m.targetAgentIds.filter((tid: string) => validAgentIds.has(tid)),
+        targetAgentIds: m.targetAgentIds.filter((tid: string) => {
+          return !!agentRegistry.get(tid, username);
+        }),
       };
     }
     return m;
@@ -151,6 +154,7 @@ channelsRouter.delete("/:id", async (c) => {
     }
   }
 
+  await scopeConfigManager.removeChannelScope(username, id);
   const deleted = channelStore.deleteChannel(username, id);
   if (!deleted) return c.json({ error: "Channel not found" }, 404);
   return c.body(null, 204);
@@ -344,4 +348,11 @@ channelsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.str
   const body = c.req.valid("json");
   channelOrchestrator.abortDispatch(username, id, body?.sessionId);
   return c.json({ success: true });
+});
+
+channelsRouter.get("/:id/agents", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  return c.json({ agents: agentRegistry.listScoped(username, "channels", id) });
 });

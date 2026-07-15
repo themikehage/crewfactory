@@ -4,7 +4,9 @@ import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
 import { agentRegistry } from "../agents";
-import { AgentDefinitionSchema, UpdateAgentDefinitionSchema, getAgentDir, getChannelsDir } from "shared";
+import { AgentDefinitionSchema, UpdateAgentDefinitionSchema, getAgentDir, getChannelsDir, AgentScopeTargetSchema } from "shared";
+import { scopeConfigManager } from "../core/scope";
+import { ToolScopeTargetSchema } from "../core/custom-tools/schemas";
 import { sessionManager } from "../core/session-manager";
 import { join } from "node:path";
 import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
@@ -53,7 +55,8 @@ agentsRouter.post(
     }
 
     try {
-      const entry = await agentRegistry.register(username, definition);
+      const { scope, ...defWithoutScope } = definition;
+      const entry = await agentRegistry.register(username, defWithoutScope as any, true, scope);
       return c.json(
         {
           id: definition.id,
@@ -173,6 +176,44 @@ agentsRouter.patch(
         status: updatedEntry.status,
         createdAt: updatedEntry.createdAt,
       });
+    } catch (err) {
+      return c.json({ error: String(err) }, 500);
+    }
+  }
+);
+
+agentsRouter.patch(
+  "/scope/tools",
+  zValidator("json", z.object({ target: ToolScopeTargetSchema, tools: z.array(z.string()) })),
+  async (c) => {
+    const username = getUsername(c);
+    if (!username) return c.json({ error: "Unauthorized" }, 401);
+    const { target, tools } = c.req.valid("json");
+
+    try {
+      await scopeConfigManager.setScopeTools(username, target, tools);
+      return c.json({ ok: true });
+    } catch (err) {
+      return c.json({ error: String(err) }, 500);
+    }
+  }
+);
+
+agentsRouter.patch(
+  "/:id/scope",
+  zValidator("json", z.object({ scope: AgentScopeTargetSchema })),
+  async (c) => {
+    const username = getUsername(c);
+    if (!username) return c.json({ error: "Unauthorized" }, 401);
+    const id = c.req.param("id");
+    const { scope } = c.req.valid("json");
+
+    const entry = agentRegistry.get(id, username);
+    if (!entry) return c.json({ error: "Agent not found" }, 404);
+
+    try {
+      await scopeConfigManager.setAgentScope(username, id, scope);
+      return c.json({ ok: true });
     } catch (err) {
       return c.json({ error: String(err) }, 500);
     }

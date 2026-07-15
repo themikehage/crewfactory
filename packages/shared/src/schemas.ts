@@ -184,6 +184,13 @@ export interface FileUploadResult {
   mimeType: string;
 }
 
+export const AgentScopeTargetSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("global") }),
+  z.object({ type: z.literal("channel"), id: z.string() }),
+  z.object({ type: z.literal("project"), id: z.string() }),
+]);
+export type AgentScopeTarget = z.infer<typeof AgentScopeTargetSchema>;
+
 export const AgentDefinitionSchema = z.object({
   id: z.string().min(1).regex(/^[a-z0-9-]+$/, "id must be lowercase alphanumeric with dashes"),
   name: z.string().min(1),
@@ -195,6 +202,7 @@ export const AgentDefinitionSchema = z.object({
   serialTools: z.array(z.string()).optional(),
   avatarUrl: z.string().optional(),
   blueprintId: z.string().optional(),
+  scope: AgentScopeTargetSchema.optional(),
 });
 export type AgentDefinition = z.infer<typeof AgentDefinitionSchema>;
 

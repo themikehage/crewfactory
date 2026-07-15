@@ -277,13 +277,19 @@ class SessionManager {
           modelRegistry,
           authStorage,
           resourceLoader,
+          contextAgentId: resolvedAgentId,
         });
 
         let customToolNames: string[] = [];
         try {
           const { customToolStorage } = await import("./custom-tools/storage");
           const all = customToolStorage.loadAll(username);
-          customToolNames = all.filter((d: any) => d.enabled !== false).map((d: any) => d.name);
+          const resolvedNames = resolvedAgentId
+            ? new Set(require("./scope").scopeConfigManager.resolveToolsForAgent(username, resolvedAgentId))
+            : null;
+          customToolNames = all
+            .filter((d: any) => d.enabled !== false && (resolvedNames === null || resolvedNames.has(d.name)))
+            .map((d: any) => d.name);
         } catch (e) {
           console.error("[SessionManager] Failed to load custom tool names:", e);
         }

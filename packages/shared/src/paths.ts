@@ -120,6 +120,10 @@ export function getProviderModelsPath(username: string): string {
   return join(getUserDir(username), "provider-models.json");
 }
 
+export function getScopeConfigPath(username: string): string {
+  return join(getUserDir(username), "scope-config.json");
+}
+
 export function getSettingsPath(username: string): string {
   return join(getUserDir(username), "settings.json");
 }

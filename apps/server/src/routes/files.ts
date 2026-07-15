@@ -9,6 +9,7 @@ import {
   getChannelWorkspaceDir, getAgentWorkspaceDir,
   getSessionDir, getUserDir
 } from "shared";
+import { scopeConfigManager } from "../core/scope";
 
 export const filesRouter = new Hono();
 
@@ -349,11 +350,20 @@ filesRouter.delete("/workspace-projects/:id", async (c) => {
       }
     }
 
+    await scopeConfigManager.removeProjectScope(username, id);
     rmSync(projectPath, { recursive: true, force: true });
     return c.body(null, 204);
   } catch (err: any) {
     return c.json({ error: err.message || "Failed to delete project" }, 500);
   }
+});
+
+filesRouter.get("/workspace-projects/:id/agents", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const { agentRegistry } = await import("../agents/agent-registry");
+  return c.json({ agents: agentRegistry.listScoped(username, "projects", id) });
 });
 
 filesRouter.patch("/workspace-projects/:id", async (c) => {

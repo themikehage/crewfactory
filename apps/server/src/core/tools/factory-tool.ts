@@ -105,6 +105,7 @@ async function handleAgents(action: string, id: string | undefined, params: any,
         model: params.model ?? existing.server.definition.model,
         skills: params.skills ?? existing.server.definition.skills,
         avatarUrl: params.avatarUrl ?? existing.server.definition.avatarUrl,
+        scope: params.scope,
       });
       return ok(`Agent "${id}" updated`, { entity: "agents", id, status: "updated" });
     }
@@ -116,8 +117,9 @@ async function handleAgents(action: string, id: string | undefined, params: any,
       model: params.model ?? "",
       skills: params.skills ?? [],
       avatarUrl: params.avatarUrl,
+      scope: params.scope,
     };
-    await agentRegistry.register(username, definition);
+    await agentRegistry.register(username, definition, true, params.scope);
     return ok(`Agent "${id}" created`, { entity: "agents", id, status: "created", data: definition });
   }
 

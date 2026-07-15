@@ -42,6 +42,7 @@ export const FACTORY_CONTRACTS: Record<string, EntityContract> = {
           model: { type: "string", required: false, description: "Model identifier (e.g. anthropic/claude-3-5-sonnet-20241022)" },
           skills: { type: "array", required: false, description: "Array of skill IDs to attach" },
           avatarUrl: { type: "string", required: false, description: "URL for agent avatar image" },
+          scope: { type: "object", required: false, description: "Optional scope configuration: { type: 'global' | 'channel' | 'project', id?: string }" },
         },
       },
       delete: {

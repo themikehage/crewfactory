@@ -234,6 +234,14 @@ export const JSONSchemaLiteral = z.object({
   required: z.array(z.string()).optional(),
 });
 
+export const ToolScopeTargetSchema = z.discriminatedUnion("type", [
+  z.object({ type: z.literal("global") }),
+  z.object({ type: z.literal("channel"), id: z.string() }),
+  z.object({ type: z.literal("project"), id: z.string() }),
+  z.object({ type: z.literal("agent"), id: z.string() }),
+]);
+export type ToolScopeTarget = z.infer<typeof ToolScopeTargetSchema>;
+
 export const CustomToolDefinitionSchema = z.object({
   name: z.string()
     .regex(/^[a-z][a-z0-9_]+$/, "Must be snake_case, lowercase letters/numbers/underscores")
@@ -245,6 +253,7 @@ export const CustomToolDefinitionSchema = z.object({
   ui: z.union([UiComponentSchema, z.array(UiComponentSchema)]).optional(),
   presentation: PresentationSchema.optional().describe("UI presentation preferences for how the tool appears in chat"),
   enabled: z.boolean().default(true),
+  scope: ToolScopeTargetSchema.optional(),
   createdAt: z.string().optional(),
   updatedAt: z.string().optional(),
 });
