@@ -45,16 +45,22 @@ export function estimateTextAndImageContentTokens(content: string | Array<TextCo
 export function estimateMessageTokens(message: Message): number {
 	let chars = 0;
 
+	if (!message.content) return 0;
+	if (typeof message.content === "string") {
+		return estimateTextAndImageContentTokens(message.content);
+	}
 	if (message.role === "user") return estimateTextAndImageContentTokens(message.content);
 	if (message.role === "toolResult") return estimateTextAndImageContentTokens(message.content);
+	if ((message as any).role === "system") return estimateTextAndImageContentTokens(message.content as any);
 
 	for (const block of message.content) {
 		if (block.type === "text") {
-			chars += block.text.length;
+			chars += block.text ? block.text.length : 0;
 		} else if (block.type === "thinking") {
-			chars += block.thinking.length;
+			chars += block.thinking ? block.thinking.length : 0;
 		} else {
-			chars += block.name.length + safeJsonStringify(block.arguments).length;
+			const nameLength = typeof block.name === "string" ? block.name.length : 0;
+			chars += nameLength + safeJsonStringify(block.arguments).length;
 		}
 	}
 	return Math.ceil(chars / CHARS_PER_TOKEN);

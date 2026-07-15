@@ -233,17 +233,24 @@ export function estimateTokens(message: AgentMessage): number {
 		}
 		case "assistant": {
 			const assistant = message as AssistantMessage;
-			for (const block of assistant.content) {
-				if (block.type === "text") {
-					chars += block.text.length;
-				} else if (block.type === "thinking") {
-					chars += block.thinking.length;
-				} else if (block.type === "toolCall") {
-					chars += block.name.length + safeJsonStringify(block.arguments).length;
+			if (!assistant.content) return 0;
+			if (typeof assistant.content === "string") {
+				chars += (assistant.content as string).length;
+			} else {
+				for (const block of assistant.content) {
+					if (block.type === "text") {
+						chars += block.text ? block.text.length : 0;
+					} else if (block.type === "thinking") {
+						chars += block.thinking ? block.thinking.length : 0;
+					} else if (block.type === "toolCall") {
+						const nameLength = typeof block.name === "string" ? block.name.length : 0;
+						chars += nameLength + safeJsonStringify(block.arguments).length;
+					}
 				}
 			}
 			return Math.ceil(chars / 4);
 		}
+		case "system" as any:
 		case "custom":
 		case "toolResult": {
 			chars = estimateTextAndImageContentChars(message.content);
