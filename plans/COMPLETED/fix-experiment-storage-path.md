@@ -1,3 +1,4 @@
+COMPLETED
 # Fix: Experiment Storage Path Discrepancy
 
 **Tipo:** Bug Fix

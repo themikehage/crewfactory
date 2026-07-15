@@ -179,6 +179,7 @@
 - Sandbox badge in chat header shows current mode (Read-Only / Full Access / N/7 Tools)
 - Tools also sent per-prompt via WebSocket for immediate override
 - **Permission Engine:** Stateless rule evaluation (deny-first, then ask, then allow) implemented via the underlying agent `beforeToolCall` hook. Destructive patterns (such as fork bombs, recursive deletion of critical folders, piping network scripts into bash, or raw disk modifications) are blocked immediately. Potentially hazardous operations (like recursive deletions or writing outside workspace/temp boundaries) prompt the user for permission, suspending agent execution while rendering an interactive approval card in the chat window.
+- **Subagent Permission Inheritance & Persistent Choices:** Dynamic ruleset configuration combining system defaults, role-based subagent presets (e.g., explorer subagents are read-only, builder subagents can modify code), parent session restrictions propagation, and persistent user-level decisions stored at `permission-decisions.json` in the user's directory. Inherited limits filter out active tools dynamically so subagents cannot call tools parent sessions are restricted from.
 
 ### Context Window Meter
 - Real-time context usage bar in chat footer (tokens / context window / percentage)
@@ -248,6 +249,7 @@
 - **Orquestación Unificada de Canales:** En lugar de implementar un ciclo de vida independiente, el laboratorio delega toda la ejecución al backend de canales a través de `ChannelOrchestrator.runToCompletion()`. Esto unifica el manejo de la profundidad de cadenas, el control de abortos, la detección de equilibrio y la agregación unificada de tokens de manera centralizada.
 - **Historial de Ejecuciones:** Registro y persistencia de corridas históricas con sus respectivas métricas, accesibles desde la barra de herramientas del laboratorio.
 - **Sesiones de Diseño del Laboratorio:** Soporte completo para sesiones múltiples con el agente arquitecto del laboratorio (`lab-architect`) en `/laboratory/session/:sessionId`. Permite crear, renombrar, eliminar y alternar entre distintas sesiones de diseño desde la interfaz del laboratorio. Las ejecuciones temporales de experimentos (`lab_run_`) son filtradas para evitar fugas en el historial global y en la vista de Kanban.
+- **Unificación de Rutas de Almacenamiento:** Los experimentos ahora se guardan bajo `{DATA}/users/{username}/experiments/` usando el helper compartido `getExperimentsDir`, manteniendo coherencia con las demás entidades del sistema. Se incluye una migración automática en tiempo de ejecución que detecta y mueve de forma segura los datos de la ruta legacy `{DATA}/{username}/experiments/` si existe.
 
 
 

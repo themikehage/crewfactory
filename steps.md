@@ -649,3 +649,18 @@
 - [x] 139.7 Implement automated tests in `subagent-depth-limit.test.ts` and verify build compiles cleanly
 - [x] 139.8 Update system documentation in `about.md` and `steps.md`
 
+## Phase 140: Security Subagent Permission Inheritance
+- [x] 140.1 Implement `UserPermissionStore` for persisting user decisions to `permission-decisions.json`
+- [x] 140.2 Implement subagent dynamic rules and default configurations in `subagent-permissions.ts`
+- [x] 140.3 Integrate dynamic subagent rules checking into static `PermissionEngine.evaluate`
+- [x] 140.4 Update `createBeforeToolCallHook` interceptor parameter types and persist options on user confirmation
+- [x] 140.5 Update hook creation caller sites inside `session-manager.ts` and `create-agent-server.ts`
+- [x] 140.6 Support `subagentType` parameter and dynamic tool active filters in `spawn-subagent-tool.ts` and `session-manager.ts`
+- [x] 140.7 Implement automated tests in `subagent-permission-inheritance.test.ts` and verify build typecheck
+- [x] 140.8 Update system documentation in `about.md` and `steps.md`
+
+## Phase 141: Fix Experiment Storage Path Discrepancy
+- [x] 141.1 Use shared `getExperimentsDir` from `@shared/paths` inside `ExperimentStore`
+- [x] 141.2 Implement automatic runtime legacy data migration check to new paths structure
+- [x] 141.3 Verify clean compilation of client, server and shared packages
+

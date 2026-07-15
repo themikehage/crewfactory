@@ -1,17 +1,30 @@
-import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync } from "fs";
+import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, renameSync } from "fs";
 import { join } from "path";
-import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH, type AgentDefinition, type ChannelMember } from "shared";
+import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH, type AgentDefinition, type ChannelMember, getExperimentsDir } from "shared";
 import { sessionManager } from "../core/session-manager";
-
-const BASE_DIR = CREWFACTORY_DATA_PATH();
 
 export class ExperimentStore {
   static getExperimentsDir(username: string): string {
-    const dir = join(BASE_DIR, username, "experiments");
-    if (!existsSync(dir)) {
-      mkdirSync(dir, { recursive: true });
+    const newDir = getExperimentsDir(username);
+    const oldDir = join(CREWFACTORY_DATA_PATH(), username, "experiments");
+
+    if (existsSync(oldDir) && !existsSync(newDir)) {
+      try {
+        const parentDir = join(CREWFACTORY_DATA_PATH(), "users", username);
+        if (!existsSync(parentDir)) {
+          mkdirSync(parentDir, { recursive: true });
+        }
+        renameSync(oldDir, newDir);
+        console.log(`[ExperimentStore] Migrated experiments from legacy path: ${oldDir} -> ${newDir}`);
+      } catch (err) {
+        console.error(`[ExperimentStore] Failed to migrate experiments from legacy path: ${oldDir} -> ${newDir}`, err);
+      }
     }
-    return dir;
+
+    if (!existsSync(newDir)) {
+      mkdirSync(newDir, { recursive: true });
+    }
+    return newDir;
   }
 
   static getExperimentDir(username: string, experimentId: string): string {
