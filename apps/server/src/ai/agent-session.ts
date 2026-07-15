@@ -169,6 +169,9 @@ export class AgentSession {
       ...(this.resourceLoader.getAppendSystemPrompt() || []),
     ].filter(Boolean).join("\n\n");
 
+    if (this.model && !this.model.contextWindow) {
+      throw new Error(`Model ${this.model.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model.provider}/refresh`);
+    }
     const modelObj = this.model ? {
       id: this.model.id,
       name: this.model.name,
@@ -177,8 +180,8 @@ export class AgentSession {
       baseUrl: this.model.baseUrl,
       apiKey: this.model.apiKey,
       reasoning: !!this.model.reasoning,
-      contextWindow: this.model.contextWindow || 100000,
-      maxTokens: this.model.maxTokens || 4096,
+      contextWindow: this.model.contextWindow!,
+      maxTokens: this.model.maxTokens ?? 0,
       compat: this.model.compat,
       input: (this.model as any).input || [],
       cost: (this.model as any).cost || {},
@@ -189,8 +192,8 @@ export class AgentSession {
       api: "unknown",
       baseUrl: "",
       reasoning: false,
-      contextWindow: 100000,
-      maxTokens: 4096,
+      contextWindow: 0,
+      maxTokens: 0,
       compat: undefined,
       input: [],
       cost: { input: 0, output: 0, cacheRead: 0, cacheWrite: 0, total: 0 },
@@ -349,6 +352,9 @@ export class AgentSession {
   async setModel(model: AvailableModel): Promise<void> {
     this.model = model;
     this.sessionManager.appendModelChange(model.provider, model.id);
+    if (!model.contextWindow) {
+      throw new Error(`Model ${model.id} missing contextWindow - fetch mandatory, run POST /api/providers/${model.provider}/refresh`);
+    }
     if (this.agent) {
       (this.agent.state as any).model = {
         id: model.id,
@@ -358,8 +364,8 @@ export class AgentSession {
         baseUrl: model.baseUrl,
         apiKey: model.apiKey,
         reasoning: !!model.reasoning,
-        contextWindow: model.contextWindow || 100000,
-        maxTokens: model.maxTokens || 4096,
+        contextWindow: model.contextWindow!,
+        maxTokens: model.maxTokens ?? 0,
         compat: model.compat,
         input: (model as any).input || [],
         cost: (model as any).cost || {},
@@ -417,6 +423,9 @@ export class AgentSession {
         timestamp: Date.now(),
       };
 
+      if (!this.model?.contextWindow) {
+        throw new Error(`Model ${this.model?.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model?.provider}/refresh`);
+      }
       if (this.model) {
         const modelObj = {
           id: this.model.id,
@@ -426,8 +435,8 @@ export class AgentSession {
           baseUrl: this.model.baseUrl,
           apiKey: this.model.apiKey,
           reasoning: !!this.model.reasoning,
-          contextWindow: this.model.contextWindow || 100000,
-          maxTokens: this.model.maxTokens || 4096,
+          contextWindow: this.model.contextWindow!,
+          maxTokens: this.model.maxTokens ?? 0,
           compat: this.model.compat,
           input: (this.model as any).input || [],
           cost: (this.model as any).cost || {},
@@ -464,6 +473,9 @@ export class AgentSession {
 
     try {
       if (this.model) {
+        if (!this.model.contextWindow) {
+          throw new Error(`Model ${this.model.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model.provider}/refresh`);
+        }
         const modelObj = {
           id: this.model.id,
           name: this.model.name,
@@ -472,8 +484,8 @@ export class AgentSession {
           baseUrl: this.model.baseUrl,
           apiKey: this.model.apiKey,
           reasoning: !!this.model.reasoning,
-          contextWindow: this.model.contextWindow || 100000,
-          maxTokens: this.model.maxTokens || 4096,
+          contextWindow: this.model.contextWindow!,
+          maxTokens: this.model.maxTokens ?? 0,
           compat: this.model.compat,
           input: (this.model as any).input || [],
           cost: (this.model as any).cost || {},
@@ -543,6 +555,9 @@ export class AgentSession {
     if (!this.model) {
       throw new Error("No model configured for compaction");
     }
+    if (!this.model.contextWindow) {
+      throw new Error(`Model ${this.model.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model.provider}/refresh`);
+    }
 
     const modelObj = {
       id: this.model.id,
@@ -552,8 +567,8 @@ export class AgentSession {
       baseUrl: this.model.baseUrl,
       apiKey: this.model.apiKey,
       reasoning: !!this.model.reasoning,
-      contextWindow: this.model.contextWindow || 100000,
-      maxTokens: this.model.maxTokens || 4096,
+      contextWindow: this.model.contextWindow!,
+      maxTokens: this.model.maxTokens ?? 0,
       compat: this.model.compat,
       input: (this.model as any).input || [],
       cost: (this.model as any).cost || {},
@@ -641,7 +656,7 @@ export class AgentSession {
         totalTokens: estimate.tokens,
         inputTokens: estimate.usageTokens,
         outputTokens: estimate.trailingTokens,
-        limit: this.model?.contextWindow ?? 1_000_000,
+        limit: this.model?.contextWindow ?? null,
       };
     } catch (err) {
       console.error("[AgentSession] Error estimating context tokens:", err);
@@ -664,7 +679,7 @@ export class AgentSession {
         totalTokens: estimatedTokens,
         inputTokens: estimatedTokens,
         outputTokens: 0,
-        limit: this.model?.contextWindow ?? 1_000_000,
+        limit: this.model?.contextWindow ?? null,
       };
     }
   }

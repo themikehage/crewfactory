@@ -1,0 +1,38 @@
+import type { SupportedLocale } from "@/lib";
+
+export const literals: Record<SupportedLocale, Record<string, string>> = {
+  en: {
+    backToPipelines: "Back to Pipelines",
+    definitionTab: "Definition",
+    runsTab: "Execution Runs",
+    stages: "Stages",
+    runPipeline: "Run Pipeline",
+    running: "Running...",
+    triggerSuccess: "Pipeline run triggered successfully",
+    triggerError: "Failed to trigger pipeline run",
+    emptyRuns: "No runs recorded for this pipeline yet",
+    runId: "Run ID",
+    status: "Status",
+    startedAt: "Started",
+    duration: "Duration",
+    viewRun: "View Progress",
+    stagesCount: "Stages Count",
+  },
+  es: {
+    backToPipelines: "Volver a Pipelines",
+    definitionTab: "Definición",
+    runsTab: "Ejecuciones",
+    stages: "Etapas",
+    runPipeline: "Ejecutar Pipeline",
+    running: "Ejecutando...",
+    triggerSuccess: "Ejecución del pipeline iniciada con éxito",
+    triggerError: "Error al iniciar la ejecución del pipeline",
+    emptyRuns: "Aún no hay ejecuciones registradas para este pipeline",
+    runId: "ID de Ejecución",
+    status: "Estado",
+    startedAt: "Iniciado",
+    duration: "Duración",
+    viewRun: "Ver Progreso",
+    stagesCount: "Cantidad de etapas",
+  },
+};

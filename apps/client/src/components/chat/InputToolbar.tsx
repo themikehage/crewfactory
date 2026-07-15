@@ -8,7 +8,7 @@ import type { SkillInfo } from "./SkillsSelector";
 import { useLiterals, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
 import { ALL_TOOLS } from "./ToolsSelector";
-import { ContextIndicator } from "./ContextIndicator";
+import { ContextButton } from "./ContextButton";
 
 interface InputToolbarProps {
   sessionId: string | null;
@@ -73,7 +73,6 @@ export function InputToolbar({
     <div className="flex items-center justify-between px-3 py-2 bg-[#171717] border-t border-border/30">
       {/* Left controls */}
       <div className="flex items-center gap-2">
-        {/* Attach file button */}
         <button
           type="button"
           onClick={onFileClick}
@@ -84,21 +83,8 @@ export function InputToolbar({
           <Paperclip size={14} />
         </button>
 
-        {/* Model Selector compact + context counter below */}
-        <div className="flex flex-col items-start gap-0.5">
-          <ModelSelector
-            sessionId={sessionId}
-            disabled={disabled}
-            compact={true}
-          />
-          <ContextIndicator
-            contextUsage={contextUsage}
-            onCompact={onCompact}
-            compacting={compacting}
-          />
-        </div>
+        <ModelSelector sessionId={sessionId} disabled={disabled} compact={true} />
 
-        {/* Skills Button and Popover */}
         {sessionId && (
           <div className="relative">
             <button
@@ -124,7 +110,6 @@ export function InputToolbar({
           </div>
         )}
 
-        {/* Tools Button and Popover */}
         <div className="relative">
           <button
             ref={toolsTriggerRef}
@@ -148,6 +133,13 @@ export function InputToolbar({
             disabled={disabled}
           />
         </div>
+
+        <ContextButton
+          contextUsage={contextUsage}
+          onCompact={onCompact}
+          compacting={compacting}
+          disabled={disabled}
+        />
       </div>
 
       {/* Right controls */}

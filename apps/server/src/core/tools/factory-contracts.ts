@@ -213,6 +213,35 @@ export const FACTORY_CONTRACTS: Record<string, EntityContract> = {
     },
   },
 
+  pipelines: {
+    entity: "pipelines",
+    description: "Deterministic linear execution pipelines with script and agent stages",
+    actions: {
+      get: {
+        description: "List all pipelines or get one by ID (including runs and specific run details)",
+        params: {
+          id: { type: "string", required: false, description: "Pipeline ID (optionally append /runs or /runs/runId). Omit to list all." },
+        },
+      },
+      upsert: {
+        description: "Create or update a pipeline definition and optionally its scripts",
+        params: {
+          id: { type: "string", required: true, description: "Unique pipeline identifier" },
+          name: { type: "string", required: true, description: "Display name for the pipeline" },
+          description: { type: "string", required: false, description: "Short description of the pipeline" },
+          stages: { type: "array", required: true, description: "Array of PipelineStage objects" },
+          scripts: { type: "object", required: false, description: "Optional map of scriptName -> scriptContent to save inside pipeline workspace" },
+        },
+      },
+      delete: {
+        description: "Delete a pipeline and its workspace permanently",
+        params: {
+          id: { type: "string", required: true, description: "Pipeline ID to delete" },
+        },
+      },
+    },
+  },
+
   experiments: {
     entity: "experiments",
     description: "Laboratory experiments for multi-agent evaluation",

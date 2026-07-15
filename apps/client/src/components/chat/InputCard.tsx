@@ -1,8 +1,6 @@
 import { motion } from "framer-motion";
 import { AttachmentPreview, type Attachment } from "./AttachmentPreview";
 import { ChatTextarea } from "./ChatTextarea";
-import { ContextProgressLine } from "./ContextIndicator";
-import { type ContextUsage } from "@/lib";
 
 interface InputCardProps {
   streaming: boolean;
@@ -16,7 +14,6 @@ interface InputCardProps {
   placeholder: string;
   textareaRef: React.RefObject<HTMLTextAreaElement | null>;
   toolbar: React.ReactNode;
-  contextUsage?: ContextUsage | null;
 }
 
 export function InputCard({
@@ -31,7 +28,6 @@ export function InputCard({
   placeholder,
   textareaRef,
   toolbar,
-  contextUsage = null,
 }: InputCardProps) {
   return (
     <motion.div
@@ -52,7 +48,6 @@ export function InputCard({
         onRemove={onRemoveAttachment}
       />
 
-      {/* 2. Textarea Container */}
       <div className="px-4 py-3">
         <ChatTextarea
           value={input}
@@ -64,9 +59,6 @@ export function InputCard({
         />
       </div>
 
-      <ContextProgressLine contextUsage={contextUsage} />
-
-      {/* 3. InputToolbar */}
       {toolbar}
     </motion.div>
   );

@@ -530,7 +530,6 @@ export function ChatInput({
           onKeyDown={handleKeyDown}
           placeholder={placeholderText}
           textareaRef={textareaRef}
-          contextUsage={contextUsage}
           toolbar={
             <InputToolbar
               sessionId={sessionId}

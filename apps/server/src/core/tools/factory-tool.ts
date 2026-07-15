@@ -5,8 +5,10 @@ import { channelStore } from "../../channels";
 import { sessionManager } from "../session-manager";
 import { ExperimentStore } from "../../laboratory/experiment-store";
 import { loadSkills } from "../../ai";
-import { getProjectsDir, getWorkspaceSkillsDir } from "shared";
+import { getProjectsDir, getWorkspaceSkillsDir, getPipelineDir } from "shared";
 import { FACTORY_CONTRACTS } from "./factory-contracts";
+import { PipelineStore } from "../../pipelines/pipeline-store";
+import { PipelineRunner } from "../../pipelines/pipeline-runner";
 
 export interface FactoryToolOptions {
   username: string;
@@ -19,6 +21,7 @@ const ENTITY_REFRESH_MAP: Record<string, string> = {
   channels: "channel",
   skills: "skill",
   experiments: "experiment",
+  pipelines: "pipeline",
 };
 
 export function validateParams(entity: string, action: string, id: string | undefined, params: any) {
@@ -442,6 +445,82 @@ async function handleSkills(action: string, id: string | undefined, params: any,
   return err(`Unknown action: ${action}`);
 }
 
+async function handlePipelines(action: string, id: string | undefined, params: any, username: string) {
+  if (action === "get") {
+    if (id) {
+      const parts = id.split("/");
+      const pipelineId = parts[0];
+      
+      if (parts[1] === "runs") {
+        if (parts[2]) {
+          const runId = parts[2];
+          const run = await PipelineStore.getRun(username, pipelineId, runId);
+          if (!run) return err(`Pipeline run "${runId}" not found for pipeline "${pipelineId}"`);
+          return ok(JSON.stringify(run, null, 2), { entity: "pipelines", id, data: run });
+        }
+        const runs = await PipelineStore.listRuns(username, pipelineId);
+        return ok(JSON.stringify(runs, null, 2), { entity: "pipelines", id, data: runs });
+      }
+      
+      const pipe = await PipelineStore.getPipeline(username, pipelineId);
+      if (!pipe) return err(`Pipeline "${pipelineId}" not found`);
+      return ok(JSON.stringify(pipe, null, 2), { entity: "pipelines", id, data: pipe });
+    }
+    const list = await PipelineStore.listPipelines(username);
+    return ok(JSON.stringify(list, null, 2), { entity: "pipelines", data: list });
+  }
+
+  if (action === "upsert") {
+    if (!id) return err("id is required for upsert");
+    if (!params.name) return err("name is required in params for pipeline upsert");
+    if (!params.stages || !Array.isArray(params.stages)) return err("stages array is required in params for pipeline upsert");
+
+    const existing = await PipelineStore.getPipeline(username, id);
+    let pipeline: any;
+    if (existing) {
+      pipeline = {
+        ...existing,
+        name: params.name,
+        description: params.description ?? existing.description,
+        stages: params.stages,
+        updatedAt: new Date().toISOString(),
+      };
+    } else {
+      pipeline = {
+        id,
+        name: params.name,
+        description: params.description ?? "",
+        version: 1,
+        stages: params.stages,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    }
+
+    await PipelineStore.savePipeline(username, pipeline);
+
+    if (params.scripts && typeof params.scripts === "object") {
+      for (const [filename, content] of Object.entries(params.scripts)) {
+        if (typeof content === "string") {
+          await PipelineStore.saveScript(username, id, filename, content);
+        }
+      }
+    }
+
+    return ok(`Pipeline "${id}" saved`, { entity: "pipelines", id, status: existing ? "updated" : "created", data: pipeline });
+  }
+
+  if (action === "delete") {
+    if (!id) return err("id is required for delete");
+    const existing = await PipelineStore.getPipeline(username, id);
+    if (!existing) return err(`Pipeline "${id}" not found`);
+    await PipelineStore.deletePipeline(username, id);
+    return ok(`Pipeline "${id}" deleted`, { entity: "pipelines", id, status: "deleted" });
+  }
+
+  return err(`Unknown action: ${action}`);
+}
+
 async function handleExperiments(action: string, id: string | undefined, params: any, username: string) {
   if (action === "get") {
     if (id) {
@@ -520,7 +599,7 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
       properties: {
         entity: {
           type: "string",
-          enum: ["agents", "projects", "channels", "sessions", "env", "providers", "skills", "experiments"],
+          enum: ["agents", "projects", "channels", "sessions", "env", "providers", "skills", "experiments", "pipelines"],
           description: "The factory entity type to operate on.",
         },
         action: {
@@ -574,6 +653,9 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
         case "experiments":
           result = await handleExperiments(action, id, params, username);
           break;
+        case "pipelines":
+          result = await handlePipelines(action, id, params, username);
+          break;
         default:
           return err(`Unknown entity: ${entity}`);
       }
@@ -594,6 +676,40 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
       }
 
       return result;
+    },
+  };
+}
+
+export function createRunPipelineTool(opts: FactoryToolOptions) {
+  const { username } = opts;
+  return {
+    name: "run_pipeline",
+    description: "Execute a pipeline by ID in the background (fire-and-forget). Returns a runId to track progress.",
+    parameters: {
+      type: "object",
+      properties: {
+        pipelineId: {
+          type: "string",
+          description: "The unique identifier of the pipeline to run.",
+        },
+      },
+      required: ["pipelineId"],
+    },
+    execute: async (_toolCallId: string, args: any) => {
+      const { pipelineId } = args;
+      if (!pipelineId) {
+        return err("pipelineId is required");
+      }
+      try {
+        const runId = await PipelineRunner.run(username, pipelineId, "agent");
+        return ok(`Pipeline "${pipelineId}" triggered in background. Run ID: ${runId}`, {
+          pipelineId,
+          runId,
+          status: "started",
+        });
+      } catch (e: any) {
+        return err(`Failed to trigger pipeline "${pipelineId}": ${e.message || String(e)}`);
+      }
     },
   };
 }

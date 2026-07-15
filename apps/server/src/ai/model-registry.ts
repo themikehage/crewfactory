@@ -1,5 +1,87 @@
 import type { AuthStorage } from "./auth-storage.ts";
 
+type ModelsDevCache = {
+  data: Record<string, any>;
+  fetchedAt: number;
+};
+
+let modelsDevCache: ModelsDevCache | null = null;
+const MODELS_DEV_URL = "https://models.dev/api.json";
+const MODELS_DEV_TTL_MS = 1000 * 60 * 60;
+
+async function fetchModelsDev(): Promise<Record<string, any>> {
+  const now = Date.now();
+  if (modelsDevCache && now - modelsDevCache.fetchedAt < MODELS_DEV_TTL_MS) {
+    return modelsDevCache.data;
+  }
+  try {
+    const res = await fetch(MODELS_DEV_URL, {
+      headers: { Accept: "application/json" },
+    });
+    if (!res.ok) throw new Error(`models.dev status ${res.status}`);
+    const data = (await res.json()) as Record<string, any>;
+    modelsDevCache = { data, fetchedAt: now };
+    return data;
+  } catch (err) {
+    console.error("[ModelRegistry] Failed to fetch models.dev:", err);
+    if (modelsDevCache) return modelsDevCache.data;
+    return {};
+  }
+}
+
+function findModelsDevEntry(
+  modelsDev: Record<string, any>,
+  providerHint: string,
+  modelId: string
+): any | null {
+  const lowerId = modelId.toLowerCase();
+
+  const tryProvider = (provKey: string): any | null => {
+    const prov = modelsDev[provKey];
+    const models = prov?.models;
+    if (!models) return null;
+    if (models[modelId]) return models[modelId];
+    const exactLower = Object.keys(models).find((k) => k.toLowerCase() === lowerId);
+    if (exactLower) return models[exactLower];
+    return null;
+  };
+
+  const direct = tryProvider(providerHint);
+  if (direct) return direct;
+
+  const opencodeGo = tryProvider("opencode-go");
+  if (opencodeGo) return opencodeGo;
+
+  const secondaryHints = ["alibaba", "deepseek", "moonshotai", "zhipuai", "minimax", "xiaomi", "zai"];
+  for (const hint of secondaryHints) {
+    const found = tryProvider(hint);
+    if (found) return found;
+  }
+
+  for (const provKey of Object.keys(modelsDev)) {
+    const prov = modelsDev[provKey];
+    const models = prov?.models;
+    if (!models) continue;
+    if (models[modelId]) return models[modelId];
+    const exactLower = Object.keys(models).find((k) => k.toLowerCase() === lowerId);
+    if (exactLower) return models[exactLower];
+  }
+
+  for (const provData of Object.values(modelsDev) as any[]) {
+    const models = provData?.models;
+    if (!models) continue;
+    for (const [key, val] of Object.entries(models)) {
+      const normKey = key.toLowerCase().replace(/[^a-z0-9]/g, "");
+      const normId = lowerId.replace(/[^a-z0-9]/g, "");
+      if (normKey.length >= 5 && normId.length >= 5 && (normKey === normId || normKey.includes(normId) || normId.includes(normKey))) {
+        return val;
+      }
+    }
+  }
+
+  return null;
+}
+
 export interface ModelDef {
   id: string;
   name: string;
@@ -197,29 +279,130 @@ export class ModelRegistry {
       const data = await response.json();
       const rawModels = Array.isArray(data.data) ? data.data : [];
 
+      const modelsDev = await fetchModelsDev();
+
       const updatedModels = rawModels.map((m: any) => {
         const id = m.id;
-        const name = id
-          .replace(/^(opencode\/|qwen\/)/i, "")
-          .replace(/-/g, " ")
-          .replace(/\b\w/g, (c: string) => c.toUpperCase());
+        const modelsDevEntry = findModelsDevEntry(modelsDev, providerName, id);
 
-        const isReasoning = /reasoning|think|preview|max|r1|o1|o3|plus/i.test(id);
+        const rawName = typeof m.name === "string" && m.name.trim() ? m.name : null;
+        const devName = typeof modelsDevEntry?.name === "string" ? modelsDevEntry.name : null;
+        const name =
+          rawName ??
+          devName ??
+          id
+            .replace(/^(opencode\/|qwen\/)/i, "")
+            .replace(/-/g, " ")
+            .replace(/\b\w/g, (c: string) => c.toUpperCase());
+
+        const toNumber = (...vals: any[]): number | undefined => {
+          for (const v of vals) {
+            if (typeof v === "number" && Number.isFinite(v) && v > 0) return Math.floor(v);
+            if (typeof v === "string" && v.trim() !== "") {
+              const n = Number.parseInt(v, 10);
+              if (Number.isFinite(n) && n > 0) return n;
+            }
+          }
+          return undefined;
+        };
+
+        const contextWindow = toNumber(
+          modelsDevEntry?.limit?.context,
+          modelsDevEntry?.context_length,
+          modelsDevEntry?.context_window,
+          modelsDevEntry?.limit?.contextLength,
+          m.context_window,
+          m.context_length,
+          m.max_context_length,
+          m.contextWindow,
+          m.contextLength,
+          m.max_context_tokens,
+          m.context_size,
+          m.max_context,
+          m.context_len,
+          m.max_input_tokens,
+          m.meta?.context_window,
+          m.meta?.context_length,
+          m.info?.context_length,
+          m.capabilities?.context_length,
+          m.capabilities?.context_window
+        );
+
+        const maxTokens = toNumber(
+          modelsDevEntry?.limit?.output,
+          modelsDevEntry?.limit?.max_tokens,
+          modelsDevEntry?.max_output_tokens,
+          modelsDevEntry?.output,
+          m.max_tokens,
+          m.max_output_tokens,
+          m.max_completion_tokens,
+          m.max_output_length,
+          m.max_completion_length,
+          m.maxTokens,
+          m.maxOutputTokens,
+          m.output_token_limit,
+          m.completion_max_tokens,
+          m.meta?.max_tokens,
+          m.info?.max_tokens,
+          m.capabilities?.max_tokens
+        );
+
+        const explicitReasoning =
+          typeof modelsDevEntry?.reasoning === "boolean"
+            ? modelsDevEntry.reasoning
+            : typeof m.reasoning === "boolean"
+              ? m.reasoning
+              : typeof m.supports_reasoning === "boolean"
+                ? m.supports_reasoning
+                : typeof m.capabilities?.reasoning === "boolean"
+                  ? m.capabilities.reasoning
+                  : undefined;
+
+        const isReasoning =
+          explicitReasoning ?? /reasoning|think|preview|max|r1|o1|o3|plus/i.test(id);
+
+        const explicitInput: string[] | undefined = (() => {
+          const devInput = modelsDevEntry?.modalities?.input;
+          if (Array.isArray(devInput) && devInput.length) return devInput;
+          if (Array.isArray(m.input) && m.input.length) return m.input;
+          if (Array.isArray(m.modalities) && m.modalities.length) return m.modalities;
+          if (Array.isArray(m.capabilities?.input)) return m.capabilities.input;
+          if (Array.isArray(m.capabilities?.modalities)) return m.capabilities.modalities;
+          if (typeof m.supports_vision === "boolean") {
+            return m.supports_vision ? ["text", "image"] : ["text"];
+          }
+          return undefined;
+        })();
+
         const hasVision = /vision|vl|multimodal|max|pro/i.test(id);
+        const input = explicitInput ?? (hasVision ? ["text", "image"] : ["text"]);
+
+        const cost = modelsDevEntry?.cost ?? m.cost;
+
+        const compat = (() => {
+          const base = m.compat ?? {};
+          if (modelsDevEntry?.reasoning) {
+            return base;
+          }
+          return Object.keys(base).length ? base : undefined;
+        })();
 
         return {
           id,
           name,
           reasoning: isReasoning,
-          input: hasVision ? ["text", "image"] : ["text"],
-          contextWindow: 128000,
-          maxTokens: 8192,
+          input,
+          ...(contextWindow ? { contextWindow } : {}),
+          ...(maxTokens ? { maxTokens } : {}),
+          ...(cost ? { cost } : {}),
+          ...(compat ? { compat } : {}),
         };
       });
 
       if (updatedModels.length > 0) {
         config.models = updatedModels;
         this.refresh();
+        console.log(`[ModelRegistry] Refreshed ${updatedModels.length} models for ${providerName} with models.dev enrichment. Sample: ${updatedModels[0]?.id} context=${updatedModels[0]?.contextWindow} max=${updatedModels[0]?.maxTokens}`);
       }
       return updatedModels;
     } catch (error) {

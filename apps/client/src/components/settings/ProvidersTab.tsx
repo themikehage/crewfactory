@@ -29,6 +29,7 @@ const l = useLiterals(u);
   const [search, setSearch] = useState("");
   const [refreshing, setRefreshing] = useState<Record<string, boolean>>({});
   const [infoProvider, setInfoProvider] = useState<ProviderInfo | null>(null);
+  const [infoLoading, setInfoLoading] = useState(false);
 
   const fetchProviders = useCallback(async () => {
     try {
@@ -61,11 +62,37 @@ const l = useLiterals(u);
         throw new Error(data.error || "Failed to refresh models");
       }
       await fetchProviders();
+      if (infoProvider?.id === providerId) {
+        const modelsRes = await apiFetch(`/api/providers/${providerId}/models`);
+        if (modelsRes.ok) {
+          const modelsData = await modelsRes.json();
+          setInfoProvider((prev) =>
+            prev
+              ? { ...prev, models: modelsData.models ?? prev.models }
+              : prev
+          );
+        }
+      }
     } catch (err: unknown) {
       const errMsg = err instanceof Error ? err.message : "Error refreshing models";
       setError(errMsg);
     } finally {
       setRefreshing((prev) => ({ ...prev, [providerId]: false }));
+    }
+  };
+
+  const handleOpenInfo = async (provider: ProviderInfo) => {
+    setInfoProvider(provider);
+    setInfoLoading(true);
+    try {
+      const res = await apiFetch(`/api/providers/${provider.id}/models`);
+      if (res.ok) {
+        const data = await res.json();
+        setInfoProvider({ ...provider, models: data.models ?? provider.models });
+      }
+    } catch {
+    } finally {
+      setInfoLoading(false);
     }
   };
 
@@ -195,7 +222,7 @@ const l = useLiterals(u);
                       {p.authStatus.configured ? (
                         <>
                           <button
-                            onClick={() => setInfoProvider(p)}
+                            onClick={() => handleOpenInfo(p)}
                             className="text-xs text-muted-foreground hover:text-foreground transition-colors px-2.5 py-1.5 cursor-pointer font-semibold flex items-center gap-1 border border-input rounded-lg bg-background"
                           >
                             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -313,45 +340,51 @@ const l = useLiterals(u);
             </div>
 
             <div className="mt-6 overflow-y-auto flex-1 border border-card-hover rounded-lg bg-background">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="border-b border-card-hover bg-card text-muted-foreground font-medium">
-                    <th className="p-3">{l.thName}</th>
-                    <th className="p-3">{l.thId}</th>
-                    <th className="p-3 text-center">{l.thContext}</th>
-                    <th className="p-3 text-center">{l.thCapabilities}</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-card-hover">
-                  {infoProvider.models.map((m) => {
-                    const hasVision = m.input?.includes("image");
-                    return (
-                      <tr key={m.id} className="hover:bg-card-hover transition-colors">
-                        <td className="p-3 font-medium text-foreground">{m.name}</td>
-                        <td className="p-3 text-muted-foreground font-mono text-[10px]">{m.id}</td>
-                        <td className="p-3 text-center text-foreground">{m.contextWindow ? `${Math.round(m.contextWindow / 1000)}K` : "128K"}</td>
-                        <td className="p-3">
-                          <div className="flex items-center justify-center gap-1.5 flex-wrap">
-                            {m.reasoning && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
-                                Reasoning
+              {infoLoading ? (
+                <div className="flex justify-center py-10">
+                  <div className="w-5 h-5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                </div>
+              ) : (
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="border-b border-card-hover bg-card text-muted-foreground font-medium">
+                      <th className="p-3">{l.thName}</th>
+                      <th className="p-3">{l.thId}</th>
+                      <th className="p-3 text-center">{l.thContext}</th>
+                      <th className="p-3 text-center">{l.thCapabilities}</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-card-hover">
+                      {infoProvider.models.map((m) => {
+                      const hasVision = m.input?.includes("image");
+                      return (
+                        <tr key={m.id} className="hover:bg-card-hover transition-colors">
+                          <td className="p-3 font-medium text-foreground">{m.name}</td>
+                          <td className="p-3 text-muted-foreground font-mono text-[10px]">{m.id}</td>
+                          <td className="p-3 text-center text-foreground">{m.contextWindow ? `${Math.round(m.contextWindow / 1000)}K` : "-"}</td>
+                          <td className="p-3">
+                            <div className="flex items-center justify-center gap-1.5 flex-wrap">
+                              {m.reasoning && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">
+                                  Reasoning
+                                </span>
+                              )}
+                              {hasVision && (
+                                <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/25">
+                                  Vision
+                                </span>
+                              )}
+                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-card-hover text-muted-foreground border border-input">
+                                Text
                               </span>
-                            )}
-                            {hasVision && (
-                              <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-blue-500/15 text-blue-400 border border-blue-500/25">
-                                Vision
-                              </span>
-                            )}
-                            <span className="px-1.5 py-0.5 rounded text-[10px] font-semibold bg-card-hover text-muted-foreground border border-input">
-                              Text
-                            </span>
-                          </div>
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
             </div>
 
             <div className="flex justify-end mt-6">

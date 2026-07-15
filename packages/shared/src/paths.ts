@@ -23,6 +23,7 @@ export const UPLOADS_DIR = "uploads";
 export const GENERATED_DIR = "generated";
 export const SKILLS_SUBDIR = ".agents/skills";
 export const EXECUTIONS_DIR = "executions";
+export const PIPELINES_DIR = "pipelines";
 
 export function getAuditDir(): string {
   return join(CREWFACTORY_DATA_PATH(), AUDIT_DIR);
@@ -98,6 +99,22 @@ export function getSessionMetadataPath(username: string, sessionId: string): str
 
 export function getExperimentsDir(username: string): string {
   return join(getUserDir(username), EXPERIMENTS_DIR);
+}
+
+export function getPipelinesDir(username: string): string {
+  return join(getUserDir(username), PIPELINES_DIR);
+}
+
+export function getPipelineDir(username: string, pipelineId: string): string {
+  return join(getPipelinesDir(username), pipelineId);
+}
+
+export function getPipelineRunsDir(username: string, pipelineId: string): string {
+  return join(getPipelineDir(username, pipelineId), "runs");
+}
+
+export function getPipelineRunDir(username: string, pipelineId: string, runId: string): string {
+  return join(getPipelineRunsDir(username, pipelineId), runId);
 }
 
 export function getMcpServersPath(username: string): string {
@@ -204,6 +221,7 @@ export function ensureAllDirs(username: string): void {
     getSessionsDir(username),
     getChannelsDir(username),
     getExperimentsDir(username),
+    getPipelinesDir(username),
     getWorkspaceSkillsDir(username),
     join(getWorkspaceDir(username), ASSETS_DIR, UPLOADS_DIR),
     join(getWorkspaceDir(username), ASSETS_DIR, GENERATED_DIR),

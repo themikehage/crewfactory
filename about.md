@@ -150,6 +150,17 @@
 - **Agent Self-Service**: El system prompt del agente incluye documentacion completa sobre como definir tools, componentes UI disponibles, y sintaxis de variables. El agente puede auto-documentar sus tools creadas.
 - **Entity Refresh Integration**: Las mutaciones de custom tools emiten `entity-updated` via WebSocket para refrescar el frontend en tiempo real.
 
+### Deterministic Linear Execution Pipelines
+- **Agent-First Pipelines**: A subcategory of workflows optimized for rigid, automated sequence execution (such as build → test → deploy stages) with determinism and fail-fast behavior. Fully managed and understood by the global agent, programmatic agents, and custom tools.
+- **FS-Isolated Pipeline Workspaces**: Each pipeline has a dedicated folder under `/tmp/crewfactory/{username}/workspace/pipelines/{pipelineId}/` with segregated subdirectories for configs, scripts, outputs, and execution runs history.
+- **Stage Definitions (Script & Agent)**: 
+  - **Script stage**: Executes a deterministic shell script file (bash or powershell) with environment variables injected (pipeline run metadata, outputs from prior stages). Returns output variables parsed from standard output via custom markers (`---OUTPUT---`).
+  - **Agent stage**: Instantiates an isolated AI agent session, interpolates inputs from prior stages, runs prompts, extracts output schema JSON from the model response, and destroys the session to optimize memory.
+- **Fail-Fast Engine**: The runtime breaks execution on any stage failure (non-zero script exit code, timeout, or explicit agent reasoning error), marking the run status as failed on disk and broadcasting it to the client.
+- **WebSocket Streaming Logs**: Emits real-time execution steps, stage status transitions, and stdout/stderr stream logs directly to the frontend via dedicated socket channels.
+- **Custom Tool `run_pipeline`**: Registered as a custom tool, enabling LLMs to trigger, monitor, and retrieve execution output data programmatically.
+- **Visual Monitor & Stepper (Frontend UI)**: A premium detail page (`/pipelines/:id`) with stepper status colors (idle, running, completed, failed), terminal log viewer, and structured parsed output JSON viewer.
+
 ### Agent & Tools Scoping
 - **Scoping por Configuración:** Permite limitar la visibilidad de agentes y herramientas (custom tools) a contextos específicos (canales, proyectos o agentes específicos).
 - **ScopeConfigManager:** Módulo centralizado (`scope-config-manager.ts`) que gestiona el grafo de pertenencias de forma desacoplada de la estructura física del filesystem (los archivos persisten en sus directorios originales).

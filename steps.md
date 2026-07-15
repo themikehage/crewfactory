@@ -595,3 +595,15 @@
 - [x] 134.8 Update channel/project delete routers to move orphaned agents to the global scope automatically
 - [x] 134.9 Add scope parameters to manage_factory upsert contracts and handlers
 - [x] 134.10 Verify successful client/server compilation build and execute typescript typechecks
+
+## Phase 135: Deterministic Linear Execution Pipelines
+- [x] 135.1 Add path helpers for pipelines and runs in packages/shared/src/paths.ts
+- [x] 135.2 Implement PipelineStore for CRUD of definition.json, runs, and scripts
+- [x] 135.3 Create PipelineRunner for linear fail-fast background execution
+- [x] 135.4 Integrate pipelines contract in FACTORY_CONTRACTS and handle case in factory-tool.ts
+- [x] 135.5 Add run_pipeline custom tool to factory-tool.ts and default-factory-skills.ts
+- [x] 135.6 Add websocket event payload schema & routing mapping in ws/handler.ts
+- [x] 135.7 Implement backend REST router routes/pipelines.ts and register in index.ts
+- [x] 135.8 Build client pages/components: PipelinesPage, PipelineDetailPage, PipelineRunViewer
+- [x] 135.9 Wire App.tsx router pages, sidebar navigation, and run status polling/WS hooks
+- [x] 135.10 Verify clean compilation and successful builds of apps/server and apps/client

@@ -2,6 +2,7 @@ import type { SupportedLocale } from "@/lib";
 
 export const literals: Record<SupportedLocale, Record<string, string>> = {
   en: {
+    tabLaboratory: "Laboratory",
     tabChat: "Chat",
     tabFiles: "Files",
     tabPreview: "Preview",
@@ -23,6 +24,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     titleSessions: "View sessions",
   },
   es: {
+    tabLaboratory: "Laboratorio",
     tabChat: "Chat",
     tabFiles: "Archivos",
     tabPreview: "Preview",

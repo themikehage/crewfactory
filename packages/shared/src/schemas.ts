@@ -42,7 +42,7 @@ export const AVAILABLE_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
   "request_approval", "ask_question", "render_images", "render_chart", "share_file", "refresh_ui",
   "spawn_subagent", "delegate_task", "exa_search", "web_fetch", "decompose_tasks", "update_task_status", "complete_task_list",
-  "memory_store", "memory_recall", "memory_forget", "create_experiment", "vision", "generate_image", "manage_factory"
+  "memory_store", "memory_recall", "memory_forget", "create_experiment", "vision", "generate_image", "manage_factory", "run_pipeline"
 ] as const;
 export type ToolName = typeof AVAILABLE_TOOLS[number];
 
@@ -619,6 +619,82 @@ export const PendingDelegationSchema = z.object({
   subagentSessionId: z.string(),
 });
 export type PendingDelegation = z.infer<typeof PendingDelegationSchema>;
+
+export const OutputFieldSchema = z.object({
+  name: z.string(),
+  type: z.enum(["string", "number", "boolean", "json"]),
+  description: z.string(),
+});
+export type OutputField = z.infer<typeof OutputFieldSchema>;
+
+export const ScriptStageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: z.literal("script"),
+  script: z.string(),
+  outputSchema: z.array(OutputFieldSchema).optional(),
+  timeoutMs: z.number().optional(),
+});
+export type ScriptStage = z.infer<typeof ScriptStageSchema>;
+
+export const AgentStageSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string(),
+  type: z.literal("agent"),
+  agentId: z.string().optional(),
+  prompt: z.string(),
+  outputSchema: z.array(OutputFieldSchema).optional(),
+  timeoutMs: z.number().optional(),
+});
+export type AgentStage = z.infer<typeof AgentStageSchema>;
+
+export const PipelineStageSchema = z.discriminatedUnion("type", [
+  ScriptStageSchema,
+  AgentStageSchema,
+]);
+export type PipelineStage = z.infer<typeof PipelineStageSchema>;
+
+export const PipelineDefinitionSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional().default(""),
+  version: z.number().default(1),
+  stages: z.array(PipelineStageSchema),
+  createdAt: z.string().optional(),
+  updatedAt: z.string().optional(),
+});
+export type PipelineDefinition = z.infer<typeof PipelineDefinitionSchema>;
+
+export const StageResultSchema = z.object({
+  stageId: z.string(),
+  status: z.enum(["pending", "running", "completed", "failed"]),
+  sessionId: z.string().optional(),
+  output: z.record(z.string(), z.any()),
+  rawOutput: z.string().default(""),
+  startedAt: z.string().optional(),
+  finishedAt: z.string().optional(),
+  tokensIn: z.number().optional(),
+  tokensOut: z.number().optional(),
+});
+export type StageResult = z.infer<typeof StageResultSchema>;
+
+export const PipelineRunSchema = z.object({
+  id: z.string(),
+  pipelineId: z.string(),
+  status: z.enum(["running", "completed", "failed"]),
+  triggeredBy: z.enum(["manual", "agent"]),
+  startedAt: z.string(),
+  finishedAt: z.string().optional(),
+  stageResults: z.array(StageResultSchema),
+  error: z.object({
+    stageId: z.string(),
+    message: z.string(),
+  }).optional(),
+});
+export type PipelineRun = z.infer<typeof PipelineRunSchema>;
+
 
 
 

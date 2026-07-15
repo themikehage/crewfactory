@@ -46,7 +46,10 @@ providersRouter.get("/", (c) => {
       name: model.name,
       reasoning: model.reasoning,
       input: model.input || ["text"],
-    });
+      contextWindow: model.contextWindow,
+      maxTokens: model.maxTokens,
+      cost: model.cost,
+    } as any);
   }
 
   return c.json({

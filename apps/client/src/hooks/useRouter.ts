@@ -16,7 +16,8 @@ export type Route =
   | { page: "laboratory"; experimentId?: string | null; sessionId?: string | null }
   | { page: "mcps" }
   | { page: "plugins" }
-  | { page: "sessions" };
+  | { page: "sessions" }
+  | { page: "pipelines"; pipelineId?: string | null; runId?: string | null };
 
 function parseRoute(): Route {
   const path = window.location.pathname;
@@ -137,6 +138,20 @@ function parseRoute(): Route {
     }
     const experimentId = path.slice("/laboratory/".length);
     return { page: "laboratory", experimentId: experimentId || null, sessionId: null };
+  }
+
+  if (path.startsWith("/pipelines")) {
+    if (path === "/pipelines" || path === "/pipelines/") {
+      return { page: "pipelines", pipelineId: null, runId: null };
+    }
+    const parts = path.slice("/pipelines/".length).split("/");
+    const pipelineId = parts[0];
+    const subPage = parts[1];
+    if (subPage === "runs" && parts[2]) {
+      const runId = parts[2];
+      return { page: "pipelines", pipelineId, runId };
+    }
+    return { page: "pipelines", pipelineId, runId: null };
   }
 
   return { page: "chat", sessionId: null };

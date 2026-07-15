@@ -23,6 +23,8 @@ import { DashboardPage } from "@/pages/DashboardPage";
 import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
 import { SessionsProvider } from "@/contexts/SessionsContext";
 import { useRouter } from "@/hooks/useRouter";
+import { PipelinesPage } from "@/pages/PipelinesPage";
+import { PipelineDetailPage } from "@/pages/PipelineDetailPage";
 import { MainLayout } from "./MainLayout";
 import { apiFetch } from "@/lib/api";
 import type { Experiment } from "@/types/laboratory";
@@ -639,6 +641,16 @@ export function AppRouter() {
         )}
         {route.page === "sessions" && (
           <SessionsKanbanPage onNavigate={navigate} />
+        )}
+        {route.page === "pipelines" && !route.pipelineId && (
+          <PipelinesPage />
+        )}
+        {route.page === "pipelines" && route.pipelineId && (
+          <PipelineDetailPage
+            pipelineId={route.pipelineId}
+            runId={route.runId}
+            onNavigate={navigate}
+          />
         )}
         {route.page === "channel" && (
           <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />

@@ -1,6 +1,8 @@
 import type { ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
 import { LabVariantTabs } from "./LabVariantTabs";
+import { literals as layoutLiterals } from "@/components/layout/MainLayout.literals";
+import { useLiterals } from "@/lib";
 
 interface Tab {
   id: string;
@@ -32,6 +34,7 @@ export function ContextTabBar({
   onNavigateTab,
   rightSlot,
 }: ContextTabBarProps) {
+  const l = useLiterals(layoutLiterals);
   const activeExp = selectedExpId ? experiments.find((e) => e.id === selectedExpId) : null;
 
   return (
@@ -58,7 +61,7 @@ export function ContextTabBar({
               >
                 <path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6" />
               </svg>
-              Generador IA
+              {l.tabLaboratory}
             </span>
           )
         ) : (

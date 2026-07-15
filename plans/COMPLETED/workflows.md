@@ -1,3 +1,4 @@
+COMPLETED
 # Workflows — Entidad de Flujos Deterministas con Lenguaje Natural
 
 **Tipo:** Arquitectura / Evaluacion de Complejidad

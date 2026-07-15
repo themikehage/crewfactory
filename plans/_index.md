@@ -82,13 +82,12 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [mobile-ws-reconnect-token-ui.md](./mobile-ws-reconnect-token-ui.md) — Reconexion WS al reanudar de suspenso mobile + mostrar tokens reales en UI
 - [image-vision-and-generation.md](./image-vision-and-generation.md) — Soporte completo de vision de imagen (input multimodal) y generacion de imagen (output) para agentes
 - [fast-decompose-tasks.md](./fast-decompose-tasks.md) — Optimizacion de decompose_tasks: reemplazar sesion secundaria + agent loop por llamada directa streamSimple()
-- [workflows.md](./workflows.md) — Workflows: flujos deterministas multi-paso con agentes, definidos en lenguaje natural. Entidad nueva con motor de ejecucion DAG, NLP compiler, y UI visual con React Flow.
 - [delegation-notification-ui.md](./delegation-notification-ui.md) — Renderizado limpio de resultados de delegacion con contrato compartido server/cliente via `details.type` en `packages/shared/`
+
 ### Channels
 
 - [autoconsulting-channel.md](./autoconsulting-channel.md) — Canal multi-agente de consultora autonoma: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Pipeline completo desde brief hasta build in public.
 
-## Completados (72)
+## Completados (73)
 
 Ver [COMPLETED/](./COMPLETED/)
-

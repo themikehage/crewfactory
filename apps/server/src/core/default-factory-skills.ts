@@ -37,6 +37,7 @@ You have access to specialized factory skills located in \`.agents/skills/\`:
 - \`factory-projects\`: Create and clone Git repositories within the user workspace.
 - \`factory-agents\`: Register, monitor, and delegate tasks to autonomous secondary AI agents.
 - \`factory-channels\`: Create multi-agent collaboration rooms and manage member agents.
+- \`factory-pipelines\`: Create, run, and monitor deterministic linear execution pipelines (lint → test → build → deploy).
 - \`factory-observe\`: Inspect execution logs to analyze performance, bottlenecks, and errors.
 - \`factory-quick-actions\`: Compile optimized scripts and register them as reusable Quick Actions.
 - \`factory-self-improvement\`: Run a structured self-evaluation suite, exercise each factory capability, and generate an actionable improvement report with skill and prompt update recommendations.
@@ -96,6 +97,69 @@ description: Performs automated deployment checks.
 # My Custom Skill
 Instructions for executing this skill...
 \`\`\`
+`
+  },
+  "factory-pipelines": {
+    name: "factory-pipelines",
+    description: "Create, run, and monitor deterministic linear execution pipelines.",
+    content: `---
+name: factory-pipelines
+description: Create, run, and monitor deterministic linear execution pipelines.
+---
+
+# Linear Pipelines Guide
+
+Pipelines are deterministic, linear sequences of stages. Unlike channels (which are collaborative and conversational), pipelines execute stages strictly in order. A failure at any stage stops the pipeline immediately (fail-fast).
+
+## Stage types
+- **script**: Runs a bash script directly. No LLM. Extremely fast and deterministic.
+- **agent**: delegates to an agent with a prompt, using LLM reasoning.
+
+## Create a pipeline
+To create a pipeline, call \`manage_factory\` with \`entity: "pipelines"\`, \`action: "upsert"\`, and specify the stages. You can also provide scripts inline:
+
+\`\`\`json
+{
+  "entity": "pipelines",
+  "action": "upsert",
+  "id": "my-pipeline",
+  "params": {
+    "name": "My Pipeline",
+    "description": "Lint and test",
+    "stages": [
+      {
+        "id": "lint",
+        "name": "Run Linter",
+        "type": "script",
+        "script": "lint.sh",
+        "timeoutMs": 60000,
+        "outputSchema": [
+          { "name": "passed", "type": "boolean", "description": "true if lint passed" }
+        ]
+      },
+      {
+        "id": "report",
+        "name": "Report Results",
+        "type": "agent",
+        "prompt": "Review the lint result: {{stages.lint.output.passed}}. Report your recommendation."
+      }
+    ],
+    "scripts": {
+      "lint.sh": "#!/bin/bash\\npnpm lint && echo '---OUTPUT---\\n{\\\"passed\\\":true}\\n---END OUTPUT---'"
+    }
+  }
+}
+\`\`\`
+
+## Run a pipeline
+Call \`run_pipeline(pipelineId: \"my-pipeline\")\` to trigger it. This returns a \`runId\` immediately.
+
+## Inspect pipeline runs
+Call \`manage_factory\` to check the progress:
+- List all pipelines: \`manage_factory(entity: \"pipelines\", action: \"get\")\`
+- Get a definition: \`manage_factory(entity: \"pipelines\", action: \"get\", id: \"my-pipeline\")\`
+- List runs: \`manage_factory(entity: \"pipelines\", action: \"get\", id: \"my-pipeline/runs\")\`
+- Get run details: \`manage_factory(entity: \"pipelines\", action: \"get\", id: \"my-pipeline/runs/run_abc123\")\`
 `
   },
   "factory-providers": {

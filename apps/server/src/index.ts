@@ -23,6 +23,7 @@ import { experimentsRouter } from "./routes/experiments";
 import { settingsRouter } from "./routes/settings";
 import { galleryRouter } from "./routes/gallery";
 import { factoryRouter } from "./routes/factory";
+import { pipelinesRouter } from "./routes/pipelines";
 import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
 import { ensureAuthTables } from "./auth/migrate";
@@ -67,6 +68,7 @@ app.route("/api/experiments", experimentsRouter);
 app.route("/api/settings", settingsRouter);
 app.route("/api/gallery", galleryRouter);
 app.route("/api/factory", factoryRouter);
+app.route("/api/pipelines", pipelinesRouter);
 
 app.get(
   "/ws",

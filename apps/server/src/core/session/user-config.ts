@@ -9,6 +9,7 @@ import {
 import { AuthStorage, ModelRegistry } from "../../ai";
 import { registerQwenProvider } from "../providers/qwen-provider";
 import { registerOpenCodeGoProvider } from "../providers/opencode-go-provider";
+import { saveProviderModels } from "../providers/provider-persistence";
 import { encryptEnv, decryptEnv } from "../../lib/env-crypto";
 import { auth } from "../../auth/index";
 
@@ -94,7 +95,32 @@ export class UserConfigManager {
 
   getUserContext(username: string): UserContext {
     const existing = this.users.get(username);
-    if (existing) return existing;
+    if (existing) {
+      const { authStorage, modelRegistry } = existing;
+      const ensureStale = (providerId: string) => {
+        if (!authStorage.hasAuth(providerId)) return;
+        const current = modelRegistry.getAll().filter((m) => m.provider === providerId);
+        const isStale =
+          current.length > 0 && current.every((m) => !m.contextWindow || m.contextWindow === 128000);
+        if (current.length === 0 || isStale) {
+          if (isStale) console.log(`[UserConfig] Detected stale cache for ${providerId} (all 128K), forcing refresh`);
+          modelRegistry
+            .refreshProviderModels(providerId)
+            .then((models) => {
+              if (models.length > 0) {
+                saveProviderModels(username, providerId, models);
+                console.log(`[UserConfig] Refreshed ${models.length} models for ${providerId}`);
+              }
+            })
+            .catch((err) => {
+              console.error(`[UserConfig] Failed to auto-fetch models for ${providerId}:`, err);
+            });
+        }
+      };
+      ensureStale("opencode-go");
+      ensureStale("qwen");
+      return existing;
+    }
 
     this.ensureUserDir(username);
     const authStorage = AuthStorage.create(getAuthPath(username));
@@ -103,9 +129,36 @@ export class UserConfigManager {
     modelRegistry.refresh();
     registerQwenProvider(modelRegistry, username);
     registerOpenCodeGoProvider(modelRegistry, username);
+    modelRegistry.refresh();
 
     const ctx: UserContext = { authStorage, modelRegistry };
     this.users.set(username, ctx);
+
+    const ensureModelsForProvider = (providerId: string) => {
+      if (!authStorage.hasAuth(providerId)) return;
+      const current = modelRegistry.getAll().filter((m) => m.provider === providerId);
+      const isStale =
+        current.length > 0 && current.every((m) => !m.contextWindow || m.contextWindow === 128000);
+      if (current.length > 0 && !isStale) return;
+      if (isStale) {
+        console.log(`[UserConfig] Detected stale cache for ${providerId} (all 128K), forcing refresh`);
+      }
+      modelRegistry
+        .refreshProviderModels(providerId)
+        .then((models) => {
+          if (models.length > 0) {
+            saveProviderModels(username, providerId, models);
+            console.log(`[UserConfig] Refreshed ${models.length} models for ${providerId} from models.dev enriched data`);
+          }
+        })
+        .catch((err) => {
+          console.error(`[UserConfig] Failed to auto-fetch models for ${providerId}:`, err);
+        });
+    };
+
+    ensureModelsForProvider("opencode-go");
+    ensureModelsForProvider("qwen");
+
     return ctx;
   }
 
