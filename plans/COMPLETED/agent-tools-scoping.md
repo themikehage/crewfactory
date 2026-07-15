@@ -1,8 +1,9 @@
+COMPLETED
 # Scoping de Agentes y Tools por Canal/Proyecto
 
 **Tipo:** Arquitectura / Feature
 **Fecha:** 2026-07-14
-**Estado:** Investigacion y Diseno
+**Estado:** Completado
 
 ---
 

@@ -150,6 +150,13 @@
 - **Agent Self-Service**: El system prompt del agente incluye documentacion completa sobre como definir tools, componentes UI disponibles, y sintaxis de variables. El agente puede auto-documentar sus tools creadas.
 - **Entity Refresh Integration**: Las mutaciones de custom tools emiten `entity-updated` via WebSocket para refrescar el frontend en tiempo real.
 
+### Agent & Tools Scoping
+- **Scoping por Configuración:** Permite limitar la visibilidad de agentes y herramientas (custom tools) a contextos específicos (canales, proyectos o agentes específicos).
+- **ScopeConfigManager:** Módulo centralizado (`scope-config-manager.ts`) que gestiona el grafo de pertenencias de forma desacoplada de la estructura física del filesystem (los archivos persisten en sus directorios originales).
+- **Auto-recuperación e Integridad:** Reconciliación automática y silenciosa de la configuración contra los archivos en disco en cada inicio o cambio de estado.
+- **Herencia Aditiva de Tools:** Las herramientas de un agente se resuelven combinando las herramientas globales, las de su canal/proyecto de pertenencia, y las herramientas asignadas de forma exclusiva al agente en particular.
+- **Gestión Mutex y Persistencia Atómica:** Locks en memoria para concurrencia y guardado seguro mediante escritura en archivo temporal y renombrado atómico.
+
 ### Tool Permissions
 - Per-session tool access control: toggle `read`, `write`, `edit`, `bash`, `grep`, `find`, `ls`
 - Presets: **Full Access** (all 7 tools) and **Read-Only** (read, grep, find, ls only)

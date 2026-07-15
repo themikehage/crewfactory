@@ -583,3 +583,15 @@
 - [x] 133.5 Pass username when registering providers in user-config.ts
 - [x] 133.6 Integrate save/clear/sync logic inside providers.ts set, remove, and refresh key routes
 - [x] 133.7 Verify compilation build and execute local test integration flows
+
+## Phase 134: Agent & Tools Scoping (Scoping by Configuration)
+- [x] 134.1 Add getScopeConfigPath helper to paths.ts
+- [x] 134.2 Create AgentScopeTargetSchema and update AgentDefinitionSchema in shared package
+- [x] 134.3 Create ToolScopeTargetSchema and update CustomToolDefinitionSchema in custom-tools schemas
+- [x] 134.4 Implement ScopeConfigManager with mutex locks, validation, and bootstrapping support
+- [x] 134.5 Update AgentRegistry to support listScoped and filter global list by configuration
+- [x] 134.6 Integrate tool scoping inside SessionToolFactory and sessionManager tool loading pipelines
+- [x] 134.7 Implement PATCH /api/agents/:id/scope, PATCH /api/agents/scope/tools, and GET scoped lists in API routers
+- [x] 134.8 Update channel/project delete routers to move orphaned agents to the global scope automatically
+- [x] 134.9 Add scope parameters to manage_factory upsert contracts and handlers
+- [x] 134.10 Verify successful client/server compilation build and execute typescript typechecks

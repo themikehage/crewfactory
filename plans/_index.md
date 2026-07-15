@@ -19,6 +19,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ### Bug Fixes
 
+- [fix-experiment-storage-path.md](./fix-experiment-storage-path.md) — ExperimentStore construye paths sin el segmento `users/`, rompiendo la consistencia con agentes, canales, proyectos y sesiones que si lo incluyen. Fix: importar `getExperimentsDir()` de `@shared/paths`.
 - [fix-experiments-eager-fetch.md](./fix-experiments-eager-fetch.md) — `fetchExperiments()` se dispara en `/onboard` y `/` sin autenticacion, causando requests HTTP 401 innecesarios. SessionSidebar duplica el fetch. Plan: auth guard + hook `useExperiments` + dedup
 - [fix-chat-render-loop.md](./fix-chat-render-loop.md) — Maximum update depth exceeded en ChatArea por `dependencies: [messages]` inline array que dispara efecto de `useChatScroll` en cada render
 - [fix-experiment-flickering.md](./fix-experiment-flickering.md) — El contenido de variantes de experimento aparece y desaparece (flickering) por 4 causas: useChannel limpia mensajes prematuramente, el canal se destruye al finalizar cada variante, no hay handler de experiment_status en el cliente, y ejecucion fire-and-forget. Fix en 3 fases: flickering inmediato, preservar historial, canales persistentes con "send message to channel".
@@ -87,11 +88,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [autoconsulting-channel.md](./autoconsulting-channel.md) — Canal multi-agente de consultora autonoma: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Pipeline completo desde brief hasta build in public.
 
-### Scoping (Agents & Tools)
-
-- [agent-tools-scoping.md](./agent-tools-scoping.md) — Agentes scoped a canal/proyecto (no globales) y tools asignables a agentes especificos. Arquitectura completa con cambios en paths, schemas, registry, API routes, tool factory, y frontend.
-
-## Completados (71)
+## Completados (72)
 
 Ver [COMPLETED/](./COMPLETED/)
 
