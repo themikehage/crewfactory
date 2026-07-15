@@ -168,8 +168,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const originalPrompt = session.prompt.bind(session);
   session.prompt = async (message: string) => {
     const memCtx = await memory.buildContext(message);
-    const enriched = memCtx ? `${memCtx}\n\n${message}` : message;
-    return originalPrompt(enriched);
+    if (memCtx) session.injectMemoryContext(memCtx);
+    return originalPrompt(message);
   };
 
   const available = modelRegistry.getAvailable();

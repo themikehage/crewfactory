@@ -109,7 +109,7 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
 
   if (runId) {
     return (
-      <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">
+      <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6 h-full overflow-y-auto">
         <button
           onClick={() => onNavigate(`/pipelines/${pipelineId}`)}
           className="flex items-center gap-1.5 text-xs text-text-secondary hover:text-text-primary transition-colors w-fit font-bold"
@@ -154,7 +154,7 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6">
+    <div className="p-6 max-w-7xl mx-auto flex flex-col gap-6 h-full overflow-y-auto">
       {/* Detail Header */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-border/60 pb-6">
         <div>

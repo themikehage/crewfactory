@@ -4,7 +4,7 @@ export function enrichSessionWithMemory(session: AgentSession, memory: any): voi
   const originalPrompt = session.prompt.bind(session);
   session.prompt = async (message: string, opts?: any) => {
     const memCtx = await memory.buildContext(message);
-    const enriched = memCtx ? `${memCtx}\n\n${message}` : message;
-    return originalPrompt(enriched, opts);
+    if (memCtx) session.injectMemoryContext(memCtx);
+    return originalPrompt(message, opts);
   };
 }

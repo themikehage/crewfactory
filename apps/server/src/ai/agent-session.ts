@@ -733,6 +733,19 @@ export class AgentSession {
     };
   }
 
+  injectMemoryContext(memCtx: string): void {
+    if (!memCtx) return;
+    const systemMsg = {
+      role: "system" as const,
+      content: memCtx,
+      timestamp: Date.now(),
+    };
+    if (this.agent) {
+      (this.agent.state as any).messages.push(systemMsg);
+    }
+    this.sessionManager.appendMessage(systemMsg);
+  }
+
   dispose(): void {
     this.abort();
     this.eventListeners.clear();
