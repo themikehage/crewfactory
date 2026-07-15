@@ -128,6 +128,7 @@ export async function createAgentServer(definition: AgentDefinition, username: s
   const beforeToolCall = createBeforeToolCallHook({
     sessionId: `agent_server_${definition.id}`,
     isSubagent: true,
+    username,
   });
 
   const { session } = await createAgentSession({

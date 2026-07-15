@@ -32,6 +32,7 @@ import { resolveActiveTools } from "./session/tool-activation-engine";
 import { subscribeSessionEvents } from "./session/session-event-publisher";
 import { createBeforeToolCallHook } from "./session/before-tool-call-hook";
 import { enrichSessionWithMemory } from "./session/session-memory-enricher";
+import { buildSubagentRules, evaluateSubagentRules } from "./sandbox";
 
 export {
   getResolvedSkillPaths,
@@ -365,6 +366,7 @@ class SessionManager {
           sessionId,
           isSubagent,
           parentSessionId: existingMeta ? (existingMeta as any).parentSessionId : undefined,
+          username,
         });
 
         const { session } = await createAgentSession({
@@ -387,7 +389,21 @@ class SessionManager {
           customToolNames,
         });
 
-        session.setActiveToolsByName(combinedTools);
+        let finalTools = combinedTools;
+        if (isSubagent) {
+          const effectiveRules = buildSubagentRules(
+            username,
+            sessionId,
+            existingMeta ? (existingMeta as any).parentSessionId : undefined,
+            existingMeta ? (existingMeta as any).subagentType : undefined
+          );
+          finalTools = combinedTools.filter(toolName => {
+            const verdict = evaluateSubagentRules(toolName, {}, effectiveRules);
+            return !(verdict && verdict.allow === false);
+          });
+        }
+
+        session.setActiveToolsByName(finalTools);
 
         enrichSessionWithMemory(session, memory);
 

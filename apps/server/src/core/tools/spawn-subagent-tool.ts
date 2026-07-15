@@ -20,6 +20,7 @@ import { createBeforeToolCallHook } from "../session/before-tool-call-hook";
 import { AbortToken } from "../abort-token";
 import { getAppConfig } from "../../config/app-config";
 import { getSubagentDepth } from "../session/session-depth";
+import { buildSubagentRules, evaluateSubagentRules } from "../sandbox";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -51,6 +52,11 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
           type: "string",
           description: "Optional system role for the subagent (e.g. 'You are a senior TypeScript reviewer. Be strict and adversarial.'). Injected as the system prompt prefix.",
         },
+        subagentType: {
+          type: "string",
+          enum: ["explorer", "builder"],
+          description: "Optional subagent type. 'explorer' is restricted to read-only tools, while 'builder' is permitted to edit files and run commands (subject to authorization). Defaults to 'builder'.",
+        },
         maxSteps: {
           type: "number",
           description: "Maximum agent loop steps. Defaults to 15. Use lower values (5-8) for simple tasks, higher (20-30) for complex multi-file work.",
@@ -62,8 +68,8 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       const userSettings = sessionManager.userConfig.getUserSettings(username);
       const appConfig = getAppConfig();
       const maxDepth = userSettings.subagentMaxDepth !== undefined
-        ? Number(userSettings.subagentMaxDepth)
-        : appConfig.subagent.maxDepth;
+         ? Number(userSettings.subagentMaxDepth)
+         : appConfig.subagent.maxDepth;
 
       const currentDepth = getSubagentDepth(username, parentSessionId);
       if (currentDepth >= maxDepth) {
@@ -92,6 +98,13 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       const subagentDir = join(userDir, "sessions", parentSessionId, "subagents", subagentSessionId);
       mkdirSync(subagentDir, { recursive: true });
 
+      const effectiveRules = buildSubagentRules(
+        username,
+        subagentSessionId,
+        parentSessionId,
+        args.subagentType || "builder"
+      );
+
       const metadata = {
         subagentId: subagentSessionId,
         parentSessionId,
@@ -99,6 +112,8 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         parentEntityId,
         task: args.task.slice(0, 500),
         subagentRole: args.subagentRole || null,
+        subagentType: args.subagentType || "builder",
+        permissionRules: effectiveRules,
         startedAt: new Date().toISOString(),
         completedAt: null as string | null,
         status: "running",
@@ -150,6 +165,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         sessionId: subagentSessionId,
         isSubagent: true,
         parentSessionId,
+        username,
       });
 
       const { session: subSession } = await createAgentSession({
@@ -162,13 +178,19 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         beforeToolCall,
       });
 
-      // Enable subagent tools
-      subSession.setActiveToolsByName([
+      // Filter subagent active tools based on the effective rules
+      const allSubagentTools = [
         "read", "write", "edit", "bash", "grep", "find", "ls",
         "request_approval", "ask_question", "render_images",
         "render_html", "render_chart", "share_file", "refresh_ui",
         "vision", "generate_image",
-      ]);
+      ];
+      const activeTools = allSubagentTools.filter(toolName => {
+        const verdict = evaluateSubagentRules(toolName, {}, effectiveRules);
+        return !(verdict && verdict.allow === false);
+      });
+
+      subSession.setActiveToolsByName(activeTools);
 
       // Inherit model from parent session
       const parentSession = sessionManager.getSession(username, parentSessionId);

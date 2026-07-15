@@ -1,7 +1,23 @@
 import { describe, it, expect } from "bun:test";
 import { createBeforeToolCallHook } from "../core/session/before-tool-call-hook";
+import { userPermissionStore } from "../core/sandbox/user-permission-store";
+import { beforeAll, afterAll } from "bun:test";
+import { existsSync, rmSync } from "node:fs";
+import { join } from "node:path";
+import { getUserDir } from "shared";
 
 describe("Subagent PermissionEngine", () => {
+  beforeAll(() => {
+    // Add persistent decision to allow safe bash commands for the test run
+    userPermissionStore.saveDecision("default_user", "bash", "git clone *", "allow");
+  });
+
+  afterAll(() => {
+    const decisionsPath = join(getUserDir("default_user"), "permission-decisions.json");
+    if (existsSync(decisionsPath)) {
+      rmSync(decisionsPath, { force: true });
+    }
+  });
   it("should block rm -rf of critical directories in subagents", async () => {
     const hook = createBeforeToolCallHook({ sessionId: "sub_test", isSubagent: true });
     

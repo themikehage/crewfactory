@@ -1,7 +1,16 @@
+import { buildSubagentRules, evaluateSubagentRules } from "./subagent-permissions";
+
 export type PermissionVerdict =
   | { allow: true }
   | { allow: false; reason: string }
   | { allow: "ask"; reason: string };
+
+export interface PermissionEngineOptions {
+  isSubagent?: boolean;
+  username?: string;
+  sessionId?: string;
+  parentSessionId?: string;
+}
 
 export interface PermissionRule {
   tool: string;           // "bash" | "write" | "read" | "edit" | "*"
@@ -114,10 +123,10 @@ const SUBAGENT_DENY_RULES: PermissionRule[] = [
 ];
 
 export class PermissionEngine {
-  evaluate(toolName: string, args: Record<string, unknown>, options?: { isSubagent?: boolean }): PermissionVerdict {
+  evaluate(toolName: string, args: Record<string, unknown>, options?: PermissionEngineOptions): PermissionVerdict {
     const subject = this.extractSubject(toolName, args);
 
-    // 1. Evaluar reglas DENY
+    // 1. Evaluate critical static system DENY rules
     const denyRules = options?.isSubagent
       ? [...DENY_RULES, ...SUBAGENT_DENY_RULES]
       : DENY_RULES;
@@ -128,7 +137,20 @@ export class PermissionEngine {
       }
     }
 
-    // 2. Evaluar reglas ASK
+    // 2. Evaluate dynamic rules for subagents if username and sessionId are available
+    if (options?.isSubagent && options.username && options.sessionId) {
+      const dynamicRules = buildSubagentRules(
+        options.username,
+        options.sessionId,
+        options.parentSessionId
+      );
+      const verdict = evaluateSubagentRules(toolName, args, dynamicRules);
+      if (verdict) {
+        return verdict;
+      }
+    }
+
+    // 3. Fall back to static ASK rules
     for (const rule of ASK_RULES) {
       if (this.matches(rule, toolName, subject)) {
         return { allow: "ask", reason: rule.reason };
