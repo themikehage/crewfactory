@@ -690,6 +690,8 @@ export class AgentSession {
     let assistantMessages = 0;
     let toolCalls = 0;
     let toolResults = 0;
+    let tokensIn = 0;
+    let tokensOut = 0;
 
     for (const entry of entries) {
       if (entry.type === "message") {
@@ -703,6 +705,15 @@ export class AgentSession {
       }
     }
 
+    const messages = this.agent?.state?.messages || [];
+    for (const m of messages) {
+      const usage = (m as any).usage;
+      if (usage) {
+        tokensIn += usage.input || usage.promptTokens || usage.prompt_tokens || 0;
+        tokensOut += usage.output || usage.completionTokens || usage.completion_tokens || 0;
+      }
+    }
+
     return {
       sessionFile: this.sessionManager.getSessionFile(),
       sessionId: this.sessionManager.getSessionId(),
@@ -712,11 +723,11 @@ export class AgentSession {
       toolResults,
       totalMessages: entries.length,
       tokens: {
-        input: 0,
-        output: 0,
+        input: tokensIn,
+        output: tokensOut,
         cacheRead: 0,
         cacheWrite: 0,
-        total: 0,
+        total: tokensIn + tokensOut,
       },
       cost: 0,
     };

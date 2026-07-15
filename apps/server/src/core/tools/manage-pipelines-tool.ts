@@ -2,6 +2,8 @@ import { PipelineStore } from "../../pipelines/pipeline-store";
 import { PipelineRunner } from "../../pipelines/pipeline-runner";
 import type { FactoryToolOptions } from "./factory-tool";
 import { broadcastToUser } from "../../ws/handler";
+import { PipelineStageSchema } from "shared";
+import { z } from "zod";
 
 function ok(text: string, details?: Record<string, unknown>) {
   return {
@@ -122,6 +124,12 @@ Actions:
             if (!params.name) return err("name is required in params for pipeline upsert");
             if (!params.stages || !Array.isArray(params.stages)) return err("stages array is required in params for pipeline upsert");
 
+            const stagesParsed = z.array(PipelineStageSchema).safeParse(params.stages);
+            if (!stagesParsed.success) {
+              const flat = JSON.stringify(stagesParsed.error.format());
+              return err(`Invalid pipeline stages schema: ${flat}`);
+            }
+
             const existing = await PipelineStore.getPipeline(username, id);
             let pipeline: any;
             if (existing) {
@@ -129,7 +137,7 @@ Actions:
                 ...existing,
                 name: params.name,
                 description: params.description ?? existing.description,
-                stages: params.stages,
+                stages: stagesParsed.data,
                 updatedAt: new Date().toISOString(),
               };
             } else {
@@ -138,7 +146,7 @@ Actions:
                 name: params.name,
                 description: params.description ?? "",
                 version: 1,
-                stages: params.stages,
+                stages: stagesParsed.data,
                 createdAt: new Date().toISOString(),
                 updatedAt: new Date().toISOString(),
               };

@@ -198,7 +198,11 @@ export class PipelineRunner {
     previousOutputs: Record<string, Record<string, any>>,
     signal: AbortSignal
   ): Promise<{ output: Record<string, any>; rawOutput: string; sessionId?: string; tokensIn?: number; tokensOut?: number }> {
-    
+
+    if (stage.type !== "script" && stage.type !== "agent") {
+      throw new Error(`Unknown stage type "${(stage as any).type}" for stage "${(stage as any).id}"`);
+    }
+
     const timeoutMs = stage.timeoutMs || (stage.type === "script" ? 120_000 : 300_000);
 
     if (stage.type === "script") {
@@ -432,6 +436,14 @@ At the end of your response, output a JSON block with this structure:
       });
 
       const rawOutput = getLastAssistantText(session.messages);
+
+      const messages = session.messages;
+      const lastAssistantMsg = messages.filter((m: any) => m.role === "assistant").pop();
+      if (lastAssistantMsg?.stopReason === "error") {
+        const errDetail = lastAssistantMsg.errorMessage || "Agent returned an internal error";
+        throw new Error(`Stage "${stage.id}" agent error: ${errDetail}`);
+      }
+
       const parsedOutput = this.parseOutputBlock(rawOutput);
 
       // Get last prompt statistics
@@ -474,8 +486,8 @@ At the end of your response, output a JSON block with this structure:
     }
   }
 
-  private static interpolatePrompt(prompt: string, previousOutputs: Record<string, Record<string, any>>): string {
-    let result = prompt;
+  private static interpolatePrompt(prompt: string | undefined, previousOutputs: Record<string, Record<string, any>>): string {
+    let result = prompt ?? "";
 
     // Replace {{stages.stageId.output.field}}
     const fieldRegex = /\{\{stages\.([a-zA-Z0-9_-]+)\.output\.([a-zA-Z0-9_-]+)\}\}/g;

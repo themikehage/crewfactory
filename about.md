@@ -158,7 +158,7 @@
   - **Agent stage**: Instantiates an isolated AI agent session, interpolates inputs from prior stages, runs prompts, extracts output schema JSON from the model response, and destroys the session to optimize memory.
 - **Fail-Fast Engine**: The runtime breaks execution on any stage failure (non-zero script exit code, timeout, or explicit agent reasoning error), marking the run status as failed on disk and broadcasting it to the client.
 - **WebSocket Streaming Logs**: Emits real-time execution steps, stage status transitions, and stdout/stderr stream logs directly to the frontend via dedicated socket channels.
-- **Custom Tool \`manage_pipelines\`**: Unified meta-tool enabling LLMs to create/update definitions, trigger executions, abort runs, retrieve detailed status with raw stage outputs, and read or patch execution scripts dynamically.
+- **Custom Tool \`manage_pipelines\`**: Unified meta-tool enabling LLMs to create/update definitions, trigger executions, abort runs, retrieve detailed status with raw stage outputs, and read or patch execution scripts dynamically. The `upsert` action validates stages against `PipelineStageSchema` (Zod discriminated union on `type`) before persisting, rejecting malformed shapes (missing `type`, missing `script` filename, missing `prompt`) with descriptive schema errors so the model can self-correct instead of triggering opaque runtime crashes in the pipeline runner.
 - **Visual Monitor & Stepper (Frontend UI)**: A premium detail page (`/pipelines/:id`) with stepper status colors (idle, running, completed, failed), terminal log viewer, and structured parsed output JSON viewer.
 
 ### Agent & Tools Scoping

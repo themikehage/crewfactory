@@ -67,7 +67,7 @@ export class SessionMetadataStore {
       const metadata = JSON.parse(readFileSync(metadataPath, "utf-8"));
       let tools = Array.isArray(metadata.tools) ? metadata.tools : [...AVAILABLE_TOOLS];
       if (tools.includes("run_pipeline")) {
-        tools = tools.map((t) => (t === "run_pipeline" ? "manage_pipelines" : t));
+        tools = tools.map((t: string) => (t === "run_pipeline" ? "manage_pipelines" : t));
         this.persistSessionTools(username, sessionId, tools);
       }
       return tools;
