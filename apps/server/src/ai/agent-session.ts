@@ -734,16 +734,7 @@ export class AgentSession {
   }
 
   injectMemoryContext(memCtx: string): void {
-    if (!memCtx) return;
-    const systemMsg = {
-      role: "system" as const,
-      content: memCtx,
-      timestamp: Date.now(),
-    };
-    if (this.agent) {
-      (this.agent.state as any).messages.push(systemMsg);
-    }
-    this.sessionManager.appendMessage(systemMsg as any);
+    // Disabled to avoid corrupting vendor token estimation and session history.
   }
 
   dispose(): void {
