@@ -607,3 +607,13 @@
 - [x] 135.8 Build client pages/components: PipelinesPage, PipelineDetailPage, PipelineRunViewer
 - [x] 135.9 Wire App.tsx router pages, sidebar navigation, and run status polling/WS hooks
 - [x] 135.10 Verify clean compilation and successful builds of apps/server and apps/client
+
+## Phase 136: Pipeline Robustness and Debugging Agent Tools
+- [x] 136.1 Create unified `manage_pipelines` tool in apps/server/src/core/tools/manage-pipelines-tool.ts
+- [x] 136.2 Remove legacy `run_pipeline` tool and generic `pipelines` handlers in factory-tool.ts and factory-contracts.ts
+- [x] 136.3 Update SessionToolFactory to register manage_pipelines instead of run_pipeline
+- [x] 136.4 Harden output parsing in pipeline-runner.ts to prevent greedy fallback JSON parsing
+- [x] 136.5 Update factory-pipelines skill instructions with manage_pipelines actions and debugging workflows
+- [x] 136.6 Add polling fallback effect inside client usePipelineRun.ts hook
+- [x] 136.7 Verify successful compilation build of client and server packages
+

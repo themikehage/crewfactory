@@ -139,5 +139,48 @@ export function usePipelineRun(pipelineId: string, runId: string) {
     };
   }, [runId]);
 
+  useEffect(() => {
+    if (!run || run.status !== "running") return;
+
+    let active = true;
+    const interval = setInterval(async () => {
+      try {
+        const res = await apiFetch(`/api/pipelines/${pipelineId}/runs/${runId}`);
+        const data = await res.json();
+        if (active && data.run) {
+          setRun((prev) => {
+            if (!prev) return data.run;
+            if (data.run.status !== "running" || prev.status === "running") {
+              const updatedLogs = { ...logsRef.current };
+              let logsChanged = false;
+              for (const s of data.run.stageResults) {
+                if (s.rawOutput && s.rawOutput !== updatedLogs[s.stageId]) {
+                  updatedLogs[s.stageId] = s.rawOutput;
+                  logsChanged = true;
+                }
+              }
+              if (logsChanged) {
+                logsRef.current = updatedLogs;
+                setLogs(updatedLogs);
+              }
+              return data.run;
+            }
+            return prev;
+          });
+          if (data.run.status !== "running") {
+            clearInterval(interval);
+          }
+        }
+      } catch (e) {
+        console.warn("Failed to poll pipeline run status:", e);
+      }
+    }, 3000);
+
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [pipelineId, runId, run?.status]);
+
   return { run, logs, loading, error };
 }

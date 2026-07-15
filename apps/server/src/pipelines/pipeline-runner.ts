@@ -496,23 +496,14 @@ At the end of your response, output a JSON block with this structure:
   }
 
   private static parseOutputBlock(stdout: string): Record<string, any> {
-    const match = stdout.match(/---OUTPUT---([\s\S]*?)(?:---(?:END OUTPUT|END)---|$)/);
+    const match = stdout.match(/---OUTPUT---\s*([\s\S]*?)\s*---END OUTPUT---/);
     if (match && match[1]) {
       try {
         return JSON.parse(match[1].trim());
       } catch (e) {
-        console.error("Failed to parse JSON from output block:", e);
+        console.warn("Output block found but JSON is invalid:", e);
       }
     }
-    // Fallback: try to find any JSON block
-    try {
-      const jsonStart = stdout.indexOf("{");
-      const jsonEnd = stdout.lastIndexOf("}");
-      if (jsonStart !== -1 && jsonEnd !== -1 && jsonEnd > jsonStart) {
-        const candidate = stdout.slice(jsonStart, jsonEnd + 1);
-        return JSON.parse(candidate);
-      }
-    } catch {}
     return {};
   }
 }

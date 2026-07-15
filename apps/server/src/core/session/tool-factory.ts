@@ -13,7 +13,8 @@ import { createExaSearchTool } from "../tools/exa-search-tool";
 import { createWebFetchTool } from "../tools/web-fetch";
 import { createMemoryTools } from "../memory/memory-tools";
 import { createUiTools } from "../tools/ui-tools";
-import { createFactoryTool, createRunPipelineTool } from "../tools/factory-tool";
+import { createFactoryTool } from "../tools/factory-tool";
+import { createManagePipelinesTool } from "../tools/manage-pipelines-tool";
 import { userConfigManager } from "./user-config";
 import {
   createManageCustomToolsTool,
@@ -97,7 +98,7 @@ export class SessionToolFactory {
       parentSessionId: sessionId,
     });
 
-    const runPipelineTool = createRunPipelineTool({
+    const managePipelinesTool = createManagePipelinesTool({
       username,
       parentSessionId: sessionId,
     });
@@ -132,7 +133,7 @@ export class SessionToolFactory {
       findTool as any,
       lsTool as any,
       factoryTool as any,
-      runPipelineTool as any,
+      managePipelinesTool as any,
       manageCustomToolsTool as any,
       ...activeCustomTools as any,
       ...uiTools as any,
