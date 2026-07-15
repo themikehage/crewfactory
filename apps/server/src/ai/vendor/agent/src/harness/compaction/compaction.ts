@@ -682,7 +682,7 @@ export async function compact(
 			signal,
 			thinkingLevel,
 		);
-		if (!turnPrefixResult.ok) return err(turnPrefixResult.error);
+		if (!turnPrefixResult.ok) return err((turnPrefixResult as { ok: false; error: CompactionError }).error);
 		summary = `${historyResult.value}\n\n---\n\n**Turn Context (split turn):**\n\n${turnPrefixResult.value}`;
 	} else {
 		const summaryResult = await generateSummary(
