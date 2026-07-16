@@ -568,6 +568,15 @@ export function createWsContext(): WsConnectionContext {
         return;
       }
 
+      if (data.type === "benchmark_stop") {
+        const channelId = data.channelId as string;
+        if (channelId) {
+          const { ChannelBenchmarkRunner } = await import("../laboratory/channel-benchmark-runner");
+          await ChannelBenchmarkRunner.stopBenchmark(user.username, channelId);
+        }
+        return;
+      }
+
       if (data.type === "ui_action") {
         const componentId = data.componentId as string;
         const action = data.action as string;

@@ -4,6 +4,7 @@ export const SessionPrefix = {
   SUBAGENT: "sub_",
   LAB: "lab_",
   BENCHMARK: "bench_",
+  BENCH_CLONE: "tmp_bench_",
   GENERATE: "generate_",
 } as const;
 

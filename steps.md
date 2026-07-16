@@ -664,3 +664,14 @@
 - [x] 141.2 Implement automatic runtime legacy data migration check to new paths structure
 - [x] 141.3 Verify clean compilation of client, server and shared packages
 
+## Phase 142: Channel-First Benchmarks
+- [x] 142.1 Add `BENCH_CLONE` prefix to `SessionPrefix` and define Zod schemas (`BenchmarkVariantResult`, `BenchmarkJudgeResult`, `ChannelBenchmarkRun`) in shared package
+- [x] 142.2 Create `ChannelBenchmarkStore` for JSON persistence and automatic cascade cleanups
+- [x] 142.3 Implement binary double-blind LLM judge comparison in `ChannelBenchmarkJudge`
+- [x] 142.4 Create `ChannelBenchmarkRunner` orchestrator for async execution of multi-agent and single-agent variants
+- [x] 142.5 Create API routes in `channel-benchmarks.ts` and register router and orphan sweeps in `index.ts`
+- [x] 142.6 Create frontend hook `useChannelBenchmark.ts` and map routes in client-side router
+- [x] 142.7 Create React components (`RunBenchmarkModal`, `BenchmarkProgressCard`, `ScoreEvolutionChart`, `BenchmarkRunViewer`, `ChannelBenchmarkTab`) and localized translation files
+- [x] 142.8 Verify production compilation of client, server, and shared applications
+- [x] 142.9 Update system documentation in `about.md` and `steps.md`
+

@@ -3,7 +3,7 @@ import { cors } from "hono/cors";
 import { logger } from "hono/logger";
 import { serveStatic } from "hono/bun";
 import { createBunWebSocket } from "hono/bun";
-import { existsSync } from "node:fs";
+import { existsSync, readdirSync } from "node:fs";
 import { auth } from "./auth/index";
 import { authRouter } from "./routes/auth";
 import { sessionsRouter } from "./routes/sessions";
@@ -24,6 +24,9 @@ import { settingsRouter } from "./routes/settings";
 import { galleryRouter } from "./routes/gallery";
 import { factoryRouter } from "./routes/factory";
 import { pipelinesRouter } from "./routes/pipelines";
+import { channelBenchmarksRouter } from "./routes/channel-benchmarks";
+import { channelStore } from "./channels";
+import { CREWFACTORY_DATA_PATH } from "shared";
 import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
 import { ensureAuthTables } from "./auth/migrate";
@@ -61,6 +64,7 @@ app.route("/api/integrations", integrationsRouter);
 app.route("/api/preview", previewRouter);
 app.route("/api/agents", agentsRouter);
 app.route("/api/channels", channelsRouter);
+app.route("/api/channels", channelBenchmarksRouter);
 app.route("/api/backup", backupRouter);
 app.route("/api/logs", logsRouter);
 app.route("/api/mcp", mcpRouter);
@@ -84,6 +88,21 @@ app.get(
 );
 
 await ensureAuthTables();
+
+// Cleanup orphan benchmark clones on startup
+try {
+  const usersBase = join(CREWFACTORY_DATA_PATH(), "users");
+  if (existsSync(usersBase)) {
+    const userDirs = readdirSync(usersBase, { withFileTypes: true })
+      .filter((ent) => ent.isDirectory())
+      .map((ent) => ent.name);
+    for (const username of userDirs) {
+      channelStore.cleanupOrphanBenchmarkClones(username);
+    }
+  }
+} catch (err) {
+  console.error("Failed to clean up orphan benchmark clones on startup:", err);
+}
 
 const STATIC_EXTENSIONS = /\.(webmanifest|js|json|png|ico|svg|css)$/;
 

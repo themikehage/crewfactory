@@ -89,7 +89,11 @@ class ChannelStore {
     for (const entry of entries) {
       if (entry.isDirectory()) {
         const channel = this.getChannel(username, entry.name);
-        if (channel && !channel.id.startsWith(SessionPrefix.LAB)) {
+        if (
+          channel &&
+          !channel.id.startsWith(SessionPrefix.LAB) &&
+          !channel.id.startsWith(SessionPrefix.BENCH_CLONE)
+        ) {
           const msgPath = this.getMessagesPath(username, entry.name);
           if (existsSync(msgPath)) {
             try {
@@ -259,6 +263,65 @@ class ChannelStore {
   resetNegotiationState(username: string, channelId: string): void {
     const path = this.getNegotiationStatePath(username, channelId);
     if (existsSync(path)) writeFileSync(path, "{}", "utf-8");
+  }
+
+  cloneChannelForBenchmark(
+    username: string,
+    originalChannelId: string
+  ): string {
+    const original = this.getChannel(username, originalChannelId);
+    if (!original) throw new Error("Original channel not found");
+
+    const cloneId = `${SessionPrefix.BENCH_CLONE}${crypto.randomUUID()}`;
+    const clone = this.createChannel(username, {
+      name: `[Benchmark] ${original.name}`,
+      description: `Benchmark clone of ${originalChannelId}`,
+      context: original.context,
+      maxChainDepth: original.maxChainDepth,
+      showThinking: original.showThinking,
+      showTools: original.showTools,
+      streamingRenderMode: original.streamingRenderMode,
+      negotiationProtocol: original.negotiationProtocol,
+      delegationPattern: original.delegationPattern,
+    } as any);
+
+    // Override the auto-generated ID with our clone ID
+    clone.id = cloneId;
+    clone.members = original.members; // Copy original members
+    
+    // Write the clone json file
+    writeFileSync(this.getChannelJsonPath(username, cloneId), JSON.stringify(clone, null, 2), "utf-8");
+    writeFileSync(this.getMessagesPath(username, cloneId), "", "utf-8"); // empty messages
+
+    return cloneId;
+  }
+
+  cleanupOrphanBenchmarkClones(username: string): void {
+    const baseDir = this.getBaseDir(username);
+    if (!existsSync(baseDir)) return;
+    try {
+      const entries = readdirSync(baseDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (entry.isDirectory() && entry.name.startsWith(SessionPrefix.BENCH_CLONE)) {
+          const dirPath = join(baseDir, entry.name);
+          const jsonPath = join(dirPath, "channel.json");
+          if (existsSync(jsonPath)) {
+            const stats = statSync(jsonPath);
+            // If older than 30 minutes, remove it
+            const ageMs = Date.now() - stats.mtime.getTime();
+            if (ageMs > 30 * 60 * 1000) {
+              console.log(`[ChannelStore] Cleaning up orphan benchmark clone: ${entry.name}`);
+              rmSync(dirPath, { recursive: true, force: true });
+            }
+          } else {
+            // No json file, clean up directory directly
+            rmSync(dirPath, { recursive: true, force: true });
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[ChannelStore] Failed to cleanup orphan benchmark clones:", e);
+    }
   }
 }
 

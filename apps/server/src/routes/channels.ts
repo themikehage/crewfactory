@@ -155,6 +155,15 @@ channelsRouter.delete("/:id", async (c) => {
   }
 
   await scopeConfigManager.removeChannelScope(username, id);
+
+  // Clean up benchmark runs associated with this channel
+  try {
+    const { ChannelBenchmarkStore } = await import("../laboratory/channel-benchmark-store");
+    ChannelBenchmarkStore.deleteAll(username, id);
+  } catch (err) {
+    console.error(`[ChannelsRoute] Failed to clean up benchmarks for channel ${id}:`, err);
+  }
+
   const deleted = channelStore.deleteChannel(username, id);
   if (!deleted) return c.json({ error: "Channel not found" }, 404);
   return c.body(null, 204);

@@ -9,6 +9,7 @@ import { AgentsPage } from "@/pages/AgentsPage";
 import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
 import { ChannelOrgPage } from "@/pages/ChannelOrgPage";
+import { ChannelBenchmarkPage } from "@/pages/ChannelBenchmarkPage";
 import { LogsConsolePage } from "@/pages/LogsConsolePage";
 import { LaboratoryPage } from "@/pages/LaboratoryPage";
 import { ExperimentDetailPage } from "@/pages/ExperimentDetailPage";
@@ -252,6 +253,7 @@ export function AppRouter() {
     const isPreview = r.page === "preview";
     const isChat = r.page === "chat";
     const isOrg = r.page === "org";
+    const isBenchmark = r.page === "benchmark";
 
     if (isOrg && activeChannel) {
       return {
@@ -261,6 +263,17 @@ export function AppRouter() {
         contextName: activeChannel.name,
         page: "org",
         path: `/channels/${activeChannel.id}/org`,
+      };
+    }
+
+    if (isBenchmark && activeChannel) {
+      return {
+        type: "context",
+        contextType: "channel",
+        contextId: activeChannel.id,
+        contextName: activeChannel.name,
+        page: "benchmark",
+        path: `/channels/${activeChannel.id}/benchmarks`,
       };
     }
 
@@ -657,6 +670,9 @@ export function AppRouter() {
         )}
         {route.page === "org" && (
           <ChannelOrgPage channelId={route.channelId} onNavigate={navigate} />
+        )}
+        {route.page === "benchmark" && (
+          <ChannelBenchmarkPage channelId={route.channelId} onNavigate={navigate} />
         )}
         {route.page === "delegations" && (
           <DelegationsPanel

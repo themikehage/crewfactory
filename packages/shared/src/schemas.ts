@@ -695,6 +695,71 @@ export const PipelineRunSchema = z.object({
 });
 export type PipelineRun = z.infer<typeof PipelineRunSchema>;
 
+export const BenchmarkVariantResultSchema = z.object({
+  status: z.enum(["completed", "failed"]),
+  durationMs: z.number(),
+  tokensIn: z.number(),
+  tokensOut: z.number(),
+  negotiationRounds: z.number().optional(),
+  escalationsToLeader: z.number().optional(),
+  agreementReached: z.boolean(),
+  finalOutput: z.string(),
+  divergenceEventsCount: z.number().optional(),
+  arbitrationRoundsCount: z.number().optional(),
+  protocolActivationRate: z.number().optional(),
+  scores: z.object({
+    taskQuality: z.number(),
+    efficiencyScore: z.number(),
+    globalScore: z.number(),
+    judgeReasoning: z.string().optional(),
+    criteriaScores: z.record(z.number()).optional(),
+  }).optional(),
+});
+export type BenchmarkVariantResult = z.infer<typeof BenchmarkVariantResultSchema>;
+
+export const BenchmarkJudgeResultSchema = z.object({
+  winner: z.enum(["multi", "single", "tie"]),
+  scores: z.object({
+    multi: z.number(),
+    single: z.number(),
+  }),
+  reasoning: z.string(),
+  criteriaScores: z.object({
+    multi: z.record(z.number()),
+    single: z.record(z.number()),
+  }),
+});
+export type BenchmarkJudgeResult = z.infer<typeof BenchmarkJudgeResultSchema>;
+
+export const ChannelBenchmarkRunSchema = z.object({
+  runId: z.string(),
+  channelId: z.string(),
+  channelSnapshot: z.any(),
+  taskPrompt: z.string(),
+  name: z.string().optional(),
+  status: z.enum(["running", "completed", "failed"]),
+  variants: z.object({
+    multi: z.object({
+      channelId: z.string(),
+      result: BenchmarkVariantResultSchema.optional(),
+    }),
+    single: z.object({
+      agentId: z.string(),
+      result: BenchmarkVariantResultSchema.optional(),
+    }),
+  }),
+  judge: z.object({
+    criteria: z.array(z.string()),
+    autoEvaluate: z.boolean(),
+    result: BenchmarkJudgeResultSchema.optional(),
+  }),
+  createdAt: z.string(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  error: z.string().optional(),
+});
+export type ChannelBenchmarkRun = z.infer<typeof ChannelBenchmarkRunSchema>;
+
 
 
 
