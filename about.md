@@ -143,7 +143,7 @@
 - **On-Demand Tool Creation**: El agente LLM puede crear, editar, activar/desactivar y eliminar tools personalizadas via la tool `manage_custom_tools` sin intervencion del usuario.
 - **Contrato Zod Solido**: Cada tool se define con un objeto JSON validado estrictamente con Zod: `name`, `description`, `parameters` (JSON Schema), `execute` (modo de ejecucion), y `ui` (componentes visuales opcionales).
 - **3 Modos de Ejecucion**:
-  1. **Pipeline**: Secuencia de tools existentes (bash, read, write, grep, find, ls) con paso de variables entre pasos via `{variableName}`. Ejecucion secuencial controlada con `onError: stop|continue`.
+  1. **Pipeline**: Secuencia de cualquier tool disponible en la sesión (mcp, custom, filesystem, system) con paso de variables entre pasos via `{variableName}`. Cuenta con protección contra recursión (profundidad máxima de 5) y detección de dependencias circulares mediante `AsyncLocalStorage`. Ejecucion secuencial controlada con `onError: stop|continue`.
   2. **UI**: Tool puramente visual sin ejecucion server-side. El agente define componentes estructurados que el frontend renderiza nativamente (card, card-list, table, badge, metric, code, section).
   3. **Subagent** (fase 2): La tool spawnca un subagente con instrucciones especificas.
 - **Motor de Pipeline (PipelineEngine)**: Ejecuta secuencialmente los pasos, resolviendo variables con soporte de anidacion, emitiendo eventos `tool_execution_start/update/end` en tiempo real via WebSocket.

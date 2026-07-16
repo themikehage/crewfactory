@@ -198,7 +198,7 @@ export const UiComponentSchema: z.ZodType<any> = z.lazy(() =>
 
 // --- Execution Mode Schemas ---
 export const PipelineStepSchema = z.object({
-  tool: z.enum(["bash", "read", "write", "edit", "grep", "find", "ls"]),
+  tool: z.string().min(1).max(64),
   params: z.record(z.any()),
   output: z.string().optional().describe("Variable name to capture the result text"),
   description: z.string().optional().describe("Human-readable label shown during execution"),

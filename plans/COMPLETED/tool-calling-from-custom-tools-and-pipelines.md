@@ -1,3 +1,4 @@
+COMPLETED
 # Tool Calling desde Custom Tools y Pipelines
 
 ## Problema

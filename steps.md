@@ -675,3 +675,9 @@
 - [x] 142.8 Verify production compilation of client, server, and shared applications
 - [x] 142.9 Update system documentation in `about.md` and `steps.md`
 
+## Phase 143: Tool Calling from Custom Tools
+- [x] 143.1 Update PipelineStepSchema tool property validation to allow generic string values
+- [x] 143.2 Implement AsyncLocalStorage stack tracking and recursion/depth protection in CustomToolRuntime
+- [x] 143.3 Verify dynamic tool execution, circular dependency detection, and depth limit guards
+- [x] 143.4 Update system documentation in `about.md` and `steps.md`
+
