@@ -299,7 +299,17 @@ export function ChatInput({
     const cursorPosition = textarea.selectionStart;
     const textBeforeCursor = input.slice(0, cursorPosition);
     const textAfterCursor = input.slice(cursorPosition);
-    const textBeforeCursorReplaced = textBeforeCursor.replace(/(\/\S*)$/, `/${skillName} `);
+    
+    // Check if there is an active slash command prefix being typed at the cursor
+    const hasSlashMatch = textBeforeCursor.match(/(\/\S*)$/);
+    let textBeforeCursorReplaced;
+    if (hasSlashMatch) {
+      textBeforeCursorReplaced = textBeforeCursor.replace(/(\/\S*)$/, `/${skillName} `);
+    } else {
+      // If there's no slash command suffix, append it with a leading space if needed
+      const needsSpace = textBeforeCursor.length > 0 && !textBeforeCursor.endsWith(" ");
+      textBeforeCursorReplaced = `${textBeforeCursor}${needsSpace ? " " : ""}/${skillName} `;
+    }
     const newVal = textBeforeCursorReplaced + textAfterCursor;
     setInput(newVal);
     setAutocompleteMode(null);

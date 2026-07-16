@@ -38,6 +38,7 @@ describe("AgentSession & Agent Class Integration Tests", () => {
     mockResourceLoader = {
       getSystemPrompt: () => "You are a test agent.",
       getAppendSystemPrompt: () => [] as string[],
+      getSkills: () => ({ skills: [], diagnostics: [] }),
     };
 
     mockModelRegistry = {

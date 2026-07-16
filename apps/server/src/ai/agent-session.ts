@@ -8,6 +8,7 @@ import type { DefaultResourceLoader } from "./resource-loader";
 import { convertToLlm } from "./messages";
 import { estimateContextTokens } from "./vendor/ai/src/utils/estimate.ts";
 import type { AuthStorage } from "./auth-storage.ts";
+import { existsSync, readFileSync } from "node:fs";
 
 export interface CreateAgentSessionOptions {
   cwd: string;
@@ -37,6 +38,7 @@ export class AgentSession {
 
   private agent!: Agent;
   private activeTools: AgentTool[] = [];
+  private activeSkillPrompts: string[] = [];
   private allToolsMap: Map<string, AgentTool> = new Map();
   private eventListeners: Set<(evt: any) => void> = new Set();
   private abortController: AbortController | null = null;
@@ -169,6 +171,7 @@ export class AgentSession {
     const systemPrompt = [
       this.resourceLoader.getSystemPrompt() || "",
       ...(this.resourceLoader.getAppendSystemPrompt() || []),
+      ...this.activeSkillPrompts,
     ].filter(Boolean).join("\n\n");
 
     if (this.model && !this.model.contextWindow) {
@@ -226,6 +229,7 @@ export class AgentSession {
           const freshSystemPrompt = [
             this.resourceLoader.getSystemPrompt() || "",
             ...(this.resourceLoader.getAppendSystemPrompt() || []),
+            ...this.activeSkillPrompts,
           ].filter(Boolean).join("\n\n");
           const freshMessages = this.sessionManager.buildSessionContext().messages;
           return {
@@ -406,6 +410,34 @@ export class AgentSession {
     this.isStreaming = true;
 
     try {
+      // Load matching skills content
+      const availableSkills = this.resourceLoader.getSkills().skills;
+      const matchedSkills = [];
+      const matches = [...messageText.matchAll(/(?:^|\s)\/([a-zA-Z0-9_-]+)/g)];
+      const uniqueNames = new Set(matches.map(m => m[1].toLowerCase()));
+      
+      for (const name of uniqueNames) {
+        const skill = availableSkills.find(s => s.name.toLowerCase() === name);
+        if (skill) {
+          matchedSkills.push(skill);
+        }
+      }
+
+      const skillPrompts: string[] = [];
+      for (const skill of matchedSkills) {
+        if (existsSync(skill.filePath)) {
+          try {
+            const content = readFileSync(skill.filePath, "utf-8");
+            if (content) {
+              skillPrompts.push(`=== Active Skill Instructions: ${skill.name} ===\n${content}`);
+            }
+          } catch (err) {
+            console.error(`Failed to read skill content for ${skill.name} at ${skill.filePath}:`, err);
+          }
+        }
+      }
+      this.activeSkillPrompts = skillPrompts;
+
       const contentParts: any[] = [{ type: "text" as const, text: messageText }];
       if (opts?.images && Array.isArray(opts.images)) {
         for (const img of opts.images) {
@@ -451,6 +483,7 @@ export class AgentSession {
       const systemPrompt = [
         this.resourceLoader.getSystemPrompt() || "",
         ...(this.resourceLoader.getAppendSystemPrompt() || []),
+        ...this.activeSkillPrompts,
       ].filter(Boolean).join("\n\n");
       (this.agent.state as any).systemPrompt = systemPrompt;
 
@@ -500,6 +533,7 @@ export class AgentSession {
       const systemPrompt = [
         this.resourceLoader.getSystemPrompt() || "",
         ...(this.resourceLoader.getAppendSystemPrompt() || []),
+        ...this.activeSkillPrompts,
       ].filter(Boolean).join("\n\n");
       (this.agent.state as any).systemPrompt = systemPrompt;
 
