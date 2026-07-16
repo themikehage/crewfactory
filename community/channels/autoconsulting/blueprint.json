@@ -1,0 +1,44 @@
+{
+  "definition": {
+    "name": "Autoconsulting Team",
+    "description": "Equipo completo de consultora autónoma: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Recibe un brief y produce una aplicación funcional desplegada + contenido de redes sociales.",
+    "maxChainDepth": 10,
+    "showThinking": true,
+    "showTools": true,
+    "context": [
+      { "key": "STACK", "value": "React 19 + Hono + Bun + Neon Postgres + Tailwind CSS v4" },
+      { "key": "DEPLOY_TARGET", "value": "Cloudflare (Pages / Workers)" },
+      { "key": "QA_TOOL", "value": "Agent Browser (E2E + Screenshots)" },
+      { "key": "MARKETING_CHANNEL", "value": "X / LinkedIn (build in public)" }
+    ],
+    "members": [
+      { "agentId": "ceo-business", "replyMode": "broadcast", "role": "lead" },
+      { "agentId": "tech-lead", "replyMode": "broadcast", "role": "senior" },
+      { "agentId": "backend-dev", "replyMode": "targeted", "role": "member" },
+      { "agentId": "frontend-dev", "replyMode": "targeted", "role": "member" },
+      { "agentId": "qa-engineer", "replyMode": "targeted", "role": "member" },
+      { "agentId": "marketing-specialist", "replyMode": "user-only", "role": "member" }
+    ],
+    "negotiationProtocol": {
+      "type": "arbitration",
+      "arbiterAgentId": "ceo-business",
+      "rules": [
+        "El CEO tiene la última palabra en decisiones de funcionalidad y alcance",
+        "El Tech Lead tiene autoridad técnica para rechazar implementaciones inseguras o mal optimizadas",
+        "QA puede bloquear un despliegue si hay bugs críticos sin resolver",
+        "Marketing decide el tono y contenido de las publicaciones sin necesidad de aprobación técnica"
+      ]
+    }
+  },
+  "metadata": {
+    "title": "Autoconsulting Team",
+    "description": "Consultora autónoma completa de 6 agentes: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Construye, prueba, despliega y promociona.",
+    "author": "crewfactory",
+    "avatar": "consulting",
+    "rating": 5.0,
+    "downloads": 0,
+    "tags": ["consulting", "fullstack", "team", "autonomous", "cloudflare", "neon"],
+    "version": "1.0.0",
+    "compatibility": ">=1.0.0"
+  }
+}

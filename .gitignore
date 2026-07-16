@@ -7,7 +7,7 @@ bun.lockb
 .env.*
 /pi
 /opencode-manager
-skills/
+/skills/
 /autoconsulting
 # Local Pi runtime state
 .atl/

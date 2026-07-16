@@ -211,6 +211,7 @@
 - **Integrated Icon Routing:** Dedicated authenticated endpoints (`GET /api/gallery/blueprints/:id/icon`) stream raw SVG icons using the standard auth middleware, securely fetched on the frontend via `AuthenticatedImage` components.
 - **Frontend Gallery Tab View:** Smooth, tabbed navigation within the "Agents" view ("My Agents" vs "Gallery") with dynamic search bar, type filtering buttons (All / Agents / Channels), and template grid cards.
 - **Interactive Details Modal:** Custom pop-up details drawer showing detailed stats, authors, version compatibility, tags, required skills list, default models, channel members (for teams), and an expandable system prompt preview.
+- **Autoconsulting Team Blueprint:** A complete community multi-agent channel template representing an autonomous consulting team (CEO Business Strategist, Technical Lead, Backend Developer, Frontend Developer, QA Engineer, and Marketing Specialist) that executes projects end-to-end, provisioning 9 specialized skills (`business-strategy`, `product-management`, `hono-api`, `neon-postgres`, `e2e-testing`, `agent-browser`, `content-creation`, `social-media`, etc.) dynamically upon installation.
 
 ### Live Render Preview
 - Página "Preview" en la interfaz del proyecto para renderizar apps construidas por el agente

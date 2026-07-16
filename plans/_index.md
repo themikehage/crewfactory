@@ -94,9 +94,8 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ### Channels
 
-- [autoconsulting-channel.md](./autoconsulting-channel.md) — Canal multi-agente de consultora autonoma: CEO, Tech Lead, Backend, Frontend, QA y Marketing. Pipeline completo desde brief hasta build in public.
 - [channel-benchmarks.md](./channel-benchmarks.md) — Benchmarks sobre canales EXISTENTES. Invierte el flujo actual: el canal es el origen, no el destino. Permite validar y optimizar canales reales comparando multi-agente vs single-agent.
 
-## Completados (74)
+## Completados (75)
 
 Ver [COMPLETED/](./COMPLETED/)
