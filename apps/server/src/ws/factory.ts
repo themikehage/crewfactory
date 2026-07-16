@@ -42,6 +42,10 @@ async function subscribeWsToSession(
   }
 
   const meta = wsRegistry.getMeta(wsId);
+  if (meta?.channelId) {
+    wsRegistry.removeChannelSocket(meta.channelId, ws);
+    wsRegistry.updateMeta(wsId, { channelId: undefined });
+  }
   if (meta?.sessionId && meta.sessionId !== sessionId) {
     wsRegistry.removeSessionSocket(meta.sessionId, ws);
   }
@@ -535,7 +539,14 @@ export function createWsContext(): WsConnectionContext {
       if (data.type === "channel_join") {
         const channelId = data.channelId as string;
         if (!channelId) return;
+
+        wsRegistry.clearUnsub(id);
+
         const meta = wsRegistry.getMeta(id);
+        if (meta?.sessionId) {
+          wsRegistry.removeSessionSocket(meta.sessionId, ws);
+          wsRegistry.updateMeta(id, { sessionId: undefined });
+        }
         if (meta?.channelId && meta.channelId !== channelId) {
           wsRegistry.removeChannelSocket(meta.channelId, ws);
         }

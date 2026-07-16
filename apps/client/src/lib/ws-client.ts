@@ -4,6 +4,7 @@ type StateHandler = (state: ConnectionState) => void;
 
 class WsClient {
   private static readonly MAX_QUEUE_SIZE = 50;
+  private static readonly MAX_RETRIES = 20;
   private ws: WebSocket | null = null;
   private messageHandlers = new Map<string, Set<EventHandler>>();
   private stateHandlers = new Set<StateHandler>();
@@ -130,7 +131,14 @@ class WsClient {
       this.setState("disconnected");
       this.ws = null;
       if (!this.intentionalClose) {
-        const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+        if (this.reconnectAttempts >= WsClient.MAX_RETRIES) {
+          console.error(`[wsClient] Max reconnection attempts (${WsClient.MAX_RETRIES}) reached. Giving up.`);
+          this.setState("permanently_disconnected");
+          return;
+        }
+        const baseDelay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+        const jitter = Math.random() * 1000;
+        const delay = baseDelay + jitter;
         this.reconnectAttempts++;
         this.reconnectTimeout = setTimeout(() => {
           this.reconnectTimeout = null;
@@ -197,7 +205,14 @@ class WsClient {
       this.stopPingTimer();
       if (this.intentionalClose) return;
       this.setState("disconnected");
-      const delay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+      if (this.reconnectAttempts >= WsClient.MAX_RETRIES) {
+        console.error(`[wsClient] Max reconnection attempts (${WsClient.MAX_RETRIES}) reached. Giving up.`);
+        this.setState("permanently_disconnected");
+        return;
+      }
+      const baseDelay = Math.min(1000 * 2 ** this.reconnectAttempts, 30000);
+      const jitter = Math.random() * 1000;
+      const delay = baseDelay + jitter;
       console.log(`[wsClient] Scheduling reconnect in ${delay}ms (attempt: ${this.reconnectAttempts})`);
       this.reconnectAttempts++;
       this.reconnectTimeout = setTimeout(() => {

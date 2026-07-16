@@ -7,15 +7,17 @@ import type { SessionManager } from "./session-persistence";
 import type { DefaultResourceLoader } from "./resource-loader";
 import { convertToLlm } from "./messages";
 import { estimateContextTokens } from "./vendor/ai/src/utils/estimate.ts";
+import type { AuthStorage } from "./auth-storage.ts";
 
 export interface CreateAgentSessionOptions {
   cwd: string;
   sessionManager: SessionManager;
-  authStorage: any;
+  authStorage: AuthStorage;
   modelRegistry: ModelRegistry;
   resourceLoader: DefaultResourceLoader;
   customTools?: any[];
   beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;
+  delegationRegistry?: any;
 }
 
 export type AgentSessionEvent = any;
@@ -23,12 +25,13 @@ export type AgentSessionEvent = any;
 export class AgentSession {
   cwd: string;
   sessionManager: SessionManager;
-  authStorage: any;
+  authStorage: AuthStorage;
   modelRegistry: ModelRegistry;
   resourceLoader: DefaultResourceLoader;
   customTools: any[];
   _customTools: any[];
   beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;
+  delegationRegistry?: any;
 
   model: AvailableModel | null = null;
 
@@ -78,6 +81,7 @@ export class AgentSession {
     this.customTools = options.customTools || [];
     this._customTools = this.customTools;
     this.beforeToolCall = options.beforeToolCall;
+    this.delegationRegistry = options.delegationRegistry;
 
     this.initializeTools();
     this.restoreSessionState();
@@ -94,9 +98,7 @@ export class AgentSession {
         description: toolDef.description,
         parameters: toolDef.parameters || toolDef.schema || {},
         execute: async (toolCallId, params, signal, onUpdate) => {
-          const res = toolDef.name === "bash"
-            ? await toolDef.execute(params, { signal, toolCallId })
-            : await toolDef.execute(toolCallId, params, signal, onUpdate);
+          const res = await toolDef.execute(toolCallId, params, signal, onUpdate);
           if (res && typeof res === "object" && "content" in res && Array.isArray(res.content)) {
             return res;
           }
@@ -389,7 +391,9 @@ export class AgentSession {
     for (const listener of this.eventListeners) {
       try {
         listener(event);
-      } catch {}
+      } catch (err) {
+        console.error("[AgentSession] Event listener error:", err);
+      }
     }
   }
 
@@ -398,8 +402,8 @@ export class AgentSession {
       throw new Error("Session is already streaming");
     }
 
-    this.isStreaming = true;
     this.abortController = new AbortController();
+    this.isStreaming = true;
 
     try {
       const contentParts: any[] = [{ type: "text" as const, text: messageText }];
@@ -468,8 +472,8 @@ export class AgentSession {
       throw new Error("Session is already streaming");
     }
 
-    this.isStreaming = true;
     this.abortController = new AbortController();
+    this.isStreaming = true;
 
     try {
       if (this.model) {
@@ -533,14 +537,15 @@ export class AgentSession {
   async abort(): Promise<void> {
     if (this.agent) {
       this.agent.abort();
+      await this.agent.waitForIdle();
     }
     if (this.abortController) {
       this.abortController.abort();
     }
     const sId = this.sessionManager.getSessionId();
     try {
-      const { delegationRegistry } = await import("../core/delegation-registry");
-      delegationRegistry.abortAllRecursive(sId);
+      const registry = this.delegationRegistry ?? (await import("../core/delegation-registry")).delegationRegistry;
+      registry.abortAllRecursive(sId);
     } catch (err) {
       console.error("[AgentSession.abort] Failed to propagate abort to delegation registry:", err);
     }
@@ -668,6 +673,9 @@ export class AgentSession {
             for (const block of msg.content) {
               if (block.type === "text" && block.text) {
                 charCount += block.text.length;
+              } else if (block.type === "image") {
+                const imageTokens = 1200;
+                charCount += imageTokens * 4;
               }
             }
           }
@@ -764,9 +772,14 @@ export class AgentSession {
 }
 
 export async function createAgentSession(options: CreateAgentSessionOptions): Promise<{ session: AgentSession; extensionsResult: any }> {
-  const session = new AgentSession(options);
-  return {
-    session,
-    extensionsResult: { extensions: [], diagnostics: [] },
-  };
+  try {
+    const session = new AgentSession(options);
+    return {
+      session,
+      extensionsResult: { extensions: [], diagnostics: [] },
+    };
+  } catch (err) {
+    console.error("[createAgentSession] Error initializing AgentSession:", err);
+    throw err;
+  }
 }

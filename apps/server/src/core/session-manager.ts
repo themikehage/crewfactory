@@ -180,12 +180,11 @@ class SessionManager {
 
   async destroyAllSessions(username: string): Promise<void> {
     const prefix = `${username}:`;
-    for (const [key, entry] of this.sessions) {
-      if (key.startsWith(prefix)) {
-        entry.unsubscribe();
-        entry.session.dispose();
-        this.sessions.delete(key);
-      }
+    const toDestroy = Array.from(this.sessions.entries()).filter(([key]) => key.startsWith(prefix));
+    for (const [key, entry] of toDestroy) {
+      entry.unsubscribe();
+      await entry.session.dispose();
+      this.sessions.delete(key);
     }
   }
 

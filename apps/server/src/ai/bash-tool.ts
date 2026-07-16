@@ -19,7 +19,7 @@ export interface ToolDefinition {
   name: string;
   description: string;
   schema: any;
-  execute: (args: { command: string; timeout?: number }, context?: any) => Promise<any>;
+  execute: (first: any, second?: any, third?: any) => Promise<any>;
 }
 
 export function verifyCommandSafety(command: string): { safe: boolean; reason?: string } {
@@ -89,8 +89,20 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
       },
       required: ["command"],
     },
-    execute: async (args, context: any = {}) => {
-      const { command, timeout } = args;
+    execute: async (toolCallIdOrArgs: any, argsOrContext: any = {}, maybeSignal?: AbortSignal) => {
+      let command: string;
+      let timeout: number | undefined;
+      let abortSignal: AbortSignal | undefined;
+
+      if (typeof toolCallIdOrArgs === "string") {
+        command = argsOrContext?.command;
+        timeout = argsOrContext?.timeout;
+        abortSignal = maybeSignal;
+      } else {
+        command = toolCallIdOrArgs?.command;
+        timeout = toolCallIdOrArgs?.timeout;
+        abortSignal = argsOrContext?.signal || argsOrContext?.abortSignal;
+      }
 
       const safety = verifyCommandSafety(command);
       if (!safety.safe) {
@@ -149,7 +161,7 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
         });
 
         // Soporte para AbortSignal en el contexto (por ejemplo, si el agente aborta la ejecución)
-        const abortSignal = context?.signal || context?.abortSignal;
+        const sig = abortSignal;
         const onAbort = () => {
           try {
             child.kill();
@@ -165,12 +177,12 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
           });
         };
 
-        if (abortSignal) {
-          if (abortSignal.aborted) {
+        if (sig) {
+          if (sig.aborted) {
             onAbort();
             return;
           }
-          abortSignal.addEventListener("abort", onAbort);
+          sig.addEventListener("abort", onAbort);
         }
 
         let timeoutHandle: NodeJS.Timeout | undefined;

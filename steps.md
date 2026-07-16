@@ -681,3 +681,11 @@
 - [x] 143.3 Verify dynamic tool execution, circular dependency detection, and depth limit guards
 - [x] 143.4 Update system documentation in `about.md` and `steps.md`
 
+## Phase 144: Medium Severity Robustness Fixes
+- [x] 144.1 Fix event listener logging, abort controller ordering, abort awaiting, type safety, mock injection, and image token estimation in `agent-session.ts`
+- [x] 144.2 Implement rollback on persist failure and atomic write with fallback safety in `session-persistence.ts`
+- [x] 144.3 Support polymorphic signatures `(toolCallId, params, signal)` and `(params, context)` inside `bash-tool.ts`
+- [x] 144.4 Implement reconnection delay jitter and maximum retries cap in client `ws-client.ts`
+- [x] 144.5 Implement symmetric WebSocket context cleaning on session subscribe and channel join in `factory.ts`
+- [x] 144.6 Verify clean monorepo builds and successful unit test suite runs
+

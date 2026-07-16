@@ -12,6 +12,9 @@ import {
   readSync,
   statSync,
   writeFileSync,
+  renameSync,
+  copyFileSync,
+  unlinkSync,
 } from "node:fs";
 import { readdir, stat } from "node:fs/promises";
 import { join, resolve } from "node:path";
@@ -578,13 +581,27 @@ export class SessionManager {
     if (!this.persist || !this.sessionFile) return;
 
     if (!this.flushed) {
-      const fd = openSync(this.sessionFile, "w");
+      const tmpFile = this.sessionFile + ".tmp";
+      const fd = openSync(tmpFile, "w");
       try {
         for (const e of this.fileEntries) {
           writeFileSync(fd, `${JSON.stringify(e)}\n`);
         }
       } finally {
         closeSync(fd);
+      }
+
+      try {
+        renameSync(tmpFile, this.sessionFile);
+      } catch (err) {
+        console.warn("[SessionPersistence] renameSync failed, falling back to copy+unlink:", err);
+        try {
+          copyFileSync(tmpFile, this.sessionFile);
+          unlinkSync(tmpFile);
+        } catch (fallbackErr) {
+          console.error("[SessionPersistence] Fallback write failed:", fallbackErr);
+          throw err;
+        }
       }
       this.flushed = true;
     } else {
@@ -595,8 +612,16 @@ export class SessionManager {
   private _appendEntry(entry: SessionEntry): void {
     this.fileEntries.push(entry);
     this.byId.set(entry.id, entry);
+    const oldLeafId = this.leafId;
     this.leafId = entry.id;
-    this._persist(entry);
+    try {
+      this._persist(entry);
+    } catch (err) {
+      this.fileEntries.pop();
+      this.byId.delete(entry.id);
+      this.leafId = oldLeafId;
+      throw err;
+    }
   }
 
   appendMessage(message: Message | CustomMessage | BashExecutionMessage): string {
