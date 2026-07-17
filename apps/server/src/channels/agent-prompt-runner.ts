@@ -39,38 +39,7 @@ export function buildAgentNameMap(members: ChannelMember[]): Map<string, string>
   return map;
 }
 
-export function buildAgentPrompt(
-  incomingMsg: ChannelMessage,
-  recentHistory: ChannelMessage[],
-  contextItems: { key: string; value: string }[] = []
-): string {
-  let historyText = "";
-  for (const msg of recentHistory) {
-    if (msg.role === "user") {
-      historyText += `[User]: ${msg.content}\n`;
-    } else {
-      historyText += `[${msg.agentName || msg.agentId}]: ${msg.content}\n`;
-    }
-  }
 
-  let contextBlock = "";
-  if (contextItems.length > 0) {
-    contextBlock =
-      `Channel Environmental Context Variables:\n` +
-      contextItems.map((item) => `- ${item.key}: ${item.value}`).join("\n") +
-      "\n\n";
-  }
-
-  const senderLabel =
-    incomingMsg.role === "user" ? "User" : incomingMsg.agentName || incomingMsg.agentId;
-
-  return (
-    contextBlock +
-    `Conversation so far:\n${historyText}\n` +
-    `--- New message from ${senderLabel} ---\n` +
-    `${incomingMsg.content}`
-  );
-}
 
 function isSubstantiveMessage(content: string): boolean {
   if (content.trim().length <= 10) return false;
@@ -222,8 +191,15 @@ export class AgentPromptRunner {
       }
     }
 
-    const promptText =
-      memoryPrefix + buildAgentPrompt(incomingMsg, recentMessages, channel.context || []);
+    let contextBlock = "";
+    if (channel.context && channel.context.length > 0) {
+      contextBlock =
+        `Channel Environmental Context Variables:\n` +
+        channel.context.map((item) => `- ${item.key}: ${item.value}`).join("\n") +
+        "\n\n";
+    }
+    const combinedPrefix = memoryPrefix + contextBlock;
+    const historyToSync = recentMessages.length > 0 ? recentMessages : [incomingMsg];
 
     let fullResponse = "";
 
@@ -313,10 +289,12 @@ export class AgentPromptRunner {
     });
 
     try {
-      if ((agentEntry.server.session as any).agent?.reset) {
-        (agentEntry.server.session as any).agent.reset();
-      }
-      await agentEntry.server.session.prompt(promptText);
+      agentEntry.server.session.sessionManager.syncChannelHistory(
+        historyToSync,
+        member.agentId,
+        combinedPrefix
+      );
+      await agentEntry.server.session.continue();
     } catch (err: any) {
       unsub();
       const isAbort =

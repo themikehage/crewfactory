@@ -624,6 +624,57 @@ export class SessionManager {
     }
   }
 
+  syncChannelHistory(recentMessages: any[], activeAgentId: string, memoryPrefix: string = ""): void {
+    const keptEntries = this.fileEntries.filter(
+      (e) => e.type === "session" || e.type === "model_change" || e.type === "thinking_level_change"
+    );
+
+    this.fileEntries = keptEntries;
+    this.byId.clear();
+    this.labelsById.clear();
+    this.leafId = null;
+
+    for (const entry of this.fileEntries) {
+      if (entry.type === "session") continue;
+      this.byId.set(entry.id, entry);
+      this.leafId = entry.id;
+    }
+
+    for (let i = 0; i < recentMessages.length; i++) {
+      const msg = recentMessages[i];
+      const isSelf = msg.role === "agent" && msg.agentId === activeAgentId;
+      let content = msg.content || "";
+
+      if (!isSelf) {
+        const sender = msg.role === "user" ? "User" : (msg.agentName || msg.agentId || "Agent");
+        content = `[${sender}]: ${content}`;
+      }
+
+      if (i === recentMessages.length - 1 && memoryPrefix) {
+        content = memoryPrefix + content;
+      }
+
+      const entry: SessionMessageEntry = {
+        type: "message",
+        id: generateId(this.byId),
+        parentId: this.leafId,
+        timestamp: msg.createdAt || new Date().toISOString(),
+        message: {
+          role: isSelf ? "assistant" : "user",
+          content,
+          timestamp: new Date(msg.createdAt || Date.now()).getTime(),
+        } as AgentMessage,
+      };
+
+      this.fileEntries.push(entry);
+      this.byId.set(entry.id, entry);
+      this.leafId = entry.id;
+    }
+
+    this._rewriteFile();
+    this.flushed = true;
+  }
+
   appendMessage(message: Message | CustomMessage | BashExecutionMessage): string {
     const entry: SessionMessageEntry = {
       type: "message",

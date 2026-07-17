@@ -411,32 +411,7 @@ export class AgentSession {
 
     try {
       // Load matching skills content
-      const availableSkills = this.resourceLoader.getSkills().skills;
-      const matchedSkills = [];
-      const matches = [...messageText.matchAll(/(?:^|\s)\/([a-zA-Z0-9_-]+)/g)];
-      const uniqueNames = new Set(matches.map(m => m[1].toLowerCase()));
-      
-      for (const name of uniqueNames) {
-        const skill = availableSkills.find(s => s.name.toLowerCase() === name);
-        if (skill) {
-          matchedSkills.push(skill);
-        }
-      }
-
-      const skillPrompts: string[] = [];
-      for (const skill of matchedSkills) {
-        if (existsSync(skill.filePath)) {
-          try {
-            const content = readFileSync(skill.filePath, "utf-8");
-            if (content) {
-              skillPrompts.push(`=== Active Skill Instructions: ${skill.name} ===\n${content}`);
-            }
-          } catch (err) {
-            console.error(`Failed to read skill content for ${skill.name} at ${skill.filePath}:`, err);
-          }
-        }
-      }
-      this.activeSkillPrompts = skillPrompts;
+      this.loadMatchedSkills(messageText);
 
       const contentParts: any[] = [{ type: "text" as const, text: messageText }];
       if (opts?.images && Array.isArray(opts.images)) {
@@ -530,14 +505,26 @@ export class AgentSession {
         (this.agent.state as any).model = modelObj;
       }
 
+      const currentMessages = this.sessionManager.buildSessionContext().messages;
+      const lastUserMsg = currentMessages.findLast((m) => m.role === "user");
+      if (lastUserMsg) {
+        let textToMatch = "";
+        if (typeof lastUserMsg.content === "string") {
+          textToMatch = lastUserMsg.content;
+        } else if (Array.isArray(lastUserMsg.content)) {
+          textToMatch = lastUserMsg.content.map((c: any) => c.text || "").join("\n");
+        }
+        if (textToMatch) {
+          this.loadMatchedSkills(textToMatch);
+        }
+      }
+
       const systemPrompt = [
         this.resourceLoader.getSystemPrompt() || "",
         ...(this.resourceLoader.getAppendSystemPrompt() || []),
         ...this.activeSkillPrompts,
       ].filter(Boolean).join("\n\n");
       (this.agent.state as any).systemPrompt = systemPrompt;
-
-      const currentMessages = this.sessionManager.buildSessionContext().messages;
       (this.agent.state as any).messages = currentMessages;
 
       await this.agent.continue();
@@ -781,6 +768,35 @@ export class AgentSession {
   async dispose(): Promise<void> {
     await this.abort();
     this.eventListeners.clear();
+  }
+
+  private loadMatchedSkills(messageText: string): void {
+    const availableSkills = this.resourceLoader.getSkills().skills;
+    const matchedSkills = [];
+    const matches = [...messageText.matchAll(/(?:^|\s)\/([a-zA-Z0-9_-]+)/g)];
+    const uniqueNames = new Set(matches.map(m => m[1].toLowerCase()));
+    
+    for (const name of uniqueNames) {
+      const skill = availableSkills.find(s => s.name.toLowerCase() === name);
+      if (skill) {
+        matchedSkills.push(skill);
+      }
+    }
+
+    const skillPrompts: string[] = [];
+    for (const skill of matchedSkills) {
+      if (existsSync(skill.filePath)) {
+        try {
+          const content = readFileSync(skill.filePath, "utf-8");
+          if (content) {
+            skillPrompts.push(`=== Active Skill Instructions: ${skill.name} ===\n${content}`);
+          }
+        } catch (err) {
+          console.error(`Failed to read skill content for ${skill.name} at ${skill.filePath}:`, err);
+        }
+      }
+    }
+    this.activeSkillPrompts = skillPrompts;
   }
 
   private handleSessionError(errorMsg: string) {

@@ -745,5 +745,12 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 150.3 Add unit tests for autonomous execution mode inheritance in subagent-permission-inheritance.test.ts
 - [x] 150.4 Verify builds compile and all tests pass cleanly
 
+## Phase 151: Fix Channel Desynchronization (Split-Brain Prevention)
+- [x] 151.1 Implement `syncChannelHistory` in `SessionManager` to synchronize private session with mapped channel history
+- [x] 151.2 Extract `loadMatchedSkills` and call it inside both `prompt()` and `continue()` in `AgentSession`
+- [x] 151.3 Refactor `AgentPromptRunner` to build env context and execute `syncChannelHistory` and `continue()`
+- [x] 151.4 Verify all tests pass and builds compile cleanly
+
+
 
 
