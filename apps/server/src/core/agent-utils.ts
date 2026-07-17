@@ -90,6 +90,42 @@ export function forwardSubagentEvents(
   return unsub;
 }
 
+let registerChannelInterceptorFn: any = null;
+let broadcastToSessionFn: any = null;
+
+export function setWsHandlerBridge(registerInterceptor: any, broadcastSession: any) {
+  registerChannelInterceptorFn = registerInterceptor;
+  broadcastToSessionFn = broadcastSession;
+}
+
+export function forwardChannelEvents(
+  channelId: string,
+  parentSessionId: string,
+  subagentSessionId: string,
+  toolCallId: string
+): () => void {
+  if (!registerChannelInterceptorFn || !broadcastToSessionFn) {
+    console.warn("[forwardChannelEvents] WS Bridge functions not initialized yet");
+    return () => {};
+  }
+
+  const activeUnsub = registerChannelInterceptorFn(channelId, subagentSessionId, (evt: any) => {
+    try {
+      broadcastToSessionFn(parentSessionId, {
+        type: "subagent_event",
+        sessionId: parentSessionId,
+        subagentSessionId,
+        toolCallId,
+        event: evt,
+      });
+    } catch (err) {
+      console.error("[Channel Event Forwarding Error]:", err);
+    }
+  });
+
+  return activeUnsub;
+}
+
 /**
  * Extracts and cleans the text content from the last assistant message.
  * Handles both plain string messages and structured ContentBlock[] content.

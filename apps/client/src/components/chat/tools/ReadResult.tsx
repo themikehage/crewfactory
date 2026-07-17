@@ -69,7 +69,7 @@ export function ReadResult({ content, args }: Props) {
         </button>
         <span className="text-muted-foreground">{lines.length} lines</span>
       </div>
-      <pre className="text-[11px] font-mono leading-relaxed text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-64 overflow-y-auto border border-input/40">
+      <pre className="text-[11px] font-mono leading-relaxed text-muted-foreground whitespace-pre-wrap break-words bg-muted p-3 rounded-md max-h-64 overflow-y-auto border border-input/40">
         {text}
       </pre>
     </div>

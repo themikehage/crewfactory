@@ -34,6 +34,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     
     bodySubagentConsole: "Subagent Console",
     bodyViewLiveConsole: "View Session",
+    bodySubagentView: "View",
     bodyWorkspaceRefreshed: "Workspace sections refreshed: ",
     bodyDelegationTo: "Delegation to",
     bodySynthesizedOutput: "Synthesized Output",
@@ -94,6 +95,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     
     bodySubagentConsole: "Subagente Consola",
     bodyViewLiveConsole: "Ver Sesión",
+    bodySubagentView: "Ver",
     bodyWorkspaceRefreshed: "Secciones del espacio de trabajo refrescadas: ",
     bodyDelegationTo: "Delegación a",
     bodySynthesizedOutput: "Output sintetizado",

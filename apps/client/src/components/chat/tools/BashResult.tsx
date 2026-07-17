@@ -22,9 +22,8 @@ export function BashResult({ text, command, isError }: Props) {
         )}
       </div>
       <pre
-        className={`font-mono text-[11px] leading-relaxed px-3 py-2.5 bg-muted max-h-64 overflow-y-auto whitespace-pre-wrap break-all ${
-          isError ? "text-destructive/80" : "text-foreground"
-        }`}
+        className={`font-mono text-[11px] leading-relaxed px-3 py-2.5 bg-muted max-h-64 overflow-y-auto whitespace-pre-wrap break-words ${isError ? "text-destructive/80" : "text-foreground"
+          }`}
       >
         {text}
       </pre>

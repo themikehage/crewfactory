@@ -161,11 +161,12 @@ class ChannelOrchestrator {
     const chainPromise = new Promise<void>((resolve) => {
       resolveChain = resolve;
     });
-    this.activeChains.set(key, { count: 1, resolve: resolveChain });
+    this.activeChains.set(key, { count: 0, resolve: resolveChain });
 
     const isBroadcastChannel = channel.members.some((m) => m.replyMode === "broadcast");
 
     if (isBroadcastChannel) {
+      this.incrementChain(key);
       this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal)
         .catch((err) => {
           console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
@@ -174,8 +175,15 @@ class ChannelOrchestrator {
           this.decrementChain(key);
         });
     } else {
-      this.runDispatchRound(username, channelId, userMsg, 1, controller.signal);
-      this.decrementChain(key);
+      this.incrementChain(key);
+      Promise.resolve()
+        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal))
+        .catch((err) => {
+          console.error(`[ChannelOrchestrator] Non-broadcast dispatch error:`, err);
+        })
+        .finally(() => {
+          this.decrementChain(key);
+        });
     }
 
     return chainPromise;

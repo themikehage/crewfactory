@@ -66,13 +66,48 @@ export function ChannelMessages({
           </div>
 
           <div
-            className={`max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${
-              msg.role === "user"
+            className={`max-w-[90%] sm:max-w-[80%] px-4 py-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user"
                 ? "bg-primary/15 text-foreground border border-primary/20 rounded-tr-none"
                 : "bg-card text-foreground border border-input rounded-tl-none shadow-sm"
-            }`}
+              }`}
           >
             <RichMarkdown content={msg.content} />
+            {msg.role === "agent" && msg.toolCalls && msg.toolCalls.length > 0 && (
+              <div className="mt-3 space-y-2 border-t border-border/20 pt-2 text-left">
+                {msg.toolCalls.map((tc: any, tcIdx: number) => {
+                  const isError = tc.result?.isError || tc.isError;
+                  const hasResult = !!tc.result;
+                  const resultObj = tc.result;
+                  return (
+                    <div
+                      key={tcIdx}
+                      className={`p-2.5 rounded-lg border text-xs font-mono bg-bg/40 ${isError ? "border-error/30 text-error bg-error/5" : "border-border/50 text-text-secondary"
+                        }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span className={`w-1.5 h-1.5 rounded-full ${isError ? "bg-error" : hasResult ? "bg-primary" : "bg-warning animate-pulse"}`} />
+                        <span className="font-bold text-foreground">{tc.name || tc.toolName}</span>
+                        <span className="text-[10px] opacity-70">
+                          {hasResult ? (isError ? "error" : "completed") : "running"}
+                        </span>
+                      </div>
+                      {tc.arguments && Object.keys(tc.arguments).length > 0 && (
+                        <div className="mt-1 opacity-80 text-[10px] truncate max-w-full">
+                          Args: {JSON.stringify(tc.arguments)}
+                        </div>
+                      )}
+                      {resultObj && (resultObj.content || resultObj.text) && (
+                        <div className="mt-1.5 pt-1.5 border-t border-border/20 text-[10px] opacity-90 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
+                          {Array.isArray(resultObj.content)
+                            ? resultObj.content.find((b: any) => b.type === "text")?.text || ""
+                            : String(resultObj.content || resultObj.text || "")}
+                        </div>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
         </div>
       ))}

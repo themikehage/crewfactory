@@ -45,6 +45,14 @@ interface UserSessionEntry {
   unsubscribe: () => void;
 }
 
+export interface SessionOverrides {
+  resourceLoader?: DefaultResourceLoader;
+  customTools?: any[];
+  workspaceDir?: string;
+  skipMcpTools?: boolean;
+  skipMemory?: boolean;
+}
+
 class SessionManager {
   private sessions = new Map<string, UserSessionEntry>();
   private pendingSessions = new Map<string, Promise<AgentSession>>();
@@ -217,7 +225,8 @@ class SessionManager {
     sessionId: string,
     projectName?: string,
     agentId?: string,
-    channelId?: string
+    channelId?: string,
+    overrides?: SessionOverrides
   ): Promise<AgentSession> {
     const key = this.getSessionKey(username, sessionId);
     const existing = this.sessions.get(key);
@@ -228,13 +237,17 @@ class SessionManager {
 
     const initPromise = (async () => {
       try {
-        const { sessionDir, workspaceDir } = resolveSessionWorkspace(
+        let { sessionDir, workspaceDir } = resolveSessionWorkspace(
           username,
           sessionId,
           projectName,
           agentId,
           channelId
         );
+
+        if (overrides?.workspaceDir) {
+          workspaceDir = overrides.workspaceDir;
+        }
 
         if (!existsSync(sessionDir)) {
           mkdirSync(sessionDir, { recursive: true });
@@ -274,44 +287,49 @@ class SessionManager {
           getDefaultModel: () => userConfigManager.getUserDefaultModel(username),
         });
 
-        const skillPaths = getResolvedSkillPaths(workspaceDir, username);
-        if (agentDef?.skills && agentDef.skills.length > 0) {
-          for (const sk of agentDef.skills) {
-            const candidate = resolve(workspaceDir, ".pi", "skills", sk);
-            if (existsSync(candidate) && !skillPaths.includes(candidate)) {
-              skillPaths.push(candidate);
+        let resourceLoader: DefaultResourceLoader;
+        if (overrides?.resourceLoader) {
+          resourceLoader = overrides.resourceLoader;
+        } else {
+          const skillPaths = getResolvedSkillPaths(workspaceDir, username);
+          if (agentDef?.skills && agentDef.skills.length > 0) {
+            for (const sk of agentDef.skills) {
+              const candidate = resolve(workspaceDir, ".pi", "skills", sk);
+              if (existsSync(candidate) && !skillPaths.includes(candidate)) {
+                skillPaths.push(candidate);
+              }
             }
           }
-        }
 
-        const mcpConfig = mcpRegistry.loadConfig(username);
-        const cachedMcpToolNames: string[] = [];
-        for (const srv of Object.values(mcpConfig.mcpServers)) {
-          if (srv.enabled && Array.isArray(srv.tools)) {
-            for (const tName of srv.tools) {
-              cachedMcpToolNames.push(`mcp_${srv.id}_${tName}`);
+          const mcpConfig = mcpRegistry.loadConfig(username);
+          const cachedMcpToolNames: string[] = [];
+          for (const srv of Object.values(mcpConfig.mcpServers)) {
+            if (srv.enabled && Array.isArray(srv.tools)) {
+              for (const tName of srv.tools) {
+                cachedMcpToolNames.push(`mcp_${srv.id}_${tName}`);
+              }
             }
           }
+
+          const appendPrompts = await sessionPromptBuilder.buildSystemPrompts({
+            username,
+            sessionId,
+            workspaceDir,
+            sessionDir,
+            resolvedAgentId,
+            agentDef,
+            cachedMcpToolNames,
+            experimentId: updatedMeta.experimentId || (existingMeta ? (existingMeta as any).experimentId : undefined),
+          });
+
+          resourceLoader = new DefaultResourceLoader({
+            cwd: workspaceDir,
+            agentDir: getUserDir(username),
+            additionalSkillPaths: skillPaths,
+            appendSystemPrompt: appendPrompts,
+          });
+          await resourceLoader.reload();
         }
-
-        const appendPrompts = await sessionPromptBuilder.buildSystemPrompts({
-          username,
-          sessionId,
-          workspaceDir,
-          sessionDir,
-          resolvedAgentId,
-          agentDef,
-          cachedMcpToolNames,
-          experimentId: updatedMeta.experimentId || (existingMeta ? (existingMeta as any).experimentId : undefined),
-        });
-
-        const resourceLoader = new DefaultResourceLoader({
-          cwd: workspaceDir,
-          agentDir: getUserDir(username),
-          additionalSkillPaths: skillPaths,
-          appendSystemPrompt: appendPrompts,
-        });
-        await resourceLoader.reload();
 
         const jsonlFiles = readdirSync(sessionDir)
           .filter((f: string) => f.endsWith(".jsonl"))
@@ -330,7 +348,7 @@ class SessionManager {
         }
 
         const userSettings = userConfigManager.getUserSettings(username);
-        const memoryEnabled = userSettings.memoryEnabled ?? true;
+        const memoryEnabled = overrides?.skipMemory ? false : (userSettings.memoryEnabled ?? true);
         const memoryDbPath = getMemoryDbPath(username, sessionId);
         const memory = await memoryRegistry.get(`session:${sessionId}`, memoryDbPath, memoryEnabled);
 
@@ -345,6 +363,15 @@ class SessionManager {
           resourceLoader,
           contextAgentId: resolvedAgentId,
         });
+
+        let finalCustomTools = customTools;
+        if (overrides?.customTools) {
+          const overrideNames = new Set(overrides.customTools.map(t => t.name));
+          finalCustomTools = [
+            ...overrides.customTools,
+            ...customTools.filter(t => !overrideNames.has(t.name))
+          ];
+        }
 
         let customToolNames: string[] = [];
         try {
@@ -366,6 +393,7 @@ class SessionManager {
           isSubagent,
           parentSessionId: existingMeta ? (existingMeta as any).parentSessionId : undefined,
           username,
+          executionMode: existingMeta ? (existingMeta as any).executionMode : undefined,
         });
 
         const { session } = await createAgentSession({
@@ -374,7 +402,7 @@ class SessionManager {
           authStorage,
           modelRegistry,
           resourceLoader,
-          customTools,
+          customTools: finalCustomTools,
           beforeToolCall,
         });
 
@@ -404,25 +432,29 @@ class SessionManager {
 
         session.setActiveToolsByName(finalTools);
 
-        enrichSessionWithMemory(session, memory);
+        if (!overrides?.skipMemory) {
+          enrichSessionWithMemory(session, memory);
+        }
 
-        (async () => {
-          try {
-            const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
-            if (mcpTools.length > 0) {
-              const sessionAny = session as any;
-              if (sessionAny._customTools) {
-                sessionAny._customTools.push(...mcpTools);
-                if (typeof sessionAny._refreshToolRegistry === "function") {
-                  sessionAny._refreshToolRegistry();
+        if (!overrides?.skipMcpTools) {
+          (async () => {
+            try {
+              const mcpTools = await mcpRegistry.getSessionMcpTools(username, sessionId);
+              if (mcpTools.length > 0) {
+                const sessionAny = session as any;
+                if (sessionAny._customTools) {
+                  sessionAny._customTools.push(...mcpTools);
+                  if (typeof sessionAny._refreshToolRegistry === "function") {
+                    sessionAny._refreshToolRegistry();
+                  }
                 }
+                console.log(`[MCP Dynamic Load] Successfully loaded ${mcpTools.length} tools for session ${sessionId}`);
               }
-              console.log(`[MCP Dynamic Load] Successfully loaded ${mcpTools.length} tools for session ${sessionId}`);
+            } catch (err) {
+              console.error(`[MCP Dynamic Load] Failed to load MCP tools for session ${sessionId}:`, err);
             }
-          } catch (err) {
-            console.error(`[MCP Dynamic Load] Failed to load MCP tools for session ${sessionId}:`, err);
-          }
-        })();
+          })();
+        }
 
         const globalLogUnsub = subscribeSessionEvents({
           session,

@@ -153,7 +153,7 @@ function ApprovalCard({
           </span>
         </div>
 
-        <div className="text-xs text-foreground bg-muted/50 font-mono p-2 rounded-lg border border-border/50 max-h-24 overflow-y-auto whitespace-pre-wrap break-all">
+        <div className="text-xs text-foreground bg-muted/50 font-mono p-2 rounded-lg border border-border/50 max-h-24 overflow-y-auto whitespace-pre-wrap break-words">
           {getToolArgString()}
         </div>
 

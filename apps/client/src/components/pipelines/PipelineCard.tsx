@@ -18,18 +18,17 @@ export function PipelineCard({ pipeline, onDelete, onRun, onNavigate, runningId 
   return (
     <div className="bg-surface border border-border rounded-xl p-6 hover:border-accent/40 hover:bg-surface-hover/20 transition-all group flex flex-col justify-between h-full relative overflow-hidden">
       <div>
-        <div className="flex items-center justify-between mb-3">
-          <div className="flex items-center gap-2">
-            <Layers className="w-5 h-5 text-accent" />
-            <h3 className="text-lg font-bold text-text-primary group-hover:text-accent transition-colors">
-              {pipeline.name}
-            </h3>
-          </div>
-          <span className="text-xs px-2.5 py-1 bg-bg text-text-secondary border border-border rounded-full flex items-center gap-1 font-mono">
-            <FileText className="w-3 h-3" />
-            {pipeline.stages.length} {l.stagesCount}
-          </span>
+        <div className="flex items-center gap-2 mb-2">
+          <Layers className="w-5 h-5 text-accent" />
+          <h3 className="text-lg font-bold text-text-primary group-hover:text-accent transition-colors">
+            {pipeline.name}
+          </h3>
         </div>
+
+        <span className="inline-flex text-xs px-2.5 py-1 bg-bg text-text-secondary border border-border rounded-full items-center gap-1 font-mono mb-3">
+          <FileText className="w-3 h-3" />
+          {pipeline.stages.length} {l.stagesCount}
+        </span>
 
         <p className="text-text-secondary text-sm line-clamp-3 mb-6">
           {pipeline.description || "—"}

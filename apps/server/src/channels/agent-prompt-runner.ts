@@ -283,6 +283,16 @@ export class AgentPromptRunner {
           args: ev.args,
           toolCallId: ev.toolCallId,
         });
+      } else if (evt.type === "tool_execution_update" && channel.showTools) {
+        this.broadcastFn(channelId, {
+          type: "channel_agent_tool_update",
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          agentId: member.agentId,
+          toolCallId: ev.toolCallId,
+          toolName: ev.toolName,
+          partialResult: ev.partialResult,
+        });
       } else if (evt.type === "tool_execution_end" && channel.showTools) {
         const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
         if (stream && stream.toolCalls[ev.toolCallId]) {

@@ -10,6 +10,7 @@ export interface PermissionEngineOptions {
   username?: string;
   sessionId?: string;
   parentSessionId?: string;
+  executionMode?: "readonly" | "standard" | "autonomous";
 }
 
 export interface PermissionRule {
@@ -150,10 +151,12 @@ export class PermissionEngine {
       }
     }
 
-    // 3. Fall back to static ASK rules
-    for (const rule of ASK_RULES) {
-      if (this.matches(rule, toolName, subject)) {
-        return { allow: "ask", reason: rule.reason };
+    // 3. Fall back to static ASK rules (skipped for autonomous mode)
+    if (options?.executionMode !== "autonomous") {
+      for (const rule of ASK_RULES) {
+        if (this.matches(rule, toolName, subject)) {
+          return { allow: "ask", reason: rule.reason };
+        }
       }
     }
 

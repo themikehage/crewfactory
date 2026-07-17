@@ -50,6 +50,12 @@ export function AgentDetailPanel({
     setOutputMode(member.outputMode || "normal");
   }, [member]);
 
+  useEffect(() => {
+    if (role === "lead") {
+      setReplyMode("broadcast");
+    }
+  }, [role]);
+
   const handleSave = async () => {
     setIsSaving(true);
     try {

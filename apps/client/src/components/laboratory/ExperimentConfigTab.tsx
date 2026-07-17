@@ -434,7 +434,7 @@ export function ExperimentConfigTab({ experiment, onUpdate }: Props) {
                         className="text-[11px] bg-bg border border-border rounded-lg p-2.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent font-sans w-full"
                       />
                     ) : (
-                      <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg/70 p-3 rounded-lg border border-border/40 max-h-36 overflow-y-auto leading-relaxed font-sans">
+                      <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-words bg-bg/70 p-3 rounded-lg border border-border/40 max-h-36 overflow-y-auto leading-relaxed font-sans">
                         {ag.systemPrompt}
                       </pre>
                     )}

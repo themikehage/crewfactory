@@ -195,6 +195,7 @@ channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => 
   const memberWithRole = {
     ...data,
     role: data.role || "member",
+    replyMode: data.role === "lead" ? "broadcast" : data.replyMode,
   };
 
   if (existingIndex >= 0) {
@@ -229,12 +230,17 @@ channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSch
   if (index === -1) return c.json({ error: "Member not found in channel" }, 404);
 
   const updatedMembers = [...channel.members];
+  const newRole = data.role !== undefined ? data.role : updatedMembers[index].role;
   updatedMembers[index] = {
     ...updatedMembers[index],
     ...(data.replyMode !== undefined && { replyMode: data.replyMode }),
     ...(data.targetAgentIds !== undefined && { targetAgentIds: data.targetAgentIds }),
     ...(data.role !== undefined && { role: data.role }),
   };
+
+  if (newRole === "lead" && data.replyMode === undefined) {
+    updatedMembers[index].replyMode = "broadcast";
+  }
 
   const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);
   return c.json(updatedChannel);

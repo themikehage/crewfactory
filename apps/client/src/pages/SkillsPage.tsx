@@ -34,9 +34,10 @@ export function SkillsPage() {
     setResetting(true);
     try {
       const res = await apiFetch("/api/skills/reset", {
-        method: "POST"});
+        method: "POST"
+      });
       if (!res.ok) throw new Error(l.loadError);
-      
+
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "skill" } }));
       addToast("success", l.resetSuccess);
     } catch (err: unknown) {
@@ -159,22 +160,20 @@ export function SkillsPage() {
                     setSelectedSkill(s);
                     setMobileShowDetails(true);
                   }}
-                  className={`w-full text-left p-3 rounded-lg transition-all duration-150 cursor-pointer ${
-                    selectedSkill?.name === s.name
+                  className={`w-full text-left p-3 rounded-lg transition-all duration-150 cursor-pointer ${selectedSkill?.name === s.name
                       ? "bg-card text-foreground border border-input/80 shadow"
                       : "text-muted-foreground hover:bg-card/50 hover:text-foreground border border-transparent"
-                  }`}
+                    }`}
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-mono font-bold text-xs truncate max-w-[70%]">
                       {s.name}
                     </span>
                     <span
-                      className={`text-xs px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${
-                        s.scope === "project"
+                      className={`text-xs px-1.5 py-0.5 rounded font-semibold uppercase tracking-wider ${s.scope === "project"
                           ? "bg-primary/10 text-primary"
                           : "bg-highlight/10 text-highlight"
-                      }`}
+                        }`}
                     >
                       {s.scope === "project" ? l.scopeProject : l.scopeUser}
                     </span>
@@ -209,17 +208,16 @@ export function SkillsPage() {
                     <h2 className="text-lg font-bold font-display text-foreground">
                       {selectedSkill.name}
                     </h2>
-                    <p className="text-xs text-muted-foreground font-mono mt-1 break-all">
+                    <p className="text-xs text-muted-foreground font-mono mt-1 break-words">
                       {l.location} {selectedSkill.filePath}
                     </p>
                   </div>
                   <div className="flex items-center gap-2 flex-shrink-0">
                     <span
-                      className={`text-xs px-2 py-0.5 rounded font-semibold uppercase ${
-                        selectedSkill.scope === "project"
+                      className={`text-xs px-2 py-0.5 rounded font-semibold uppercase ${selectedSkill.scope === "project"
                           ? "bg-primary/20 text-primary"
                           : "bg-highlight/20 text-highlight"
-                      }`}
+                        }`}
                     >
                       {selectedSkill.scope === "project" ? l.scopeProjectDetail : l.scopeUserDetail}
                     </span>

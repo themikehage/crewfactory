@@ -10,12 +10,15 @@ interface Props {
   sessionId?: string | null;
   activeChannelId?: string | null;
   streamingRenderMode?: "live" | "complete";
+  onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
+  agentAvatarMap?: Record<string, string | undefined>;
 }
 
 function mapChannelMessagesToStandard(
   messages: ChannelMessage[],
   streamingAgents: Record<string, StreamingAgentState>,
-  streamingRenderMode: "live" | "complete" = "live"
+  streamingRenderMode: "live" | "complete" = "live",
+  agentAvatarMap: Record<string, string | undefined> = {}
 ): any[] {
   const result: any[] = [];
 
@@ -81,6 +84,7 @@ function mapChannelMessagesToStandard(
         role: "assistant",
         content: contentBlocks,
         agentName: msg.agentName || msg.agentId || "Agent",
+        agentAvatarUrl: msg.agentId ? agentAvatarMap[msg.agentId] : undefined,
         timestamp: new Date(msg.createdAt).getTime(),
       });
     }
@@ -169,10 +173,12 @@ export function ChannelMessageList({
   sessionId = null,
   activeChannelId = null,
   streamingRenderMode = "live",
+  onOpenSubagentConsole,
+  agentAvatarMap = {},
 }: Props) {
   const bottomRef = useRef<HTMLDivElement>(null);
 
-  const mappedMessages = mapChannelMessagesToStandard(messages, streamingAgents, streamingRenderMode);
+  const mappedMessages = mapChannelMessagesToStandard(messages, streamingAgents, streamingRenderMode, agentAvatarMap);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -199,6 +205,7 @@ export function ChannelMessageList({
           messages={mappedMessages}
           sessionId={sessionId}
           activeChannelId={activeChannelId}
+          onOpenSubagentConsole={onOpenSubagentConsole}
         />
       )}
       <div ref={bottomRef} />

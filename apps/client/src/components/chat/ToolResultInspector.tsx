@@ -144,14 +144,14 @@ export function HtmlFileFetcher({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null}: {
-  url: string;
-  title: string;
-  sessionId: string | null;
-  activeProjectName?: string | null;
-  activeAgentId?: string | null;
-  activeChannelId?: string | null;
-}) {
+  activeChannelId = null }: {
+    url: string;
+    title: string;
+    sessionId: string | null;
+    activeProjectName?: string | null;
+    activeAgentId?: string | null;
+    activeChannelId?: string | null;
+  }) {
   const [html, setHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -166,8 +166,9 @@ export function HtmlFileFetcher({
     const token = "";
     apiFetch(resolvedUrl, {
       headers: resolvedUrl.startsWith("/api/") && token
-        ? {  }
-        : {}})
+        ? {}
+        : {}
+    })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         return res.text();
@@ -217,13 +218,13 @@ function MediaRenderer({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null}: {
-  markers: FileMarker[];
-  sessionId: string | null;
-  activeProjectName?: string | null;
-  activeAgentId?: string | null;
-  activeChannelId?: string | null;
-}) {
+  activeChannelId = null }: {
+    markers: FileMarker[];
+    sessionId: string | null;
+    activeProjectName?: string | null;
+    activeAgentId?: string | null;
+    activeChannelId?: string | null;
+  }) {
   const imageMarkers = markers.filter((m) => m.type === "image");
   const htmlMarkers = markers.filter((m) => m.type === "html");
   const pdfMarkers = markers.filter((m) => m.type === "pdf");
@@ -248,7 +249,7 @@ function MediaRenderer({
           activeChannelId={activeChannelId}
         />
       ))}
-      
+
       {imageMarkers.length > 0 && (
         <ImageGrid
           images={imageMarkers.map((m) => ({ url: m.url, title: m.title }))}
@@ -353,7 +354,7 @@ export function ToolResultInspector({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null}: Props) {
+  activeChannelId = null }: Props) {
   const [isOpen, setIsOpen] = useState(false);
 
   const resultStr = typeof result === "string"
@@ -394,7 +395,7 @@ export function ToolResultInspector({
       {isOpen && (
         <div className="border-t border-input">
           {args && Object.keys(args).length > 0 && (
-            <div className="px-3 py-1.5 bg-muted border-b border-input/40 text-xs text-muted-foreground font-mono break-all">
+            <div className="px-3 py-1.5 bg-muted border-b border-input/40 text-xs text-muted-foreground font-mono break-words">
               <span className="text-muted-foreground">params:</span>{" "}
               {JSON.stringify(args)}
             </div>

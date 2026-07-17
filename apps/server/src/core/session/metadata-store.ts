@@ -75,6 +75,18 @@ export class SessionMetadataStore {
       return [...AVAILABLE_TOOLS];
     }
   }
+
+  setExecutionMode(username: string, sessionId: string, mode: "readonly" | "standard" | "autonomous"): void {
+    this.saveSessionMetadata(username, sessionId, { executionMode: mode });
+  }
+
+  getExecutionMode(username: string, sessionId: string): "readonly" | "standard" | "autonomous" | undefined {
+    const metadata = this.getSessionMetadata(username, sessionId);
+    if (metadata && (metadata.executionMode === "readonly" || metadata.executionMode === "standard" || metadata.executionMode === "autonomous")) {
+      return metadata.executionMode;
+    }
+    return undefined;
+  }
 }
 
 export const sessionMetadataStore = new SessionMetadataStore();

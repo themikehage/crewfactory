@@ -115,19 +115,18 @@ export function PipelineRunViewer({ pipelineId, runId, onBack }: PipelineRunView
           <h2 className="text-xl font-extrabold text-text-primary flex items-center gap-2">
             {l.runTitle}
             <span
-              className={`text-xs px-2.5 py-0.5 rounded-full border ${
-                run.status === "running"
+              className={`text-xs px-2.5 py-0.5 rounded-full border ${run.status === "running"
                   ? "bg-accent/10 border-accent/20 text-accent animate-pulse"
                   : run.status === "completed"
-                  ? "bg-success/10 border-success/20 text-success"
-                  : "bg-error/10 border-error/20 text-error"
-              }`}
+                    ? "bg-success/10 border-success/20 text-success"
+                    : "bg-error/10 border-error/20 text-error"
+                }`}
             >
               {run.status === "running"
                 ? l.statusRunning
                 : run.status === "completed"
-                ? l.statusCompleted
-                : l.statusFailed}
+                  ? l.statusCompleted
+                  : l.statusFailed}
             </span>
           </h2>
         </div>
@@ -166,11 +165,10 @@ export function PipelineRunViewer({ pipelineId, runId, onBack }: PipelineRunView
               <button
                 key={stage.stageId}
                 onClick={() => setSelectedStageId(stage.stageId)}
-                className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${
-                  isSelected
+                className={`w-full flex items-center justify-between p-3.5 rounded-xl border text-left transition-all ${isSelected
                     ? "bg-surface-hover/20 border-accent text-text-primary"
                     : "bg-surface/40 border-border/60 hover:bg-surface-hover/10 text-text-secondary hover:text-text-primary"
-                }`}
+                  }`}
               >
                 <div className="flex items-center gap-3">
                   <div className="relative flex items-center justify-center">
@@ -200,10 +198,10 @@ export function PipelineRunViewer({ pipelineId, runId, onBack }: PipelineRunView
                       {stage.status === "running"
                         ? l.stageStatusRunning
                         : stage.status === "completed"
-                        ? l.stageStatusCompleted
-                        : stage.status === "failed"
-                        ? l.stageStatusFailed
-                        : l.stageStatusPending}
+                          ? l.stageStatusCompleted
+                          : stage.status === "failed"
+                            ? l.stageStatusFailed
+                            : l.stageStatusPending}
                     </span>
                   </div>
                 </div>
@@ -248,22 +246,20 @@ export function PipelineRunViewer({ pipelineId, runId, onBack }: PipelineRunView
                 <div className="flex border border-border rounded-lg overflow-hidden bg-bg p-0.5">
                   <button
                     onClick={() => setActiveTab("logs")}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
-                      activeTab === "logs"
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${activeTab === "logs"
                         ? "bg-surface text-accent"
                         : "text-text-secondary hover:text-text-primary"
-                    }`}
+                      }`}
                   >
                     <Terminal className="w-3.5 h-3.5" />
                     {l.viewLogs}
                   </button>
                   <button
                     onClick={() => setActiveTab("output")}
-                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${
-                      activeTab === "output"
+                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all flex items-center gap-1.5 ${activeTab === "output"
                         ? "bg-surface text-accent"
                         : "text-text-secondary hover:text-text-primary"
-                    }`}
+                      }`}
                   >
                     <Code className="w-3.5 h-3.5" />
                     {l.parsedOutput}
@@ -274,7 +270,7 @@ export function PipelineRunViewer({ pipelineId, runId, onBack }: PipelineRunView
               {/* Tab Content */}
               <div className="flex-1 overflow-y-auto p-5 bg-bg/40 font-mono text-sm">
                 {activeTab === "logs" ? (
-                  <pre className="whitespace-pre-wrap font-mono text-text-primary leading-relaxed text-xs break-all bg-bg border border-border p-4 rounded-xl max-h-full overflow-y-auto">
+                  <pre className="whitespace-pre-wrap font-mono text-text-primary leading-relaxed text-xs break-words bg-bg border border-border p-4 rounded-xl max-h-full overflow-y-auto">
                     {logs[currentStage.stageId] || currentStage.rawOutput || "No logs generated yet."}
                   </pre>
                 ) : (

@@ -21,6 +21,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - **#5 MEDIUM** → [feature-subagent-extend.md](./feature-subagent-extend.md) — Subagentes sin capacidad de recibir contexto incremental mid-ejecución. Si el padre descubre nueva información, debe cancelar y re-crear. Fix: `extensionQueue` en `AgentSession` + `extend_subagent` tool + integración en AgentLoop.
 - **#6 MEDIUM** → [feature-subagent-promote.md](./feature-subagent-promote.md) — Sin capacidad de transicionar subagentes entre foreground/background en tiempo de ejecución. Fix: `SubagentHandle` con `wait()`/`promote()`/`demote()` + tools `wait_for_subagent`/`promote_subagent`/`demote_subagent` + UI de control de modo.
 
+
 ### Refactoring
 
 - [unify-lab-channel-orchestration.md](./unify-lab-channel-orchestration.md) — Unificar orquestracion del laboratorio con `ChannelOrchestrator`: el lab debe consumir el subsistema de canales como cliente en lugar de reinventar el pipeline completo (gen, channel, dispatch, tokens, destroy). ~500 lineas eliminadas.
@@ -95,9 +96,9 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 ### Channels
 
 - [channel-benchmarks.md](./channel-benchmarks.md) — Benchmarks sobre canales EXISTENTES. Invierte el flujo actual: el canal es el origen, no el destino. Permite validar y optimizar canales reales comparando multi-agente vs single-agent.
-- [channel-delegation-negotiation-v2.md](./channel-delegation-negotiation-v2.md) — Rediseno completo del sistema de delegacion y negociacion en canales. Corrige 5 bugs criticos (delegacion rota, avatares fantasma, tools invisibles, streaming entremezclado, redireccion fuera del canal). Introduce Execution IDs estilo pipeline, diferenciacion semantica DELEGATE vs NEGOTIATE, UI de tarjetas de delegacion con progreso en vivo (@agent tarea [Ver]), y drawer lateral para inspeccionar sub-sesiones sin perder el contexto del canal.
+- [fix-channel-delegation-bugs.md](./fix-channel-delegation-bugs.md) — Quick fixes B1-B4: race condition en delegacion a canal, avatares rotos, tools invisibles, redireccion fuera del canal.
 
 
-## Completados (75)
+## Completados (76)
 
 Ver [COMPLETED/](./COMPLETED/)

@@ -69,7 +69,7 @@ interface Props {
   activeChannelId?: string | null;
   disabled?: boolean;
   serialTools?: string[];
-  onOpenSubagentConsole?: (toolCallId: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
 }
 
 const TOOL_META: Record<string, { label: string; colorClass: string; icon: React.ReactNode }> = {
@@ -463,7 +463,7 @@ function ToolBody({
   activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
-  onOpenSubagentConsole?: (toolCallId: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
   l: Record<string, string>;
 }) {
   const text = result?.content.find(b => b.type === "text")?.text ?? "";
@@ -477,7 +477,7 @@ function ToolBody({
       const expName = details?.name || args.name || "Experimento";
       const agentsCount = details?.agentsCount || (Array.isArray(args.agents) ? args.agents.length : 0);
       const crit = details?.criteria || args.criteria || [];
-      
+
       return (
         <div className="flex flex-col gap-3 p-4 rounded-xl bg-surface border border-border/80 shadow-md">
           <div className="flex items-center justify-between">
@@ -511,27 +511,26 @@ function ToolBody({
         </div>
       );
     }
-    case "spawn_subagent":
+    case "spawn_subagent": {
+      const task = (args.task as string) || "";
       return (
-        <div className="flex items-center justify-between p-1.5 rounded-lg bg-surface border border-border">
-          <span className="text-xs font-semibold text-text-primary">
-            {l.bodySubagentConsole}{" "}
-            {typeof args.subagentRole === "string" ? `(${args.subagentRole})` : ""}
-          </span>
-          {onOpenSubagentConsole && (
-            <button
-              onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="4 17 10 11 4 5" />
-                <line x1="12" y1="19" x2="20" y2="19" />
-              </svg>
-              {l.bodyViewLiveConsole}
-            </button>
-          )}
+        <div className="p-1.5 rounded-lg bg-surface border border-border">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs text-text-primary truncate">
+              {task}
+            </span>
+            {onOpenSubagentConsole && (
+              <button
+                onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
+                className="shrink-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer underline underline-offset-2"
+              >
+                {l.bodySubagentView}
+              </button>
+            )}
+          </div>
         </div>
       );
+    }
     case "delegate_task":
       return (
         <div className="flex items-center justify-between p-1.5 rounded-lg bg-surface border border-border">
@@ -540,7 +539,7 @@ function ToolBody({
           </span>
           {onOpenSubagentConsole && (
             <button
-              onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""))}
+              onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""), String(args.targetType || ""), String(args.targetId || ""))}
               className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
             >
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
@@ -591,7 +590,7 @@ function ToolBody({
       return (
         <div className="flex flex-col gap-2">
           {text && (
-            <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
+            <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-words bg-bg p-3 rounded-md border border-border/40 max-h-48 overflow-y-auto">
               {text}
             </pre>
           )}
@@ -665,7 +664,7 @@ function ToolBody({
         return <CustomToolBody ui={uiDef} presentation={presentation} sessionId={sessionId || null} />;
       }
       return (
-        <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-all bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
+        <pre className="text-[11px] font-mono text-muted-foreground whitespace-pre-wrap break-words bg-muted p-3 rounded-md max-h-48 overflow-y-auto">
           {text}
         </pre>
       );
@@ -793,10 +792,9 @@ export function ToolCallRow({
   const isFullBleed = toolName === "render_html" || toolName === "render_chart";
 
   return (
-    <div className={`my-1.5 rounded-lg border overflow-hidden transition-all ${
-      disabled ? "border-input/30 bg-card/25 opacity-60 select-none pointer-events-none" :
-      hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
-    }`}>
+    <div className={`my-1.5 rounded-lg border overflow-hidden transition-all ${disabled ? "border-input/30 bg-card/25 opacity-60 select-none pointer-events-none" :
+        hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
+      }`}>
       <button
         onClick={() => !disabled && setExpanded(!expanded)}
         disabled={disabled}
@@ -807,6 +805,12 @@ export function ToolCallRow({
         <span className={`font-mono font-bold text-xs flex-shrink-0 ${meta.colorClass}`}>
           {labelText}
         </span>
+
+        {toolName === "spawn_subagent" && (
+          <span className="text-[10px] font-mono uppercase tracking-wider text-text-secondary bg-surface-hover px-1.5 py-0.5 rounded flex-shrink-0">
+            {(args.subagentType as string) || "builder"}
+          </span>
+        )}
 
         <span className="font-mono text-[11px] text-muted-foreground truncate min-w-0 flex-1">
           {argSummary}

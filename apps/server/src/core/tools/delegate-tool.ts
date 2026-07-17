@@ -4,7 +4,7 @@ import { channelStore } from "../../channels/channel-store";
 import { channelOrchestrator } from "../../channels/channel-orchestrator";
 import type { ModelRegistry, AuthStorage, DefaultResourceLoader } from "../../ai";
 import { SessionPrefix } from "shared";
-import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
+import { parseEnvelope, forwardSubagentEvents, forwardChannelEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
 import { AbortToken } from "../abort-token";
 import { getAppConfig } from "../../config/app-config";
@@ -164,7 +164,13 @@ Allows keeping parent context clean by returning a structured summary instead of
               delegationRegistry.abortAllRecursive(delegateSessionId);
             }, `channel:${targetId}`);
 
-            await channelOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
+            const unsub = forwardChannelEvents(targetId, parentSessionId, delegateSessionId, toolCallId);
+
+            try {
+              await channelOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
+            } finally {
+              unsub();
+            }
 
             const channelMessages = channelStore.getMessages(username, targetId, 100, delegateSessionId);
             const lastAgentMsg = [...channelMessages].reverse().find(m => m.role === "agent");

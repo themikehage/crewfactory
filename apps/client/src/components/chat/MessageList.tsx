@@ -84,7 +84,7 @@ interface Props {
   activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
   serialTools?: string[];
-  onOpenSubagentConsole?: (toolCallId: string) => void;
+  onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
   settledApprovals?: Record<string, "confirm" | "deny">;
   onResolveApproval?: (toolCallId: string, action: "confirm" | "deny") => void;
 }
@@ -171,18 +171,18 @@ function AgentTurn({
   activeAgentAvatarUrl,
   activeChannelId,
   serialTools = [],
-  onOpenSubagentConsole}: {
-  messages: Message[];
-  sessionId: string | null;
-  onNavigate?: (id: string) => void;
-  activeProjectName?: string | null;
-  activeAgentId?: string | null;
-  activeAgentName?: string | null;
-  activeAgentAvatarUrl?: string | null;
-  activeChannelId?: string | null;
-  serialTools?: string[];
-  onOpenSubagentConsole?: (toolCallId: string) => void;
-}) {
+  onOpenSubagentConsole }: {
+    messages: Message[];
+    sessionId: string | null;
+    onNavigate?: (id: string) => void;
+    activeProjectName?: string | null;
+    activeAgentId?: string | null;
+    activeAgentName?: string | null;
+    activeAgentAvatarUrl?: string | null;
+    activeChannelId?: string | null;
+    serialTools?: string[];
+    onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
+  }) {
   const toolResultMap = new Map<string, Message>();
   for (const m of messages) {
     if ((m.role === "toolResult" || m.role === "tool_result") && m.toolCallId) {
@@ -274,12 +274,13 @@ function AgentTurn({
                   const matchedResult = toolResultMap.get(block.id);
                   const resultData: ToolResultData | null = matchedResult
                     ? {
-                        toolName: matchedResult.toolName ?? block.name,
-                        content: Array.isArray(matchedResult.content)
-                          ? (matchedResult.content as Array<{ type: string; text?: string; data?: string; mimeType?: string }>)
-                          : [{ type: "text", text: String(matchedResult.content) }],
-                        isError: matchedResult.isError ?? false,
-                        details: matchedResult.details}
+                      toolName: matchedResult.toolName ?? block.name,
+                      content: Array.isArray(matchedResult.content)
+                        ? (matchedResult.content as Array<{ type: string; text?: string; data?: string; mimeType?: string }>)
+                        : [{ type: "text", text: String(matchedResult.content) }],
+                      isError: matchedResult.isError ?? false,
+                      details: matchedResult.details
+                    }
                     : null;
 
                   const isPending = pendingInteractiveIds.includes(block.id);
@@ -353,7 +354,8 @@ function extractUserAttachments(text: string): UserAttachment[] {
     attachments.push({
       path,
       name,
-      type: getFileType(path)});
+      type: getFileType(path)
+    });
   }
   return attachments;
 }
@@ -370,17 +372,20 @@ function DelegationNotification({ msg }: { msg: Message }) {
     success: "border-l-green-500/60",
     error: "border-l-red-500/60",
     blocked: "border-l-yellow-500/60",
-    partial: "border-l-yellow-500/60"};
+    partial: "border-l-yellow-500/60"
+  };
   const dotColors: Record<string, string> = {
     success: "bg-green-500",
     error: "bg-red-500",
     blocked: "bg-yellow-500",
-    partial: "bg-yellow-500"};
+    partial: "bg-yellow-500"
+  };
   const statusLabels: Record<string, string> = {
     success: "Completed",
     error: "Error",
     blocked: "Blocked",
-    partial: "Partial"};
+    partial: "Partial"
+  };
 
   const status = (d.status as string) || "success";
   const borderColor = borderColors[status] || "border-l-accent/60";
@@ -394,8 +399,8 @@ function DelegationNotification({ msg }: { msg: Message }) {
   const text = typeof msg.content === "string"
     ? msg.content
     : Array.isArray(msg.content)
-    ? (msg.content as ContentBlock[]).map(b => b.text ?? "").join(" ")
-    : "";
+      ? (msg.content as ContentBlock[]).map(b => b.text ?? "").join(" ")
+      : "";
 
   const bodyLines = text.split("\n").filter(l => l.trim());
   const outputText = hasOutputText ? bodyLines.slice(1).join("\n").trim() : "";
@@ -441,19 +446,19 @@ function UserBubble({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null}: {
-  msg: Message;
-  onNavigate?: (id: string) => void;
-  sessionId: string | null;
-  activeProjectName?: string | null;
-  activeAgentId?: string | null;
-  activeChannelId?: string | null;
-}) {
+  activeChannelId = null }: {
+    msg: Message;
+    onNavigate?: (id: string) => void;
+    sessionId: string | null;
+    activeProjectName?: string | null;
+    activeAgentId?: string | null;
+    activeChannelId?: string | null;
+  }) {
   const rawText = typeof msg.content === "string"
     ? msg.content
     : Array.isArray(msg.content)
-    ? (msg.content as ContentBlock[]).map(b => b.text ?? "").join(" ")
-    : "";
+      ? (msg.content as ContentBlock[]).map(b => b.text ?? "").join(" ")
+      : "";
 
   const attachments = extractUserAttachments(rawText);
   const cleanText = cleanUserMessageText(rawText);
@@ -468,13 +473,13 @@ function UserBubble({
       <div className="max-w-[80%] sm:max-w-[75%] space-y-2 flex flex-col items-end">
         {cleanText && (
           <div className="bg-card border border-border rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm text-right max-w-full overflow-hidden">
-            <p className="text-base md:text-sm leading-relaxed whitespace-pre-wrap break-all break-word font-sans text-left">{cleanText}</p>
+            <p className="text-base md:text-sm leading-relaxed whitespace-pre-wrap break-words break-word font-sans text-left">{cleanText}</p>
             {msg.isError && (
               <div className="mt-1.5 text-xs text-error">Error sending message</div>
             )}
           </div>
         )}
-        
+
         {images.length > 0 && (
           <div className="max-w-[550px] w-full">
             <ImageGrid
@@ -529,11 +534,11 @@ function UserBubble({
 function ToolApprovalCard({
   msg,
   onResolve,
-  settledAction}: {
-  msg: Message;
-  onResolve?: (toolCallId: string, action: "confirm" | "deny") => void;
-  settledAction?: "confirm" | "deny";
-}) {
+  settledAction }: {
+    msg: Message;
+    onResolve?: (toolCallId: string, action: "confirm" | "deny") => void;
+    settledAction?: "confirm" | "deny";
+  }) {
   const toolCallId = msg.toolCallId!;
   const toolName = msg.toolName || "tool";
   const reason = typeof msg.content === "string" ? msg.content : "Action requires approval";
@@ -559,20 +564,19 @@ function ToolApprovalCard({
         {Object.keys(args).length > 0 && (
           <div className="p-2.5 bg-[#121212] border border-border/50 rounded-lg text-xs font-mono overflow-x-auto max-w-full text-text-primary">
             {toolName === "bash" && args.command ? (
-              <pre className="whitespace-pre-wrap break-all text-xs text-green-400">$ {args.command}</pre>
+              <pre className="whitespace-pre-wrap break-words text-xs text-green-400">$ {args.command}</pre>
             ) : (
-              <pre className="whitespace-pre-wrap break-all text-xs">{JSON.stringify(args, null, 2)}</pre>
+              <pre className="whitespace-pre-wrap break-words text-xs">{JSON.stringify(args, null, 2)}</pre>
             )}
           </div>
         )}
 
         <div className="flex items-center gap-2 mt-1">
           {settledAction ? (
-            <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg border font-mono ${
-              settledAction === "confirm"
+            <div className={`text-xs font-semibold px-3 py-1.5 rounded-lg border font-mono ${settledAction === "confirm"
                 ? "bg-green-500/10 text-green-400 border-green-500/20"
                 : "bg-red-500/10 text-red-400 border-red-500/20"
-            }`}>
+              }`}>
               {settledAction === "confirm" ? "✓ Approved" : "✗ Denied"}
             </div>
           ) : (
@@ -611,7 +615,7 @@ export const MessageList: FC<Props> = ({
   serialTools,
   onOpenSubagentConsole,
   settledApprovals,
-  onResolveApproval}) => {
+  onResolveApproval }) => {
   if (messages.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center h-64 gap-3 text-muted-foreground">
@@ -669,14 +673,14 @@ export const MessageList: FC<Props> = ({
                 settledAction={
                   (group.msg.toolCallId && toolResultMap.has(group.msg.toolCallId))
                     ? (
-                        (
-                          typeof toolResultMap.get(group.msg.toolCallId!)?.content === "string" &&
-                          (toolResultMap.get(group.msg.toolCallId!)?.content as string).includes("[Permission Denied]")
-                        ) || (
+                      (
+                        typeof toolResultMap.get(group.msg.toolCallId!)?.content === "string" &&
+                        (toolResultMap.get(group.msg.toolCallId!)?.content as string).includes("[Permission Denied]")
+                      ) || (
                           Array.isArray(toolResultMap.get(group.msg.toolCallId!)?.content) &&
                           (toolResultMap.get(group.msg.toolCallId!)?.content as any[]).some(c => c.text && c.text.includes("[Permission Denied]"))
                         ) ? "deny" : "confirm"
-                      )
+                    )
                     : (group.msg.toolCallId ? settledApprovals?.[group.msg.toolCallId] : undefined)
                 }
               />

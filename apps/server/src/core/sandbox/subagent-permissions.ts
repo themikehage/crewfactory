@@ -93,6 +93,15 @@ function getBaseRulesForType(subagentType?: string): ToolPermissionRule[] {
       return rule;
     });
   }
+  if (subagentType === "autonomous") {
+    // Autonomous allows modification tools without asking
+    return defaults.map(rule => {
+      if (["write", "edit", "bash"].includes(rule.toolName)) {
+        return { ...rule, action: "allow" as const };
+      }
+      return rule;
+    });
+  }
   return defaults;
 }
 
@@ -108,8 +117,16 @@ export function buildSubagentRules(
 ): ToolPermissionRule[] {
   const rules: ToolPermissionRule[] = [];
 
+  let resolvedType = subagentType;
+  if (!resolvedType) {
+    const meta = sessionMetadataStore.getSessionMetadata(username, subagentSessionId);
+    if (meta && typeof meta.subagentType === "string") {
+      resolvedType = meta.subagentType;
+    }
+  }
+
   // 1. Defaults for this subagent type
-  rules.push(...getBaseRulesForType(subagentType));
+  rules.push(...getBaseRulesForType(resolvedType));
 
   // 2. Parent constraints
   if (parentSessionId) {

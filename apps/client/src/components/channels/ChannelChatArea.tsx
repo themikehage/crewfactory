@@ -11,7 +11,7 @@ import { ChannelSettingsModal } from "./ChannelSettingsModal";
 import { useRouter } from "@/hooks/useRouter";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChannelChatArea.literals";
-import { buildCreateSessionBody, getSessionName } from "@/lib/session-utils";
+import { buildCreateSessionBody, getSessionName, getSessionPath } from "@/lib/session-utils";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
@@ -127,6 +127,23 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
     await fetchChannel();
   };
 
+  const handleOpenSubagentConsole = (toolCallId: string, targetType?: string, targetId?: string) => {
+    const prefix = targetType === "delegate" || targetType === "channel" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
+    const subSessionId = `${prefix}_${toolCallId}`;
+
+    let context: any = { activeChannel };
+
+    if (targetType && targetId) {
+      context = {
+        activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
+        activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
+        activeProjectName: targetType === "project" ? targetId : null,
+      };
+    }
+
+    navigate(getSessionPath(subSessionId, context));
+  };
+
   const handleSend = (text: string) => {
     if (!text.trim()) return;
     sendMessage(text.trim());
@@ -134,6 +151,13 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
 
   const leadMember = channelMembers.find((m) => m.role === "lead");
   const leadAgent = leadMember ? registeredAgents.find((a) => a.id === leadMember.agentId) : null;
+
+  const agentAvatarMap = registeredAgents.reduce((acc, agent) => {
+    if (agent.id && agent.avatarUrl) {
+      acc[agent.id] = agent.avatarUrl;
+    }
+    return acc;
+  }, {} as Record<string, string>);
 
   return (
     <div className="flex-1 flex flex-col h-full bg-background overflow-hidden relative">
@@ -233,6 +257,8 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
           sessionId={sessionId}
           activeChannelId={activeChannel.id}
           streamingRenderMode={channel?.streamingRenderMode ?? "live"}
+          onOpenSubagentConsole={handleOpenSubagentConsole}
+          agentAvatarMap={agentAvatarMap}
         />
 
         {isStreaming && channel?.streamingRenderMode === "complete" && (

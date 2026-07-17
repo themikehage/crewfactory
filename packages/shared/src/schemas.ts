@@ -48,6 +48,7 @@ export type ToolName = typeof AVAILABLE_TOOLS[number];
 
 export const ToolPermissionsSchema = z.object({
   tools: z.array(z.string().min(1)),
+  executionMode: z.enum(["readonly", "standard", "autonomous"]).optional(),
 });
 export type ToolPermissions = z.infer<typeof ToolPermissionsSchema>;
 

@@ -6,12 +6,13 @@ import { literals as u } from "./ChatInput.literals";
 
 interface ToolsPopoverProps {
   activeTools: string[];
-  onChange: (tools: string[]) => void;
+  onChange: (tools: string[], executionMode?: "readonly" | "standard" | "autonomous") => void;
   open: boolean;
   onClose: () => void;
   triggerRef: React.RefObject<HTMLButtonElement | null>;
   toolStatus?: Record<string, "available" | "missing_key">;
   disabled?: boolean;
+  executionMode?: "readonly" | "standard" | "autonomous";
 }
 
 export function ToolsPopover({
@@ -22,6 +23,7 @@ export function ToolsPopover({
   triggerRef,
   toolStatus = {},
   disabled = false,
+  executionMode,
 }: ToolsPopoverProps) {
   const l = useLiterals(u);
   const popoverRef = useRef<HTMLDivElement>(null);
@@ -64,43 +66,45 @@ export function ToolsPopover({
     } else {
       next = [...activeTools, toolId];
     }
-    onChange(next);
+    onChange(next, executionMode);
   };
 
-  const applyPreset = (preset: "full" | "readonly") => {
-    if (preset === "full") {
+  const applyPreset = (preset: "autonomous" | "standard" | "readonly") => {
+    if (preset === "autonomous") {
       const available = ALL_TOOLS.filter(
         (t) => !(t.gateKey && toolStatus?.[t.id] === "missing_key")
       ).map((t) => t.id);
-      onChange(available);
+      onChange(available, "autonomous");
+    } else if (preset === "standard") {
+      onChange(["read", "write", "edit", "bash", "grep", "find", "ls", "request_approval", "ask_question"], "standard");
     } else {
-      onChange(["read", "grep", "find", "ls"]);
+      onChange(["read", "grep", "find", "ls"], "readonly");
     }
   };
 
-  const isReadOnly =
+  const isReadOnly = executionMode === "readonly" || (
     activeTools.includes("read") &&
     activeTools.includes("grep") &&
     activeTools.includes("find") &&
     activeTools.includes("ls") &&
     !activeTools.includes("write") &&
     !activeTools.includes("edit") &&
-    !activeTools.includes("bash");
+    !activeTools.includes("bash")
+  );
 
-  const isFullAccess = ALL_TOOLS.filter(
-    (t) => !(t.gateKey && toolStatus?.[t.id] === "missing_key")
-  ).every((t) => activeTools.includes(t.id));
+  const isAutonomous = executionMode === "autonomous";
+  const isStandard = executionMode === "standard" || (!isReadOnly && !isAutonomous);
 
   return (
     <PortalPopover triggerRef={triggerRef} open={open} onClose={onClose}>
       <div ref={popoverRef} className="w-80 max-h-96 overflow-hidden bg-[#171717] border border-border rounded-xl shadow-xl flex flex-col">
-        <div className="flex gap-2 p-2 border-b border-border bg-[#171717] shrink-0">
+        <div className="flex gap-1.5 p-2 border-b border-border bg-[#171717] shrink-0">
           <button
             type="button"
-            onClick={() => applyPreset("full")}
+            onClick={() => applyPreset("autonomous")}
             disabled={disabled}
-            className={`flex-1 text-center py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
-              isFullAccess
+            className={`flex-1 text-center py-1 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${
+              isAutonomous
                 ? "bg-primary/20 text-primary border border-primary/20"
                 : "bg-[#121212] border border-border/30 hover:bg-[#202020] text-muted-foreground"
             }`}
@@ -109,9 +113,21 @@ export function ToolsPopover({
           </button>
           <button
             type="button"
+            onClick={() => applyPreset("standard")}
+            disabled={disabled}
+            className={`flex-1 text-center py-1 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${
+              isStandard
+                ? "bg-primary/20 text-primary border border-primary/20"
+                : "bg-[#121212] border border-border/30 hover:bg-[#202020] text-muted-foreground"
+            }`}
+          >
+            {l.standard || "Standard"}
+          </button>
+          <button
+            type="button"
             onClick={() => applyPreset("readonly")}
             disabled={disabled}
-            className={`flex-1 text-center py-1 rounded-lg text-xs font-semibold cursor-pointer transition-colors ${
+            className={`flex-1 text-center py-1 rounded-lg text-[10px] font-semibold cursor-pointer transition-colors ${
               isReadOnly
                 ? "bg-primary/20 text-primary border border-primary/20"
                 : "bg-[#121212] border border-border/30 hover:bg-[#202020] text-muted-foreground"

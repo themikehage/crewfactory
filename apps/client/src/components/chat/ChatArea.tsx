@@ -696,9 +696,22 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     activeAgentAvatarUrl={activeAgent?.avatarUrl}
                     activeChannelId={activeChannel?.id}
                     serialTools={serialTools}
-                    onOpenSubagentConsole={(toolCallId: string) => {
-                      navigate(getSessionPath(`sub_${toolCallId}`, { activeChannel, activeAgent, activeProjectName }));
-                    }}
+                     onOpenSubagentConsole={(toolCallId: string, targetType?: string, targetId?: string) => {
+                       const prefix = targetType === "delegate" || targetType === "channel" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
+                       const subSessionId = `${prefix}_${toolCallId}`;
+
+                       let context: any = { activeChannel, activeAgent, activeProjectName };
+
+                       if (targetType && targetId) {
+                         context = {
+                           activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
+                           activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
+                           activeProjectName: targetType === "project" ? targetId : null,
+                         };
+                       }
+
+                       navigate(getSessionPath(subSessionId, context));
+                     }}
                     settledApprovals={settledApprovals}
                     onResolveApproval={handleResolveApproval}
                   />

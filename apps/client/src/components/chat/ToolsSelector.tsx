@@ -32,12 +32,13 @@ export const ALL_TOOLS: ToolDefinition[] = [
 
 interface Props {
   activeTools: string[];
-  onChange: (tools: string[]) => void;
+  onChange: (tools: string[], executionMode?: "readonly" | "standard" | "autonomous") => void;
   disabled?: boolean;
   toolStatus?: Record<string, "available" | "missing_key">;
+  executionMode?: "readonly" | "standard" | "autonomous";
 }
 
-export function ToolsSelector({ activeTools, onChange, disabled = false, toolStatus }: Props) {
+export function ToolsSelector({ activeTools, onChange, disabled = false, toolStatus, executionMode }: Props) {
   const l = useLiterals(u);
   const [open, setOpen] = useState(false);
 
@@ -48,31 +49,37 @@ export function ToolsSelector({ activeTools, onChange, disabled = false, toolSta
     } else {
       next = [...activeTools, toolId];
     }
-    onChange(next);
+    onChange(next, executionMode);
   };
 
-  const applyPreset = (preset: "full" | "readonly") => {
-    if (preset === "full") {
+  const applyPreset = (preset: "autonomous" | "standard" | "readonly") => {
+    if (preset === "autonomous") {
       const available = ALL_TOOLS.filter((t) => !(t.gateKey && toolStatus?.[t.id] === "missing_key")).map((t) => t.id);
-      onChange(available);
+      onChange(available, "autonomous");
+    } else if (preset === "standard") {
+      const standardTools = ["read", "write", "edit", "bash", "grep", "find", "ls", "request_approval", "ask_question"];
+      onChange(standardTools, "standard");
     } else {
-      onChange(["read", "grep", "find", "ls"]);
+      onChange(["read", "grep", "find", "ls"], "readonly");
     }
   };
 
-  const isReadOnly =
+  const isReadOnly = executionMode === "readonly" || (
     activeTools.includes("read") &&
     activeTools.includes("grep") &&
     activeTools.includes("find") &&
     activeTools.includes("ls") &&
     !activeTools.includes("write") &&
     !activeTools.includes("edit") &&
-    !activeTools.includes("bash");
+    !activeTools.includes("bash")
+  );
 
-  const isFullAccess = ALL_TOOLS.every((t) => activeTools.includes(t.id));
+  const isAutonomous = executionMode === "autonomous";
+  const isStandard = executionMode === "standard" || (!isReadOnly && !isAutonomous);
 
   let statusLabel = `${activeTools.length}/${ALL_TOOLS.length} tools`;
-  if (isFullAccess) statusLabel = l.fullAccess;
+  if (isAutonomous) statusLabel = l.fullAccess; // displays Autonomous
+  else if (isStandard) statusLabel = l.standard || "Standard";
   else if (isReadOnly) statusLabel = l.readOnly;
   else if (activeTools.length === 0) statusLabel = l.restricted;
 
@@ -102,12 +109,20 @@ export function ToolsSelector({ activeTools, onChange, disabled = false, toolSta
         <div className="p-2 bg-card">
           <div className="px-1.5 pb-2 flex gap-2 border-b border-input mb-2">
             <button
-              onClick={() => applyPreset("full")}
+              onClick={() => applyPreset("autonomous")}
               className={`px-2 py-0.5 rounded transition-colors cursor-pointer text-xs ${
-                isFullAccess ? "bg-primary/20 text-primary font-semibold" : "text-muted-foreground hover:text-foreground bg-card-hover"
+                isAutonomous ? "bg-primary/20 text-primary font-semibold" : "text-muted-foreground hover:text-foreground bg-card-hover"
               }`}
             >
-              Full
+              {l.fullAccess}
+            </button>
+            <button
+              onClick={() => applyPreset("standard")}
+              className={`px-2 py-0.5 rounded transition-colors cursor-pointer text-xs ${
+                isStandard ? "bg-primary/20 text-primary font-semibold" : "text-muted-foreground hover:text-foreground bg-card-hover"
+              }`}
+            >
+              {l.standard || "Standard"}
             </button>
             <button
               onClick={() => applyPreset("readonly")}
@@ -115,7 +130,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false, toolSta
                 isReadOnly ? "bg-primary/20 text-primary font-semibold" : "text-muted-foreground hover:text-foreground bg-card-hover"
               }`}
             >
-              Read-Only
+              {l.readOnly}
             </button>
           </div>
           <div className="space-y-2">

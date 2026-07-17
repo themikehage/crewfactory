@@ -54,7 +54,7 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
       ]);
       const pipeData = await pipeRes.json();
       const runsData = await runsRes.json();
-      
+
       setPipeline(pipeData.pipeline);
       setScripts(pipeData.scripts || {});
       setRuns(runsData.runs || []);
@@ -87,15 +87,15 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
       const res = await apiFetch(`/api/pipelines/${pipelineId}/run`, { method: "POST" });
       const data = await res.json();
       addToast("success", l.triggerSuccess);
-      
+
       // UI Entity Refresh Trigger
       await apiFetch("/api/factory", {
         method: "POST",
         body: JSON.stringify({ entity: "pipelines", action: "upsert", id: pipelineId }),
-      }).catch(() => {});
+      }).catch(() => { });
 
       refreshRuns();
-      
+
       // Auto navigate to the run progress screen
       if (data.runId) {
         onNavigate(`/pipelines/${pipelineId}/runs/${data.runId}`);
@@ -192,21 +192,19 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
       <div className="flex border-b border-border">
         <button
           onClick={() => setActiveTab("definition")}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all ${
-            activeTab === "definition"
+          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === "definition"
               ? "border-accent text-accent"
               : "border-transparent text-text-secondary hover:text-text-primary"
-          }`}
+            }`}
         >
           {l.definitionTab}
         </button>
         <button
           onClick={() => setActiveTab("runs")}
-          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all ${
-            activeTab === "runs"
+          className={`px-5 py-3 text-sm font-bold border-b-2 transition-all ${activeTab === "runs"
               ? "border-accent text-accent"
               : "border-transparent text-text-secondary hover:text-text-primary"
-          }`}
+            }`}
         >
           {l.runsTab} ({runs.length})
         </button>
@@ -242,18 +240,17 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
                     </div>
 
                     <span
-                      className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${
-                        stage.type === "script"
+                      className={`text-[10px] uppercase font-bold tracking-wider px-2 py-0.5 rounded border ${stage.type === "script"
                           ? "bg-blue-500/10 border-blue-500/20 text-blue-400"
                           : "bg-purple-500/10 border-purple-500/20 text-purple-400"
-                      }`}
+                        }`}
                     >
                       {stage.type}
                     </span>
                   </div>
 
                   {stage.type === "script" ? (
-                    <div className="flex flex-col gap-1.5 bg-bg/60 p-3.5 rounded-xl border border-border/40 font-mono text-xs text-text-primary break-all">
+                    <div className="flex flex-col gap-1.5 bg-bg/60 p-3.5 rounded-xl border border-border/40 font-mono text-xs text-text-primary break-words">
                       <div className="flex items-center gap-1.5 text-text-secondary text-[10px] font-bold uppercase mb-1">
                         <FileCode2 className="w-3.5 h-3.5 text-blue-400" />
                         Script execution instruction:
@@ -352,13 +349,12 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
                         <td className="p-4 font-mono text-xs">{run.id.slice(0, 15)}...</td>
                         <td className="p-4">
                           <span
-                            className={`text-xs px-2.5 py-0.5 rounded-full border font-bold ${
-                              run.status === "running"
+                            className={`text-xs px-2.5 py-0.5 rounded-full border font-bold ${run.status === "running"
                                 ? "bg-accent/10 border-accent/20 text-accent animate-pulse"
                                 : run.status === "completed"
-                                ? "bg-success/10 border-success/20 text-success"
-                                : "bg-error/10 border-error/20 text-error"
-                            }`}
+                                  ? "bg-success/10 border-success/20 text-success"
+                                  : "bg-error/10 border-error/20 text-error"
+                              }`}
                           >
                             {run.status}
                           </span>

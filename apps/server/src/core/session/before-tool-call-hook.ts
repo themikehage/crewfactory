@@ -1,15 +1,17 @@
 import { permissionEngine, userPermissionStore, extractSubject } from "../sandbox";
 import { approvalManager } from "../approvals/approval-manager";
 import { SessionPrefix } from "shared";
+import { sessionMetadataStore } from "./metadata-store";
 
 export interface CreateBeforeToolCallHookParams {
   sessionId: string;
   isSubagent?: boolean;
   parentSessionId?: string;
   username?: string;
+  executionMode?: "readonly" | "standard" | "autonomous";
 }
 
-export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionId, username }: CreateBeforeToolCallHookParams) {
+export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionId, username, executionMode }: CreateBeforeToolCallHookParams) {
   const resolvedIsSubagent = isSubagent || sessionId.startsWith(SessionPrefix.SUBAGENT) || sessionId.startsWith(SessionPrefix.DELEGATE);
 
   return async (context: any, signal?: AbortSignal): Promise<any> => {
@@ -18,11 +20,16 @@ export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionI
 
     const resolvedUsername = username || "default_user";
 
+    // Read from session metadata if not explicitly provided
+    const resolvedMode = executionMode 
+      ?? (sessionMetadataStore.getSessionMetadata(resolvedUsername, sessionId)?.executionMode as any);
+
     const verdict = permissionEngine.evaluate(toolName, args as Record<string, unknown>, {
       isSubagent: resolvedIsSubagent,
       username: resolvedUsername,
       sessionId,
       parentSessionId,
+      executionMode: resolvedMode,
     });
     if (verdict.allow === false) {
       return { block: true, reason: `[Permission Denied] ${verdict.reason}` };

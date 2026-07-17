@@ -14,7 +14,39 @@ export const sessionSockets = wsRegistry.sessionSockets;
 export const userSockets = wsRegistry.userSockets;
 export const channelSockets = wsRegistry.channelSockets;
 
+interface ChannelInterceptor {
+  channelId: string;
+  sessionId: string;
+  callback: (data: any) => void;
+}
+
+const channelInterceptors = new Set<ChannelInterceptor>();
+
+export function registerChannelInterceptor(
+  channelId: string,
+  sessionId: string,
+  callback: (data: any) => void
+): () => void {
+  const interceptor = { channelId, sessionId, callback };
+  channelInterceptors.add(interceptor);
+  return () => {
+    channelInterceptors.delete(interceptor);
+  };
+}
+
 export function broadcastToChannel(channelId: string, data: any): void {
+  if (data && data.sessionId) {
+    for (const interceptor of channelInterceptors) {
+      if (interceptor.channelId === channelId && interceptor.sessionId === data.sessionId) {
+        try {
+          interceptor.callback(data);
+        } catch (err) {
+          console.error("[WS] channelInterceptor callback failed:", err);
+        }
+      }
+    }
+  }
+
   const sockets = wsRegistry.channelSockets.get(channelId);
   if (sockets) {
     const payload = JSON.stringify(data);
@@ -58,6 +90,9 @@ export function broadcastToSession(sessionId: string, data: any): void {
 
 setChannelBroadcastHandler(broadcastToChannel);
 setEventBroadcaster(broadcastToUser);
+
+import { setWsHandlerBridge } from "../core/agent-utils";
+setWsHandlerBridge(registerChannelInterceptor, broadcastToSession);
 
 // Legacy compatibility shims - these are now handled by factory
 // but we keep exported functions for any direct imports.

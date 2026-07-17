@@ -15,13 +15,16 @@ export function usePipelineRun(pipelineId: string, runId: string) {
     setLoading(true);
     
     apiFetch(`/api/pipelines/${pipelineId}/runs/${runId}`)
-      .then((res: any) => {
+      .then((res) => res.json())
+      .then((data) => {
         if (active) {
-          setRun(res.run);
+          setRun(data.run);
           setLoading(false);
           const initialLogs: Record<string, string> = {};
-          for (const s of res.run.stageResults) {
-            initialLogs[s.stageId] = s.rawOutput || "";
+          if (data.run) {
+            for (const s of data.run.stageResults) {
+              initialLogs[s.stageId] = s.rawOutput || "";
+            }
           }
           logsRef.current = initialLogs;
           setLogs(initialLogs);

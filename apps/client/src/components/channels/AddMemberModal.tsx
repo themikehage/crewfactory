@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import type { AgentInfo, AddMember, ReplyMode, ChannelRole } from "shared";
 import { useLiterals } from "@/lib";
@@ -25,6 +25,12 @@ const l = useLiterals(u);
   const [role, setRole] = useState<ChannelRole>("member");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (role === "lead") {
+      setReplyMode("broadcast");
+    }
+  }, [role]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

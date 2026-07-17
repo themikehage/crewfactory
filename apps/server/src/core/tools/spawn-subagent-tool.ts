@@ -2,10 +2,8 @@ import { existsSync, mkdirSync, writeFileSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { createProgrammaticSessionSync } from "../../auth/onboarding";
 import {
-  createAgentSession,
   AuthStorage,
   ModelRegistry,
-  SessionManager as VendoredSessionManager,
   DefaultResourceLoader,
   createBashToolDefinition,
 } from "../../ai";
@@ -16,11 +14,10 @@ import { assemblePromptAppends } from "../prompts/prompt-assembly";
 import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
 import { delegationRegistry } from "../delegation-registry";
-import { createBeforeToolCallHook } from "../session/before-tool-call-hook";
 import { AbortToken } from "../abort-token";
 import { getAppConfig } from "../../config/app-config";
 import { getSubagentDepth } from "../session/session-depth";
-import { buildSubagentRules, evaluateSubagentRules } from "../sandbox";
+import { buildSubagentRules } from "../sandbox";
 
 export interface SpawnSubagentOptions {
   workspaceDir: string;
@@ -54,8 +51,8 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         },
         subagentType: {
           type: "string",
-          enum: ["explorer", "builder"],
-          description: "Optional subagent type. 'explorer' is restricted to read-only tools, while 'builder' is permitted to edit files and run commands (subject to authorization). Defaults to 'builder'.",
+          enum: ["explorer", "builder", "autonomous"],
+          description: "Optional subagent type. 'explorer' is restricted to read-only tools, 'builder' is permitted to edit files and run commands (subject to user confirmation), and 'autonomous' is permitted to edit files and run commands autonomously (without confirmation). Defaults to 'builder'.",
         },
         maxSteps: {
           type: "number",
@@ -105,6 +102,11 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         args.subagentType || "builder"
       );
 
+      const derivedExecutionMode = 
+        args.subagentType === "explorer" ? "readonly" 
+        : args.subagentType === "autonomous" ? "autonomous" 
+        : "standard";
+
       const metadata = {
         subagentId: subagentSessionId,
         parentSessionId,
@@ -114,6 +116,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         subagentRole: args.subagentRole || null,
         subagentType: args.subagentType || "builder",
         permissionRules: effectiveRules,
+        executionMode: derivedExecutionMode,
         startedAt: new Date().toISOString(),
         completedAt: null as string | null,
         status: "running",
@@ -123,8 +126,6 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       writeFileSync(join(subagentDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
 
       // 3. Setup subagent session persistence and resources
-      const subSessionManager = VendoredSessionManager.create(subagentDir, subagentDir);
-
       const customBashTool = createBashToolDefinition(workspaceDir, {
         spawnHook: (context) => {
           const userEnv = sessionManager.userConfig.getUserEnv(username);
@@ -152,6 +153,8 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         cwd: workspaceDir,
         agentDir: userDir,
         additionalSkillPaths: resourceLoader.getSkills().skills.map(s => s.baseDir),
+        loadSkills: false,
+        loadAgentsFiles: false,
         appendSystemPrompt: assemblePromptAppends({
           mode: "subagent-spawn",
           workspaceDir,
@@ -161,36 +164,20 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       });
       await subResourceLoader.reload();
 
-      const beforeToolCall = createBeforeToolCallHook({
-        sessionId: subagentSessionId,
-        isSubagent: true,
-        parentSessionId,
+      const subSession = await sessionManager.getOrCreateSession(
         username,
-      });
-
-      const { session: subSession } = await createAgentSession({
-        cwd: workspaceDir,
-        sessionManager: subSessionManager,
-        authStorage,
-        modelRegistry,
-        resourceLoader: subResourceLoader,
-        customTools: [customBashTool as any, ...uiTools as any],
-        beforeToolCall,
-      });
-
-      // Filter subagent active tools based on the effective rules
-      const allSubagentTools = [
-        "read", "write", "edit", "bash", "grep", "find", "ls",
-        "request_approval", "ask_question", "render_images",
-        "render_html", "render_chart", "share_file", "refresh_ui",
-        "vision", "generate_image",
-      ];
-      const activeTools = allSubagentTools.filter(toolName => {
-        const verdict = evaluateSubagentRules(toolName, {}, effectiveRules);
-        return !(verdict && verdict.allow === false);
-      });
-
-      subSession.setActiveToolsByName(activeTools);
+        subagentSessionId,
+        undefined,
+        undefined,
+        undefined,
+        {
+          resourceLoader: subResourceLoader,
+          customTools: [customBashTool as any, ...uiTools as any],
+          workspaceDir,
+          skipMcpTools: true,
+          skipMemory: true,
+        }
+      );
 
       // Inherit model from parent session
       const parentSession = sessionManager.getSession(username, parentSessionId);

@@ -7,7 +7,6 @@ import { SendStopButton } from "./SendStopButton";
 import type { SkillInfo } from "./SkillsSelector";
 import { useLiterals, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
-import { ALL_TOOLS } from "./ToolsSelector";
 import { ContextButton } from "./ContextButton";
 
 interface InputToolbarProps {
@@ -15,7 +14,7 @@ interface InputToolbarProps {
   streaming: boolean;
   disabled: boolean;
   activeTools: string[];
-  onToolsChange: (tools: string[]) => void;
+  onToolsChange: (tools: string[], executionMode?: "readonly" | "standard" | "autonomous") => void;
   skills: SkillInfo[];
   skillsLoading: boolean;
   onSelectSkill: (skillName: string) => void;
@@ -26,6 +25,7 @@ interface InputToolbarProps {
   contextUsage?: ContextUsage | null;
   onCompact?: () => void;
   compacting?: boolean;
+  executionMode?: "readonly" | "standard" | "autonomous";
 }
 
 export function InputToolbar({
@@ -44,6 +44,7 @@ export function InputToolbar({
   contextUsage = null,
   onCompact,
   compacting = false,
+  executionMode,
 }: InputToolbarProps) {
   const l = useLiterals(u);
   const [openSkills, setOpenSkills] = useState(false);
@@ -52,21 +53,22 @@ export function InputToolbar({
   const skillsTriggerRef = useRef<HTMLButtonElement>(null);
   const toolsTriggerRef = useRef<HTMLButtonElement>(null);
 
-  const isReadOnly =
+  const isReadOnly = executionMode === "readonly" || (
     activeTools.includes("read") &&
     activeTools.includes("grep") &&
     activeTools.includes("find") &&
     activeTools.includes("ls") &&
     !activeTools.includes("write") &&
     !activeTools.includes("edit") &&
-    !activeTools.includes("bash");
+    !activeTools.includes("bash")
+  );
 
-  const isFullAccess = ALL_TOOLS.filter(
-    (t) => !(t.gateKey && toolStatus?.[t.id] === "missing_key")
-  ).every((t) => activeTools.includes(t.id));
+  const isAutonomous = executionMode === "autonomous";
+  const isStandard = executionMode === "standard" || (!isReadOnly && !isAutonomous);
 
   let toolsLabelText = `${activeTools.length} tools`;
-  if (isFullAccess) toolsLabelText = l.fullAccess;
+  if (isAutonomous) toolsLabelText = l.fullAccess; // displays Autonomous
+  else if (isStandard) toolsLabelText = l.standard || "Standard";
   else if (isReadOnly) toolsLabelText = l.readOnly;
 
   return (
@@ -131,6 +133,7 @@ export function InputToolbar({
             triggerRef={toolsTriggerRef}
             toolStatus={toolStatus}
             disabled={disabled}
+            executionMode={executionMode}
           />
         </div>
 

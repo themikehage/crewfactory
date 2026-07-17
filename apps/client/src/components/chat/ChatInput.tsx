@@ -224,6 +224,7 @@ export function ChatInput({
   const { addToast } = useToast();
   const [input, setInput] = useState("");
   const [activeTools, setActiveTools] = useState<string[]>(DEFAULT_TOOLS);
+  const [executionMode, setExecutionMode] = useState<"readonly" | "standard" | "autonomous" | undefined>(undefined);
   const [toolStatus, setToolStatus] = useState<Record<string, "available" | "missing_key">>({});
   const [skills, setSkills] = useState<SkillInfo[]>([]);
   const [skillsLoading, setSkillsLoading] = useState(false);
@@ -410,8 +411,11 @@ export function ChatInput({
     }
   };
 
-  const handleToolsChange = async (tools: string[]) => {
+  const handleToolsChange = async (tools: string[], nextMode?: "readonly" | "standard" | "autonomous") => {
     setActiveTools(tools);
+    if (nextMode) {
+      setExecutionMode(nextMode);
+    }
     onToolsChange?.(tools);
     if (!sessionId) return;
     try {
@@ -419,7 +423,7 @@ export function ChatInput({
         method: "POST",
         headers: {
           "Content-Type": "application/json"},
-        body: JSON.stringify({ tools })});
+        body: JSON.stringify({ tools, executionMode: nextMode || executionMode })});
     } catch {}
   };
 
@@ -445,6 +449,7 @@ export function ChatInput({
   useEffect(() => {
     if (!sessionId) {
       setActiveTools(DEFAULT_TOOLS);
+      setExecutionMode(undefined);
       return;
     }
     const fetchTools = async () => {
@@ -454,9 +459,11 @@ export function ChatInput({
           const data = await res.json();
           setActiveTools(data.tools ?? DEFAULT_TOOLS);
           setToolStatus(data.toolStatus ?? {});
+          setExecutionMode(data.executionMode);
         }
       } catch {
         setActiveTools(DEFAULT_TOOLS);
+        setExecutionMode(undefined);
       }
     };
     fetchTools();
@@ -559,6 +566,7 @@ export function ChatInput({
               contextUsage={contextUsage}
               onCompact={onCompact}
               compacting={compacting}
+              executionMode={executionMode}
             />
           }
         />

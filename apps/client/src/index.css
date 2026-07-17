@@ -198,15 +198,19 @@
   * {
     @apply border-border outline-ring/50;
   }
-  html, body {
+
+  html,
+  body {
     height: 100dvh;
     margin: 0;
     padding: 0;
   }
+
   #root {
     height: 100dvh;
     overflow: hidden;
   }
+
   body {
     @apply bg-background text-foreground;
     font-family: var(--font-sans);
@@ -216,8 +220,20 @@
   }
 }
 
+button {
+  cursor: pointer;
+}
+
+code,
+pre {
+  overflow-x: auto;
+  word-break: break-all;
+  word-wrap: break-word;
+}
+
 ::-webkit-scrollbar {
   width: 6px;
+  height: 6px;
 }
 
 ::-webkit-scrollbar-track {

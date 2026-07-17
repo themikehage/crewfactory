@@ -696,39 +696,13 @@
 - [x] 145.4 Verify blueprints parsing and successful project compilation builds
 - [x] 145.5 Update plans and about.md documentation
 
-## Phase 146: Channel Delegation & Negotiation v2
-
-Created `plans/channel-delegation-negotiation-v2.md` — Comprehensive analysis and redesign plan for channel delegation and negotiation systems. Covers 5 critical bugs, Execution ID pipeline system, DELEGATE vs NEGOTIATE semantic differentiation, redesigned delegation UI, and sequential-by-default mode.
-
-### Phase 146A: Fix Critical Bugs
-- [ ] 146A.1 Fix channel delegation not awaiting agent completion in `delegate-tool.ts` (chainPromise resolves prematurely)
-- [ ] 146A.2 Fix agent avatars not showing in channels — pass `agentAvatarMap` to `ChannelMessageList`, populate `agentAvatarUrl` in mapped messages
-- [ ] 146A.3 Fix tool results invisible in `ChannelMessages.tsx` — render tool calls/results in simple view, forward `tool_execution_update` in `AgentPromptRunner`
-- [ ] 146A.4 Fix delegation click redirecting out of channel — implement `DelegationDrawer` inline panel instead of full navigation
-- [ ] 146A.5 Fix agent streaming interleaving — make sequential mode (broadcast) the default for new channels
-
-### Phase 146B: Execution ID System
-- [ ] 146B.1 Create `ChannelTaskRegistry` with createExecution/updateStep/completeExecution + JSON persistence
-- [ ] 146B.2 Integrate task registry into `AgentPromptRunner` — emit `channel_task_{start,progress,end}` events
-- [ ] 146B.3 Add REST API `GET /api/channels/:id/executions[/:executionId]` for querying task status
-
-### Phase 146C: Delegate vs Negotiate Semantics
-- [ ] 146C.1 Add DELEGATE/NEGOTIATE intent detection in `ChannelOrchestrator` message parsing
-- [ ] 146C.2 Update leader prompt fragment (`role-leader.ts`) with decision rules for delegation vs negotiation
-- [ ] 146C.3 Implement differentiated behavior: delegation runs async (non-blocking), negotiation blocks for debate
-
-### Phase 146D: Delegation UI Redesign
-- [ ] 146D.1 Create `DelegationTaskCard` component: @agent_name, description, progress bar, "View" button
-- [ ] 146D.2 Create `DelegationDrawer` component: inline overlay showing sub-session tool calls and results
-- [ ] 146D.3 Integrate into `ChannelMessages` and `ChannelMessageList`, connect to WS task events
-
-### Phase 146E: Negotiation Visual Enhancements
-- [ ] 146E.1 Add round indicators and negotiation state badges to channel agent messages
-- [ ] 146E.2 Build arbitration decision panel with expandable reasoning section
-
-### Phase 146F: Verify & Document
-- [ ] 146F.1 Verify clean compilation and builds for server and client
-- [ ] 146F.2 Update about.md with new channel delegation/negotiation system architecture
+## Phase 146: Channel Delegation & Negotiation v2 (Contrapropuesta Minimalista)
+- [x] 146.1 Fix B1 (Race Condition) en path no-broadcast envolviendo runDispatchRound en Promesas con increment/decrement en `channel-orchestrator.ts`
+- [x] 146.2 Fix B5 & Defaults (Líder en modo Broadcast) forzando `replyMode: "broadcast"` para líderes en `routes/channels.ts`
+- [x] 146.3 Implementar auto-selección de `replyMode: "broadcast"` al cambiar rol a `lead` en la UI (`AddMemberModal.tsx`, `AgentDetailPanel.tsx`)
+- [x] 146.4 Implementar interceptor bridge síncrono en `agent-utils.ts` y `ws/handler.ts` para resolver la ventana de timing en `forwardChannelEvents`
+- [x] 146.5 Verificar compilaciones limpias de cliente y servidor tras los fixes minimalistas
+- [x] 146.6 Desestimar meta-esquemas de sobreingeniería duplicados (TaskRegistry, Drawer/Card custom, DELEGATE vs NEGOTIATE en orquestador) por reutilización de `delegationRegistry` y `ToolCallRow` existentes.
 
 ## Phase 147: Fix Subagent Delegation — Silent Failures, Missing Reports & Broken UI
 
@@ -755,4 +729,14 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 147D.3 Test DelegationNotification appears in chat without refresh
 - [x] 147D.4 Test delegation result persists across page reload
 - [x] 147D.5 Verify clean compilation build of server and client
+
+
+## Phase 149: Autonomous Execution Mode
+- [x] 149.1 Implement `"autonomous"` subagent type in `spawn-subagent-tool.ts` and add base permissions in `subagent-permissions.ts`
+- [x] 149.2 Extend `permission-engine.ts` and `before-tool-call-hook.ts` to inspect and propagate `executionMode` and bypass `ASK_RULES` in autonomous mode
+- [x] 149.3 Add `executionMode` fields and helpers in `metadata-store.ts` and `sessions.ts` API route
+- [x] 149.4 Implement the client-side presets, popovers, and toolbar inputs for "Standard" and "Autonomous" modes
+- [x] 149.5 Add subagent permission unit tests in `subagent-permission-inheritance.test.ts`
+- [x] 149.6 Update `about.md` and complete plans and verification steps
+
 

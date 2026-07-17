@@ -121,4 +121,27 @@ describe("Subagent Permission Inheritance", () => {
     expect(verdict.allow).toBe(false);
     expect((verdict as any).reason).toContain("Fork bomb");
   });
+
+  describe("autonomous subagent", () => {
+    it("allows write without asking", () => {
+      const rules = buildSubagentRules(testUser, subagentSessionId, undefined, "autonomous");
+      const verdict = evaluateSubagentRules("write", { path: "file.ts" }, rules);
+      expect(verdict).toBeDefined();
+      expect(verdict!.allow).toBe(true);
+    });
+
+    it("still denies spawn_subagent (nesting prevention)", () => {
+      const rules = buildSubagentRules(testUser, subagentSessionId, undefined, "autonomous");
+      const verdict = evaluateSubagentRules("spawn_subagent", {}, rules);
+      expect(verdict).toBeDefined();
+      expect(verdict!.allow).toBe(false);
+    });
+
+    it("allows bash without asking", () => {
+      const rules = buildSubagentRules(testUser, subagentSessionId, undefined, "autonomous");
+      const verdict = evaluateSubagentRules("bash", { command: "npm run build" }, rules);
+      expect(verdict).toBeDefined();
+      expect(verdict!.allow).toBe(true);
+    });
+  });
 });

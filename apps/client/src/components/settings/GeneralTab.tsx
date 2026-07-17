@@ -366,7 +366,7 @@ export function GeneralTab() {
                   <span className="text-[10px] text-muted-foreground uppercase font-bold tracking-wider block">
                     {l.diagnoseVision}
                   </span>
-                  
+
                   <div className="flex flex-col gap-2">
                     <div className="flex flex-col sm:flex-row gap-2">
                       <input
@@ -401,7 +401,7 @@ export function GeneralTab() {
                         )}
                       </div>
                     </div>
-                    
+
                     {visionTestFile && visionTestBase64 && (
                       <div className="flex items-center gap-2 bg-background p-2 rounded-lg border border-input/10">
                         <img src={`data:${visionTestMime};base64,${visionTestBase64}`} alt="preview" className="w-10 h-10 object-cover rounded-md border border-input/30" />
@@ -427,7 +427,7 @@ export function GeneralTab() {
                   )}
 
                   {visionError && (
-                    <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-all select-all">
+                    <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-words select-all">
                       <span className="font-bold block mb-1">{l.diagnosticFailure}</span>
                       {visionError}
                     </div>
@@ -525,7 +525,7 @@ export function GeneralTab() {
                   )}
 
                   {imageError && (
-                    <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-all select-all">
+                    <div className="p-2.5 bg-destructive/5 border border-error/20 text-destructive rounded-md whitespace-pre-wrap font-mono text-[11px] break-words select-all">
                       <span className="font-bold block mb-1">{l.diagnosticFailure}</span>
                       {imageError}
                     </div>
@@ -549,8 +549,8 @@ export function GeneralTab() {
               {subagentMaxDepth === 0
                 ? l.noSubagents
                 : subagentMaxDepth === 1
-                ? l.directSubagentsOnly
-                : l.nestedSubagents.replace("{depth}", String(subagentMaxDepth))}
+                  ? l.directSubagentsOnly
+                  : l.nestedSubagents.replace("{depth}", String(subagentMaxDepth))}
             </span>
           </div>
           <input
@@ -681,7 +681,7 @@ export function GeneralTab() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 text-xs">
           <div className="space-y-0.5">
             <div className="text-muted-foreground font-medium">{l.apiBaseUrl}</div>
-            <div className="text-foreground font-mono break-all">/api/v1</div>
+            <div className="text-foreground font-mono break-words">/api/v1</div>
           </div>
           <div className="space-y-0.5">
             <div className="text-muted-foreground font-medium">{l.sessionStorage}</div>
@@ -689,7 +689,7 @@ export function GeneralTab() {
           </div>
           <div className="space-y-0.5">
             <div className="text-muted-foreground font-medium">{l.workspaceContext}</div>
-            <div className="text-foreground font-mono break-all">themikehage/crewfactory</div>
+            <div className="text-foreground font-mono break-words">themikehage/crewfactory</div>
           </div>
           <div className="space-y-0.5">
             <div className="text-muted-foreground font-medium">{l.healthStatus}</div>
@@ -793,11 +793,10 @@ export function GeneralTab() {
             <button
               onClick={() => handleImportBackup(false)}
               disabled={importing}
-              className={`text-xs px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer disabled:opacity-50 ${
-                importMode === "overwrite"
+              className={`text-xs px-4 py-2 rounded-lg font-semibold transition-all cursor-pointer disabled:opacity-50 ${importMode === "overwrite"
                   ? "bg-destructive/10 text-destructive hover:bg-destructive/20 border border-error/25"
                   : "bg-primary/10 text-primary hover:bg-primary/20 border border-primary/25"
-              }`}
+                }`}
             >
               {importing ? l.importingBackup : importMode === "overwrite" ? l.restoreOverwrite : l.importMerge}
             </button>

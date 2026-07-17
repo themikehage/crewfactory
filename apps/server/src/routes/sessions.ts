@@ -589,7 +589,7 @@ sessionsRouter.post(
   zValidator("json", ToolPermissionsSchema),
   async (c) => {
     const sessionId = c.req.param("id");
-    const { tools } = c.req.valid("json");
+    const { tools, executionMode } = c.req.valid("json");
     const { username } = getAuthPayload(c);
 
     if (sessionId.startsWith(SessionPrefix.EXEC)) {
@@ -671,8 +671,11 @@ sessionsRouter.post(
       )
     );
     sessionManager.metadataStore.persistSessionTools(username, sessionId, tools);
+    if (executionMode) {
+      sessionManager.metadataStore.setExecutionMode(username, sessionId, executionMode);
+    }
 
-    return c.json({ success: true, tools });
+    return c.json({ success: true, tools, executionMode });
   }
 );
 
@@ -702,8 +705,9 @@ sessionsRouter.get("/:id/tools", async (c) => {
       serialTools = agentEntry.server.definition.serialTools;
     }
   }
+  const executionMode = sessionManager.metadataStore.getExecutionMode(username, sessionId);
 
-  return c.json({ tools, serialTools, toolStatus: getGatedToolStatus(username) });
+  return c.json({ tools, serialTools, toolStatus: getGatedToolStatus(username), executionMode });
 });
 
 sessionsRouter.get("/:id/tasks", async (c) => {

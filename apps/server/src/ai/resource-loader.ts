@@ -13,6 +13,8 @@ export interface DefaultResourceLoaderOptions {
   agentDir: string;
   additionalSkillPaths?: string[];
   appendSystemPrompt?: string[];
+  loadAgentsFiles?: boolean;
+  loadSkills?: boolean;
 }
 
 export class DefaultResourceLoader {
@@ -20,6 +22,8 @@ export class DefaultResourceLoader {
   private agentDir: string;
   private additionalSkillPaths: string[];
   private appendSystemPrompt: string[];
+  private loadAgentsFiles: boolean;
+  private loadSkills: boolean;
   
   private agentsFiles: Array<{ path: string; content: string }> = [];
   private skills: Skill[] = [];
@@ -31,6 +35,8 @@ export class DefaultResourceLoader {
     this.agentDir = options.agentDir;
     this.additionalSkillPaths = options.additionalSkillPaths || [];
     this.appendSystemPrompt = options.appendSystemPrompt || [];
+    this.loadAgentsFiles = options.loadAgentsFiles !== false;
+    this.loadSkills = options.loadSkills !== false;
   }
 
   async reload(): Promise<void> {
@@ -40,58 +46,62 @@ export class DefaultResourceLoader {
     this.systemPrompt = undefined;
 
     // 1. Cargar archivos de contexto (AGENTS.md)
-    const contextCandidates = ["AGENTS.md", "AGENTS.MD", "CLAUDE.md", "CLAUDE.MD"];
-    
-    // Primero el global (en agentDir)
-    let globalContent = "";
-    for (const filename of contextCandidates) {
-      const filePath = join(this.agentDir, filename);
-      if (existsSync(filePath)) {
-        try {
-          globalContent = readFileSync(filePath, "utf-8");
-          this.agentsFiles.push({ path: filePath, content: globalContent });
-          break;
-        } catch {}
+    if (this.loadAgentsFiles) {
+      const contextCandidates = ["AGENTS.md", "AGENTS.MD", "CLAUDE.md", "CLAUDE.MD"];
+      
+      // Primero el global (en agentDir)
+      let globalContent = "";
+      for (const filename of contextCandidates) {
+        const filePath = join(this.agentDir, filename);
+        if (existsSync(filePath)) {
+          try {
+            globalContent = readFileSync(filePath, "utf-8");
+            this.agentsFiles.push({ path: filePath, content: globalContent });
+            break;
+          } catch {}
+        }
       }
-    }
 
-    // Luego el local (en cwd)
-    let localContent = "";
-    for (const filename of contextCandidates) {
-      const filePath = join(this.cwd, filename);
-      if (existsSync(filePath)) {
-        try {
-          localContent = readFileSync(filePath, "utf-8");
-          this.agentsFiles.push({ path: filePath, content: localContent });
-          break;
-        } catch {}
+      // Luego el local (en cwd)
+      let localContent = "";
+      for (const filename of contextCandidates) {
+        const filePath = join(this.cwd, filename);
+        if (existsSync(filePath)) {
+          try {
+            localContent = readFileSync(filePath, "utf-8");
+            this.agentsFiles.push({ path: filePath, content: localContent });
+            break;
+          } catch {}
+        }
       }
-    }
 
-    // Combinar sistema
-    const promptParts: string[] = [];
-    if (globalContent) promptParts.push(globalContent);
-    if (localContent) promptParts.push(localContent);
-    
-    if (promptParts.length > 0) {
-      this.systemPrompt = promptParts.join("\n\n");
+      // Combinar sistema
+      const promptParts: string[] = [];
+      if (globalContent) promptParts.push(globalContent);
+      if (localContent) promptParts.push(localContent);
+      
+      if (promptParts.length > 0) {
+        this.systemPrompt = promptParts.join("\n\n");
+      }
     }
 
     // 2. Cargar Skills
-    try {
-      const result = loadSkills({
-        cwd: this.cwd,
-        agentDir: this.agentDir,
-        skillPaths: this.additionalSkillPaths,
-        includeDefaults: true,
-      });
-      this.skills = result.skills;
-      this.diagnostics = result.diagnostics;
-    } catch (e: any) {
-      this.diagnostics.push({
-        severity: "error",
-        message: `Failed to load skills: ${e.message}`,
-      });
+    if (this.loadSkills) {
+      try {
+        const result = loadSkills({
+          cwd: this.cwd,
+          agentDir: this.agentDir,
+          skillPaths: this.additionalSkillPaths,
+          includeDefaults: true,
+        });
+        this.skills = result.skills;
+        this.diagnostics = result.diagnostics;
+      } catch (e: any) {
+        this.diagnostics.push({
+          severity: "error",
+          message: `Failed to load skills: ${e.message}`,
+        });
+      }
     }
   }
 
