@@ -739,4 +739,11 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 149.5 Add subagent permission unit tests in `subagent-permission-inheritance.test.ts`
 - [x] 149.6 Update `about.md` and complete plans and verification steps
 
+## Phase 150: Fix Autonomous Execution Mode in Chat
+- [x] 150.1 Propagate autonomous mode to spawned subagents in spawn-subagent-tool.ts when no explicit type is provided
+- [x] 150.2 Propagate parent execution mode to delegated sessions in delegate-tool.ts
+- [x] 150.3 Add unit tests for autonomous execution mode inheritance in subagent-permission-inheritance.test.ts
+- [x] 150.4 Verify builds compile and all tests pass cleanly
+
+
 

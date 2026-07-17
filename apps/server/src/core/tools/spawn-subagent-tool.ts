@@ -95,16 +95,19 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       const subagentDir = join(userDir, "sessions", parentSessionId, "subagents", subagentSessionId);
       mkdirSync(subagentDir, { recursive: true });
 
+      const parentExecutionMode = parentMeta.executionMode;
+      const resolvedSubagentType = args.subagentType || (parentExecutionMode === "autonomous" ? "autonomous" : "builder");
+
       const effectiveRules = buildSubagentRules(
         username,
         subagentSessionId,
         parentSessionId,
-        args.subagentType || "builder"
+        resolvedSubagentType
       );
 
       const derivedExecutionMode = 
-        args.subagentType === "explorer" ? "readonly" 
-        : args.subagentType === "autonomous" ? "autonomous" 
+        resolvedSubagentType === "explorer" ? "readonly" 
+        : resolvedSubagentType === "autonomous" ? "autonomous" 
         : "standard";
 
       const metadata = {
@@ -114,7 +117,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         parentEntityId,
         task: args.task.slice(0, 500),
         subagentRole: args.subagentRole || null,
-        subagentType: args.subagentType || "builder",
+        subagentType: resolvedSubagentType,
         permissionRules: effectiveRules,
         executionMode: derivedExecutionMode,
         startedAt: new Date().toISOString(),

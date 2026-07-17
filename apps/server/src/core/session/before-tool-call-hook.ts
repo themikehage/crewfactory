@@ -20,9 +20,9 @@ export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionI
 
     const resolvedUsername = username || "default_user";
 
-    // Read from session metadata if not explicitly provided
-    const resolvedMode = executionMode 
-      ?? (sessionMetadataStore.getSessionMetadata(resolvedUsername, sessionId)?.executionMode as any);
+    // Read from session metadata first, fall back to parameter
+    const resolvedMode = (sessionMetadataStore.getSessionMetadata(resolvedUsername, sessionId)?.executionMode as any)
+      ?? executionMode;
 
     const verdict = permissionEngine.evaluate(toolName, args as Record<string, unknown>, {
       isSubagent: resolvedIsSubagent,

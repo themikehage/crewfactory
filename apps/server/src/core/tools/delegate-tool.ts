@@ -71,6 +71,10 @@ Allows keeping parent context clean by returning a structured summary instead of
 
       const childToken = new AbortToken(parentSignal, `delegate:${delegateSessionId}`);
 
+      const parentMeta = sessionManager.metadataStore.getSessionMetadata(username, parentSessionId) || {};
+      const parentExecutionMode = parentMeta.executionMode;
+      const derivedExecutionMode = parentExecutionMode === "autonomous" ? "autonomous" : undefined;
+
       sessionManager.metadataStore.saveSessionMetadata(username, delegateSessionId, {
         name: `Delegation: ${targetType} - ${targetId}`,
         createdAt: new Date().toISOString(),
@@ -80,6 +84,7 @@ Allows keeping parent context clean by returning a structured summary instead of
         targetId,
         task: task.slice(0, 500),
         subagentDepth: effectiveDepth,
+        executionMode: derivedExecutionMode,
       });
 
       const runPromise = async () => {

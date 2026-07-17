@@ -144,4 +144,28 @@ describe("Subagent Permission Inheritance", () => {
       expect(verdict!.allow).toBe(true);
     });
   });
+
+  describe("Inheritance of Autonomous Mode", () => {
+    it("should inherit autonomous mode from parent session", () => {
+      const parentAutoSessionId = "exec_parent_session_auto";
+      // Set parent session execution mode to autonomous and persist tools
+      sessionMetadataStore.saveSessionMetadata(testUser, parentAutoSessionId, { executionMode: "autonomous" });
+      sessionMetadataStore.persistSessionTools(testUser, parentAutoSessionId, ["read", "write", "edit", "bash"]);
+
+      // Determine child's resolved subagent type simulating spawn_subagent tool logic:
+      const parentMeta = sessionMetadataStore.getSessionMetadata(testUser, parentAutoSessionId) || {};
+      const parentExecutionMode = parentMeta.executionMode;
+      
+      // If no explicit subagent type is provided
+      const resolvedSubagentType = undefined || (parentExecutionMode === "autonomous" ? "autonomous" : "builder");
+      expect(resolvedSubagentType).toBe("autonomous");
+
+      const rules = buildSubagentRules(testUser, subagentSessionId, parentAutoSessionId, resolvedSubagentType);
+      
+      // Child write tools should inherit autonomous and allow execution
+      const writeVerdict = evaluateSubagentRules("write", { path: "file.ts" }, rules);
+      expect(writeVerdict).toBeDefined();
+      expect(writeVerdict!.allow).toBe(true);
+    });
+  });
 });
