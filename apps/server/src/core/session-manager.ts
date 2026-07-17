@@ -406,6 +406,34 @@ class SessionManager {
           beforeToolCall,
         });
 
+        const context = sessionManager.buildSessionContext();
+        if (!context.model) {
+          let resolvedModel: any = undefined;
+          if (agentDef?.model) {
+            const available = modelRegistry.getAvailable();
+            resolvedModel = available.find(
+              (m) => m.id === agentDef.model || `${m.provider}/${m.id}` === agentDef.model
+            );
+          }
+          if (!resolvedModel) {
+            const defaultModelId = userConfigManager.getUserDefaultModel(username);
+            if (defaultModelId) {
+              const available = modelRegistry.getAvailable();
+              resolvedModel = available.find(
+                (m) => m.id === defaultModelId || `${m.provider}/${m.id}` === defaultModelId
+              );
+            }
+          }
+          if (resolvedModel) {
+            try {
+              await session.setModel(resolvedModel);
+              console.log(`[SessionManager:${sessionId}] Initialized session model: ${resolvedModel.provider}/${resolvedModel.id}`);
+            } catch (e) {
+              console.error(`[SessionManager:${sessionId}] Failed to set initial model:`, e);
+            }
+          }
+        }
+
         const systemTools = sessionMetadataStore.getSessionTools(username, sessionId);
         const combinedTools = resolveActiveTools({
           sessionTools: systemTools,
