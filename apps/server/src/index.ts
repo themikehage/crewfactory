@@ -25,6 +25,7 @@ import { galleryRouter } from "./routes/gallery";
 import { factoryRouter } from "./routes/factory";
 import { pipelinesRouter } from "./routes/pipelines";
 import { channelBenchmarksRouter } from "./routes/channel-benchmarks";
+import { approvalsRouter } from "./routes/approvals";
 import { channelStore } from "./channels";
 import { CREWFACTORY_DATA_PATH } from "shared";
 import { memoryRegistry } from "./core/memory/registry";
@@ -73,6 +74,7 @@ app.route("/api/settings", settingsRouter);
 app.route("/api/gallery", galleryRouter);
 app.route("/api/factory", factoryRouter);
 app.route("/api/pipelines", pipelinesRouter);
+app.route("/api/approvals", approvalsRouter);
 
 app.get(
   "/ws",

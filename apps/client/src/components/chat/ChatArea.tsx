@@ -317,7 +317,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const evt = data as Record<string, unknown>;
       const msg = evt.message as Message | undefined;
       if (!msg) return;
-      if (msg.role === "user") return;
+      if (msg.role === "user" && !(msg as any).details?.type) return;
 
       const msgId = msg.responseId || msg.id;
       if (msgId && receivedMessageIds.current.has(msgId)) {
@@ -371,7 +371,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const evt = data as Record<string, unknown>;
       const msg = evt.message as Message | undefined;
       if (!msg) return;
-      if (msg.role === "user") return;
+      if (msg.role === "user" && !(msg as any).details?.type) return;
 
       setMessages((prev) => {
         const index = findMsgIndex(prev, msg);

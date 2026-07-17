@@ -258,16 +258,49 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
           delegationRegistry.complete(username, parentSessionId, toolCallId, status as any, envelope);
 
           // Add to parent session's result queue
-          const parent = sessionManager.getSession(username, parentSessionId);
+          let parent = sessionManager.getSession(username, parentSessionId);
+          if (!parent) {
+            try {
+              parent = await sessionManager.getOrCreateSession(username, parentSessionId);
+            } catch (e) {
+              console.error(`[Subagent] Failed to load/create parent session ${parentSessionId}`, e);
+            }
+          }
+
           if (parent) {
             const toolResultMsg = formatDelegationResultMessage(toolCallId, "spawn_subagent", envelope, subagentSessionId, lastText);
             parent.addDelegationResult(toolResultMsg);
 
             // If parent is not active streaming, continue execution
             if (!parent.isStreaming) {
-              parent.continue().catch((e) => {
-                console.error("[Subagent Async Return] Parent continue fail:", e);
-              });
+              let success = false;
+              try {
+                await parent.continue();
+                success = true;
+              } catch (e) {
+                console.error("[Subagent Async Return] Parent continue fail, will retry in 1s:", e);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                try {
+                  await parent.continue();
+                  success = true;
+                } catch (e2) {
+                  console.error("[Subagent Async Return] Parent continue retry fail:", e2);
+                }
+              }
+
+              if (!success) {
+                try {
+                  const { broadcastToUser } = await import("../../ws/handler");
+                  broadcastToUser(username, {
+                    type: "delegation_completed",
+                    parentSessionId,
+                    subagentSessionId,
+                    status: "success",
+                  });
+                } catch (e3) {
+                  console.error("Failed to broadcast fallback delegation_completed:", e3);
+                }
+              }
             }
           } else {
             console.warn(`[Subagent] Parent session ${parentSessionId} not found for toolCallId ${toolCallId} — delegation result discarded`);
@@ -290,15 +323,48 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
 
           delegationRegistry.complete(username, parentSessionId, toolCallId, "error", envelope);
 
-          const parent = sessionManager.getSession(username, parentSessionId);
+          let parent = sessionManager.getSession(username, parentSessionId);
+          if (!parent) {
+            try {
+              parent = await sessionManager.getOrCreateSession(username, parentSessionId);
+            } catch (e) {
+              console.error(`[Subagent] Failed to load/create parent session ${parentSessionId} on error`, e);
+            }
+          }
+
           if (parent) {
             const toolResultMsg = formatDelegationResultMessage(toolCallId, "spawn_subagent", envelope, subagentSessionId);
             parent.addDelegationResult(toolResultMsg);
 
             if (!parent.isStreaming) {
-              parent.continue().catch((e) => {
-                console.error("[Subagent Async Return] Parent continue fail on error:", e);
-              });
+              let success = false;
+              try {
+                await parent.continue();
+                success = true;
+              } catch (e) {
+                console.error("[Subagent Async Return] Parent continue fail on error, will retry in 1s:", e);
+                await new Promise((resolve) => setTimeout(resolve, 1000));
+                try {
+                  await parent.continue();
+                  success = true;
+                } catch (e2) {
+                  console.error("[Subagent Async Return] Parent continue retry fail on error:", e2);
+                }
+              }
+
+              if (!success) {
+                try {
+                  const { broadcastToUser } = await import("../../ws/handler");
+                  broadcastToUser(username, {
+                    type: "delegation_completed",
+                    parentSessionId,
+                    subagentSessionId,
+                    status: "error",
+                  });
+                } catch (e3) {
+                  console.error("Failed to broadcast fallback delegation_completed on error:", e3);
+                }
+              }
             }
           } else {
             console.warn(`[Subagent] Parent session ${parentSessionId} not found for toolCallId ${toolCallId} — delegation result discarded`);

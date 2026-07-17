@@ -735,24 +735,24 @@ Created `plans/channel-delegation-negotiation-v2.md` — Comprehensive analysis 
 Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagent delegation bugs: (1) silent write failures due to permission ask without timeout, (2) delegation result card never appears in chat because ChatArea.tsx filters role=user messages, (3) intermittent result delivery that only shows on page refresh.
 
 ### Phase 147A: Fix Frontend Filter (CRITICAL)
-- [ ] 147A.1 Modify message_start filter in ChatArea.tsx (line 320) to allow user messages with details.type set
-- [ ] 147A.2 Modify message_end filter in ChatArea.tsx (line 374) with same logic
-- [ ] 147A.3 Verify DelegationNotification renders in real-time without page refresh
+- [x] 147A.1 Modify message_start filter in ChatArea.tsx (line 320) to allow user messages with details.type set
+- [x] 147A.2 Modify message_end filter in ChatArea.tsx (line 374) with same logic
+- [x] 147A.3 Verify DelegationNotification renders in real-time without page refresh
 
 ### Phase 147B: Fix Subagent Write Permissions (HIGH)
-- [ ] 147B.1 Add 60s timeout to tool_approval_request for subagent sessions in before-tool-call-hook.ts
-- [ ] 147B.2 Improve permission denied error messages in permission-engine.ts with descriptive tool/rule info
-- [ ] 147B.3 Add visual "Permission Denied" badge for blocked tool calls in ToolCallRow.tsx
+- [x] 147B.1 Add 60s timeout to tool_approval_request for subagent sessions in before-tool-call-hook.ts
+- [x] 147B.2 Improve permission denied error messages in permission-engine.ts with descriptive tool/rule info
+- [x] 147B.3 Add visual "Permission Denied" badge for blocked tool calls in ToolCallRow.tsx
 
 ### Phase 147C: Robust Result Delivery (HIGH)
-- [ ] 147C.1 Handle orphaned parent session — persist result directly via sessionManager.appendMessageToSession()
-- [ ] 147C.2 Add retry (1 attempt, 1s delay) for parent.continue() in spawn and delegate tools
-- [ ] 147C.3 Verify concurrent subagent completion handling via followUpQueue
+- [x] 147C.1 Handle orphaned parent session — persist result directly via sessionManager.appendMessageToSession()
+- [x] 147C.2 Add retry (1 attempt, 1s delay) for parent.continue() in spawn and delegate tools
+- [x] 147C.3 Verify concurrent subagent completion handling via followUpQueue
 
 ### Phase 147D: Verify
-- [ ] 147D.1 Test builder subagent can write files (with approval)
-- [ ] 147D.2 Test explorer subagent shows clear error when attempting write
-- [ ] 147D.3 Test DelegationNotification appears in chat without refresh
-- [ ] 147D.4 Test delegation result persists across page reload
-- [ ] 147D.5 Verify clean compilation build of server and client
+- [x] 147D.1 Test builder subagent can write files (with approval)
+- [x] 147D.2 Test explorer subagent shows clear error when attempting write
+- [x] 147D.3 Test DelegationNotification appears in chat without refresh
+- [x] 147D.4 Test delegation result persists across page reload
+- [x] 147D.5 Verify clean compilation build of server and client
 

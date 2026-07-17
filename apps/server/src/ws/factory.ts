@@ -13,6 +13,7 @@ import { SessionPrefix, getSessionMetadataPath } from "shared";
 import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-watcher";
 import { channelOrchestrator } from "../channels";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
+import { approvalManager } from "../core/approvals/approval-manager";
 
 function getProjectNameForSession(username: string, sessionId: string): string | undefined {
   const p = getSessionMetadataPath(username, sessionId);
@@ -585,6 +586,12 @@ export function createWsContext(): WsConnectionContext {
           const { ChannelBenchmarkRunner } = await import("../laboratory/channel-benchmark-runner");
           await ChannelBenchmarkRunner.stopBenchmark(user.username, channelId);
         }
+        return;
+      }
+
+      if (data.type === "approvals_get") {
+        const pending = approvalManager.getAll(user.username);
+        safeSend(ws, JSON.stringify({ type: "approvals_pending", items: pending }));
         return;
       }
 

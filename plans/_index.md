@@ -96,7 +96,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [channel-benchmarks.md](./channel-benchmarks.md) — Benchmarks sobre canales EXISTENTES. Invierte el flujo actual: el canal es el origen, no el destino. Permite validar y optimizar canales reales comparando multi-agente vs single-agent.
 - [channel-delegation-negotiation-v2.md](./channel-delegation-negotiation-v2.md) — Rediseno completo del sistema de delegacion y negociacion en canales. Corrige 5 bugs criticos (delegacion rota, avatares fantasma, tools invisibles, streaming entremezclado, redireccion fuera del canal). Introduce Execution IDs estilo pipeline, diferenciacion semantica DELEGATE vs NEGOTIATE, UI de tarjetas de delegacion con progreso en vivo (@agent tarea [Ver]), y drawer lateral para inspeccionar sub-sesiones sin perder el contexto del canal.
-- [fix-subagent-delegation-report.md](./fix-subagent-delegation-report.md) — Fix de 3 bugs criticos en delegacion de subagentes: (1) fallo silencioso al escribir archivos por permisos ask sin timeout, (2) reporte final invisible porque ChatArea.tsx filtra mensajes role=user, (3) mensaje de finalizacion intermitente que solo aparece al refrescar la pagina. Incluye timeout de approval, persistencia directa para sesiones huerfanas, y reintento de continue().
+
 
 ## Completados (75)
 

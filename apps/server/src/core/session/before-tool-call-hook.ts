@@ -1,5 +1,5 @@
 import { permissionEngine, userPermissionStore, extractSubject } from "../sandbox";
-import { uiApprovalRegistry } from "../ui-approval-registry";
+import { approvalManager } from "../approvals/approval-manager";
 import { SessionPrefix } from "shared";
 
 export interface CreateBeforeToolCallHookParams {
@@ -30,10 +30,18 @@ export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionI
 
     if (verdict.allow === "ask") {
       const toolCallId = toolCall.id;
-      const approvalPromise = uiApprovalRegistry.register(toolCallId);
+      const approvalPromise = approvalManager.request({
+        username: resolvedUsername,
+        sessionId,
+        parentSessionId,
+        toolCallId,
+        toolName,
+        args: args as Record<string, unknown>,
+        reason: verdict.reason,
+      });
 
       const onAbort = () => {
-        uiApprovalRegistry.resolve(toolCallId, { action: "deny" });
+        approvalManager.resolve(toolCallId, { action: "deny" });
       };
       if (signal) {
         if (signal.aborted) {
@@ -41,20 +49,6 @@ export function createBeforeToolCallHook({ sessionId, isSubagent, parentSessionI
         } else {
           signal.addEventListener("abort", onAbort);
         }
-      }
-
-      try {
-        const { broadcastToSession } = await import("../../ws/handler");
-        const targetSessionId = parentSessionId || sessionId;
-        broadcastToSession(targetSessionId, {
-          type: "tool_approval_request",
-          toolCallId,
-          toolName,
-          args,
-          reason: verdict.reason,
-        });
-      } catch (e) {
-        console.error("Failed to broadcast tool approval request:", e);
       }
 
       try {

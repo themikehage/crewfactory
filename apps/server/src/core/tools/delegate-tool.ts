@@ -230,7 +230,15 @@ Allows keeping parent context clean by returning a structured summary instead of
         // Complete delegation in registry
         delegationRegistry.complete(username, parentSessionId, toolCallId, status as any, parsedEnvelope);
 
-        const parent = sessionManager.getSession(username, parentSessionId);
+        let parent = sessionManager.getSession(username, parentSessionId);
+        if (!parent) {
+          try {
+            parent = await sessionManager.getOrCreateSession(username, parentSessionId);
+          } catch (e) {
+            console.error(`[Delegate] Failed to load/create parent session ${parentSessionId}`, e);
+          }
+        }
+
         if (parent) {
           const toolResultMsg = formatDelegationResultMessage(toolCallId, "delegate_task", parsedEnvelope, delegateSessionId, lastText);
           if (includeFullHistory && executionResultText) {
@@ -243,9 +251,34 @@ Allows keeping parent context clean by returning a structured summary instead of
           parent.addDelegationResult(toolResultMsg);
 
           if (!parent.isStreaming) {
-            parent.continue().catch((e) => {
-              console.error("[Delegate Async Return] Parent continue fail:", e);
-            });
+            let success = false;
+            try {
+              await parent.continue();
+              success = true;
+            } catch (e) {
+              console.error("[Delegate Async Return] Parent continue fail, will retry in 1s:", e);
+              await new Promise((resolve) => setTimeout(resolve, 1000));
+              try {
+                await parent.continue();
+                success = true;
+              } catch (e2) {
+                console.error("[Delegate Async Return] Parent continue retry fail:", e2);
+              }
+            }
+
+            if (!success) {
+              try {
+                const { broadcastToUser } = await import("../../ws/handler");
+                broadcastToUser(username, {
+                  type: "delegation_completed",
+                  parentSessionId,
+                  subagentSessionId: delegateSessionId,
+                  status: status === "error" ? "error" : "success",
+                });
+              } catch (e3) {
+                console.error("Failed to broadcast fallback delegation_completed:", e3);
+              }
+            }
           }
         } else {
           console.warn(`[Delegate] Parent session ${parentSessionId} not found for toolCallId ${toolCallId} — delegation result discarded`);

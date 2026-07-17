@@ -34,6 +34,7 @@ import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigat
 import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentModal";
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 import { wsClient } from "@/lib/ws-client";
+import { GlobalApprovalOverlay } from "@/components/approvals/GlobalApprovalOverlay";
 
 export function AppRouter() {
   const { user, loading, needsSetup } = useAuth();
@@ -555,6 +556,7 @@ export function AppRouter() {
 
   return (
     <SessionsProvider>
+      <GlobalApprovalOverlay />
       <MainLayout
         route={route}
         onNavigate={navigate}

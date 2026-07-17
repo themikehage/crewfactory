@@ -1,4 +1,4 @@
-# Fix Subagent Delegation: Silent Failures, Missing Reports & Broken UI
+COMPLETED: Fix Subagent Delegation: Silent Failures, Missing Reports & Broken UI
 
 ## Status: Draft
 
