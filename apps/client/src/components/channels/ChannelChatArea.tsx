@@ -6,12 +6,9 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import type { MentionTarget } from "@/components/chat/ChatInput";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
-import { ChannelMemoriesModal } from "./ChannelMemoriesModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
 import { useRouter } from "@/hooks/useRouter";
-import { useLiterals } from "@/lib";
-import { literals as u } from "./ChannelChatArea.literals";
-import { buildCreateSessionBody, getSessionName, getSessionPath } from "@/lib/session-utils";
+import { getSessionPath } from "@/lib/session-utils";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
 interface Props {
@@ -23,44 +20,10 @@ interface Props {
 export function ChannelChatArea({ activeChannel, sessionId, variantMode = false }: Props) {
   const { channel, messages, streamingAgents, sendMessage, abortDispatch, updateChannel, fetchChannel } = useChannel(activeChannel.id, sessionId);
   const { navigate } = useRouter();
-  const l = useLiterals(u);
-  const [resetting, setResetting] = useState(false);
-
-  const handleResetContext = async () => {
-    if (!window.confirm(l.resetConfirm)) return;
-    abortDispatch();
-    setResetting(true);
-    try {
-      const sessionsRes = await apiFetch("/api/sessions");
-      let count = 0;
-      if (sessionsRes.ok) {
-        const data = await sessionsRes.json();
-        count = (data.sessions ?? []).filter((s: any) => s.channelId === activeChannel.id).length;
-      }
-      const sessionName = getSessionName({ activeChannel }, count);
-      const res = await apiFetch("/api/sessions", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(buildCreateSessionBody(sessionName, {
-          activeChannel,
-        })),
-      });
-      if (!res.ok) return;
-      const session = await res.json();
-      navigate(`/channels/${activeChannel.id}/session/${session.id}`);
-    } catch (err) {
-      console.error("Failed to reset context:", err);
-    } finally {
-      setResetting(false);
-    }
-  };
 
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);
   const [showContextModal, setShowContextModal] = useState(false);
-  const [showMemoriesModal, setShowMemoriesModal] = useState(false);
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [channelMembers, setChannelMembers] = useState<ChannelMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
@@ -200,16 +163,6 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
             </button>
 
             <button
-              onClick={() => setShowMemoriesModal(true)}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors"
-              title="Memorias del canal"
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                <path d="M10 2a6 6 0 00-6 6c0 1.887.454 3.665 1.257 5.234l.75 1.5A1 1 0 007 16h6a1 1 0 00.993-1.266l.75-1.5A9.952 9.952 0 0016 8a6 6 0 00-6-6z" />
-              </svg>
-            </button>
-
-            <button
               onClick={() => setShowMembersModal(true)}
               className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors relative"
               title={`Miembros (${channel?.members?.length ?? 0} agentes)`}
@@ -222,17 +175,6 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
                   {channel?.members?.length}
                 </span>
               )}
-            </button>
-
-            <button
-              onClick={handleResetContext}
-              disabled={resetting}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors disabled:opacity-50"
-              title={l.resetContext}
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M4 2a1 1 0 011 1v2.101a7.002 7.002 0 0111.601 2.566 1 1 0 11-1.885.666A5.002 5.002 0 005.999 7H9a1 1 0 110 2H4a1 1 0 01-1-1V3a1 1 0 011-1zm.008 9.057a1 1 0 011.21-.743 5.002 5.002 0 008.783 1.586H11a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0v-2.101a7.002 7.002 0 01-11.601-2.566 1 1 0 01.743-1.21z" clipRule="evenodd" />
-              </svg>
             </button>
 
             <button
@@ -303,13 +245,7 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
         />
       )}
 
-      {showMemoriesModal && (
-        <ChannelMemoriesModal
-          channelId={activeChannel.id}
-          channelName={channel?.name || activeChannel.name}
-          onClose={() => setShowMemoriesModal(false)}
-        />
-      )}
+
 
       {showSettingsModal && channel && (
         <ChannelSettingsModal
