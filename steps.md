@@ -664,3 +664,63 @@
 - [x] 141.2 Implement automatic runtime legacy data migration check to new paths structure
 - [x] 141.3 Verify clean compilation of client, server and shared packages
 
+## Phase 142: Channel Delegation & Negotiation v2
+
+Created `plans/channel-delegation-negotiation-v2.md` — Comprehensive analysis and redesign plan for channel delegation and negotiation systems. Covers 5 critical bugs, Execution ID pipeline system, DELEGATE vs NEGOTIATE semantic differentiation, redesigned delegation UI, and sequential-by-default mode.
+
+### Phase 142A: Fix Critical Bugs
+- [ ] 142A.1 Fix channel delegation not awaiting agent completion in `delegate-tool.ts` (chainPromise resolves prematurely)
+- [ ] 142A.2 Fix agent avatars not showing in channels — pass `agentAvatarMap` to `ChannelMessageList`, populate `agentAvatarUrl` in mapped messages
+- [ ] 142A.3 Fix tool results invisible in `ChannelMessages.tsx` — render tool calls/results in simple view, forward `tool_execution_update` in `AgentPromptRunner`
+- [ ] 142A.4 Fix delegation click redirecting out of channel — implement `DelegationDrawer` inline panel instead of full navigation
+- [ ] 142A.5 Fix agent streaming interleaving — make sequential mode (broadcast) the default for new channels
+
+### Phase 142B: Execution ID System
+- [ ] 142B.1 Create `ChannelTaskRegistry` with createExecution/updateStep/completeExecution + JSON persistence
+- [ ] 142B.2 Integrate task registry into `AgentPromptRunner` — emit `channel_task_{start,progress,end}` events
+- [ ] 142B.3 Add REST API `GET /api/channels/:id/executions[/:executionId]` for querying task status
+
+### Phase 142C: Delegate vs Negotiate Semantics
+- [ ] 142C.1 Add DELEGATE/NEGOTIATE intent detection in `ChannelOrchestrator` message parsing
+- [ ] 142C.2 Update leader prompt fragment (`role-leader.ts`) with decision rules for delegation vs negotiation
+- [ ] 142C.3 Implement differentiated behavior: delegation runs async (non-blocking), negotiation blocks for debate
+
+### Phase 142D: Delegation UI Redesign
+- [ ] 142D.1 Create `DelegationTaskCard` component: @agent_name, description, progress bar, "View" button
+- [ ] 142D.2 Create `DelegationDrawer` component: inline overlay showing sub-session tool calls and results
+- [ ] 142D.3 Integrate into `ChannelMessages` and `ChannelMessageList`, connect to WS task events
+
+### Phase 142E: Negotiation Visual Enhancements
+- [ ] 142E.1 Add round indicators and negotiation state badges to channel agent messages
+- [ ] 142E.2 Build arbitration decision panel with expandable reasoning section
+
+### Phase 142F: Verify & Document
+- [ ] 142F.1 Verify clean compilation and builds for server and client
+- [ ] 142F.2 Update about.md with new channel delegation/negotiation system architecture
+
+## Phase 143: Fix Subagent Delegation — Silent Failures, Missing Reports & Broken UI
+
+Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagent delegation bugs: (1) silent write failures due to permission ask without timeout, (2) delegation result card never appears in chat because ChatArea.tsx filters role=user messages, (3) intermittent result delivery that only shows on page refresh.
+
+### Phase 143A: Fix Frontend Filter (CRITICAL)
+- [ ] 143A.1 Modify message_start filter in ChatArea.tsx (line 320) to allow user messages with details.type set
+- [ ] 143A.2 Modify message_end filter in ChatArea.tsx (line 374) with same logic
+- [ ] 143A.3 Verify DelegationNotification renders in real-time without page refresh
+
+### Phase 143B: Fix Subagent Write Permissions (HIGH)
+- [ ] 143B.1 Add 60s timeout to tool_approval_request for subagent sessions in before-tool-call-hook.ts
+- [ ] 143B.2 Improve permission denied error messages in permission-engine.ts with descriptive tool/rule info
+- [ ] 143B.3 Add visual "Permission Denied" badge for blocked tool calls in ToolCallRow.tsx
+
+### Phase 143C: Robust Result Delivery (HIGH)
+- [ ] 143C.1 Handle orphaned parent session — persist result directly via sessionManager.appendMessageToSession()
+- [ ] 143C.2 Add retry (1 attempt, 1s delay) for parent.continue() in spawn and delegate tools
+- [ ] 143C.3 Verify concurrent subagent completion handling via followUpQueue
+
+### Phase 143D: Verify
+- [ ] 143D.1 Test builder subagent can write files (with approval)
+- [ ] 143D.2 Test explorer subagent shows clear error when attempting write
+- [ ] 143D.3 Test DelegationNotification appears in chat without refresh
+- [ ] 143D.4 Test delegation result persists across page reload
+- [ ] 143D.5 Verify clean compilation build of server and client
+
