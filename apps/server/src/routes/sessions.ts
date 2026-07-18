@@ -377,6 +377,34 @@ sessionsRouter.get("/:id/messages", async (c) => {
     return c.json({ messages: [] });
   }
 
+  const metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
+  const channelId = metadata.channelId as string | undefined;
+
+  if (channelId) {
+    try {
+      const before = c.req.query("before") || undefined;
+      const limitVal = c.req.query("limit") ? parseInt(c.req.query("limit")!, 10) : 100;
+      const { channelStore } = await import("../channels/channel-store");
+      const messages = channelStore.getMessages(username, channelId, limitVal, sessionId, before);
+      const mapped = messages.map((m: any) => ({
+        id: m.id || crypto.randomUUID(),
+        role: m.role === "agent" ? "assistant" : m.role,
+        content: m.content,
+        thinking: m.thinking,
+        toolCalls: m.toolCalls,
+        mentions: m.mentions,
+        tokensIn: m.tokensIn,
+        tokensOut: m.tokensOut,
+        createdAt: m.createdAt,
+        timestamp: m.createdAt || new Date().toISOString(),
+      }));
+      return c.json({ messages: mapped, metadata });
+    } catch (err) {
+      console.error("Failed to load redirected channel messages:", err);
+      return c.json({ messages: [], metadata });
+    }
+  }
+
   const session = await sessionManager.getOrCreateSession(username, sessionId);
   if (!session) {
     return c.json({ messages: [] });
@@ -413,7 +441,6 @@ sessionsRouter.get("/:id/messages", async (c) => {
     };
   });
 
-  const metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
   return c.json({ messages: enrichedMessages, metadata });
 });
 

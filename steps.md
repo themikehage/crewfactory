@@ -813,6 +813,13 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 161.4 Rebuild the client from scoped execution snapshots and remove terminal streaming state
 - [x] 161.5 Guard configuration mutations, normalize configuration versioning, and verify the MUST flow matrix
 
+## Phase 162: Channel Workspace Persistence, Log Rotation, and Stalled Recovery Hardening
+- [x] 162.1 Bind filesystem and bash tools dynamically to channel workspace to avoid empty directories
+- [x] 162.2 Support rotated logs (messages.*.jsonl) and beforeId cursors in channel message queries
+- [x] 162.3 Redirect session message queries and list message counts to channelStore if channel-bound
+- [x] 162.4 Store lastUserMessage in executions and update UI sessions to stalled with system log messages on server restart
+- [x] 162.5 Implement client-side watchdog and stalled execution banner with Retry/Abort actions in the UI
+
 
 
 

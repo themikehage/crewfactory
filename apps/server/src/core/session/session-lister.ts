@@ -54,27 +54,41 @@ export class SessionLister {
           }
 
           let messageCount = 0;
-          try {
-            const files = await readdir(sessionSubdir);
-            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
-            for (const file of jsonlFiles) {
-              try {
-                const content = await readFile(join(sessionSubdir, file), "utf-8");
-                const lines = content.trim().split("\n");
-                const limit = Math.min(lines.length, 500);
-                for (let i = 0; i < limit; i++) {
-                  const line = lines[i].trim();
-                  if (!line) continue;
-                  const parsed = JSON.parse(line);
-                  if (parsed.type === "message" && parsed.message?.role === "user") {
-                    messageCount++;
-                  }
-                }
-              } catch { }
+          const channelId = metadata.channelId as string | undefined;
+          if (channelId) {
+            try {
+              const { channelStore } = await import("../../channels/channel-store");
+              const msgs = channelStore.getMessages(username, channelId, 10000, sessionId);
+              messageCount = msgs.length;
+            } catch (err) {
+              console.error("Failed to load channel messages count:", err);
             }
-          } catch { }
+          } else {
+            try {
+              const files = await readdir(sessionSubdir);
+              const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+              for (const file of jsonlFiles) {
+                try {
+                  const content = await readFile(join(sessionSubdir, file), "utf-8");
+                  const lines = content.trim().split("\n");
+                  const limit = Math.min(lines.length, 500);
+                  for (let i = 0; i < limit; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parsed = JSON.parse(line);
+                    if (parsed.type === "message" && parsed.message?.role === "user") {
+                      messageCount++;
+                    }
+                  }
+                } catch { }
+              }
+            } catch { }
+          }
 
-          const status = deps.isSessionActive(sessionId);
+          let status = deps.isSessionActive(sessionId) as any;
+          if (metadata.status === "stalled") {
+            status = "stalled";
+          }
 
           return {
             id: sessionId,

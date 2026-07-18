@@ -3,7 +3,7 @@ import { readFile, readdir, stat } from "node:fs/promises";
 import { join, relative, basename } from "node:path";
 import { existsSync } from "node:fs";
 import ignore from "ignore";
-import { resolveSafePath } from "./path-safety";
+import { resolveSafePath, type CwdConfig } from "./path-safety";
 
 function isRipgrepAvailable(): boolean {
   try {
@@ -20,7 +20,7 @@ function globToRegex(glob: string): RegExp {
   return new RegExp(regexStr, "i");
 }
 
-export function createGrepToolDefinition(cwd: string) {
+export function createGrepToolDefinition(cwd: CwdConfig) {
   return {
     name: "grep",
     description: "Search file contents for a pattern. Returns matching lines with file paths and line numbers. Respects .gitignore.",

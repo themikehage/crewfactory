@@ -21,6 +21,7 @@ function CreateChannelModal({
   const l = useLiterals(u);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [kind, setKind] = useState<Exclude<ChannelTopologyKind, "legacy_custom">>("leader_specialists");
@@ -36,7 +37,7 @@ function CreateChannelModal({
       const assignments = selectedAgentIds.map((agentId, order) => ({ agentId, role: kind === "leader_specialists" || kind === "sequential_review" ? (order === 0 ? "leader" as const : kind === "leader_specialists" ? "specialist" as const : "reviewer" as const) : kind === "roundtable" ? "peer" as const : kind === "debate_with_arbiter" && order === selectedAgentIds.length - 1 ? "arbiter" as const : kind === "debate_with_arbiter" ? "position" as const : "participant" as const, targets: [], order }));
       const first = selectedAgentIds[0];
       const arbiter = assignments.find((assignment) => assignment.role === "arbiter")?.agentId;
-      await onCreate({ name: name.trim(), description: description.trim() || undefined, members, topology: { version: CHANNEL_TOPOLOGY_VERSION, kind, schedulerMode: kind === "leader_specialists" ? "leader-gated" : "sequential", entryPointAgentId: kind === "roundtable" || kind === "mention_only" ? undefined : first, terminalOwnerAgentId: kind === "leader_specialists" ? first : kind === "debate_with_arbiter" ? arbiter : selectedAgentIds[selectedAgentIds.length - 1], arbiterAgentId: arbiter, assignments }, negotiationProtocol: kind === "debate_with_arbiter" ? { agreementPattern: "(AGREEMENT|ACUERDO)", maxRounds: 3, arbiterAgentId: arbiter } : undefined });
+      await onCreate({ name: name.trim(), description: description.trim() || undefined, avatarUrl: avatarUrl.trim() || undefined, members, topology: { version: CHANNEL_TOPOLOGY_VERSION, kind, schedulerMode: kind === "leader_specialists" ? "leader-gated" : "sequential", entryPointAgentId: kind === "roundtable" || kind === "mention_only" ? undefined : first, terminalOwnerAgentId: kind === "leader_specialists" ? first : kind === "debate_with_arbiter" ? arbiter : selectedAgentIds[selectedAgentIds.length - 1], arbiterAgentId: arbiter, assignments }, negotiationProtocol: kind === "debate_with_arbiter" ? { agreementPattern: "(AGREEMENT|ACUERDO)", maxRounds: 3, arbiterAgentId: arbiter } : undefined });
       onClose();
     } catch (err: any) {
       setError(err.message || l.createError);
@@ -96,6 +97,16 @@ function CreateChannelModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={l.descriptionPlaceholder}
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.avatarUrlLabel}</label>
+            <input
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder={l.avatarUrlPlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>

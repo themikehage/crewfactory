@@ -5,6 +5,12 @@ import {
   DefaultResourceLoader,
   createBashToolDefinition,
   SessionManager,
+  createReadToolDefinition,
+  createWriteToolDefinition,
+  createEditToolDefinition,
+  createGrepToolDefinition,
+  createFindToolDefinition,
+  createLsToolDefinition,
 } from "../ai";
 import { Hono } from "hono";
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from "node:fs";
@@ -92,7 +98,11 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     sessionManager = SessionManager.create(sessionDir, sessionDir);
   }
 
-  const customBashTool = createBashToolDefinition(workspaceDir, {
+  const workspaceContext = {
+    getCwd: () => session ? session.cwd : workspaceDir
+  };
+
+  const customBashTool = createBashToolDefinition(workspaceContext, {
     spawnHook: (context) => {
       const userEnv = coreSessionManager.userConfig.getUserEnv(username);
       const token = createProgrammaticSessionSync(username);
@@ -113,6 +123,13 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     },
   });
 
+  const readTool = createReadToolDefinition(workspaceContext);
+  const writeTool = createWriteToolDefinition(workspaceContext);
+  const editTool = createEditToolDefinition(workspaceContext);
+  const grepTool = createGrepToolDefinition(workspaceContext);
+  const findTool = createFindToolDefinition(workspaceContext);
+  const lsTool = createLsToolDefinition(workspaceContext);
+
   const isLaboratory = definition.id.startsWith(SessionPrefix.LAB);
   const uiTools = createUiTools(workspaceDir, username, isLaboratory, isLaboratory ? undefined : {
     workspaceDir,
@@ -131,15 +148,27 @@ export async function createAgentServer(definition: AgentDefinition, username: s
     username,
   });
 
-  const { session } = await createAgentSession({
+  let session: any = null;
+  const sessionResult = await createAgentSession({
     cwd: workspaceDir,
     sessionManager,
     authStorage,
     modelRegistry,
     resourceLoader,
-    customTools: [customBashTool as any, ...uiTools as any, ...memoryTools as any],
+    customTools: [
+      customBashTool as any,
+      readTool as any,
+      writeTool as any,
+      editTool as any,
+      grepTool as any,
+      findTool as any,
+      lsTool as any,
+      ...uiTools as any,
+      ...memoryTools as any
+    ],
     beforeToolCall,
   });
+  session = sessionResult.session;
 
   const activeToolNames = [
     "read", "write", "edit", "bash", "grep", "find", "ls",

@@ -18,6 +18,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     emptyTitle: "No channels created",
     emptyDescription: "Create a channel to bring multiple agents together",
     emptyButton: "Create Channel",
+    avatarUrlLabel: "Avatar/Image URL (optional)",
+    avatarUrlPlaceholder: "e.g. https://example.com/avatar.png",
   },
   es: {
     createTitle: "Crear Canal",
@@ -36,5 +38,7 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     emptyTitle: "No hay canales creados",
     emptyDescription: "Crea un canal para reunir multiples agentes",
     emptyButton: "Crear Canal",
+    avatarUrlLabel: "URL del Avatar/Imagen (opcional)",
+    avatarUrlPlaceholder: "ej. https://ejemplo.com/avatar.png",
   },
 };

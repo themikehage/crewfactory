@@ -28,6 +28,9 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [streamingAgents, setStreamingAgents] = useState<Record<string, StreamingAgentState>>({});
   const [activeExecutionId, setActiveExecutionId] = useState<string | null>(null);
+  const [stalledExecution, setStalledExecution] = useState<{ id: string; lastUserMessage?: string } | null>(null);
+  const [watchdogStatus, setWatchdogStatus] = useState<"ok" | "warning" | "danger">("ok");
+  const lastActivityTime = useRef<number>(Date.now());
   const executionViewRef = useRef<ChannelExecutionViewState>(emptyChannelExecutionViewState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,9 +102,11 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
         executionViewRef.current = emptyChannelExecutionViewState;
         setStreamingAgents({});
         setActiveExecutionId(null);
+        setStalledExecution(null);
         return;
       }
       setActiveExecutionId(execution.status === "pending" || execution.status === "running" ? execution.id : null);
+      setStalledExecution(execution.status === "stalled" ? { id: execution.id, lastUserMessage: (execution as any).lastUserMessage } : null);
       const eventsResponse = await apiFetch(`/api/channels/${channelId}/executions/${execution.id}/events?limit=1000`);
       if (!eventsResponse.ok) return;
       const eventData = await eventsResponse.json() as { events?: ChannelExecutionEvent[] };
@@ -127,6 +132,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setMessages([]);
       setStreamingAgents({});
       setActiveExecutionId(null);
+      setStalledExecution(null);
+      setWatchdogStatus("ok");
       setExecutionActivities([]);
       executionViewRef.current = emptyChannelExecutionViewState;
       setLoading(false);
@@ -138,6 +145,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setMessages([]);
       setStreamingAgents({});
       setActiveExecutionId(null);
+      setStalledExecution(null);
+      setWatchdogStatus("ok");
       setExecutionActivities([]);
       executionViewRef.current = emptyChannelExecutionViewState;
       setLoading(true);
@@ -164,6 +173,9 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (data.channelId && data.channelId !== channelIdRef.current) return;
       if (sessionIdRef.current && data.sessionId && data.sessionId !== sessionIdRef.current) return;
 
+      lastActivityTime.current = Date.now();
+      setWatchdogStatus("ok");
+
       if (data.type === "channel_message") {
         const newMsg: ChannelMessage = data.message;
         setMessages((prev) => {
@@ -176,9 +188,17 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
         if (event.channelId !== channelIdRef.current || (sessionIdRef.current && event.sessionId !== sessionIdRef.current)) return;
         executionViewRef.current = applyChannelExecutionEvent(executionViewRef.current, event);
         setStreamingAgents(executionViewRef.current.agents);
-        if (event.type === "execution_started") setActiveExecutionId(event.executionId);
-        if (["execution_completed", "execution_aborted", "execution_failed", "execution_stalled"].includes(event.type)) {
+        if (event.type === "execution_started") {
+          setActiveExecutionId(event.executionId);
+          setStalledExecution(null);
+        }
+        if (event.type === "execution_stalled") {
+          setStalledExecution({ id: event.executionId, lastUserMessage: event.payload.lastUserMessage as string });
+          setActiveExecutionId(null);
+        }
+        if (["execution_completed", "execution_aborted", "execution_failed"].includes(event.type)) {
           setActiveExecutionId((current) => current === event.executionId ? null : current);
+          setStalledExecution((current) => current?.id === event.executionId ? null : current);
         }
         if (event.type === "turn_skipped" || event.type === "turn_failed" || event.type === "execution_aborted" || (event.type === "execution_completed" && event.payload.withWarnings === true)) {
           const type = event.type === "turn_skipped" ? "skipped" : event.type === "turn_failed" ? "failed" : event.type === "execution_aborted" ? "aborted" : "completed_with_warnings";
@@ -254,6 +274,28 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
 
     return unsubMessage;
   }, [channelId]);
+
+  useEffect(() => {
+    if (!activeExecutionId) {
+      setWatchdogStatus("ok");
+      return;
+    }
+
+    lastActivityTime.current = Date.now();
+
+    const interval = setInterval(() => {
+      const elapsed = Date.now() - lastActivityTime.current;
+      if (elapsed > 60 * 1000) {
+        setWatchdogStatus("danger");
+      } else if (elapsed > 30 * 1000) {
+        setWatchdogStatus("warning");
+      } else {
+        setWatchdogStatus("ok");
+      }
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [activeExecutionId]);
 
   const sendMessage = useCallback(
     async (content: string) => {
@@ -344,6 +386,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     streamingAgents,
     executionActivities,
     activeExecutionId,
+    stalledExecution,
+    watchdogStatus,
     loading,
     error,
     fetchChannel,

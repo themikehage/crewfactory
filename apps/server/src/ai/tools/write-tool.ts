@@ -1,8 +1,8 @@
 import { writeFile, mkdir } from "node:fs/promises";
 import { dirname } from "node:path";
-import { resolveSafePath } from "./path-safety";
+import { resolveSafePath, type CwdConfig } from "./path-safety";
 
-export function createWriteToolDefinition(cwd: string) {
+export function createWriteToolDefinition(cwd: CwdConfig) {
   return {
     name: "write",
     description: "Write content to a file. Creates the file if it doesn't exist, and overwrites it if it does. Automatically creates parent directories.",

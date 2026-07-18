@@ -1,9 +1,9 @@
 import { readdir, stat } from "node:fs/promises";
 import { join } from "node:path";
-import { resolveSafePath } from "./path-safety";
+import { resolveSafePath, type CwdConfig } from "./path-safety";
 import { truncateHead } from "../vendor/agent/src/harness/utils/truncate";
 
-export function createLsToolDefinition(cwd: string) {
+export function createLsToolDefinition(cwd: CwdConfig) {
   return {
     name: "ls",
     description: "List directory contents. Returns entries sorted alphabetically, with '/' suffix for directories. Includes dotfiles.",

@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ChannelChatArea({ activeChannel, sessionId, variantMode = false }: Props) {
-  const { channel, messages, streamingAgents, executionActivities, sendMessage, abortDispatch, updateChannel, fetchChannel } = useChannel(activeChannel.id, sessionId);
+  const { channel, messages, streamingAgents, executionActivities, sendMessage, abortDispatch, updateChannel, fetchChannel, stalledExecution, watchdogStatus } = useChannel(activeChannel.id, sessionId);
   const { navigate } = useRouter();
 
   const isStreaming = Object.keys(streamingAgents).length > 0;
@@ -210,6 +210,50 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
             <span>
               {Object.values(streamingAgents).map((a) => a.agentName || a.agentId).join(", ")} responding...
             </span>
+          </div>
+        )}
+
+        {stalledExecution && (
+          <div className="mx-4 my-2 p-3 bg-error/10 border border-error/20 rounded flex items-center justify-between text-xs text-error flex-shrink-0 animate-fadeIn">
+            <div className="flex items-center gap-2">
+              <span className="w-2 h-2 rounded-full bg-error animate-pulse" />
+              <span>
+                La ejecución fue interrumpida. ¿Querés reintentar con el último mensaje?
+              </span>
+            </div>
+            {stalledExecution.lastUserMessage && (
+              <button
+                onClick={() => handleSend(stalledExecution.lastUserMessage!)}
+                className="px-3 py-1 bg-error/20 hover:bg-error/30 text-error font-semibold rounded cursor-pointer transition-colors"
+              >
+                Reintentar
+              </button>
+            )}
+          </div>
+        )}
+
+        {watchdogStatus !== "ok" && (
+          <div className={`mx-4 my-2 p-3 border rounded flex items-center justify-between text-xs flex-shrink-0 animate-fadeIn ${
+            watchdogStatus === "danger" 
+              ? "bg-error/10 border-error/20 text-error" 
+              : "bg-warning/10 border-warning/20 text-warning"
+          }`}>
+            <div className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full animate-pulse ${watchdogStatus === "danger" ? "bg-error" : "bg-warning"}`} />
+              <span>
+                {watchdogStatus === "danger" 
+                  ? "Los agentes no responden (llevan más de 60 segundos sin actividad)." 
+                  : "Los agentes parecen estar demorando más de lo habitual..."}
+              </span>
+            </div>
+            {watchdogStatus === "danger" && (
+              <button
+                onClick={abortDispatch}
+                className="px-3 py-1 bg-error/20 hover:bg-error/30 text-error font-semibold rounded cursor-pointer transition-colors"
+              >
+                Abortar
+              </button>
+            )}
           </div>
         )}
 

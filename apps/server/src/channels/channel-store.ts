@@ -58,6 +58,7 @@ class ChannelStore {
       policyVersion: 1,
       negotiationProtocol: data.negotiationProtocol,
       delegationPattern: data.delegationPattern,
+      avatarUrl: data.avatarUrl,
       createdAt: now,
       updatedAt: now,
     };
@@ -135,6 +136,7 @@ class ChannelStore {
     if (updates.policy !== undefined) channel.policy = updates.policy;
     if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
     if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
+    if (updates.avatarUrl !== undefined) channel.avatarUrl = updates.avatarUrl;
     if (updates.topology !== undefined || updates.policy !== undefined || updates.negotiationProtocol !== undefined || updates.context !== undefined) channel.policyVersion = (channel.policyVersion ?? 1) + 1;
     channel.updatedAt = new Date().toISOString();
 
@@ -207,66 +209,89 @@ class ChannelStore {
     }
   }
 
-  getMessages(username: string, channelId: string, limit: number = 100, sessionId?: string): ChannelMessage[] {
-    const messagesPath = this.getMessagesPath(username, channelId);
-    if (!existsSync(messagesPath)) return [];
-    
-    let fd: number | null = null;
-    try {
-      fd = openSync(messagesPath, "r");
-      const stats = fstatSync(fd);
-      const fileSize = stats.size;
-      if (fileSize === 0) return [];
+  getMessages(username: string, channelId: string, limit: number = 100, sessionId?: string, beforeId?: string): ChannelMessage[] {
+    const dir = this.getChannelDir(username, channelId);
+    if (!existsSync(dir)) return [];
 
-      const bufferSize = Math.min(65536, fileSize);
-      const buffer = Buffer.alloc(bufferSize);
-      let filePosition = fileSize;
-      let leftover = "";
-      const messages: ChannelMessage[] = [];
+    const rotatedFiles = readdirSync(dir)
+      .filter((f) => f.startsWith("messages.") && f.endsWith(".jsonl") && f !== "messages.jsonl")
+      .sort()
+      .reverse();
+    const filesToRead = ["messages.jsonl", ...rotatedFiles]
+      .map((f) => join(dir, f))
+      .filter((f) => existsSync(f));
 
-      while (filePosition > 0 && messages.length < limit) {
-        const readLength = Math.min(bufferSize, filePosition);
-        filePosition -= readLength;
-        readSync(fd, buffer, 0, readLength, filePosition);
+    const messages: ChannelMessage[] = [];
+    let foundBefore = beforeId ? false : true;
 
-        let chunk = buffer.toString("utf-8", 0, readLength) + leftover;
-        const chunkLines = chunk.split("\n");
-        
-        leftover = chunkLines[0];
-        
-        for (let i = chunkLines.length - 1; i >= 1; i--) {
-          const line = chunkLines[i].trim();
-          if (!line) continue;
-          try {
-            const parsed: ChannelMessage = JSON.parse(line);
-            if (!sessionId || parsed.sessionId === sessionId) {
-              messages.unshift(parsed);
-              if (messages.length >= limit) {
-                break;
+    for (const filePath of filesToRead) {
+      if (messages.length >= limit) break;
+
+      let fd: number | null = null;
+      try {
+        fd = openSync(filePath, "r");
+        const stats = fstatSync(fd);
+        const fileSize = stats.size;
+        if (fileSize === 0) continue;
+
+        const bufferSize = Math.min(65536, fileSize);
+        const buffer = Buffer.alloc(bufferSize);
+        let filePosition = fileSize;
+        let leftover = "";
+
+        while (filePosition > 0 && messages.length < limit) {
+          const readLength = Math.min(bufferSize, filePosition);
+          filePosition -= readLength;
+          readSync(fd, buffer, 0, readLength, filePosition);
+
+          let chunk = buffer.toString("utf-8", 0, readLength) + leftover;
+          const chunkLines = chunk.split("\n");
+
+          leftover = chunkLines[0];
+
+          for (let i = chunkLines.length - 1; i >= 1; i--) {
+            const line = chunkLines[i].trim();
+            if (!line) continue;
+            try {
+              const parsed: ChannelMessage = JSON.parse(line);
+              if (!foundBefore) {
+                if (parsed.id === beforeId) {
+                  foundBefore = true;
+                }
+                continue;
               }
+              if (!sessionId || parsed.sessionId === sessionId) {
+                messages.unshift(parsed);
+                if (messages.length >= limit) {
+                  break;
+                }
+              }
+            } catch {}
+          }
+        }
+
+        if (filePosition === 0 && leftover.trim() && messages.length < limit) {
+          try {
+            const parsed: ChannelMessage = JSON.parse(leftover.trim());
+            if (!foundBefore) {
+              if (parsed.id === beforeId) {
+                foundBefore = true;
+              }
+            } else if (!sessionId || parsed.sessionId === sessionId) {
+              messages.unshift(parsed);
             }
           } catch {}
         }
-      }
-
-      if (filePosition === 0 && leftover.trim() && messages.length < limit) {
-        try {
-          const parsed: ChannelMessage = JSON.parse(leftover.trim());
-          if (!sessionId || parsed.sessionId === sessionId) {
-            messages.unshift(parsed);
-          }
-        } catch {}
-      }
-
-      return messages;
-    } catch (e) {
-      console.error("Failed to tail-read channel messages:", e);
-      return [];
-    } finally {
-      if (fd !== null) {
-        try { closeSync(fd); } catch {}
+      } catch (e) {
+        console.error(`Failed to tail-read channel messages file ${filePath}:`, e);
+      } finally {
+        if (fd !== null) {
+          try { closeSync(fd); } catch {}
+        }
       }
     }
+
+    return messages;
   }
 
   getNegotiationStatePath(username: string, channelId: string): string {

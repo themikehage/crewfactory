@@ -1,6 +1,6 @@
 import { access, readFile, writeFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { resolveSafePath } from "./path-safety";
+import { resolveSafePath, type CwdConfig } from "./path-safety";
 import {
   stripBom,
   normalizeToLF,
@@ -12,7 +12,7 @@ import {
   Edit
 } from "./edit-diff";
 
-export function createEditToolDefinition(cwd: string) {
+export function createEditToolDefinition(cwd: CwdConfig) {
   return {
     name: "edit",
     description: "Edit a single text file using exact text block replacements. Multiple disjoint replacements can be executed in one call.",

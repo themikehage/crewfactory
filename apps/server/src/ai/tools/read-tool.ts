@@ -1,9 +1,9 @@
 import { access, readFile } from "node:fs/promises";
 import { constants } from "node:fs";
-import { resolveSafePath } from "./path-safety";
+import { resolveSafePath, type CwdConfig } from "./path-safety";
 import { truncateHead } from "../vendor/agent/src/harness/utils/truncate";
 
-export function createReadToolDefinition(cwd: string) {
+export function createReadToolDefinition(cwd: CwdConfig) {
   return {
     name: "read",
     description: "Read the contents of a text file. Supports offset and limit parameters for paginating large files.",

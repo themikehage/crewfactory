@@ -39,7 +39,7 @@ export class ChannelExecutionStore {
   }
   createExecution(username: string, channelId: string, input: unknown = {}): ChannelExecution {
     const data = CreateChannelExecutionSchema.parse(input); const now = new Date().toISOString();
-    const execution: ChannelExecution = { id: data.id ?? crypto.randomUUID(), channelId, sessionId: data.sessionId, schedulerMode: data.schedulerMode, topologyVersion: data.topologyVersion, policyVersion: data.policyVersion, promptPolicyChecksum: data.promptPolicyChecksum, status: "pending", turns: [], lastSequence: 0, createdAt: now, updatedAt: now };
+    const execution: ChannelExecution = { id: data.id ?? crypto.randomUUID(), channelId, sessionId: data.sessionId, schedulerMode: data.schedulerMode, topologyVersion: data.topologyVersion, policyVersion: data.policyVersion, promptPolicyChecksum: data.promptPolicyChecksum, lastUserMessage: (data as any).lastUserMessage, status: "pending", turns: [], lastSequence: 0, createdAt: now, updatedAt: now };
     this.save(execution, username); return execution;
   }
   getExecution(username: string, channelId: string, executionId: string): ChannelExecution | null {
@@ -72,10 +72,42 @@ export class ChannelExecutionStore {
   }
   recoverInterruptedExecutions(username: string, channelId: string): number {
     let recovered = 0;
+    const now = new Date().toISOString();
     for (const summary of this.listExecutions(username, channelId, MAX_EXECUTIONS)) {
       if (summary.status !== "pending" && summary.status !== "running") continue;
       this.finishOpenTurns(username, channelId, summary.id, "aborted", "aborted");
-      this.appendEvent(username, channelId, summary.id, { type: "execution_stalled", sessionId: summary.sessionId, payload: { reason: "server_restart" } });
+      
+      const execution = this.getExecution(username, channelId, summary.id);
+      const lastUserMessage = execution?.lastUserMessage;
+
+      this.appendEvent(username, channelId, summary.id, { type: "execution_stalled", sessionId: summary.sessionId, payload: { reason: "server_restart", lastUserMessage } });
+
+      if (summary.sessionId) {
+        try {
+          import("../core/session-manager").then(({ sessionManager }) => {
+            const metadata = sessionManager.metadataStore.getSessionMetadata(username, summary.sessionId!);
+            if (metadata) {
+              metadata.status = "stalled";
+              sessionManager.metadataStore.updateSessionMetadata(username, summary.sessionId!, metadata);
+            }
+          }).catch((err) => console.error("Failed to load sessionManager for stalled update:", err));
+
+          const stallMsg = {
+            id: crypto.randomUUID(),
+            channelId,
+            sessionId: summary.sessionId,
+            role: "system" as any,
+            content: `[Session stalled: server restart]`,
+            createdAt: now,
+          };
+          import("./channel-store").then(({ channelStore }) => {
+            channelStore.appendMessage(username, channelId, stallMsg);
+          }).catch((err) => console.error("Failed to load channelStore to append system message:", err));
+        } catch (e) {
+          console.error("Failed to mark session as stalled:", e);
+        }
+      }
+
       recovered++;
     }
     return recovered;

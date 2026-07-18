@@ -281,7 +281,7 @@ export function PipelineDetailPage({ pipelineId, runId, onNavigate }: PipelineDe
                       <span className="text-[10px] font-bold text-text-secondary uppercase block mb-1.5">Output Schema:</span>
                       <div className="flex items-center gap-2 flex-wrap">
                         {stage.outputSchema.map((field) => (
-                          <span key={field.name} className="text-[10px] bg-bg border border-border px-2 py-0.5 rounded font-mono text-accent">
+                          <span key={field.name} className="text-[10px] bg-bg border border-border px-2 py-0.5 rounded-md font-mono text-accent">
                             {field.name}: {field.type}
                           </span>
                         ))}

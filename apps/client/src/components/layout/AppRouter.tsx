@@ -21,6 +21,7 @@ import { DelegationsPanel } from "@/components/chat/DelegationsPanel";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { ProjectsPage } from "@/pages/ProjectsPage";
 import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
 import { SessionsProvider } from "@/contexts/SessionsContext";
 import { useRouter } from "@/hooks/useRouter";
@@ -255,6 +256,24 @@ export function AppRouter() {
     const isChat = r.page === "chat";
     const isOrg = r.page === "org";
     const isBenchmark = r.page === "benchmark";
+    const isDashboard = r.page === "dashboard";
+    const isProjects = r.page === "projects";
+
+    if (isDashboard) {
+      return {
+        type: "home",
+        page: "dashboard",
+        path: "/",
+      };
+    }
+
+    if (isProjects) {
+      return {
+        type: "admin",
+        page: "projects",
+        path: "/projects",
+      };
+    }
 
     if (isOrg && activeChannel) {
       return {
@@ -601,8 +620,11 @@ export function AppRouter() {
           onSelectRun: handleSelectRun,
         }}
       >
-        {route.page === "projects" && (
+        {route.page === "dashboard" && (
           <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />
+        )}
+        {route.page === "projects" && (
+          <ProjectsPage onNavigate={navigate} onSelectProject={handleSelectProject} />
         )}
         {route.page === "settings" && (
           <SettingsPage />

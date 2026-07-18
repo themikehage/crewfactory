@@ -77,7 +77,9 @@ export function verifyCommandSafety(command: string): { safe: boolean; reason?: 
   return { safe: true };
 }
 
-export function createBashToolDefinition(cwd: string, options?: BashToolOptions): ToolDefinition {
+import { resolveSafePath, type CwdConfig } from "./tools/path-safety";
+
+export function createBashToolDefinition(cwd: CwdConfig, options?: BashToolOptions): ToolDefinition {
   return {
     name: "bash",
     description: "Run commands in a bash shell or terminal. Use this to run builds, tests, or scripts.",
@@ -113,10 +115,11 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
         };
       }
 
-      if (!existsSync(cwd)) {
+      const activeCwd = typeof cwd === "string" ? cwd : cwd.getCwd();
+      if (!existsSync(activeCwd)) {
         return {
           exitCode: 1,
-          output: `Error: Working directory does not exist: ${cwd}`,
+          output: `Error: Working directory does not exist: ${activeCwd}`,
           isError: true,
         };
       }
@@ -134,7 +137,7 @@ export function createBashToolDefinition(cwd: string, options?: BashToolOptions)
       let spawnContext: BashSpawnContext = {
         command: shell,
         args: shellArgs,
-        cwd,
+        cwd: activeCwd,
         env: { ...process.env } as Record<string, string>,
       };
 

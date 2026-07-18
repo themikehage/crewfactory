@@ -3,7 +3,7 @@ import { readdir, stat, readFile } from "node:fs/promises";
 import { join, relative, basename } from "node:path";
 import { existsSync } from "node:fs";
 import ignore from "ignore";
-import { resolveSafePath } from "./path-safety";
+import { resolveSafePath, type CwdConfig } from "./path-safety";
 
 function isFdAvailable(): boolean {
   try {
@@ -20,7 +20,7 @@ function globToRegex(glob: string): RegExp {
   return new RegExp(regexStr, "i");
 }
 
-export function createFindToolDefinition(cwd: string) {
+export function createFindToolDefinition(cwd: CwdConfig) {
   return {
     name: "find",
     description: "Search for files by glob pattern. Returns matching file paths relative to the search directory. Respects .gitignore.",

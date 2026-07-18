@@ -4,6 +4,7 @@ export type Route =
   | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
   | { page: "delegations"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
   | { page: "projects" }
+  | { page: "dashboard" }
   | { page: "settings" }
   | { page: "skills" }
   | { page: "workspace"; projectName?: string | null; agentId?: string | null; channelId?: string | null }
@@ -122,6 +123,7 @@ function parseRoute(): Route {
     return { page: "channel", channelId: id };
   }
   if (path === "/projects") return { page: "projects" };
+  if (path === "/dashboard" || path === "/") return { page: "dashboard" };
   if (path === "/settings") return { page: "settings" };
   if (path === "/skills") return { page: "skills" };
   if (path === "/workspace") return { page: "workspace" };
@@ -158,7 +160,7 @@ function parseRoute(): Route {
     return { page: "pipelines", pipelineId, runId: null };
   }
 
-  return { page: "chat", sessionId: null };
+  return { page: "dashboard" };
 }
 
 export function useRouter() {

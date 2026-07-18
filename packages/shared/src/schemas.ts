@@ -286,6 +286,7 @@ export const ChannelSchema = z.object({
   delegationPattern: DelegationPatternSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
+  avatarUrl: z.string().optional(),
   blueprintId: z.string().optional(),
 });
 export type Channel = z.infer<typeof ChannelSchema>;
@@ -305,6 +306,7 @@ export const CreateChannelSchema = z.object({
   policy: ChannelBehaviourPolicySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
+  avatarUrl: z.string().optional(),
   blueprintId: z.string().optional(),
 });
 export type CreateChannel = z.infer<typeof CreateChannelSchema>;
@@ -323,6 +325,7 @@ export const UpdateChannelSchema = z.object({
   policy: ChannelBehaviourPolicySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
+  avatarUrl: z.string().optional(),
   blueprintId: z.string().optional(),
 });
 export type UpdateChannel = z.infer<typeof UpdateChannelSchema>;

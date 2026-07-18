@@ -378,10 +378,11 @@ channelsRouter.get("/:id/messages", (c) => {
   const id = c.req.param("id");
   const limit = c.req.query("limit") ? parseInt(c.req.query("limit")!) : 100;
   const sessionId = c.req.query("sessionId");
+  const before = c.req.query("before") || undefined;
   const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
-  const messages = channelStore.getMessages(username, id, limit, sessionId);
+  const messages = channelStore.getMessages(username, id, limit, sessionId, before);
   return c.json({ messages });
 });
 
