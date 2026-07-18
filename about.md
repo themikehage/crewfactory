@@ -1,5 +1,11 @@
 # CrewFactory
 
+## Teams (parallel multi-agent execution)
+- Teams is a new, isolated multi-agent workflow running alongside legacy Channels. It supports only `leader_specialists` and `roundtable` topologies, with a single final owner (leader or facilitator) responsible for the delivery.
+- Team executions are durable snapshots with sequenced events, idempotent request IDs, bounded retries, explicit cancellation, restart interruption recovery, and HTTP event replay. WebSocket events accelerate the UI but are never the source of truth.
+- The UI is available at `/teams`, with guided creation, an execution timeline, tool activity, cancellation, recovery of the most recent execution, and a final-delivery panel. The normal agent runtime, tools, model configuration, WebSocket client, and chat visual primitives are reused; legacy Channel orchestration is not.
+- Set `CREWFACTORY_TEAMS_ENABLED=false` to hide the parallel Teams API during the coexistence rollout.
+
 ## Channel Production Hardening Roadmap
 - The corrective MVP plan defines the non-negotiable channel contract: one isolated sequential execution per channel/session, durable terminal outcomes, targeted cancellation, ownership-checked transport, and snapshot-based recovery. Recursive collaboration, negotiation, parallel scheduling, advanced topology/policy controls, and fine-grained streaming are explicitly deferred until this contract is verified; see `plans/channel-mvp-corrective-plan.md`.
 - The first MVP hardening increment rejects concurrent channel submissions with a typed `channel_busy` result, propagates an explicit execution ID through durable events and cancellation, and rejects WebSocket joins, sends, and aborts for channels outside the authenticated user's scope.

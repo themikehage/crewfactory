@@ -820,6 +820,13 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 162.4 Store lastUserMessage in executions and update UI sessions to stalled with system log messages on server restart
 - [x] 162.5 Implement client-side watchdog and stalled execution banner with Retry/Abort actions in the UI
 
+## Phase 163: Teams v1 Durable Multi-Agent Execution
+- [x] 163.1 Add isolated Teams schemas, topology validation, persistence, and authenticated APIs
+- [x] 163.2 Implement durable leader/specialist and roundtable/facilitator orchestration with retries and cancellation
+- [x] 163.3 Persist/replay sequenced execution events and recover interrupted work after restart
+- [x] 163.4 Add Teams UI, routing, sidebar entry, task timeline, tool activity, and final delivery rendering
+- [x] 163.5 Add Teams contract/store tests and verify server/client production builds
+
 
 
 

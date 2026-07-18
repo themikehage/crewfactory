@@ -15,6 +15,7 @@ export const WORKSPACE_DIR = "workspace";
 export const PROJECTS_DIR = "projects";
 export const AGENTS_DIR = "agents";
 export const CHANNELS_DIR = "channels";
+export const TEAMS_DIR = "teams";
 export const SESSIONS_DIR = "sessions";
 export const EXPERIMENTS_DIR = "experiments";
 export const MEMORIES_DIR = "memories";
@@ -71,6 +72,14 @@ export function getAgentExecutionsDir(username: string, agentId: string): string
 
 export function getChannelsDir(username: string): string {
   return join(getUserDir(username), CHANNELS_DIR);
+}
+
+export function getTeamsDir(username: string): string {
+  return join(getUserDir(username), TEAMS_DIR);
+}
+
+export function getTeamDir(username: string, teamId: string): string {
+  return join(getTeamsDir(username), teamId);
 }
 
 export function getChannelDir(username: string, channelId: string): string {
@@ -220,6 +229,7 @@ export function ensureAllDirs(username: string): void {
     getProjectsDir(username),
     getSessionsDir(username),
     getChannelsDir(username),
+    getTeamsDir(username),
     getExperimentsDir(username),
     getPipelinesDir(username),
     getWorkspaceSkillsDir(username),

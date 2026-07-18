@@ -11,6 +11,8 @@ export type Route =
   | { page: "preview"; projectName?: string | null }
   | { page: "agents" }
   | { page: "channels" }
+  | { page: "teams" }
+  | { page: "team"; teamId: string }
   | { page: "channel"; channelId: string }
   | { page: "org"; channelId: string }
   | { page: "benchmark"; channelId: string }
@@ -109,6 +111,9 @@ function parseRoute(): Route {
   }
 
   // Formato global heredado y otras páginas fijas
+  if (path.startsWith("/teams/")) {
+    return { page: "team", teamId: path.slice("/teams/".length) };
+  }
   if (path.startsWith("/session/")) {
     const remaining = path.slice("/session/".length);
     if (remaining.endsWith("/delegations")) {
@@ -130,6 +135,7 @@ function parseRoute(): Route {
   if (path === "/preview") return { page: "preview" };
   if (path === "/agents") return { page: "agents" };
   if (path === "/channels") return { page: "channels" };
+  if (path === "/teams") return { page: "teams" };
   if (path === "/logs") return { page: "logs" };
   if (path === "/mcps") return { page: "mcps" };
   if (path === "/plugins") return { page: "plugins" };

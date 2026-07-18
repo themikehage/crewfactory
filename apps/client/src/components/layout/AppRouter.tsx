@@ -8,6 +8,8 @@ import { SkillsPage } from "@/pages/SkillsPage";
 import { AgentsPage } from "@/pages/AgentsPage";
 import { ChannelsPage } from "@/pages/ChannelsPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
+import { TeamsPage } from "@/pages/TeamsPage";
+import { TeamDetailPage } from "@/pages/TeamDetailPage";
 import { ChannelOrgPage } from "@/pages/ChannelOrgPage";
 import { ChannelBenchmarkPage } from "@/pages/ChannelBenchmarkPage";
 import { LogsConsolePage } from "@/pages/LogsConsolePage";
@@ -638,6 +640,8 @@ export function AppRouter() {
         {route.page === "channels" && (
           <ChannelsPage onNavigate={navigate} onSelectChannel={handleSelectChannel} />
         )}
+        {route.page === "teams" && <TeamsPage onNavigate={navigate} />}
+        {route.page === "team" && <TeamDetailPage teamId={route.teamId} onNavigate={navigate} />}
         {route.page === "logs" && (
           <LogsConsolePage
             onSelectProject={handleSelectProject}

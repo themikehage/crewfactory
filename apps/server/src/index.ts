@@ -16,6 +16,7 @@ import { envRouter } from "./routes/env";
 import { integrationsRouter } from "./routes/integrations";
 import { agentsRouter } from "./routes/agents";
 import { channelsRouter } from "./routes/channels";
+import { teamsRouter } from "./routes/teams";
 import { previewRouter } from "./routes/preview";
 import { backupRouter } from "./routes/backup";
 import { logsRouter } from "./routes/logs";
@@ -28,6 +29,7 @@ import { pipelinesRouter } from "./routes/pipelines";
 import { channelBenchmarksRouter } from "./routes/channel-benchmarks";
 import { approvalsRouter } from "./routes/approvals";
 import { channelExecutionStore, channelStore } from "./channels";
+import { teamExecutionStore, teamStore } from "./teams";
 import { CREWFACTORY_DATA_PATH } from "shared";
 import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
@@ -66,6 +68,7 @@ app.route("/api/integrations", integrationsRouter);
 app.route("/api/preview", previewRouter);
 app.route("/api/agents", agentsRouter);
 app.route("/api/channels", channelsRouter);
+app.route("/api/teams", teamsRouter);
 app.route("/api/channels", channelBenchmarksRouter);
 app.route("/api/backup", backupRouter);
 app.route("/api/logs", logsRouter);
@@ -103,6 +106,9 @@ try {
       channelStore.cleanupOrphanBenchmarkClones(username);
       for (const channel of channelStore.listChannels(username)) {
         channelExecutionStore.recoverInterruptedExecutions(username, channel.id);
+      }
+      for (const team of teamStore.list(username)) {
+        teamExecutionStore.recoverInterrupted(username, team.id);
       }
     }
   }

@@ -519,6 +519,16 @@ export function SessionSidebar({
           )}
         </div>
 
+        <button
+          onClick={() => { onCloseSidebar?.(); onNavigate?.("/teams"); }}
+          className={itemClass(currentPage === "teams" || currentPage === "team")}
+        >
+          <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0 text-muted-foreground">
+            <path d="M7 9a3 3 0 110-6 3 3 0 010 6zm6.5 1a2.5 2.5 0 100-5 2.5 2.5 0 000 5zM1 17a6 6 0 0112 0v1H1v-1zm12.5 1v-1a5.97 5.97 0 00-1.1-3.47A4.5 4.5 0 0119 17v1h-5.5z" />
+          </svg>
+          <span className="truncate">{l.navTeams}</span>
+        </button>
+
         {/* Experiments Accordion */}
         <div className="flex flex-col">
           <div className={accordionHeaderClass}>

@@ -119,6 +119,8 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [image-pipeline-optimization.md](./image-pipeline-optimization.md) — Optimizacion del pipeline de imagenes (uploads + generadas): caching HTTP con ETag, thumbnails on-the-fly con sharp, auth nativa para `<img>` sin blob indirection, compresion WebP en upload, Range requests, y `ImageManager` centralizado. 8 fases.
 
 
-## Completados (76)
+## Completados (77)
 
 Ver [COMPLETED/](./COMPLETED/)
+
+- [teams-v1-durable-execution.md](./COMPLETED/teams-v1-durable-execution.md) â€” Teams paralelo a Channels con ejecuciones multiagente durables, dos topologías y entrega final única.
