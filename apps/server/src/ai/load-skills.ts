@@ -56,6 +56,7 @@ function parseSimpleFrontmatter(content: string): { name?: string; description?:
 }
 
 export function loadSkills(options: LoadSkillsOptions): { skills: Skill[]; diagnostics: any[] } {
+  const seen = new Set<string>();
   const skills: Skill[] = [];
   const diagnostics: any[] = [];
 
@@ -70,41 +71,44 @@ export function loadSkills(options: LoadSkillsOptions): { skills: Skill[]; diagn
         const subDir = join(skillDir, entry.name);
         const skillFilePath = join(subDir, "SKILL.md");
 
-        if (existsSync(skillFilePath)) {
-          try {
-            const rawContent = readFileSync(skillFilePath, "utf-8");
-            const frontmatter = parseSimpleFrontmatter(rawContent);
+        if (!existsSync(skillFilePath)) continue;
 
-            const name = frontmatter.name || entry.name;
-            const description = frontmatter.description || "";
+        try {
+          const rawContent = readFileSync(skillFilePath, "utf-8");
+          const frontmatter = parseSimpleFrontmatter(rawContent);
 
-            if (!description) {
-              diagnostics.push({
-                severity: "warning",
-                message: `Missing description for skill in ${skillFilePath}`,
-                filePath: skillFilePath,
-              });
-              continue;
-            }
+          const resolvedName = frontmatter.name || entry.name;
+          const description = frontmatter.description || "";
 
-            skills.push({
-              name,
-              description,
-              filePath: skillFilePath,
-              baseDir: subDir,
-              sourceInfo: {
-                path: skillFilePath,
-                scope: skillDir.includes("workspace") ? "project" : "global",
-              },
-              disableModelInvocation: frontmatter.disableModelInvocation === true,
-            });
-          } catch (e: any) {
+          if (seen.has(resolvedName)) continue;
+          seen.add(resolvedName);
+
+          if (!description) {
             diagnostics.push({
               severity: "warning",
-              message: `Failed to read skill ${entry.name}: ${e.message}`,
+              message: `Missing description for skill in ${skillFilePath}`,
               filePath: skillFilePath,
             });
+            continue;
           }
+
+          skills.push({
+            name: resolvedName,
+            description,
+            filePath: skillFilePath,
+            baseDir: subDir,
+            sourceInfo: {
+              path: skillFilePath,
+              scope: skillDir.includes("workspace") ? "project" : "global",
+            },
+            disableModelInvocation: frontmatter.disableModelInvocation === true,
+          });
+        } catch (e: any) {
+          diagnostics.push({
+            severity: "warning",
+            message: `Failed to read skill ${entry.name}: ${e.message}`,
+            filePath: skillFilePath,
+          });
         }
       }
     } catch (e: any) {

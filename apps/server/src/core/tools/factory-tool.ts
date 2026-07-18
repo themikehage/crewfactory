@@ -261,12 +261,16 @@ async function handleChannels(action: string, id: string | undefined, params: an
       const updated = channelStore.updateChannel(username, id, {
         name: params.name,
         description: params.description,
+        context: params.context,
+        maxChainDepth: params.maxChainDepth,
+        showThinking: params.showThinking,
+        showTools: params.showTools,
+        streamingRenderMode: params.streamingRenderMode,
+        negotiationProtocol: params.negotiationProtocol,
+        delegationPattern: params.delegationPattern,
       });
       if (params.members) {
         channelStore.updateMembers(username, id, params.members);
-      }
-      if (params.negotiationProtocol !== undefined) {
-        channelStore.updateChannel(username, id, { negotiationProtocol: params.negotiationProtocol });
       }
       return ok(`Channel "${id}" updated`, { entity: "channels", id, status: "updated", data: updated });
     }
@@ -275,7 +279,13 @@ async function handleChannels(action: string, id: string | undefined, params: an
       name: params.name,
       description: params.description ?? "",
       members: params.members ?? [],
+      context: params.context,
+      maxChainDepth: params.maxChainDepth,
+      showThinking: params.showThinking,
+      showTools: params.showTools,
+      streamingRenderMode: params.streamingRenderMode,
       negotiationProtocol: params.negotiationProtocol ?? false,
+      delegationPattern: params.delegationPattern,
     } as any);
     return ok(`Channel "${id}" created`, { entity: "channels", id, status: "created", data: channel });
   }
