@@ -139,8 +139,9 @@ export class TeamOrchestrator {
     let text = "";
     const unsubscribe = entry.server.session.subscribe((event) => {
       if (event.type === "message_update") {
-        const content = event.message?.content;
-        if (Array.isArray(content)) text = content.filter((part: { type?: string }) => part.type === "text").map((part: { text?: string }) => part.text ?? "").join("");
+        const delta = event.assistantMessageEvent?.type === "text_delta" ? event.assistantMessageEvent.delta : undefined;
+        if (typeof delta !== "string" || !delta) return;
+        text += delta;
         this.event(username, teamId, executionId, { type: "text_delta", stepId, agentId: member.agentId, payload: { text } });
       }
       if (event.type === "tool_execution_start") this.event(username, teamId, executionId, { type: "tool_started", stepId, agentId: member.agentId, payload: { toolCallId: event.toolCallId, toolName: event.toolName } });
