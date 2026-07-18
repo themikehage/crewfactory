@@ -802,6 +802,10 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 159.7 Record contribution conformance outcomes and add the policy inspector/conflict linting to the channel authoring UI
 - [x] 159.8 Add deterministic policy precedence and conflict tests; verify server production build
 
+## Phase 160: Channel Context Usage Safety
+- [x] 160.1 Ignore assistant messages without provider usage when sizing context windows
+- [x] 160.2 Add regression coverage for channel history without usage metadata
+
 
 
 

@@ -66,6 +66,7 @@ function getLastAssistantUsageInfo(messages: readonly Message[]): { usage: Usage
 		if (message.role !== "assistant") continue;
 		const assistant = message as AssistantMessage;
 		if (assistant.stopReason === "aborted" || assistant.stopReason === "error") continue;
+		if (!assistant.usage) continue;
 		if (calculateContextTokens(assistant.usage) > 0) return { usage: assistant.usage, index: i };
 	}
 	return undefined;
