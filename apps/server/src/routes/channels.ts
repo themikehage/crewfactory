@@ -477,7 +477,7 @@ channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
   const activeExecutionId = channelOrchestrator.getActiveExecutionId(username, id, sessionId);
-  if (activeExecutionId) {
+  if (channelOrchestrator.hasActiveDispatch(username, id, sessionId)) {
     return c.json({ error: "Channel already has an active execution", code: "channel_busy", executionId: activeExecutionId }, 409);
   }
 

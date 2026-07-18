@@ -18,7 +18,7 @@ import { type RunToCompletionConfig, type RunToCompletionResult } from "./types"
 
 
 type BroadcastFn = (channelId: string, data: any) => void;
-let broadcastToChannelFn: BroadcastFn | null = null;
+var broadcastToChannelFn: BroadcastFn | null = null;
 
 export function setChannelBroadcastHandler(fn: BroadcastFn) {
   broadcastToChannelFn = fn;
@@ -47,6 +47,7 @@ class ChannelOrchestrator {
   private channelAbortControllers = new Map<string, AbortController>();
   private activeStreams = new Map<string, Map<string, ActiveAgentStream>>();
   private activeChains = new Map<string, { count: number; resolve: () => void }>();
+  private activeDispatchUsers = new Map<string, string>();
   private consecutiveSilentRounds = new Map<string, number>();
   private activeExecutionIds = new Map<string, { username: string; channelId: string; executionId: string }>();
 
@@ -87,6 +88,7 @@ class ChannelOrchestrator {
         }
         entry.resolve();
         this.activeChains.delete(key);
+        this.activeDispatchUsers.delete(key);
       }
     }
   }
@@ -169,7 +171,7 @@ class ChannelOrchestrator {
     const key = `${channelId}:${sessionId || "default"}`;
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) throw new Error("Channel not found");
-    if (this.activeChains.has(key)) {
+    if (this.activeDispatchUsers.has(key)) {
       throw new ChannelBusyError(this.activeExecutionIds.get(key)?.executionId);
     }
 
@@ -209,6 +211,7 @@ class ChannelOrchestrator {
       resolveChain = resolve;
     });
     this.activeChains.set(key, { count: 0, resolve: resolveChain });
+    this.activeDispatchUsers.set(key, username);
 
     const isBroadcastChannel = !channel.topology || channel.topology.kind === "legacy_custom"
       ? channel.members.some((m) => m.replyMode === "broadcast")
@@ -517,6 +520,10 @@ class ChannelOrchestrator {
   getActiveExecutionId(username: string, channelId: string, sessionId?: string): string | undefined {
     const execution = this.activeExecutionIds.get(`${channelId}:${sessionId || "default"}`);
     return execution?.username === username ? execution.executionId : undefined;
+  }
+
+  hasActiveDispatch(username: string, channelId: string, sessionId?: string): boolean {
+    return this.activeDispatchUsers.get(`${channelId}:${sessionId || "default"}`) === username;
   }
 
   private async runSequentialBroadcastLoop(
