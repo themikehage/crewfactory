@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ChannelMember, ChannelSchedulerMode, NegotiationProtocol } from "./schemas";
+import type { Channel, ChannelMember, ChannelMessage, ChannelSchedulerMode, NegotiationProtocol } from "./schemas";
 
 export const CHANNEL_TOPOLOGY_VERSION = "1";
 export const ChannelTopologyKindSchema = z.enum(["leader_specialists", "sequential_review", "roundtable", "debate_with_arbiter", "mention_only", "legacy_custom"]);
@@ -91,4 +91,22 @@ export function previewChannelTopology(topology: ChannelTopology): TopologyPrevi
   if (topology.kind === "roundtable") return { firstRecipients: names, turns: names, finalOwner: topology.terminalOwnerAgentId, description: `All peers contribute ${topology.schedulerMode === "parallel" ? "in parallel" : "one at a time"}.` };
   if (topology.kind === "mention_only") return { firstRecipients: [], turns: ["Only explicitly mentioned agents respond"], description: "The user chooses every recipient with @mentions." };
   return { firstRecipients: topology.entryPointAgentId ? [topology.entryPointAgentId] : [], turns: names, finalOwner: topology.terminalOwnerAgentId, description: `The first response comes from ${topology.entryPointAgentId ?? "the configured entry point"}; final ownership is ${topology.terminalOwnerAgentId ?? "shared"}.` };
+}
+
+export function resolveTopologyRecipients(channel: Channel, topology: ChannelTopology, incomingMsg: ChannelMessage): ChannelMember[] {
+  const byId = new Map(channel.members.map((member) => [member.agentId, member]));
+  const ordered = [...topology.assignments].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  const select = (ids: string[]) => ids.flatMap((id) => byId.get(id) ? [byId.get(id)!] : []);
+  if (topology.kind === "mention_only") return select(incomingMsg.mentions ?? []);
+  if (topology.kind === "roundtable") return incomingMsg.role === "user" ? select(ordered.map((assignment) => assignment.agentId)) : [];
+  if (topology.kind === "debate_with_arbiter") return incomingMsg.role === "user" ? select(ordered.filter((assignment) => assignment.role === "position").map((assignment) => assignment.agentId)) : [];
+  if (topology.kind === "sequential_review") {
+    if (incomingMsg.role === "user") return select([topology.entryPointAgentId ?? ordered[0]?.agentId].filter(Boolean));
+    const index = ordered.findIndex((assignment) => assignment.agentId === incomingMsg.agentId);
+    return index >= 0 ? select([ordered[index + 1]?.agentId].filter(Boolean)) : [];
+  }
+  if (incomingMsg.role === "user") return select([topology.entryPointAgentId].filter(Boolean));
+  if (incomingMsg.agentId === topology.entryPointAgentId) return select(ordered.filter((assignment) => assignment.role === "specialist").map((assignment) => assignment.agentId));
+  if (incomingMsg.agentId !== topology.terminalOwnerAgentId) return select([topology.terminalOwnerAgentId].filter(Boolean));
+  return [];
 }

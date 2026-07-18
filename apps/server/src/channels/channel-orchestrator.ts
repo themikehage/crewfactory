@@ -1,7 +1,7 @@
 import { channelStore } from "./channel-store";
 import { channelExecutionStore } from "./channel-execution-store";
 import { agentRegistry } from "../agents";
-import { type Channel, type ChannelMember, type ChannelMessage, type ChannelTopology } from "shared";
+import { resolveTopologyRecipients, type Channel, type ChannelMember, type ChannelMessage, type ChannelTopology } from "shared";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
 import {
@@ -448,7 +448,7 @@ class ChannelOrchestrator {
 
   private resolveRecipients(channel: Channel, incomingMsg: ChannelMessage): ChannelMember[] {
     if (channel.topology && channel.topology.kind !== "legacy_custom") {
-      return this.resolveTopologyRecipients(channel, channel.topology, incomingMsg);
+      return resolveTopologyRecipients(channel, channel.topology, incomingMsg);
     }
     const mentioned = incomingMsg.mentions ?? [];
     const recipientSet = new Set<string>();
@@ -490,26 +490,6 @@ class ChannelOrchestrator {
       return lead ? [lead] : result;
     }
     return result;
-  }
-
-  private resolveTopologyRecipients(channel: Channel, topology: ChannelTopology, incomingMsg: ChannelMessage): ChannelMember[] {
-    const byId = new Map(channel.members.map((member) => [member.agentId, member]));
-    const ordered = [...topology.assignments].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
-    const select = (ids: string[]) => ids.flatMap((id) => byId.get(id) ? [byId.get(id)!] : []);
-    if (topology.kind === "mention_only") return select(incomingMsg.mentions ?? []);
-    if (topology.kind === "roundtable") return incomingMsg.role === "user" ? select(ordered.map((assignment) => assignment.agentId)) : [];
-    if (topology.kind === "debate_with_arbiter") return incomingMsg.role === "user"
-      ? select(ordered.filter((assignment) => assignment.role === "position").map((assignment) => assignment.agentId))
-      : [];
-    if (topology.kind === "sequential_review") {
-      if (incomingMsg.role === "user") return select([topology.entryPointAgentId ?? ordered[0]?.agentId].filter(Boolean));
-      const index = ordered.findIndex((assignment) => assignment.agentId === incomingMsg.agentId);
-      return index >= 0 ? select([ordered[index + 1]?.agentId].filter(Boolean)) : [];
-    }
-    if (incomingMsg.role === "user") return select([topology.entryPointAgentId].filter(Boolean));
-    if (incomingMsg.agentId === topology.entryPointAgentId) return select(ordered.filter((assignment) => assignment.role === "specialist").map((assignment) => assignment.agentId));
-    if (incomingMsg.agentId !== topology.terminalOwnerAgentId) return select([topology.terminalOwnerAgentId].filter(Boolean));
-    return [];
   }
 
   private async runSequentialBroadcastLoop(

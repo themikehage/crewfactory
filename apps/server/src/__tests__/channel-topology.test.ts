@@ -1,5 +1,5 @@
 import { describe, expect, test } from "bun:test";
-import { CHANNEL_TOPOLOGY_VERSION, inferChannelTopology, previewChannelTopology, validateChannelTopology } from "shared";
+import { CHANNEL_TOPOLOGY_VERSION, inferChannelTopology, previewChannelTopology, resolveTopologyRecipients, type Channel, validateChannelTopology } from "shared";
 
 const members = [
   { agentId: "lead", replyMode: "user-only" as const, role: "lead" as const },
@@ -38,5 +38,21 @@ describe("channel topology", () => {
       { version: CHANNEL_TOPOLOGY_VERSION, kind: "mention_only" as const, schedulerMode: "sequential" as const, assignments: [{ ...base[0], role: "participant" as const }, { ...base[1], role: "participant" as const }] },
     ];
     expect(topologies.map((topology) => previewChannelTopology(topology).description)).toHaveLength(5);
+  });
+
+  test("schedules the correct first recipient for every topology", () => {
+    const resolve = (channel: Channel, role: "user" | "agent", agentId?: string, mentions?: string[]) => resolveTopologyRecipients(channel, channel.topology!, { id: "message", channelId: channel.id, role, agentId, content: "test", mentions, createdAt: new Date().toISOString() });
+    const makeChannel = (topology: Channel["topology"]): Channel => ({ id: "channel", name: "Test", members, topology, createdAt: "now", updatedAt: "now" });
+    const assignments = [{ agentId: "lead", role: "leader" as const, targets: [], order: 0 }, { agentId: "writer", role: "specialist" as const, targets: [], order: 1 }];
+    const leader = makeChannel({ version: CHANNEL_TOPOLOGY_VERSION, kind: "leader_specialists", schedulerMode: "leader-gated", entryPointAgentId: "lead", terminalOwnerAgentId: "lead", assignments });
+    const review = makeChannel({ version: CHANNEL_TOPOLOGY_VERSION, kind: "sequential_review", schedulerMode: "sequential", entryPointAgentId: "lead", terminalOwnerAgentId: "writer", assignments: [{ ...assignments[0], role: "leader" }, { ...assignments[1], role: "reviewer" }] });
+    const roundtable = makeChannel({ version: CHANNEL_TOPOLOGY_VERSION, kind: "roundtable", schedulerMode: "sequential", assignments: assignments.map((assignment) => ({ ...assignment, role: "peer" as const })) });
+    const debate = makeChannel({ version: CHANNEL_TOPOLOGY_VERSION, kind: "debate_with_arbiter", schedulerMode: "sequential", entryPointAgentId: "lead", terminalOwnerAgentId: "writer", arbiterAgentId: "writer", assignments: [{ ...assignments[0], role: "position" }, { ...assignments[1], role: "arbiter" }] });
+    const mention = makeChannel({ version: CHANNEL_TOPOLOGY_VERSION, kind: "mention_only", schedulerMode: "sequential", assignments: assignments.map((assignment) => ({ ...assignment, role: "participant" as const })) });
+    expect(resolve(leader, "user").map((member) => member.agentId)).toEqual(["lead"]);
+    expect(resolve(review, "agent", "lead").map((member) => member.agentId)).toEqual(["writer"]);
+    expect(resolve(roundtable, "user").map((member) => member.agentId)).toEqual(["lead", "writer"]);
+    expect(resolve(debate, "user").map((member) => member.agentId)).toEqual(["lead"]);
+    expect(resolve(mention, "user", undefined, ["writer"]).map((member) => member.agentId)).toEqual(["writer"]);
   });
 });
