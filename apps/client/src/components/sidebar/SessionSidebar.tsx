@@ -248,45 +248,33 @@ export function SessionSidebar({
   const handleSelectRepoClick = useCallback(
     (projectId: string, projectName: string) => {
       if (onSelectProject) onSelectProject(projectId, projectName);
-      if (onSelectAgent) onSelectAgent(null);
-      if (onSelectChannel) onSelectChannel(null);
-      if (onSelectTeam) onSelectTeam(null);
       onCloseSidebar?.();
     },
-    [onSelectProject, onSelectAgent, onSelectChannel, onSelectTeam, onCloseSidebar]
+    [onSelectProject, onCloseSidebar]
   );
 
   const handleSelectAgentClick = useCallback(
     (agent: { id: string; name: string; avatarUrl?: string }) => {
       if (onSelectAgent) onSelectAgent(agent);
-      if (onSelectProject) onSelectProject(null, null);
-      if (onSelectChannel) onSelectChannel(null);
-      if (onSelectTeam) onSelectTeam(null);
       onCloseSidebar?.();
     },
-    [onSelectAgent, onSelectProject, onSelectChannel, onSelectTeam, onCloseSidebar]
+    [onSelectAgent, onCloseSidebar]
   );
 
   const handleSelectChannelClick = useCallback(
     (channel: { id: string; name: string }) => {
       if (onSelectChannel) onSelectChannel(channel);
-      if (onSelectProject) onSelectProject(null, null);
-      if (onSelectAgent) onSelectAgent(null);
-      if (onSelectTeam) onSelectTeam(null);
       onCloseSidebar?.();
     },
-    [onSelectChannel, onSelectProject, onSelectAgent, onSelectTeam, onCloseSidebar]
+    [onSelectChannel, onCloseSidebar]
   );
 
   const handleSelectTeamClick = useCallback(
     (team: { id: string; name: string }) => {
       if (onSelectTeam) onSelectTeam(team);
-      if (onSelectProject) onSelectProject(null, null);
-      if (onSelectAgent) onSelectAgent(null);
-      if (onSelectChannel) onSelectChannel(null);
       onCloseSidebar?.();
     },
-    [onSelectTeam, onSelectProject, onSelectAgent, onSelectChannel, onCloseSidebar]
+    [onSelectTeam, onCloseSidebar]
   );
 
   const adminItems = useMemo(
