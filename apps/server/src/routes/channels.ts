@@ -14,6 +14,19 @@ export const channelsRouter = new Hono();
 
 channelsRouter.use("/*", authMiddleware);
 
+channelsRouter.use("/*", async (c, next) => {
+  if (!["PATCH", "POST", "PUT", "DELETE"].includes(c.req.method)) return next();
+  if (c.req.path.endsWith("/send") || c.req.path.endsWith("/abort")) return next();
+  const pathParts = c.req.path.split("/").filter(Boolean);
+  const channelsIndex = pathParts.lastIndexOf("channels");
+  const id = channelsIndex >= 0 ? pathParts[channelsIndex + 1] : undefined;
+  const username = getUsername(c);
+  if (id && username && channelOrchestrator.hasActiveDispatch(username, id)) {
+    return c.json({ error: "Channel configuration cannot change during an active execution", code: "channel_busy", executionId: channelOrchestrator.getActiveExecutionId(username, id) }, 409);
+  }
+  await next();
+});
+
 function cleanChannelGhostMembers(channel: any, username: string): any {
   if (!channel || !channel.members) return channel;
 

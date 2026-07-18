@@ -82,22 +82,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = await res.json();
 
-      setStreamingAgents((prev) => {
-        const merged = { ...prev };
-        for (const [agentId, serverStream] of Object.entries(data.streamingAgents || {})) {
-          const s = serverStream as StreamingAgentState;
-          if (merged[agentId]) {
-            merged[agentId] = {
-              ...s,
-              text: merged[agentId].text.length > s.text.length ? merged[agentId].text : s.text,
-              thinking: (merged[agentId].thinking?.length || 0) > (s.thinking?.length || 0) ? merged[agentId].thinking : s.thinking,
-              toolCalls: { ...s.toolCalls, ...merged[agentId].toolCalls }};
-          } else {
-            merged[agentId] = s;
-          }
-        }
-        return merged;
-      });
+      setStreamingAgents(data.streamingAgents as Record<string, StreamingAgentState> || {});
     } catch (err: any) {
       console.error("Failed to load active channel streamings:", err);
     }
@@ -110,14 +95,19 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!executionsResponse.ok) return;
       const data = await executionsResponse.json() as { executions?: ChannelExecution[] };
       const execution = data.executions?.find((item) => !sessionId || item.sessionId === sessionId);
-      if (!execution) return;
+      if (!execution) {
+        executionViewRef.current = emptyChannelExecutionViewState;
+        setStreamingAgents({});
+        setActiveExecutionId(null);
+        return;
+      }
       setActiveExecutionId(execution.status === "pending" || execution.status === "running" ? execution.id : null);
       const eventsResponse = await apiFetch(`/api/channels/${channelId}/executions/${execution.id}/events?limit=1000`);
       if (!eventsResponse.ok) return;
       const eventData = await eventsResponse.json() as { events?: ChannelExecutionEvent[] };
       setStreamingAgents(() => {
         executionViewRef.current = (eventData.events ?? []).reduce(applyChannelExecutionEvent, emptyChannelExecutionViewState);
-        return executionViewRef.current.agents;
+        return execution.status === "pending" || execution.status === "running" ? executionViewRef.current.agents : {};
       });
       setExecutionActivities((eventData.events ?? []).reduce<ChannelExecutionActivity[]>((activities, event) => {
         if (event.type === "turn_skipped") activities.push({ id: event.id, type: "skipped", agentId: event.agentId, reason: typeof event.payload.reason === "string" ? event.payload.reason : undefined });

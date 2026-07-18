@@ -1,7 +1,8 @@
 import { expect, test } from "bun:test";
+import type { ChannelExecutionEvent } from "shared";
 import { applyChannelExecutionEvent, emptyChannelExecutionViewState } from "./channel-execution-reducer";
 
-const event = (sequence: number, type: "tool_started" | "tool_updated" | "tool_completed" | "text_delta", payload: Record<string, unknown>) => ({
+const event = (sequence: number, type: ChannelExecutionEvent["type"], payload: Record<string, unknown>) => ({
   id: `event-${sequence}`,
   executionId: "execution-1",
   channelId: "channel-1",
@@ -20,4 +21,12 @@ test("execution reducer keeps terminal tool state and ignores replayed events", 
 
   expect(state.agents["agent-1"].toolCalls?.["tool-1"]).toEqual({ toolName: "search", args: {}, result: "done", isError: false, isPartial: false });
   expect(state.lastSequenceByExecution["execution-1"]).toBe(3);
+});
+
+test("execution terminals clear streaming agents", () => {
+  let state = applyChannelExecutionEvent(emptyChannelExecutionViewState, event(1, "text_delta", { delta: "working" }));
+  state = applyChannelExecutionEvent(state, event(2, "turn_completed", {}));
+  expect(state.agents).toEqual({});
+  state = applyChannelExecutionEvent(state, event(3, "execution_stalled", {}));
+  expect(state.agents).toEqual({});
 });

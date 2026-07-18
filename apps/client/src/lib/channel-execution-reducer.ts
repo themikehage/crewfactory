@@ -30,6 +30,14 @@ export function applyChannelExecutionEvent(state: ChannelExecutionViewState, eve
   const lastSequence = state.lastSequenceByExecution[event.executionId] ?? 0;
   if (event.sequence <= lastSequence) return state;
   const sequences = { ...state.lastSequenceByExecution, [event.executionId]: event.sequence };
+  if (["execution_completed", "execution_aborted", "execution_failed", "execution_stalled"].includes(event.type)) {
+    return { agents: {}, lastSequenceByExecution: sequences };
+  }
+  if (["turn_completed", "turn_skipped", "turn_failed"].includes(event.type) && event.agentId) {
+    const agents = { ...state.agents };
+    delete agents[event.agentId];
+    return { agents, lastSequenceByExecution: sequences };
+  }
   if (!event.agentId) return { ...state, lastSequenceByExecution: sequences };
   const payload = event.payload;
   const current = state.agents[event.agentId] ?? { agentId: event.agentId, text: "" };
