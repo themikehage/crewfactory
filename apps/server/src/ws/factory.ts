@@ -11,7 +11,7 @@ import { existsSync, readFileSync } from "node:fs";
 import { sessionManager } from "../core/session-manager";
 import { SessionPrefix, getSessionMetadataPath } from "shared";
 import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-watcher";
-import { channelOrchestrator } from "../channels";
+import { ChannelBusyError, channelOrchestrator, channelStore } from "../channels";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
 import { approvalManager } from "../core/approvals/approval-manager";
 
@@ -540,6 +540,10 @@ export function createWsContext(): WsConnectionContext {
       if (data.type === "channel_join") {
         const channelId = data.channelId as string;
         if (!channelId) return;
+        if (!channelStore.getChannel(user.username, channelId)) {
+          safeSend(ws, JSON.stringify({ type: "channel_error", channelId, error: "Channel not found" }));
+          return;
+        }
 
         wsRegistry.clearUnsub(id);
 
@@ -561,12 +565,18 @@ export function createWsContext(): WsConnectionContext {
         const channelId = data.channelId as string;
         const message = data.message as string;
         const sessionId = data.sessionId as string | undefined;
-        if (channelId && message) {
+        if (channelId && message && channelStore.getChannel(user.username, channelId)) {
           channelOrchestrator
             .dispatchUserMessage(user.username, channelId, message, sessionId)
             .catch((err) => {
+              if (err instanceof ChannelBusyError) {
+                safeSend(ws, JSON.stringify({ type: "channel_error", channelId, sessionId, error: err.message, code: err.code, executionId: err.executionId }));
+                return;
+              }
               wsLogger.error("Error dispatching channel message", { error: err });
             });
+        } else if (channelId) {
+          safeSend(ws, JSON.stringify({ type: "channel_error", channelId, sessionId, error: "Channel not found" }));
         }
         return;
       }
@@ -574,8 +584,11 @@ export function createWsContext(): WsConnectionContext {
       if (data.type === "channel_abort") {
         const channelId = data.channelId as string;
         const sessionId = data.sessionId as string | undefined;
-        if (channelId) {
-          channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
+        const executionId = data.executionId as string | undefined;
+        if (channelId && channelStore.getChannel(user.username, channelId)) {
+          channelOrchestrator.abortDispatch(user.username, channelId, sessionId, executionId);
+        } else if (channelId) {
+          safeSend(ws, JSON.stringify({ type: "channel_error", channelId, sessionId, error: "Channel not found" }));
         }
         return;
       }

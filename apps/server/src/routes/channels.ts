@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
-import { channelExecutionStore, channelStore, channelOrchestrator } from "../channels";
+import { ChannelBusyError, channelExecutionStore, channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { ChannelBehaviourPolicySchema, CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema, ChannelTopologySchema, compileChannelPolicy, inferChannelTopology, previewChannelTopology, validateChannelTopology } from "shared";
@@ -476,22 +476,29 @@ channelsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string
   const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
 
-  // Trigger dispatch asynchronously
+  const activeExecutionId = channelOrchestrator.getActiveExecutionId(username, id, sessionId);
+  if (activeExecutionId) {
+    return c.json({ error: "Channel already has an active execution", code: "channel_busy", executionId: activeExecutionId }, 409);
+  }
+
   channelOrchestrator.dispatchUserMessage(username, id, message, sessionId).catch((err) => {
+    if (err instanceof ChannelBusyError) {
+      return;
+    }
     console.error(`[ChannelsRoute] Error dispatching message for channel ${id}:`, err);
   });
-
-  return c.json({ success: true });
+  return c.json({ success: true, executionId: channelOrchestrator.getActiveExecutionId(username, id, sessionId) }, 202);
 });
 
-channelsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.string().optional() }).optional()), async (c) => {
+channelsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.string().optional(), executionId: z.string().optional() }).optional()), async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
   const body = c.req.valid("json");
-  channelOrchestrator.abortDispatch(username, id, body?.sessionId);
-  return c.json({ success: true });
+  if (!channelStore.getChannel(username, id)) return c.json({ error: "Channel not found" }, 404);
+  const aborted = channelOrchestrator.abortDispatch(username, id, body?.sessionId, body?.executionId);
+  return c.json({ success: aborted });
 });
 
 channelsRouter.get("/:id/agents", (c) => {

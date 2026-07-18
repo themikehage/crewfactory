@@ -27,6 +27,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const [executionActivities, setExecutionActivities] = useState<ChannelExecutionActivity[]>([]);
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [streamingAgents, setStreamingAgents] = useState<Record<string, StreamingAgentState>>({});
+  const [activeExecutionId, setActiveExecutionId] = useState<string | null>(null);
   const executionViewRef = useRef<ChannelExecutionViewState>(emptyChannelExecutionViewState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -110,6 +111,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       const data = await executionsResponse.json() as { executions?: ChannelExecution[] };
       const execution = data.executions?.find((item) => !sessionId || item.sessionId === sessionId);
       if (!execution) return;
+      setActiveExecutionId(execution.status === "pending" || execution.status === "running" ? execution.id : null);
       const eventsResponse = await apiFetch(`/api/channels/${channelId}/executions/${execution.id}/events?limit=1000`);
       if (!eventsResponse.ok) return;
       const eventData = await eventsResponse.json() as { events?: ChannelExecutionEvent[] };
@@ -134,6 +136,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setChannel(null);
       setMessages([]);
       setStreamingAgents({});
+      setActiveExecutionId(null);
       setExecutionActivities([]);
       executionViewRef.current = emptyChannelExecutionViewState;
       setLoading(false);
@@ -144,6 +147,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     if (prevChannelIdRef.current !== channelId) {
       setMessages([]);
       setStreamingAgents({});
+      setActiveExecutionId(null);
       setExecutionActivities([]);
       executionViewRef.current = emptyChannelExecutionViewState;
       setLoading(true);
@@ -179,8 +183,13 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
         });
       } else if (data.type === "channel_execution_event" && data.event) {
         const event = data.event as ChannelExecutionEvent;
+        if (event.channelId !== channelIdRef.current || (sessionIdRef.current && event.sessionId !== sessionIdRef.current)) return;
         executionViewRef.current = applyChannelExecutionEvent(executionViewRef.current, event);
         setStreamingAgents(executionViewRef.current.agents);
+        if (event.type === "execution_started") setActiveExecutionId(event.executionId);
+        if (["execution_completed", "execution_aborted", "execution_failed", "execution_stalled"].includes(event.type)) {
+          setActiveExecutionId((current) => current === event.executionId ? null : current);
+        }
         if (event.type === "turn_skipped" || event.type === "turn_failed" || event.type === "execution_aborted" || (event.type === "execution_completed" && event.payload.withWarnings === true)) {
           const type = event.type === "turn_skipped" ? "skipped" : event.type === "turn_failed" ? "failed" : event.type === "execution_aborted" ? "aborted" : "completed_with_warnings";
           setExecutionActivities((previous) => previous.some((item) => item.id === event.id) ? previous : [...previous, { id: event.id, type, agentId: event.agentId, reason: typeof event.payload.reason === "string" ? event.payload.reason : undefined }]);
@@ -247,6 +256,9 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
         });
       } else if (data.type === "channel_dispatch_aborted" || data.type === "channel_chain_limit") {
         setStreamingAgents({});
+        if (data.type === "channel_dispatch_aborted") {
+          setActiveExecutionId((current) => current === data.executionId ? null : current);
+        }
       }
     });
 
@@ -270,14 +282,14 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const abortDispatch = useCallback(async () => {
     if (!channelId) return;
     setStreamingAgents({});
-    const sent = wsClient.send({ type: "channel_abort", channelId, sessionId });
+    const sent = wsClient.send({ type: "channel_abort", channelId, sessionId, executionId: activeExecutionId || undefined });
     if (!sent) {
       await apiFetch(`/api/channels/${channelId}/abort`, {
         method: "POST",
         headers: { "Content-Type": "application/json"},
-        body: JSON.stringify({ sessionId })});
+          body: JSON.stringify({ sessionId, executionId: activeExecutionId || undefined })});
     }
-  }, [channelId, sessionId]);
+  }, [activeExecutionId, channelId, sessionId]);
 
   const addMember = useCallback(
     async (data: AddMember) => {
@@ -341,6 +353,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     messages,
     streamingAgents,
     executionActivities,
+    activeExecutionId,
     loading,
     error,
     fetchChannel,

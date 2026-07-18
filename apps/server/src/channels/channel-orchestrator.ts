@@ -32,6 +32,15 @@ function broadcast(channelId: string, data: any) {
 
 const MAX_CHAIN_DEPTH = 5;
 
+export class ChannelBusyError extends Error {
+  readonly code = "channel_busy";
+
+  constructor(readonly executionId?: string) {
+    super("Channel already has an active execution");
+    this.name = "ChannelBusyError";
+  }
+}
+
 class ChannelOrchestrator {
   private abortedDispatches = new Set<string>();
   private agentQueues = new Map<string, AgentWorkQueue>();
@@ -50,7 +59,7 @@ class ChannelOrchestrator {
       const execution = this.activeExecutionIds.get(key);
       if (execution) {
         const persisted = channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, event);
-        broadcast(event.channelId, { type: "channel_execution_event", event: persisted });
+        broadcast(event.channelId, { type: "channel_execution_event", channelId: event.channelId, sessionId: event.sessionId, executionId: persisted.executionId, event: persisted });
       }
     });
     this.messagePublisher = createMessagePublisher(broadcast);
@@ -112,8 +121,15 @@ class ChannelOrchestrator {
     }
   }
 
-  abortDispatch(username: string, channelId: string, sessionId?: string): void {
+  abortDispatch(username: string, channelId: string, sessionId?: string, executionId?: string): boolean {
+    const channel = channelStore.getChannel(username, channelId);
+    if (!channel) return false;
+
     const key = `${channelId}:${sessionId || "default"}`;
+    const execution = this.activeExecutionIds.get(key);
+    if (executionId && execution?.executionId !== executionId) return false;
+    if (!this.activeChains.has(key)) return false;
+
     this.abortedDispatches.add(key);
     console.log(`[ChannelOrchestrator] Aborting dispatch for ${key}`);
 
@@ -122,29 +138,26 @@ class ChannelOrchestrator {
     const controller = this.channelAbortControllers.get(key);
     controller?.abort();
     this.channelAbortControllers.delete(key);
-    const execution = this.activeExecutionIds.get(key);
     if (execution) {
       channelExecutionStore.finishOpenTurns(execution.username, execution.channelId, execution.executionId, "aborted", "aborted");
       channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, { type: "execution_aborted" });
       this.activeExecutionIds.delete(key);
     }
 
-    const channel = channelStore.getChannel(username, channelId);
-    if (channel) {
-      for (const member of channel.members) {
-        const q = this.agentQueues.get(member.agentId);
-        if (q) {
-          q.abortCurrent();
-          q.clear();
-        }
-        const entry = agentRegistry.get(member.agentId);
-        if (entry && entry.server.session.isStreaming) {
-          entry.server.session.abort().catch(() => {});
-        }
+    for (const member of channel.members) {
+      const q = this.agentQueues.get(member.agentId);
+      if (q) {
+        q.abortCurrent();
+        q.clear();
+      }
+      const entry = agentRegistry.get(member.agentId);
+      if (entry && entry.server.session.isStreaming) {
+        entry.server.session.abort().catch(() => {});
       }
     }
 
-    broadcast(channelId, { type: "channel_dispatch_aborted", channelId, sessionId });
+    broadcast(channelId, { type: "channel_dispatch_aborted", channelId, sessionId, executionId: execution?.executionId });
+    return true;
   }
 
   async dispatchUserMessage(
@@ -154,16 +167,20 @@ class ChannelOrchestrator {
     sessionId?: string
   ): Promise<void> {
     const key = `${channelId}:${sessionId || "default"}`;
-    this.abortedDispatches.delete(key);
-
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) throw new Error("Channel not found");
+    if (this.activeChains.has(key)) {
+      throw new ChannelBusyError(this.activeExecutionIds.get(key)?.executionId);
+    }
+
+    this.abortedDispatches.delete(key);
 
     if (channel.executionProtocolEnabled !== false) {
       const policy = compileChannelPolicy(channel);
       const execution = channelExecutionStore.createExecution(username, channelId, { sessionId, schedulerMode: channel.topology?.schedulerMode ?? channel.executionSchedulerMode ?? "sequential", topologyVersion: channel.topology?.version, policyVersion: channel.policyVersion ?? 1, promptPolicyChecksum: policy.checksum });
       this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
-      channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
+      const started = channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
+      broadcast(channelId, { type: "channel_execution_event", channelId, sessionId, executionId: execution.id, event: started });
     }
 
     const agentNameMap = buildAgentNameMap(channel.members);
@@ -495,6 +512,11 @@ class ChannelOrchestrator {
       return lead ? [lead] : result;
     }
     return result;
+  }
+
+  getActiveExecutionId(username: string, channelId: string, sessionId?: string): string | undefined {
+    const execution = this.activeExecutionIds.get(`${channelId}:${sessionId || "default"}`);
+    return execution?.username === username ? execution.executionId : undefined;
   }
 
   private async runSequentialBroadcastLoop(
