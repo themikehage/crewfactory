@@ -4,6 +4,7 @@ import { logger } from "hono/logger";
 import { serveStatic } from "hono/bun";
 import { createBunWebSocket } from "hono/bun";
 import { existsSync, readdirSync } from "node:fs";
+import { join } from "node:path";
 import { auth } from "./auth/index";
 import { authRouter } from "./routes/auth";
 import { sessionsRouter } from "./routes/sessions";
