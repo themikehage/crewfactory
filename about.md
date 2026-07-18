@@ -1,7 +1,7 @@
 # CrewFactory
 
 ## Channel Production Hardening Roadmap
-- The channel audit identifies four coordinated plans: a durable execution protocol, validated team topologies, governed layered prompts, and verification/rollout controls. They are documented in `plans/channel-execution-protocol.md`, `plans/channel-topology-product-model.md`, `plans/channel-prompt-governance.md`, and `plans/channel-production-verification-rollout.md`.
+- The channel audit identifies four coordinated plans: a completed durable execution protocol, validated team topologies, governed layered prompts, and verification/rollout controls. They are documented in `plans/COMPLETED/channel-execution-protocol.md`, `plans/channel-topology-product-model.md`, `plans/channel-prompt-governance.md`, and `plans/channel-production-verification-rollout.md`.
 - The roadmap stabilizes execution ordering, event durability, and recovery before altering collaboration defaults or expanding the channel UX.
 - The first execution-protocol foundation is available: shared execution/turn/event contracts, atomic channel execution snapshots, sequenced durable event logs, and read-only execution/event APIs. Legacy channel scheduling and rendering remain unchanged until the next phases.
 - Channel dispatch now creates a durable execution for each user message and records lifecycle events for execution start/finish/abort plus agent turn start, completion, failure, and silent outcomes. Token, thinking, and tool event persistence remains the next integration step.
@@ -560,7 +560,7 @@ The application implements a decoupled, modular addon system using the **Null Ob
 - **Integration:** Pure wrapping injection over the public `session.prompt` interface. Merges relevant memories dynamically at runtime post-recall without modifying the vendored agent core or prompts database.
 - **Auto-store:** Conditionally archives assistant responses as episodic memories post-generation, toggleable per-user.
 
-## Channel Execution Protocol (in progress)
+## Channel Execution Protocol
 
 - `channels/channel-execution-store.ts` persists atomic execution snapshots and bounded JSONL event logs for ordered turns, terminal states, and cursor-based recovery.
 - `channels/channel-orchestrator.ts` selects a channel-scoped `sequential` scheduler by default, with opt-in `parallel` and `leader-gated` modes, and records turn plans, skips, aborts, chain limits, and negotiation outcomes.
