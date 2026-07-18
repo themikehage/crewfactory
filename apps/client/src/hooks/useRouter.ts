@@ -1,5 +1,4 @@
-import { useCallback, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { useState, useEffect, useCallback } from "react";
 
 export type Route =
   | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
@@ -24,7 +23,8 @@ export type Route =
   | { page: "team"; teamId: string }
   | { page: "pipelines"; pipelineId?: string | null; runId?: string | null };
 
-function parseRoute(path: string): Route {
+function parseRoute(): Route {
+  const path = window.location.pathname;
 
   // Formato: /projects/{projectName}/...
   if (path.startsWith("/projects/")) {
@@ -172,14 +172,19 @@ function parseRoute(path: string): Route {
 }
 
 export function useRouter() {
-  const location = useLocation();
-  const navigateReact = useNavigate();
+  const [route, setRoute] = useState<Route>(parseRoute);
 
-  const route = useMemo(() => parseRoute(location.pathname), [location.pathname]);
+  useEffect(() => {
+    const onPop = () => setRoute(parseRoute());
+    window.addEventListener("popstate", onPop);
+    return () => window.removeEventListener("popstate", onPop);
+  }, []);
 
   const navigate = useCallback((path: string) => {
-    navigateReact(path);
-  }, [navigateReact]);
+    window.history.pushState({}, "", path);
+    setRoute(parseRoute());
+    window.dispatchEvent(new PopStateEvent("popstate"));
+  }, []);
 
   return { route, navigate };
 }

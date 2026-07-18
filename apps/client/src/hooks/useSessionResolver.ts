@@ -6,7 +6,6 @@ import {
   buildCreateSessionBody,
   getSessionContextPredicate,
 } from "@/lib/session-utils";
-import type { Route } from "@/hooks/useRouter";
 
 interface UseSessionResolverParams {
   sessionId: string | null;
@@ -16,34 +15,6 @@ interface UseSessionResolverParams {
   activeChannel: { id: string; name: string } | null;
   currentPage: string;
   onNavigate: (path: string) => void;
-  route: Route;
-}
-
-function isRouteAndContextOutOfSync(
-  route: Route,
-  activeProjectName: string | null,
-  activeAgent: { id: string; name: string } | null,
-  activeChannel: { id: string; name: string } | null
-): boolean {
-  const routeProject = route && "projectName" in route ? route.projectName : null;
-  const routeAgent = route && "agentId" in route ? route.agentId : null;
-  const routeChannel = route && "channelId" in route ? route.channelId : null;
-
-  if (routeChannel && (!activeChannel || activeChannel.id !== routeChannel)) {
-    return true;
-  }
-  if (routeAgent && (!activeAgent || activeAgent.id !== routeAgent)) {
-    return true;
-  }
-  if (routeProject && activeProjectName !== routeProject) {
-    return true;
-  }
-  if (!routeProject && !routeAgent && !routeChannel) {
-    if (activeProjectName || activeAgent || activeChannel) {
-      return true;
-    }
-  }
-  return false;
 }
 
 export function useSessionResolver({
@@ -54,14 +25,12 @@ export function useSessionResolver({
   activeChannel,
   currentPage,
   onNavigate,
-  route,
 }: UseSessionResolverParams) {
   const resolvingRef = useRef(false);
 
   useEffect(() => {
     if (currentPage !== "chat") return;
     if (sessionId || resolvingRef.current) return;
-    if (isRouteAndContextOutOfSync(route, activeProjectName, activeAgent, activeChannel)) return;
 
     resolvingRef.current = true;
 
@@ -115,7 +84,6 @@ export function useSessionResolver({
     activeChannel?.name,
     currentPage,
     onNavigate,
-    route,
   ]);
 }
 
