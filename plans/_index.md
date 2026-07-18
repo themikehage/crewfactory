@@ -107,10 +107,16 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [channel-benchmarks.md](./channel-benchmarks.md) — Benchmarks sobre canales EXISTENTES. Invierte el flujo actual: el canal es el origen, no el destino. Permite validar y optimizar canales reales comparando multi-agente vs single-agent.
 - [fix-channel-delegation-bugs.md](./fix-channel-delegation-bugs.md) — Quick fixes B1-B4: race condition en delegacion a canal, avatares rotos, tools invisibles, redireccion fuera del canal.
+- [fix-channel-bursting-scroll.md](./fix-channel-bursting-scroll.md) — Correccion de dos bugs en canales: percepcion de mensajes trabados (showThinking/showTools defaults, streamingRenderMode feedback) y scroll locking (scrollIntoView sin awareness de posicion). 4 fases.
+- [fix-channel-workspace-persistence-recovery.md](./fix-channel-workspace-persistence-recovery.md) — Correccion de 3 bugs: workspace del canal vacio (agentes escriben en agent workspace, Files lee channel workspace), tool executions que desaparecen (rotacion 10MB, limite 100 msgs, estado volatil), y sesiones trabadas sin registro (sesion UI sin mensajes, recovery invisible). 4 fases.
 
 ### Observability
 
 - [session-observability.md](./session-observability.md) — Plan de observabilidad de sesiones: metadata enriquecida, busqueda/filtrado server-side, exportacion individual, dashboard de analitica, observabilidad de canal, archivo/soft-delete, timeline visual y auditoria. 8 fases.
+
+### Performance
+
+- [image-pipeline-optimization.md](./image-pipeline-optimization.md) — Optimizacion del pipeline de imagenes (uploads + generadas): caching HTTP con ETag, thumbnails on-the-fly con sharp, auth nativa para `<img>` sin blob indirection, compresion WebP en upload, Range requests, y `ImageManager` centralizado. 8 fases.
 
 
 ## Completados (76)
