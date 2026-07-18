@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useRef } from "react";
-import type { Channel, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
+import type { Channel, ChannelExecution, ChannelExecutionEvent, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
 import { wsClient } from "@/lib/ws-client";
 import { useConnectionAwareEffect } from "./useConnectionAware";
 
@@ -92,6 +92,50 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     }
   }, [channelId, sessionId]);
 
+  const recoverDurableStreaming = useCallback(async () => {
+    if (!channelId) return;
+    try {
+      const executionsResponse = await apiFetch(`/api/channels/${channelId}/executions?limit=50`);
+      if (!executionsResponse.ok) return;
+      const data = await executionsResponse.json() as { executions?: ChannelExecution[] };
+      const execution = data.executions?.find((item) =>
+        item.status === "running" && (!sessionId || item.sessionId === sessionId)
+      );
+      if (!execution) return;
+      const eventsResponse = await apiFetch(`/api/channels/${channelId}/executions/${execution.id}/events?limit=1000`);
+      if (!eventsResponse.ok) return;
+      const eventData = await eventsResponse.json() as { events?: ChannelExecutionEvent[] };
+      setStreamingAgents((previous) => {
+        const recovered = { ...previous };
+        for (const event of eventData.events ?? []) {
+          if (!event.agentId) continue;
+          const payload = event.payload as Record<string, unknown>;
+          const current = recovered[event.agentId] ?? { agentId: event.agentId, text: "" };
+          if (event.type === "text_delta") {
+            recovered[event.agentId] = { ...current, text: current.text + String(payload.delta ?? "") };
+          } else if (event.type === "thinking_delta") {
+            recovered[event.agentId] = { ...current, thinking: (current.thinking ?? "") + String(payload.delta ?? "") };
+          } else if (event.type === "tool_started") {
+            const toolCallId = String(payload.toolCallId ?? "");
+            if (toolCallId) {
+              recovered[event.agentId] = { ...current, toolCalls: { ...(current.toolCalls ?? {}), [toolCallId]: { toolName: String(payload.toolName ?? "tool"), args: (payload.args as Record<string, unknown>) ?? {}, result: null, isError: false } } };
+            }
+          } else if (event.type === "tool_updated" || event.type === "tool_completed" || event.type === "tool_failed") {
+            const toolCallId = String(payload.toolCallId ?? "");
+            const existingTool = current.toolCalls?.[toolCallId];
+            if (toolCallId && existingTool) {
+              const output = event.type === "tool_updated" ? payload.partialResult : payload.result;
+              recovered[event.agentId] = { ...current, toolCalls: { ...current.toolCalls, [toolCallId]: { ...existingTool, result: { content: [{ type: "text", text: typeof output === "string" ? output : JSON.stringify(output ?? "") }], isError: event.type === "tool_failed" }, isError: event.type === "tool_failed" } } };
+            }
+          }
+        }
+        return recovered;
+      });
+    } catch (err) {
+      console.error("Failed to recover durable channel streaming:", err);
+    }
+  }, [channelId, sessionId]);
+
   useEffect(() => {
     if (!channelId) {
       setChannel(null);
@@ -110,8 +154,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     }
     prevChannelIdRef.current = channelId;
 
-    Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings()]).finally(() => setLoading(false));
-  }, [channelId, sessionId, fetchChannel, fetchMessages, fetchActiveStreamings]);
+    Promise.all([fetchChannel(), fetchMessages(), fetchActiveStreamings(), recoverDurableStreaming()]).finally(() => setLoading(false));
+  }, [channelId, sessionId, fetchChannel, fetchMessages, fetchActiveStreamings, recoverDurableStreaming]);
 
   useConnectionAwareEffect(() => {
     if (!channelId) return;
@@ -155,6 +199,22 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
           const tools = { ...(current.toolCalls || {}) };
           tools[data.toolCallId] = { toolName: data.toolName, args: data.args, result: null, isError: false };
+          return { ...prev, [data.agentId]: { ...current, toolCalls: tools } };
+        });
+      } else if (data.type === "channel_agent_tool_update") {
+        setStreamingAgents((prev) => {
+          const current = prev[data.agentId] || { agentId: data.agentId, text: "" };
+          const tools = { ...(current.toolCalls || {}) };
+          if (tools[data.toolCallId]) {
+            tools[data.toolCallId] = {
+              ...tools[data.toolCallId],
+              result: {
+                toolName: data.toolName,
+                content: [{ type: "text", text: String(data.partialResult ?? "") }],
+                isPartial: true,
+              },
+            };
+          }
           return { ...prev, [data.agentId]: { ...current, toolCalls: tools } };
         });
       } else if (data.type === "channel_agent_tool_end") {
@@ -276,6 +336,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     loading,
     error,
     fetchChannel,
+    recoverDurableStreaming,
     sendMessage,
     abortDispatch,
     updateChannel,

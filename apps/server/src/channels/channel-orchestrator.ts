@@ -211,13 +211,13 @@ class ChannelOrchestrator {
     return chainPromise;
   }
 
-  private runDispatchRound(
+  private async runDispatchRound(
     username: string,
     channelId: string,
     incomingMsg: ChannelMessage,
     depth: number,
     signal: AbortSignal
-  ): void {
+  ): Promise<void> {
     if (signal.aborted) return;
 
     const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
@@ -238,7 +238,7 @@ class ChannelOrchestrator {
 
     for (const member of targetMembers) {
       this.incrementChain(key);
-      this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
+      await this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
         console.error(`[ChannelOrchestrator] Unexpected error dispatching to ${member.agentId}:`, err);
       });
     }
@@ -395,9 +395,7 @@ class ChannelOrchestrator {
     this.consecutiveSilentRounds.set(key, 0);
 
     if (negResult.action === "continue") {
-      this.incrementChain(key);
-      this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
-      this.decrementChain(key);
+      await this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
     }
   }
 

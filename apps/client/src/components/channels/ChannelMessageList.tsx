@@ -39,6 +39,7 @@ function mapChannelMessagesToStandard(
       });
     } else if (msg.role === "agent") {
       const contentBlocks: any[] = [];
+      const toolResults: any[] = [];
 
       if (msg.thinking) {
         contentBlocks.push({
@@ -58,7 +59,7 @@ function mapChannelMessagesToStandard(
           });
 
           if (tc.result) {
-            result.push({
+            toolResults.push({
               role: "toolResult",
               toolCallId: tcId,
               toolName: tc.name,
@@ -87,6 +88,7 @@ function mapChannelMessagesToStandard(
         agentAvatarUrl: msg.agentId ? agentAvatarMap[msg.agentId] : undefined,
         timestamp: new Date(msg.createdAt).getTime(),
       });
+      result.push(...toolResults);
     }
   }
 
@@ -110,6 +112,7 @@ function mapChannelMessagesToStandard(
       continue;
     }
     const contentBlocks: any[] = [];
+    const toolResults: any[] = [];
 
     if (stream.thinking) {
       contentBlocks.push({
@@ -128,7 +131,7 @@ function mapChannelMessagesToStandard(
         });
 
         if (tc.result) {
-          result.push({
+          toolResults.push({
             role: "toolResult",
             toolCallId: tcId,
             toolName: tc.toolName,
@@ -162,6 +165,7 @@ function mapChannelMessagesToStandard(
       isStreaming: !stream.text && !stream.thinking && !stream.toolCalls,
       timestamp: Date.now(),
     });
+    result.push(...toolResults);
   }
 
   return result;
