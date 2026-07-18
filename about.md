@@ -568,6 +568,7 @@ The application implements a decoupled, modular addon system using the **Null Ob
 - `lib/channel-execution-reducer.ts` is the sequenced, idempotent client reducer used for durable channel execution events; terminal tool results cannot regress on replay.
 - `components/channels/ChannelMessageList.tsx` renders terminal execution outcomes as activity cards separate from the channel conversation.
 - Terminal activities are rebuilt from the latest session execution's durable event log after a reload or WebSocket reconnection.
+- A durable turn is marked completed only after its final channel message has been projected to the legacy conversation stream.
 
 ### 2. Exa Neural Search Tool
 - **Engine:** Standardized JSON-RPC `exa_search` tool querying Exa AI's semantic endpoint. Implementation uses zero dependencies (native `fetch()` calls).

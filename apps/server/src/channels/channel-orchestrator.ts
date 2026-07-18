@@ -378,7 +378,8 @@ class ChannelOrchestrator {
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) return;
 
-    if (execution) {
+    const completeTurn = () => {
+      if (!execution) return;
       if (turn) channelExecutionStore.updateTurn(username, channelId, execution.executionId, turn.id, "completed", { messageId: result.agentMsg.id });
       channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
         type: "turn_completed",
@@ -387,7 +388,7 @@ class ChannelOrchestrator {
         turnId: turn?.id,
         payload: { messageId: result.agentMsg.id, depth },
       });
-    }
+    };
 
     const negResult = handleNegotiation(
       username,
@@ -411,11 +412,13 @@ class ChannelOrchestrator {
 
     if (negResult.action === "stop-rejected") {
       this.messagePublisher(username, channelId, channel.name, result.agentMsg);
+      completeTurn();
       return;
     }
 
     if (negResult.action === "escalate" && negResult.escalationMessage && negResult.arbiterMember) {
       this.messagePublisher(username, channelId, channel.name, result.agentMsg);
+      completeTurn();
 
       this.incrementChain(key);
       this.dispatchToAgentAsync(
@@ -432,6 +435,7 @@ class ChannelOrchestrator {
     }
 
     this.messagePublisher(username, channelId, channel.name, result.agentMsg);
+    completeTurn();
 
     this.consecutiveSilentRounds.set(key, 0);
 

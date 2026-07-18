@@ -781,6 +781,10 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 156.2 Verify the channel client production build
 - [x] 156.3 Rehydrate terminal execution activity from the durable log after reload
 
+## Phase 157: Turn Projection Ordering
+- [x] 157.1 Persist `turn_completed` only after the final channel message projection is published
+- [x] 157.2 Verify server build and durable transition tests
+
 
 
 
