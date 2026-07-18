@@ -241,7 +241,7 @@ export function SessionSidebar({
     if (onSelectAgent) onSelectAgent(null);
     if (onSelectChannel) onSelectChannel(null);
     if (onSelectTeam) onSelectTeam(null);
-    if (onNavigate) onNavigate("/chat");
+    if (onNavigate) onNavigate("/");
     onCloseSidebar?.();
   }, [onSelectProject, onSelectAgent, onSelectChannel, onSelectTeam, onNavigate, onCloseSidebar]);
 

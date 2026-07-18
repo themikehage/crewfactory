@@ -125,8 +125,8 @@ function parseRoute(): Route {
     return { page: "channel", channelId: id };
   }
   if (path === "/projects") return { page: "projects" };
-  if (path === "/chat") return { page: "chat", sessionId: null };
-  if (path === "/dashboard" || path === "/") return { page: "dashboard" };
+  if (path === "/") return { page: "chat", sessionId: null };
+  if (path === "/dashboard") return { page: "dashboard" };
   if (path === "/settings") return { page: "settings" };
   if (path === "/skills") return { page: "skills" };
   if (path === "/workspace") return { page: "workspace" };

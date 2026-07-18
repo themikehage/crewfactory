@@ -274,7 +274,7 @@ export function AppRouter() {
       return {
         type: "home",
         page: "dashboard",
-        path: "/",
+        path: "/dashboard",
       };
     }
 
@@ -528,7 +528,7 @@ export function AppRouter() {
       setActiveChannel(null);
       setActiveTeam(null);
       setHasContext(false);
-      navigate("/chat");
+      navigate("/");
     } else {
       localStorage.setItem("active-project-id", projectId);
       localStorage.setItem("active-project-name", projectName || projectId);
@@ -551,7 +551,7 @@ export function AppRouter() {
       localStorage.removeItem("active-agent");
       setActiveAgent(null);
       setHasContext(false);
-      navigate("/chat");
+      navigate("/");
     } else {
       localStorage.setItem("active-agent", JSON.stringify(agent));
       localStorage.removeItem("active-project-id");
@@ -574,7 +574,7 @@ export function AppRouter() {
       localStorage.removeItem("active-channel");
       setActiveChannel(null);
       setHasContext(false);
-      navigate("/chat");
+      navigate("/");
     } else {
       localStorage.setItem("active-channel", JSON.stringify(channel));
       localStorage.removeItem("active-project-id");
@@ -597,7 +597,7 @@ export function AppRouter() {
       localStorage.removeItem("active-team");
       setActiveTeam(null);
       setHasContext(false);
-      navigate("/chat");
+      navigate("/");
     } else {
       localStorage.setItem("active-team", JSON.stringify(team));
       localStorage.removeItem("active-project-id");
