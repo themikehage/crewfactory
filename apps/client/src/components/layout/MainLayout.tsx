@@ -147,6 +147,7 @@ export function MainLayout({
     activeChannel,
     currentPage: route.page,
     onNavigate,
+    route,
   });
 
   const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview" || route.page === "laboratory" || route.page === "org" || route.page === "delegations";
