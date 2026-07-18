@@ -751,6 +751,12 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 151.3 Refactor `AgentPromptRunner` to build env context and execute `syncChannelHistory` and `continue()`
 - [x] 151.4 Verify all tests pass and builds compile cleanly
 
+## Phase 152: Channel Execution Protocol Foundation
+- [x] 152.1 Define shared schemas for channel executions, turns, statuses, event types, and sequenced event payloads
+- [x] 152.2 Implement atomic filesystem persistence for execution snapshots, a bounded execution index, and durable JSONL event logs with idempotent event IDs
+- [x] 152.3 Add authenticated read APIs for execution summaries, execution detail, and cursor-based event recovery
+- [x] 152.4 Verify clean server production build
+
 
 
 

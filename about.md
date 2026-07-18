@@ -3,6 +3,7 @@
 ## Channel Production Hardening Roadmap
 - The channel audit identifies four coordinated plans: a durable execution protocol, validated team topologies, governed layered prompts, and verification/rollout controls. They are documented in `plans/channel-execution-protocol.md`, `plans/channel-topology-product-model.md`, `plans/channel-prompt-governance.md`, and `plans/channel-production-verification-rollout.md`.
 - The roadmap stabilizes execution ordering, event durability, and recovery before altering collaboration defaults or expanding the channel UX.
+- The first execution-protocol foundation is available: shared execution/turn/event contracts, atomic channel execution snapshots, sequenced durable event logs, and read-only execution/event APIs. Legacy channel scheduling and rendering remain unchanged until the next phases.
 **Type:** PRODUCTION
 **Description:** Web interface for CrewFactory with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Powered by a local vendored AI agent runner module.
 **Stack:** Bun, Hono, React 19, Vite, TypeScript (strict), Tailwind CSS v4, Framer Motion, WebSocket

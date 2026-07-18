@@ -345,6 +345,25 @@ export const ChannelMessageSchema = z.object({
 });
 export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;
 
+export const ChannelExecutionStatusSchema = z.enum(["pending", "running", "completed", "completed_with_warnings", "aborted", "failed", "stalled"]);
+export type ChannelExecutionStatus = z.infer<typeof ChannelExecutionStatusSchema>;
+export const ChannelSchedulerModeSchema = z.enum(["sequential", "parallel", "leader-gated"]);
+export type ChannelSchedulerMode = z.infer<typeof ChannelSchedulerModeSchema>;
+export const ChannelTurnStatusSchema = z.enum(["pending", "running", "completed", "skipped", "failed", "aborted"]);
+export type ChannelTurnStatus = z.infer<typeof ChannelTurnStatusSchema>;
+export const ChannelTurnSkipReasonSchema = z.enum(["observer", "not_mentioned", "not_targeted", "no_model", "aborted", "chain_limit", "silent", "unavailable"]);
+export type ChannelTurnSkipReason = z.infer<typeof ChannelTurnSkipReasonSchema>;
+export const ChannelTurnSchema = z.object({ id: z.string(), executionId: z.string(), index: z.number().int().min(0), agentId: z.string().optional(), status: ChannelTurnStatusSchema, skipReason: ChannelTurnSkipReasonSchema.optional(), messageId: z.string().optional(), error: z.string().optional(), createdAt: z.string(), startedAt: z.string().optional(), completedAt: z.string().optional(), updatedAt: z.string() });
+export type ChannelTurn = z.infer<typeof ChannelTurnSchema>;
+export const ChannelExecutionEventTypeSchema = z.enum(["execution_started", "turn_planned", "turn_started", "turn_skipped", "text_delta", "thinking_delta", "tool_started", "tool_updated", "tool_completed", "tool_failed", "negotiation", "turn_completed", "turn_failed", "execution_completed", "execution_aborted", "execution_failed", "execution_stalled"]);
+export type ChannelExecutionEventType = z.infer<typeof ChannelExecutionEventTypeSchema>;
+export const ChannelExecutionEventSchema = z.object({ id: z.string(), executionId: z.string(), channelId: z.string(), sessionId: z.string().optional(), turnId: z.string().optional(), agentId: z.string().optional(), type: ChannelExecutionEventTypeSchema, sequence: z.number().int().min(1), createdAt: z.string(), payload: z.record(z.string(), z.unknown()).default({}) });
+export type ChannelExecutionEvent = z.infer<typeof ChannelExecutionEventSchema>;
+export const ChannelExecutionSchema = z.object({ id: z.string(), channelId: z.string(), sessionId: z.string().optional(), schedulerMode: ChannelSchedulerModeSchema, topologyVersion: z.string().optional(), status: ChannelExecutionStatusSchema, terminalReason: z.string().optional(), turns: z.array(ChannelTurnSchema), lastSequence: z.number().int().min(0), createdAt: z.string(), startedAt: z.string().optional(), completedAt: z.string().optional(), updatedAt: z.string() });
+export type ChannelExecution = z.infer<typeof ChannelExecutionSchema>;
+export const CreateChannelExecutionSchema = z.object({ id: z.string().optional(), sessionId: z.string().optional(), schedulerMode: ChannelSchedulerModeSchema.default("sequential"), topologyVersion: z.string().optional() });
+export type CreateChannelExecution = z.infer<typeof CreateChannelExecutionSchema>;
+
 export interface GlobalLogEvent {
   timestamp: string;
   sourceType: "session" | "channel";

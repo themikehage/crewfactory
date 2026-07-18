@@ -3,7 +3,7 @@ import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
-import { channelStore, channelOrchestrator } from "../channels";
+import { channelExecutionStore, channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema } from "shared";
@@ -272,6 +272,37 @@ channelsRouter.get("/:id/messages", (c) => {
 
   const messages = channelStore.getMessages(username, id, limit, sessionId);
   return c.json({ messages });
+});
+
+channelsRouter.get("/:id/executions", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  if (!channelStore.getChannel(username, id)) return c.json({ error: "Channel not found" }, 404);
+  const limit = Number.parseInt(c.req.query("limit") ?? "50", 10);
+  return c.json({ executions: channelExecutionStore.listExecutions(username, id, Number.isFinite(limit) ? limit : 50) });
+});
+
+channelsRouter.get("/:id/executions/:executionId", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  if (!channelStore.getChannel(username, id)) return c.json({ error: "Channel not found" }, 404);
+  const execution = channelExecutionStore.getExecution(username, id, c.req.param("executionId"));
+  if (!execution) return c.json({ error: "Channel execution not found" }, 404);
+  return c.json({ execution });
+});
+
+channelsRouter.get("/:id/executions/:executionId/events", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  if (!channelStore.getChannel(username, id)) return c.json({ error: "Channel not found" }, 404);
+  const executionId = c.req.param("executionId");
+  if (!channelExecutionStore.getExecution(username, id, executionId)) return c.json({ error: "Channel execution not found" }, 404);
+  const afterSequence = Number.parseInt(c.req.query("afterSequence") ?? "0", 10);
+  const limit = Number.parseInt(c.req.query("limit") ?? "200", 10);
+  return c.json({ events: channelExecutionStore.getEvents(username, id, executionId, Number.isFinite(afterSequence) && afterSequence >= 0 ? afterSequence : 0, Number.isFinite(limit) ? limit : 200) });
 });
 
 channelsRouter.get("/:id/negotiation-state", (c) => {
