@@ -234,6 +234,7 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
           onAddMember={handleAddMember}
           onUpdateMember={handleUpdateMember}
           onRemoveMember={handleRemoveMember}
+          topologyManaged={channel?.topology?.kind !== undefined && channel.topology.kind !== "legacy_custom"}
         />
       )}
 

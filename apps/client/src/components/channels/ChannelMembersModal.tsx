@@ -15,6 +15,7 @@ interface Props {
   onAddMember: (data: AddMember) => Promise<void>;
   onUpdateMember: (agentId: string, data: UpdateMember) => Promise<void>;
   onRemoveMember: (agentId: string) => Promise<void>;
+  topologyManaged?: boolean;
 }
 
 export function ChannelMembersModal({
@@ -25,11 +26,16 @@ export function ChannelMembersModal({
   onAddMember,
   onUpdateMember,
   onRemoveMember,
+  topologyManaged = false,
 }: Props) {
 const l = useLiterals(u);
   const [showAddModal, setShowAddModal] = useState(false);
   const [editingTargetsAgentId, setEditingTargetsAgentId] = useState<string | null>(null);
   const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  if (topologyManaged) {
+    return <div className="fixed inset-0 z-50 flex items-center justify-center p-4"><div className="absolute inset-0 bg-black/60" onClick={onClose} /><div className="relative w-full max-w-sm rounded-2xl border border-input bg-card p-5"><h3 className="font-semibold text-foreground">Team flow manages members</h3><p className="mt-2 text-xs text-muted-foreground">Use Channel settings → Team flow to add members and assign their collaboration roles. Low-level reply modes are unavailable for guided teams.</p><button type="button" onClick={onClose} className="mt-4 w-full rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-background">Close</button></div></div>;
+  }
 
   const getAgentInfo = (agentId: string) => {
     return registeredAgents.find((a) => a.id === agentId);

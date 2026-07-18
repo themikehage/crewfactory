@@ -324,6 +324,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
             onAddMember={handleAddMember}
             onUpdateMember={handleUpdateMember}
             onRemoveMember={handleRemoveMember}
+            topologyManaged={managingChannel.topology?.kind !== undefined && managingChannel.topology.kind !== "legacy_custom"}
           />
         )}
       </AnimatePresence>

@@ -101,12 +101,12 @@ export function resolveTopologyRecipients(channel: Channel, topology: ChannelTop
   if (topology.kind === "roundtable") return incomingMsg.role === "user" ? select(ordered.map((assignment) => assignment.agentId)) : [];
   if (topology.kind === "debate_with_arbiter") return incomingMsg.role === "user" ? select(ordered.filter((assignment) => assignment.role === "position").map((assignment) => assignment.agentId)) : [];
   if (topology.kind === "sequential_review") {
-    if (incomingMsg.role === "user") return select([topology.entryPointAgentId ?? ordered[0]?.agentId].filter(Boolean));
+    if (incomingMsg.role === "user") return select([topology.entryPointAgentId ?? ordered[0]?.agentId].filter((id): id is string => Boolean(id)));
     const index = ordered.findIndex((assignment) => assignment.agentId === incomingMsg.agentId);
-    return index >= 0 ? select([ordered[index + 1]?.agentId].filter(Boolean)) : [];
+    return index >= 0 ? select([ordered[index + 1]?.agentId].filter((id): id is string => Boolean(id))) : [];
   }
-  if (incomingMsg.role === "user") return select([topology.entryPointAgentId].filter(Boolean));
+  if (incomingMsg.role === "user") return select([topology.entryPointAgentId].filter((id): id is string => Boolean(id)));
   if (incomingMsg.agentId === topology.entryPointAgentId) return select(ordered.filter((assignment) => assignment.role === "specialist").map((assignment) => assignment.agentId));
-  if (incomingMsg.agentId !== topology.terminalOwnerAgentId) return select([topology.terminalOwnerAgentId].filter(Boolean));
+  if (incomingMsg.agentId !== topology.terminalOwnerAgentId) return select([topology.terminalOwnerAgentId].filter((id): id is string => Boolean(id)));
   return [];
 }
