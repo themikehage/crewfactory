@@ -763,6 +763,13 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 153.3 Persist agent turn start, completion, failure, and silent outcome events without changing legacy dispatch scheduling
 - [x] 153.4 Verify clean server production build
 
+## Phase 154: Deterministic Scheduler and Durable Reconnection
+- [x] 154.1 Add per-channel protocol compatibility flag and explicit scheduler modes with a sequential default
+- [x] 154.2 Persist planned, unavailable, silent, aborted, chain-limit, completed, and negotiation execution outcomes
+- [x] 154.3 Add leader-gated initial routing and deterministic sequential/parallel dispatch selection
+- [x] 154.4 Rebuild active channel streaming state from the durable event log after WebSocket reconnection
+- [x] 154.5 Verify execution-store test and production builds for server and client
+
 
 
 

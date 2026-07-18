@@ -52,6 +52,7 @@ class ChannelStore {
       showTools: data.showTools ?? false,
       streamingRenderMode: data.streamingRenderMode ?? "live",
       executionProtocolEnabled: data.executionProtocolEnabled ?? true,
+      executionSchedulerMode: data.executionSchedulerMode ?? "sequential",
       negotiationProtocol: data.negotiationProtocol,
       delegationPattern: data.delegationPattern,
       createdAt: now,
@@ -77,6 +78,7 @@ class ChannelStore {
         showTools: parsed.showTools ?? false,
         streamingRenderMode: parsed.streamingRenderMode ?? "live",
         executionProtocolEnabled: parsed.executionProtocolEnabled ?? true,
+        executionSchedulerMode: parsed.executionSchedulerMode ?? "sequential",
       };
     } catch {
       return null;
@@ -123,6 +125,7 @@ class ChannelStore {
     if (updates.showTools !== undefined) channel.showTools = updates.showTools;
     if (updates.streamingRenderMode !== undefined) channel.streamingRenderMode = updates.streamingRenderMode;
     if (updates.executionProtocolEnabled !== undefined) channel.executionProtocolEnabled = updates.executionProtocolEnabled;
+    if (updates.executionSchedulerMode !== undefined) channel.executionSchedulerMode = updates.executionSchedulerMode;
     if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
     if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
     channel.updatedAt = new Date().toISOString();

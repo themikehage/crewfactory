@@ -105,8 +105,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       const eventsResponse = await apiFetch(`/api/channels/${channelId}/executions/${execution.id}/events?limit=1000`);
       if (!eventsResponse.ok) return;
       const eventData = await eventsResponse.json() as { events?: ChannelExecutionEvent[] };
-      setStreamingAgents((previous) => {
-        const recovered = { ...previous };
+      setStreamingAgents(() => {
+        const recovered: Record<string, StreamingAgentState> = {};
         for (const event of eventData.events ?? []) {
           if (!event.agentId) continue;
           const payload = event.payload as Record<string, unknown>;
@@ -160,7 +160,9 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   useConnectionAwareEffect(() => {
     if (!channelId) return;
     wsClient.send({ type: "channel_join", channelId });
-  }, [channelId]);
+    void fetchActiveStreamings();
+    void recoverDurableStreaming();
+  }, [channelId, fetchActiveStreamings, recoverDurableStreaming]);
 
   useEffect(() => {
     if (!channelId) return;

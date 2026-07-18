@@ -560,6 +560,12 @@ The application implements a decoupled, modular addon system using the **Null Ob
 - **Integration:** Pure wrapping injection over the public `session.prompt` interface. Merges relevant memories dynamically at runtime post-recall without modifying the vendored agent core or prompts database.
 - **Auto-store:** Conditionally archives assistant responses as episodic memories post-generation, toggleable per-user.
 
+## Channel Execution Protocol (in progress)
+
+- `channels/channel-execution-store.ts` persists atomic execution snapshots and bounded JSONL event logs for ordered turns, terminal states, and cursor-based recovery.
+- `channels/channel-orchestrator.ts` selects a channel-scoped `sequential` scheduler by default, with opt-in `parallel` and `leader-gated` modes, and records turn plans, skips, aborts, chain limits, and negotiation outcomes.
+- `hooks/useChannel.ts` rebuilds active text, thinking, and tool state from the durable execution log after WebSocket reconnection, while retaining the legacy WebSocket projection during migration.
+
 ### 2. Exa Neural Search Tool
 - **Engine:** Standardized JSON-RPC `exa_search` tool querying Exa AI's semantic endpoint. Implementation uses zero dependencies (native `fetch()` calls).
 - **Gating Protocol:** Exposed in the `toolStatus` map from the server's session tools API. Checked reactively in the frontend `ToolsSelector` checkbox list: dims, disables, and alerts the user with warning badges/tooltips if `EXA_API_KEY` is not present in Settings > Env Vars.

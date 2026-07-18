@@ -232,6 +232,9 @@ export type ReplyMode = z.infer<typeof ReplyModeSchema>;
 export const ChannelRoleSchema = z.enum(["lead", "senior", "member", "observer"]);
 export type ChannelRole = z.infer<typeof ChannelRoleSchema>;
 
+export const ChannelSchedulerModeSchema = z.enum(["sequential", "parallel", "leader-gated"]);
+export type ChannelSchedulerMode = z.infer<typeof ChannelSchedulerModeSchema>;
+
 export const ChannelMemberSchema = z.object({
   agentId: z.string(),
   replyMode: ReplyModeSchema,
@@ -273,6 +276,7 @@ export const ChannelSchema = z.object({
   showTools: z.boolean().optional(),
   streamingRenderMode: z.enum(["live", "complete"]).optional(),
   executionProtocolEnabled: z.boolean().optional(),
+  executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   createdAt: z.string(),
@@ -290,6 +294,7 @@ export const CreateChannelSchema = z.object({
   showTools: z.boolean().optional(),
   streamingRenderMode: z.enum(["live", "complete"]).optional(),
   executionProtocolEnabled: z.boolean().optional(),
+  executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -305,6 +310,7 @@ export const UpdateChannelSchema = z.object({
   showTools: z.boolean().optional(),
   streamingRenderMode: z.enum(["live", "complete"]).optional(),
   executionProtocolEnabled: z.boolean().optional(),
+  executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -350,8 +356,6 @@ export type ChannelMessage = z.infer<typeof ChannelMessageSchema>;
 
 export const ChannelExecutionStatusSchema = z.enum(["pending", "running", "completed", "completed_with_warnings", "aborted", "failed", "stalled"]);
 export type ChannelExecutionStatus = z.infer<typeof ChannelExecutionStatusSchema>;
-export const ChannelSchedulerModeSchema = z.enum(["sequential", "parallel", "leader-gated"]);
-export type ChannelSchedulerMode = z.infer<typeof ChannelSchedulerModeSchema>;
 export const ChannelTurnStatusSchema = z.enum(["pending", "running", "completed", "skipped", "failed", "aborted"]);
 export type ChannelTurnStatus = z.infer<typeof ChannelTurnStatusSchema>;
 export const ChannelTurnSkipReasonSchema = z.enum(["observer", "not_mentioned", "not_targeted", "no_model", "aborted", "chain_limit", "silent", "unavailable"]);

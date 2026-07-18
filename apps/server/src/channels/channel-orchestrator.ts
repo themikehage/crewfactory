@@ -69,7 +69,10 @@ class ChannelOrchestrator {
       if (entry.count <= 0) {
         const execution = this.activeExecutionIds.get(key);
         if (execution && !this.abortedDispatches.has(key)) {
-          channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, { type: "execution_completed" });
+          const current = channelExecutionStore.getExecution(execution.username, execution.channelId, execution.executionId);
+          if (current?.status === "running" || current?.status === "pending") {
+            channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, { type: "execution_completed" });
+          }
           this.activeExecutionIds.delete(key);
         }
         entry.resolve();
@@ -120,6 +123,7 @@ class ChannelOrchestrator {
     this.channelAbortControllers.delete(key);
     const execution = this.activeExecutionIds.get(key);
     if (execution) {
+      channelExecutionStore.finishOpenTurns(execution.username, execution.channelId, execution.executionId, "aborted", "aborted");
       channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, { type: "execution_aborted" });
       this.activeExecutionIds.delete(key);
     }
@@ -155,7 +159,7 @@ class ChannelOrchestrator {
     if (!channel) throw new Error("Channel not found");
 
     if (channel.executionProtocolEnabled !== false) {
-      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId });
+      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId, schedulerMode: channel.executionSchedulerMode ?? "sequential" });
       this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
       channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
     }
@@ -201,7 +205,7 @@ class ChannelOrchestrator {
     } else {
       this.incrementChain(key);
       Promise.resolve()
-        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal))
+        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal, channel.executionSchedulerMode === "parallel"))
         .catch((err) => {
           console.error(`[ChannelOrchestrator] Non-broadcast dispatch error:`, err);
         })
@@ -218,7 +222,8 @@ class ChannelOrchestrator {
     channelId: string,
     incomingMsg: ChannelMessage,
     depth: number,
-    signal: AbortSignal
+    signal: AbortSignal,
+    parallel = false
   ): Promise<void> {
     if (signal.aborted) return;
 
@@ -232,17 +237,27 @@ class ChannelOrchestrator {
     if (depth > maxDepth) {
       console.warn(`[ChannelOrchestrator] Max chain depth reached (${maxDepth}) for channel ${channelId}`);
       broadcast(channelId, { type: "channel_chain_limit", channelId, maxChainDepth: maxDepth });
+      const execution = this.activeExecutionIds.get(key);
+      if (execution) {
+        channelExecutionStore.finishOpenTurns(username, channelId, execution.executionId, "skipped", "chain_limit");
+        channelExecutionStore.appendEvent(username, channelId, execution.executionId, { type: "execution_completed", sessionId: incomingMsg.sessionId, payload: { withWarnings: true, reason: "chain_limit", maxDepth } });
+      }
       return;
     }
 
     const targetMembers = this.resolveRecipients(channel, incomingMsg);
     if (targetMembers.length === 0) return;
 
-    for (const member of targetMembers) {
+    const dispatchMember = async (member: ChannelMember) => {
       this.incrementChain(key);
       await this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
         console.error(`[ChannelOrchestrator] Unexpected error dispatching to ${member.agentId}:`, err);
       });
+    };
+    if (parallel) {
+      await Promise.all(targetMembers.map(dispatchMember));
+    } else {
+      for (const member of targetMembers) await dispatchMember(member);
     }
   }
 
@@ -275,6 +290,7 @@ class ChannelOrchestrator {
     const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
     if (this.abortedDispatches.has(key)) return;
 
+    const execution = this.activeExecutionIds.get(key);
     const agentEntry = agentRegistry.get(member.agentId);
     if (!agentEntry || agentEntry.status === "stopped") {
       broadcast(channelId, {
@@ -283,15 +299,20 @@ class ChannelOrchestrator {
         agentId: member.agentId,
         error: `Agent "${member.agentId}" is not available`,
       });
+      if (execution) {
+        const turn = channelExecutionStore.createTurn(username, channelId, execution.executionId, member.agentId, channelExecutionStore.getExecution(username, channelId, execution.executionId)?.turns.length ?? 0);
+        channelExecutionStore.updateTurn(username, channelId, execution.executionId, turn.id, "skipped", { skipReason: "unavailable" });
+        channelExecutionStore.appendEvent(username, channelId, execution.executionId, { type: "turn_skipped", sessionId: incomingMsg.sessionId, agentId: member.agentId, turnId: turn.id, payload: { reason: "unavailable", depth } });
+      }
       return;
     }
 
     const queue = this.getOrCreateQueue(member.agentId);
-    const execution = this.activeExecutionIds.get(key);
     const turn = execution
       ? channelExecutionStore.createTurn(username, channelId, execution.executionId, member.agentId, channelExecutionStore.getExecution(username, channelId, execution.executionId)?.turns.length ?? 0)
       : null;
     if (execution) {
+      channelExecutionStore.appendEvent(username, channelId, execution.executionId, { type: "turn_planned", sessionId: incomingMsg.sessionId, agentId: member.agentId, turnId: turn?.id, payload: { depth, index: turn?.index } });
       channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
         type: "turn_started",
         sessionId: incomingMsg.sessionId,
@@ -377,6 +398,15 @@ class ChannelOrchestrator {
       agentNameMap,
       broadcast
     );
+    if (execution) {
+      channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
+        type: "negotiation",
+        sessionId: incomingMsg.sessionId,
+        agentId: member.agentId,
+        turnId: turn?.id,
+        payload: { action: negResult.action },
+      });
+    }
 
     if (negResult.action === "stop-rejected") {
       this.messagePublisher(username, channelId, channel.name, result.agentMsg);
@@ -405,7 +435,7 @@ class ChannelOrchestrator {
     this.consecutiveSilentRounds.set(key, 0);
 
     if (negResult.action === "continue") {
-      await this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal);
+      await this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal, channel.executionSchedulerMode === "parallel");
     }
   }
 
@@ -445,6 +475,10 @@ class ChannelOrchestrator {
       }
     }
 
+    if (channel.executionSchedulerMode === "leader-gated" && incomingMsg.role === "user") {
+      const lead = result.find((member) => member.role === "lead") ?? channel.members.find((member) => member.role === "lead");
+      return lead ? [lead] : result;
+    }
     return result;
   }
 

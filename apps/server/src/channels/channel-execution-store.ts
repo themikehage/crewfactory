@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ChannelExecutionEventSchema, ChannelExecutionSchema, ChannelTurnSchema, CreateChannelExecutionSchema, type ChannelExecution, type ChannelExecutionEvent, type ChannelExecutionEventType, type ChannelTurn, type ChannelTurnStatus, getChannelsDir } from "shared";
+import { ChannelExecutionEventSchema, ChannelExecutionSchema, ChannelTurnSchema, CreateChannelExecutionSchema, type ChannelExecution, type ChannelExecutionEvent, type ChannelExecutionEventType, type ChannelExecutionStatus, type ChannelTurn, type ChannelTurnStatus, getChannelsDir } from "shared";
 
 const MAX_EXECUTIONS = 200;
 type Summary = Pick<ChannelExecution, "id" | "channelId" | "sessionId" | "schedulerMode" | "status" | "createdAt" | "updatedAt" | "completedAt" | "lastSequence">;
@@ -62,6 +62,14 @@ export class ChannelExecutionStore {
     const turn = ChannelTurnSchema.parse({ ...current, ...details, status, completedAt: ["completed", "skipped", "failed", "aborted"].includes(status) ? now : current.completedAt, updatedAt: now });
     execution.turns[index] = turn; execution.updatedAt = now; this.save(execution, username); return turn;
   }
+  finishOpenTurns(username: string, channelId: string, executionId: string, status: "aborted" | "skipped", skipReason: "aborted" | "chain_limit"): void {
+    const execution = this.getExecution(username, channelId, executionId); if (!execution) return;
+    const now = new Date().toISOString();
+    execution.turns = execution.turns.map((turn) => turn.status === "running" || turn.status === "pending"
+      ? ChannelTurnSchema.parse({ ...turn, status, skipReason, completedAt: now, updatedAt: now })
+      : turn);
+    execution.updatedAt = now; this.save(execution, username);
+  }
   private readEvents(username: string, channelId: string, executionId: string): ChannelExecutionEvent[] {
     const path = this.eventsPath(username, channelId, executionId);
     if (!existsSync(path)) return [];
@@ -74,7 +82,7 @@ export class ChannelExecutionStore {
     events.push(event); atomicWrite(this.eventsPath(username, channelId, executionId), `${events.map((item) => JSON.stringify(item)).join("\n")}\n`, false);
     execution.lastSequence = event.sequence; execution.updatedAt = now;
     if (event.type === "execution_started") { execution.status = "running"; execution.startedAt = execution.startedAt ?? now; }
-    if (event.type === "execution_completed") { execution.status = "completed"; execution.completedAt = now; }
+    if (event.type === "execution_completed") { execution.status = event.payload.withWarnings === true ? "completed_with_warnings" : "completed"; execution.completedAt = now; execution.terminalReason = typeof event.payload.reason === "string" ? event.payload.reason : undefined; }
     if (event.type === "execution_aborted") { execution.status = "aborted"; execution.completedAt = now; }
     if (event.type === "execution_failed") { execution.status = "failed"; execution.completedAt = now; }
     if (event.type === "execution_stalled") { execution.status = "stalled"; execution.completedAt = now; }
