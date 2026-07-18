@@ -597,7 +597,7 @@ export function AppRouter() {
       localStorage.removeItem("active-team");
       setActiveTeam(null);
       setHasContext(false);
-      navigate("/");
+      navigate("/chat");
     } else {
       localStorage.setItem("active-team", JSON.stringify(team));
       localStorage.removeItem("active-project-id");

@@ -67,6 +67,15 @@
 - **Ubicación de Sesiones:** El popover de gestión de sesiones de chat fue movido de la cabecera global a la barra de navegación de pestañas (Chat, Files, Preview) pegado a la derecha, agrupando el control de las sesiones directamente al espacio donde pertenecen.
 - **Modularización del Layout Shell (Layout Refactoring):** El componente layout principal (`MainLayout.tsx`) ha sido refactorizado en múltiples submódulos específicos dentro de `components/layout/` (agrupados en subcarpetas `header`, `mobile`, `sidebar`, `tabs` y `hooks`), logrando un desacoplamiento limpio del gestor de sesiones de laboratorio y chat, y eliminando toda la duplicación de código e interfaces entre las vistas móviles y de escritorio.
 
+### Agent Teams (Sequential Collaboration)
+- **Loop de Ejecución Secuencial Securizado:** Motor de ejecución robusto (`team-runner.ts`) controlado mediante un bucle síncrono limpio (`while` secuencial con `await`) que elimina llamadas recursivas complejas. Un único `AbortController` gestiona la detención inmediata de ejecuciones activas y cancela streams de agentes en cascada.
+- **Topologías Soportadas:**
+  - **Leader & Specialists:** Un líder coordina, delega tareas específicas a los especialistas de forma ordenada y consolida las respuestas en un reporte ejecutivo final.
+  - **Roundtable:** Procesamiento plano y colaborativo donde los agentes actúan de forma secuencial en una cola ordenada.
+- **WebSocket Replay y Resiliencia:** El historial de ejecuciones y transiciones de estado de los turnos se escribe atómicamente en formato JSONL (`events.jsonl`) con secuencias (`sequence`) continuas. En caso de micro-desconexiones, el cliente solicita los eventos perdidos usando el endpoint `/events?afterSequence=N` para una reconciliación perfecta.
+- **Interfaz de Progreso en Tiempo Real:** Visualización en vivo (`TeamRunProgress`) que detalla de forma interactiva qué agente está pensando, sus tokens de texto generados en vivo y las herramientas activas en ejecución, manteniendo coherencia visual con la experiencia de agentes individuales.
+- **Asistente de Creación (Wizard Modal):** Formulario modular por pasos para configurar el nombre del equipo, topología, selección ordenada de agentes según roles y visualización de trazas.
+
 ### Multimedia Support (Images & Documents)
 - **Hybrid Input Strategy**:
   - **Images**: converted to base64 on client and sent inline via WebSocket using the vendored agent runtime's native vision parameters (`images?: ImageContent[]`). Image grid in chat supports click-to-expand modal with fullscreen overlay, Escape to close, and authenticated image loading.
