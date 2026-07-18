@@ -1,3 +1,5 @@
+COMPLETED
+
 # Channel Prompt Governance: Enforce Team Policies Over Agent Preferences
 
 ## Status: Draft
@@ -69,4 +71,3 @@ Lower layers may add detail but cannot negate a higher-layer policy.
 ## Dependencies
 
 - Should be designed alongside the topology model and integrated with the execution scheduler before changing production defaults.
-

@@ -6,6 +6,8 @@
 - The roadmap stabilizes execution ordering, event durability, and recovery before altering collaboration defaults or expanding the channel UX.
 - The first execution-protocol foundation is available: shared execution/turn/event contracts, atomic channel execution snapshots, sequenced durable event logs, and read-only execution/event APIs. Legacy channel scheduling and rendering remain unchanged until the next phases.
 - Channel dispatch now creates a durable execution for each user message and records lifecycle events for execution start/finish/abort plus agent turn start, completion, failure, and silent outcomes. Token, thinking, and tool event persistence remains the next integration step.
+- Channel prompt governance is now a versioned control plane: typed contribution, handoff, final-owner, negotiation, and output policies are validated against topology, compiled with a deterministic checksum, injected as non-overridable channel instructions, and inspectable through `GET /api/channels/:id/policy`. Policy or relevant channel changes increment `policyVersion`, ensuring the next prompt rebuilds rather than reusing stale cache entries.
+- The channel settings modal exposes the effective policy version, prompt checksum, enforced runtime rules, and policy diagnostics. Completed turn events record word-budget and final-owner conformance for audit and recovery.
 **Type:** PRODUCTION
 **Description:** Web interface for CrewFactory with real-time streaming, multi-session chat, user authentication, and dynamic provider management. Powered by a local vendored AI agent runner module.
 **Stack:** Bun, Hono, React 19, Vite, TypeScript (strict), Tailwind CSS v4, Framer Motion, WebSocket

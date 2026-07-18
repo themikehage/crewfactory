@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { ChannelTopologySchema } from "./channel-topology";
+import { ChannelBehaviourPolicySchema } from "./channel-policy";
 
 export const LoginSchema = z.object({
   username: z.string().min(3).max(50),
@@ -279,6 +280,8 @@ export const ChannelSchema = z.object({
   executionProtocolEnabled: z.boolean().optional(),
   executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
   topology: ChannelTopologySchema.optional(),
+  policy: ChannelBehaviourPolicySchema.optional(),
+  policyVersion: z.number().int().min(1).optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   createdAt: z.string(),
@@ -299,6 +302,7 @@ export const CreateChannelSchema = z.object({
   executionProtocolEnabled: z.boolean().optional(),
   executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
   topology: ChannelTopologySchema.optional(),
+  policy: ChannelBehaviourPolicySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -316,6 +320,7 @@ export const UpdateChannelSchema = z.object({
   executionProtocolEnabled: z.boolean().optional(),
   executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
   topology: ChannelTopologySchema.optional(),
+  policy: ChannelBehaviourPolicySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -371,9 +376,9 @@ export const ChannelExecutionEventTypeSchema = z.enum(["execution_started", "tur
 export type ChannelExecutionEventType = z.infer<typeof ChannelExecutionEventTypeSchema>;
 export const ChannelExecutionEventSchema = z.object({ id: z.string(), executionId: z.string(), channelId: z.string(), sessionId: z.string().optional(), turnId: z.string().optional(), agentId: z.string().optional(), type: ChannelExecutionEventTypeSchema, sequence: z.number().int().min(1), createdAt: z.string(), payload: z.record(z.string(), z.unknown()).default({}) });
 export type ChannelExecutionEvent = z.infer<typeof ChannelExecutionEventSchema>;
-export const ChannelExecutionSchema = z.object({ id: z.string(), channelId: z.string(), sessionId: z.string().optional(), schedulerMode: ChannelSchedulerModeSchema, topologyVersion: z.string().optional(), status: ChannelExecutionStatusSchema, terminalReason: z.string().optional(), turns: z.array(ChannelTurnSchema), lastSequence: z.number().int().min(0), createdAt: z.string(), startedAt: z.string().optional(), completedAt: z.string().optional(), updatedAt: z.string() });
+export const ChannelExecutionSchema = z.object({ id: z.string(), channelId: z.string(), sessionId: z.string().optional(), schedulerMode: ChannelSchedulerModeSchema, topologyVersion: z.string().optional(), policyVersion: z.number().int().min(1).optional(), promptPolicyChecksum: z.string().optional(), status: ChannelExecutionStatusSchema, terminalReason: z.string().optional(), turns: z.array(ChannelTurnSchema), lastSequence: z.number().int().min(0), createdAt: z.string(), startedAt: z.string().optional(), completedAt: z.string().optional(), updatedAt: z.string() });
 export type ChannelExecution = z.infer<typeof ChannelExecutionSchema>;
-export const CreateChannelExecutionSchema = z.object({ id: z.string().optional(), sessionId: z.string().optional(), schedulerMode: ChannelSchedulerModeSchema.default("sequential"), topologyVersion: z.string().optional() });
+export const CreateChannelExecutionSchema = z.object({ id: z.string().optional(), sessionId: z.string().optional(), schedulerMode: ChannelSchedulerModeSchema.default("sequential"), topologyVersion: z.string().optional(), policyVersion: z.number().int().min(1).optional(), promptPolicyChecksum: z.string().optional() });
 export type CreateChannelExecution = z.infer<typeof CreateChannelExecutionSchema>;
 
 export interface GlobalLogEvent {

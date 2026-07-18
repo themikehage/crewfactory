@@ -1,7 +1,7 @@
 import { channelStore } from "./channel-store";
 import { channelExecutionStore } from "./channel-execution-store";
 import { agentRegistry } from "../agents";
-import { resolveTopologyRecipients, type Channel, type ChannelMember, type ChannelMessage, type ChannelTopology } from "shared";
+import { compileChannelPolicy, resolveTopologyRecipients, type Channel, type ChannelMember, type ChannelMessage, type ChannelTopology } from "shared";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
 import {
@@ -160,7 +160,8 @@ class ChannelOrchestrator {
     if (!channel) throw new Error("Channel not found");
 
     if (channel.executionProtocolEnabled !== false) {
-      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId, schedulerMode: channel.topology?.schedulerMode ?? channel.executionSchedulerMode ?? "sequential", topologyVersion: channel.topology?.version });
+      const policy = compileChannelPolicy(channel);
+      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId, schedulerMode: channel.topology?.schedulerMode ?? channel.executionSchedulerMode ?? "sequential", topologyVersion: channel.topology?.version, policyVersion: channel.policyVersion ?? 1, promptPolicyChecksum: policy.checksum });
       this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
       channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
     }
@@ -382,13 +383,17 @@ class ChannelOrchestrator {
 
     const completeTurn = () => {
       if (!execution) return;
+      const policy = compileChannelPolicy(channel);
+      const words = result.agentMsg.content.trim().split(/\s+/).filter(Boolean).length;
+      const finalOwnerViolation = Boolean(policy.finalOwnerAgentId && policy.finalOwnerAgentId !== member.agentId && /\b(final answer|respuesta final|conclusi[oó]n final)\b/i.test(result.agentMsg.content));
+      const conformance = { compliant: words <= policy.contributionBudget.maxWords && !finalOwnerViolation, wordCount: words, maxWords: policy.contributionBudget.maxWords, finalOwnerViolation };
       if (turn) channelExecutionStore.updateTurn(username, channelId, execution.executionId, turn.id, "completed", { messageId: result.agentMsg.id });
       channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
         type: "turn_completed",
         sessionId: incomingMsg.sessionId,
         agentId: member.agentId,
         turnId: turn?.id,
-        payload: { messageId: result.agentMsg.id, depth },
+        payload: { messageId: result.agentMsg.id, depth, conformance },
       });
     };
 

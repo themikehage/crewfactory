@@ -792,6 +792,16 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 158.4 Provide guided channel creation and team-flow configuration UI
 - [x] 158.5 Add topology invariant tests and verify server/client builds
 
+## Phase 159: Channel Prompt Governance
+- [x] 159.1 Define typed, versioned channel behaviour policy with fail-closed topology conflict diagnostics
+- [x] 159.2 Version channel configuration changes and key channel prompt cache entries by policy and agent prompt revision
+- [x] 159.3 Inject non-overridable contribution/final-owner policy into every channel-member prompt
+- [x] 159.4 Expose validated effective-policy inspection and policy update APIs
+- [ ] 159.5 Add policy inspector and conflict linting to the channel authoring UI
+- [x] 159.6 Persist policy/version provenance on channel executions
+- [x] 159.7 Record contribution conformance outcomes and add the policy inspector/conflict linting to the channel authoring UI
+- [x] 159.8 Add deterministic policy precedence and conflict tests; verify server production build
+
 
 
 

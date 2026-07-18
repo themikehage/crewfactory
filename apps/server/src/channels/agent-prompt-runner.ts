@@ -2,7 +2,7 @@ import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { resolveModelWithFallback } from "../core/agent-utils";
-import { type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
+import { channelPolicyPrompt, compileChannelPolicy, type ChannelMember, type ChannelMessage, getChannelMemoryDbPath } from "shared";
 import { memoryRegistry } from "../core/memory/registry";
 import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
 import { buildDeploymentContext, getOutputMode } from "../core/channel/deployment-context";
@@ -177,7 +177,13 @@ export class AgentPromptRunner {
 
     const workspaceDir = agentEntry.server.session.cwd;
     const isLabChannel = channelId.startsWith("lab_");
-    const cacheKey = isLabChannel ? `lab:${member.agentId}:${channelId}` : `${member.agentId}:${channelId}`;
+    const policy = compileChannelPolicy(channel);
+    if (policy.diagnostics.some((diagnostic) => diagnostic.severity === "error")) {
+      this.broadcastFn(channelId, { type: "channel_agent_error", channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, error: `Channel policy is invalid: ${policy.diagnostics.map((diagnostic) => diagnostic.message).join(" ")}` });
+      return { agentMsg: null };
+    }
+    const agentPromptRevision = JSON.stringify(agentEntry.server.definition);
+    const cacheKey = `${isLabChannel ? "lab:" : ""}${member.agentId}:${channelId}:${channel.policyVersion ?? 1}:${policy.checksum}:${agentPromptRevision}`;
 
     let appendSystemPrompts = _promptCache.get(cacheKey);
     if (!appendSystemPrompts) {
@@ -187,6 +193,7 @@ export class AgentPromptRunner {
         agentDef: agentEntry.server.definition,
         deployment,
       });
+      appendSystemPrompts = [...appendSystemPrompts, channelPolicyPrompt(policy, member)];
       _promptCache.set(cacheKey, appendSystemPrompts);
     }
 

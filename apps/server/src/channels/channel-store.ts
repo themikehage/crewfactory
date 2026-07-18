@@ -54,6 +54,8 @@ class ChannelStore {
       executionProtocolEnabled: data.executionProtocolEnabled ?? true,
       executionSchedulerMode: data.executionSchedulerMode ?? "sequential",
       topology: data.topology,
+      policy: data.policy,
+      policyVersion: 1,
       negotiationProtocol: data.negotiationProtocol,
       delegationPattern: data.delegationPattern,
       createdAt: now,
@@ -80,6 +82,7 @@ class ChannelStore {
         streamingRenderMode: parsed.streamingRenderMode ?? "live",
         executionProtocolEnabled: parsed.executionProtocolEnabled ?? true,
         executionSchedulerMode: parsed.executionSchedulerMode ?? "sequential",
+        policyVersion: parsed.policyVersion ?? 1,
       } as Channel;
       return channel;
     } catch {
@@ -129,8 +132,10 @@ class ChannelStore {
     if (updates.executionProtocolEnabled !== undefined) channel.executionProtocolEnabled = updates.executionProtocolEnabled;
     if (updates.executionSchedulerMode !== undefined) channel.executionSchedulerMode = updates.executionSchedulerMode;
     if (updates.topology !== undefined) channel.topology = updates.topology;
+    if (updates.policy !== undefined) channel.policy = updates.policy;
     if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
     if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
+    if (updates.topology !== undefined || updates.policy !== undefined || updates.negotiationProtocol !== undefined || updates.context !== undefined) channel.policyVersion = (channel.policyVersion ?? 1) + 1;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
@@ -142,6 +147,7 @@ class ChannelStore {
     if (!channel) return null;
 
     channel.context = context;
+    channel.policyVersion = (channel.policyVersion ?? 1) + 1;
     channel.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
@@ -165,6 +171,8 @@ class ChannelStore {
     channel.topology = topology;
     channel.executionSchedulerMode = topology.schedulerMode;
     channel.members = members;
+    channel.policyVersion = (channel.policyVersion ?? 1) + 1;
+    channel.policyVersion = (channel.policyVersion ?? 1) + 1;
     channel.updatedAt = new Date().toISOString();
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
     return channel;

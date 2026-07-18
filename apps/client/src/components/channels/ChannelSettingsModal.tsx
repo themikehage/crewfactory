@@ -24,7 +24,7 @@ interface Props {
 
 export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const l = useLiterals(u);
-  const [activeTab, setActiveTab] = useState<"general" | "topology" | "negotiation">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "topology" | "negotiation" | "policy">("general");
   const [topology, setTopology] = useState<ChannelTopology | undefined>(channel.topology);
 
   const [name, setName] = useState(channel.name);
@@ -58,6 +58,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [negState, setNegState] = useState<any>(null);
+  const [effectivePolicy, setEffectivePolicy] = useState<{ policyVersion: number; promptChecksum: string; policy: { diagnostics?: Array<{ code: string; message: string }> }; hardRules: string[] } | null>(null);
 
   useEffect(() => {
     const fetchNegState = async () => {
@@ -72,6 +73,10 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
       }
     };
     fetchNegState();
+  }, [channel.id]);
+
+  useEffect(() => {
+    apiFetch(`/api/channels/${channel.id}/policy`).then(async (response) => response.ok ? setEffectivePolicy(await response.json()) : undefined).catch(() => undefined);
   }, [channel.id]);
 
   const negStats = useMemo(() => {
@@ -222,6 +227,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
           >
             {l.tabNegotiation}
           </button>
+          <button type="button" onClick={() => setActiveTab("policy")} className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition-colors ${activeTab === "policy" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>{l.tabPolicy}</button>
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col max-h-[75vh] overflow-visible rounded-2xl">
@@ -312,6 +318,8 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
             )}
 
             {activeTab === "topology" && <ChannelTopologyEditor channel={channel} value={topology} onChange={setTopology} />}
+
+            {activeTab === "policy" && (effectivePolicy ? <div className="space-y-4"><div className="rounded-lg border border-input bg-surface p-3"><p className="font-semibold text-foreground">{l.policyVersion}: {effectivePolicy.policyVersion}</p><p className="mt-1 break-all font-mono text-[10px] text-muted-foreground">{l.policyChecksum}: {effectivePolicy.promptChecksum}</p></div><div className="rounded-lg border border-input p-3"><p className="font-semibold text-foreground">{l.policyHardRules}</p><ul className="mt-2 space-y-1 text-muted-foreground">{effectivePolicy.hardRules.map((rule) => <li key={rule}>• {rule}</li>)}</ul></div>{effectivePolicy.policy.diagnostics && effectivePolicy.policy.diagnostics.length > 0 && <div className="rounded-lg border border-warning/40 bg-warning/10 p-3"><p className="font-semibold text-foreground">{l.policyDiagnostics}</p>{effectivePolicy.policy.diagnostics.map((diagnostic) => <p key={diagnostic.code} className="mt-1 text-warning">{diagnostic.message}</p>)}</div>}</div> : <p className="text-muted-foreground">{l.policyLoading}</p>)}
 
             {activeTab === "negotiation" && (
               <div className="space-y-4">

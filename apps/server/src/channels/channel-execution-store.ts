@@ -39,7 +39,7 @@ export class ChannelExecutionStore {
   }
   createExecution(username: string, channelId: string, input: unknown = {}): ChannelExecution {
     const data = CreateChannelExecutionSchema.parse(input); const now = new Date().toISOString();
-    const execution: ChannelExecution = { id: data.id ?? crypto.randomUUID(), channelId, sessionId: data.sessionId, schedulerMode: data.schedulerMode, topologyVersion: data.topologyVersion, status: "pending", turns: [], lastSequence: 0, createdAt: now, updatedAt: now };
+    const execution: ChannelExecution = { id: data.id ?? crypto.randomUUID(), channelId, sessionId: data.sessionId, schedulerMode: data.schedulerMode, topologyVersion: data.topologyVersion, policyVersion: data.policyVersion, promptPolicyChecksum: data.promptPolicyChecksum, status: "pending", turns: [], lastSequence: 0, createdAt: now, updatedAt: now };
     this.save(execution, username); return execution;
   }
   getExecution(username: string, channelId: string, executionId: string): ChannelExecution | null {

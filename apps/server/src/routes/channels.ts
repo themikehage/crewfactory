@@ -6,7 +6,7 @@ import { getUsername } from "../lib/auth-helpers";
 import { channelExecutionStore, channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
-import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema, ChannelTopologySchema, inferChannelTopology, previewChannelTopology, validateChannelTopology } from "shared";
+import { ChannelBehaviourPolicySchema, CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema, ChannelTopologySchema, compileChannelPolicy, inferChannelTopology, previewChannelTopology, validateChannelTopology } from "shared";
 import { scopeConfigManager } from "../core/scope";
 import { eventBroker } from "../lib/event-broker";
 
@@ -120,6 +120,10 @@ channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
 
   const existing = channelStore.getChannel(username, id);
   if (!existing) return c.json({ error: "Channel not found" }, 404);
+  if (data.policy) {
+    const compiled = compileChannelPolicy({ ...existing, policy: data.policy });
+    if (compiled.diagnostics.some((diagnostic) => diagnostic.severity === "error")) return c.json({ error: "Invalid channel policy", diagnostics: compiled.diagnostics }, 400);
+  }
   const effectiveTopology = data.topology ?? existing.topology;
   if (effectiveTopology) {
     const validation = validateChannelTopology(effectiveTopology, existing.members, data.negotiationProtocol ?? existing.negotiationProtocol);
@@ -141,6 +145,26 @@ channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
   const updated = channelStore.updateChannel(username, id, data);
   if (!updated) return c.json({ error: "Channel not found" }, 404);
   return c.json(updated);
+});
+
+channelsRouter.get("/:id/policy", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const channel = channelStore.getChannel(username, c.req.param("id"));
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  const policy = compileChannelPolicy(channel);
+  return c.json({ policy, policyVersion: channel.policyVersion ?? 1, topology: channel.topology, hardRules: ["Scheduler eligibility is enforced before prompting.", "Topology routing controls terminal ownership."], promptChecksum: policy.checksum });
+});
+
+channelsRouter.put("/:id/policy", zValidator("json", z.object({ policy: ChannelBehaviourPolicySchema })), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const channel = channelStore.getChannel(username, c.req.param("id"));
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  const policy = c.req.valid("json").policy;
+  const compiled = compileChannelPolicy({ ...channel, policy });
+  if (compiled.diagnostics.some((diagnostic) => diagnostic.severity === "error")) return c.json({ error: "Invalid channel policy", diagnostics: compiled.diagnostics }, 400);
+  return c.json(channelStore.updateChannel(username, channel.id, { policy }));
 });
 
 channelsRouter.get("/:id/topology/migration", (c) => {
