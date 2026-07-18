@@ -2,6 +2,8 @@
 
 ## Channel Production Hardening (Audit 2026-07-18)
 
+- [channel-mvp-corrective-plan.md](./channel-mvp-corrective-plan.md) — Plan correctivo MVP: contrato secuencial, aislado, cancelable y recuperable; separa explícitamente los flujos MUST de las capacidades accesorias.
+
 - [channel-execution-protocol.md](./COMPLETED/channel-execution-protocol.md) — Protocolo durable: ejecuciones y turnos ordenados, eventos secuenciados, ciclo de vida unificado de tools y recuperación tras reconexión.
 - [channel-topology-product-model.md](./COMPLETED/channel-topology-product-model.md) — Topologías de equipos validadas, configuración guiada y migración segura de `replyMode` legacy.
 - [channel-prompt-governance.md](./COMPLETED/channel-prompt-governance.md) — Precedencia de políticas de canal, cache versionada, contratos de contribución e inspección del prompt efectivo.

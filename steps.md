@@ -806,6 +806,13 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 160.1 Ignore assistant messages without provider usage when sizing context windows
 - [x] 160.2 Add regression coverage for channel history without usage metadata
 
+## Phase 161: Channel MVP Corrective Hardening
+- [ ] 161.1 Establish the execution identity, ownership checks, and single-active-execution contract
+- [ ] 161.2 Restrict the MVP scheduler to bounded sequential turn execution and explicitly isolate advanced modes
+- [ ] 161.3 Make execution/turn terminal transitions recoverable across reconnection and server restart
+- [ ] 161.4 Rebuild the client from scoped execution snapshots and remove terminal streaming state
+- [ ] 161.5 Guard configuration mutations, normalize configuration versioning, and verify the MUST flow matrix
+
 
 
 
