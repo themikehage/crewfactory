@@ -27,4 +27,16 @@ describe("channel topology", () => {
     expect(topology.kind).toBe("legacy_custom");
     expect(validateChannelTopology(topology, [{ agentId: "a", replyMode: "targeted" as const }, { agentId: "b", replyMode: "targeted" as const }]).diagnostics.map((item) => item.code)).toContain("expert_ack_required");
   });
+
+  test("provides a valid execution preview for every supported topology", () => {
+    const base = [{ agentId: "lead", role: "leader" as const, targets: [], order: 0 }, { agentId: "writer", role: "specialist" as const, targets: [], order: 1 }];
+    const topologies = [
+      { version: CHANNEL_TOPOLOGY_VERSION, kind: "leader_specialists" as const, schedulerMode: "leader-gated" as const, entryPointAgentId: "lead", terminalOwnerAgentId: "lead", assignments: base },
+      { version: CHANNEL_TOPOLOGY_VERSION, kind: "sequential_review" as const, schedulerMode: "sequential" as const, entryPointAgentId: "lead", terminalOwnerAgentId: "writer", assignments: [{ ...base[0], role: "leader" as const }, { ...base[1], role: "reviewer" as const }] },
+      { version: CHANNEL_TOPOLOGY_VERSION, kind: "roundtable" as const, schedulerMode: "sequential" as const, assignments: [{ ...base[0], role: "peer" as const }, { ...base[1], role: "peer" as const }] },
+      { version: CHANNEL_TOPOLOGY_VERSION, kind: "debate_with_arbiter" as const, schedulerMode: "sequential" as const, entryPointAgentId: "lead", terminalOwnerAgentId: "writer", arbiterAgentId: "writer", assignments: [{ ...base[0], role: "position" as const }, { ...base[1], role: "arbiter" as const }] },
+      { version: CHANNEL_TOPOLOGY_VERSION, kind: "mention_only" as const, schedulerMode: "sequential" as const, assignments: [{ ...base[0], role: "participant" as const }, { ...base[1], role: "participant" as const }] },
+    ];
+    expect(topologies.map((topology) => previewChannelTopology(topology).description)).toHaveLength(5);
+  });
 });

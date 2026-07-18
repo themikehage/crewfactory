@@ -1,0 +1,39 @@
+{
+  "definition": {
+    "name": "Facebook Content Team",
+    "description": "Equipo editorial para planificar, redactar, revisar y aprobar contenido de Facebook.",
+    "maxChainDepth": 6,
+    "showThinking": false,
+    "showTools": true,
+    "context": [
+      { "key": "PRIMARY_CHANNEL", "value": "Facebook" },
+      { "key": "OUTPUT", "value": "Calendar, post copy, creative brief and approval rationale" }
+    ],
+    "members": [
+      { "agentId": "ceo-business", "replyMode": "user-only", "role": "lead" },
+      { "agentId": "marketing-specialist", "replyMode": "user-only", "role": "member" }
+    ],
+    "topology": {
+      "version": "1",
+      "kind": "leader_specialists",
+      "schedulerMode": "leader-gated",
+      "entryPointAgentId": "ceo-business",
+      "terminalOwnerAgentId": "ceo-business",
+      "assignments": [
+        { "agentId": "ceo-business", "role": "leader", "targets": [], "order": 0 },
+        { "agentId": "marketing-specialist", "role": "specialist", "targets": [], "order": 1 }
+      ]
+    }
+  },
+  "metadata": {
+    "title": "Facebook Content Team",
+    "description": "Leader-led Facebook content planning with editorial specialist input and one accountable final response.",
+    "author": "crewfactory",
+    "avatar": "marketing",
+    "rating": 5.0,
+    "downloads": 0,
+    "tags": ["facebook", "content", "marketing", "topology"],
+    "version": "1.0.0",
+    "compatibility": ">=1.0.0"
+  }
+}
