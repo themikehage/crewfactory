@@ -18,7 +18,7 @@ interface Props {
 }
 
 export function ChannelChatArea({ activeChannel, sessionId, variantMode = false }: Props) {
-  const { channel, messages, streamingAgents, sendMessage, abortDispatch, updateChannel, fetchChannel } = useChannel(activeChannel.id, sessionId);
+  const { channel, messages, streamingAgents, executionActivities, sendMessage, abortDispatch, updateChannel, fetchChannel } = useChannel(activeChannel.id, sessionId);
   const { navigate } = useRouter();
 
   const isStreaming = Object.keys(streamingAgents).length > 0;
@@ -195,6 +195,7 @@ export function ChannelChatArea({ activeChannel, sessionId, variantMode = false 
         <ChannelMessageList
           messages={messages}
           streamingAgents={streamingAgents}
+          executionActivities={executionActivities}
           mentionNames={["user", ...channelMembers.map((m) => registeredAgents.find((a) => a.id === m.agentId)?.name || m.agentId)]}
           sessionId={sessionId}
           activeChannelId={activeChannel.id}

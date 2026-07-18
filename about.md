@@ -566,6 +566,7 @@ The application implements a decoupled, modular addon system using the **Null Ob
 - `channels/channel-orchestrator.ts` selects a channel-scoped `sequential` scheduler by default, with opt-in `parallel` and `leader-gated` modes, and records turn plans, skips, aborts, chain limits, and negotiation outcomes.
 - `hooks/useChannel.ts` rebuilds active text, thinking, and tool state from the durable execution log after WebSocket reconnection, while retaining the legacy WebSocket projection during migration.
 - `lib/channel-execution-reducer.ts` is the sequenced, idempotent client reducer used for durable channel execution events; terminal tool results cannot regress on replay.
+- `components/channels/ChannelMessageList.tsx` renders terminal execution outcomes as activity cards separate from the channel conversation.
 
 ### 2. Exa Neural Search Tool
 - **Engine:** Standardized JSON-RPC `exa_search` tool querying Exa AI's semantic endpoint. Implementation uses zero dependencies (native `fetch()` calls).

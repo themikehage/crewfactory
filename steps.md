@@ -776,6 +776,10 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 155.3 Reuse the reducer for durable reconnection and live persisted-event delivery
 - [x] 155.4 Test replay deduplication and terminal tool-state preservation; verify server and client builds
 
+## Phase 156: Visible Execution Outcomes
+- [x] 156.1 Surface skipped, failed, aborted, and warning-completed execution events as activity separate from conversation messages
+- [x] 156.2 Verify the channel client production build
+
 
 
 

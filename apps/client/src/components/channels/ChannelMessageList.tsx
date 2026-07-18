@@ -1,11 +1,12 @@
 import { useEffect, useRef } from "react";
 import type { ChannelMessage } from "shared";
-import type { StreamingAgentState } from "@/hooks/useChannel";
+import type { ChannelExecutionActivity, StreamingAgentState } from "@/hooks/useChannel";
 import { MessageList } from "@/components/chat/MessageList";
 
 interface Props {
   messages: ChannelMessage[];
   streamingAgents: Record<string, StreamingAgentState>;
+  executionActivities?: ChannelExecutionActivity[];
   mentionNames?: string[];
   sessionId?: string | null;
   activeChannelId?: string | null;
@@ -174,6 +175,7 @@ function mapChannelMessagesToStandard(
 export function ChannelMessageList({
   messages,
   streamingAgents,
+  executionActivities = [],
   sessionId = null,
   activeChannelId = null,
   streamingRenderMode = "live",
@@ -205,12 +207,19 @@ export function ChannelMessageList({
           </div>
         </div>
       ) : (
-        <MessageList
+        <>
+          <MessageList
           messages={mappedMessages}
           sessionId={sessionId}
           activeChannelId={activeChannelId}
           onOpenSubagentConsole={onOpenSubagentConsole}
-        />
+          />
+          {executionActivities.map((activity) => (
+            <div key={activity.id} className="rounded-lg border border-border bg-card px-3 py-2 text-xs text-muted-foreground">
+              {activity.agentId ? `${activity.agentId}: ` : ""}{activity.type}{activity.reason ? ` (${activity.reason})` : ""}
+            </div>
+          ))}
+        </>
       )}
       <div ref={bottomRef} />
       </div>

@@ -15,8 +15,16 @@ export interface StreamingAgentState {
   toolCalls?: Record<string, { toolName: string; args: any; result: any | null; isError: boolean }>;
 }
 
+export interface ChannelExecutionActivity {
+  id: string;
+  type: "skipped" | "failed" | "aborted" | "completed_with_warnings";
+  agentId?: string;
+  reason?: string;
+}
+
 export function useChannel(channelId: string | null, sessionId?: string | null) {
   const [channel, setChannel] = useState<Channel | null>(null);
+  const [executionActivities, setExecutionActivities] = useState<ChannelExecutionActivity[]>([]);
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [streamingAgents, setStreamingAgents] = useState<Record<string, StreamingAgentState>>({});
   const executionViewRef = useRef<ChannelExecutionViewState>(emptyChannelExecutionViewState);
@@ -161,8 +169,13 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           return [...prev, newMsg];
         });
       } else if (data.type === "channel_execution_event" && data.event) {
-        executionViewRef.current = applyChannelExecutionEvent(executionViewRef.current, data.event as ChannelExecutionEvent);
+        const event = data.event as ChannelExecutionEvent;
+        executionViewRef.current = applyChannelExecutionEvent(executionViewRef.current, event);
         setStreamingAgents(executionViewRef.current.agents);
+        if (event.type === "turn_skipped" || event.type === "turn_failed" || event.type === "execution_aborted" || (event.type === "execution_completed" && event.payload.withWarnings === true)) {
+          const type = event.type === "turn_skipped" ? "skipped" : event.type === "turn_failed" ? "failed" : event.type === "execution_aborted" ? "aborted" : "completed_with_warnings";
+          setExecutionActivities((previous) => previous.some((item) => item.id === event.id) ? previous : [...previous, { id: event.id, type, agentId: event.agentId, reason: typeof event.payload.reason === "string" ? event.payload.reason : undefined }]);
+        }
       } else if (data.type === "channel_agent_start") {
         setStreamingAgents((prev) => ({
           ...prev,
@@ -318,6 +331,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     channel,
     messages,
     streamingAgents,
+    executionActivities,
     loading,
     error,
     fetchChannel,
