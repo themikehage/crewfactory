@@ -108,7 +108,6 @@ See [docs/architecture.md](docs/architecture.md) for the full detailed diagram.
 cp .env.example .env
 # Edit .env with your credentials:
 #   DASHSCOPE_API_KEY=sk-...         (Qwen Cloud)
-#   OPENAI_API_KEY=sk-...            (OpenAI)
 #   JWT_SECRET=your-secret           (auth signing key)
 
 docker compose up -d
