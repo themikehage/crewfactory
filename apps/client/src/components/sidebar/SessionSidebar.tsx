@@ -35,25 +35,35 @@ interface Props {
   activeProjectName: string | null;
   activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
   currentPage?: string;
   onNavigate?: (path: string) => void;
   onSelectProject?: (projectId: string | null, projectName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
+  onSelectTeam?: (team: { id: string; name: string } | null) => void;
   selectedExpId?: string | null;
   isMobile?: boolean;
   onCloseSidebar?: () => void;
+}
+
+interface TeamItem {
+  id: string;
+  name: string;
+  description?: string;
 }
 
 export function SessionSidebar({
   activeProjectName,
   activeAgent,
   activeChannel,
+  activeTeam = null,
   currentPage = "chat",
   onNavigate,
   onSelectProject,
   onSelectAgent,
   onSelectChannel,
+  onSelectTeam,
   selectedExpId = null,
   isMobile = false,
   onCloseSidebar,
@@ -62,16 +72,19 @@ export function SessionSidebar({
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
   const [channels, setChannels] = useState<ChannelItem[]>([]);
+  const [teams, setTeams] = useState<TeamItem[]>([]);
   const { experiments, loading: loadingExperiments } = useExperiments();
 
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [loadingChannels, setLoadingChannels] = useState(true);
+  const [loadingTeams, setLoadingTeams] = useState(true);
   const { getAgentKanbanStatus } = useSessions();
 
   const [isOpenRepos, setIsOpenRepos] = useState(true);
   const [isOpenAgents, setIsOpenAgents] = useState(true);
   const [isOpenChannels, setIsOpenChannels] = useState(true);
+  const [isOpenTeams, setIsOpenTeams] = useState(true);
   const [isOpenExperiments, setIsOpenExperiments] = useState(true);
 
   const fetchRepos = useCallback(async () => {
@@ -116,7 +129,21 @@ export function SessionSidebar({
     }
   }, []);
 
-  const isGlobal = !activeChannel && !activeAgent && !activeProjectName;
+  const fetchTeams = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/teams");
+      if (res.ok) {
+        const data = await res.json();
+        setTeams(data.teams || []);
+      }
+    } catch (err) {
+      console.error("Failed to fetch teams:", err);
+    } finally {
+      setLoadingTeams(false);
+    }
+  }, []);
+
+  const isGlobal = !activeChannel && !activeAgent && !activeProjectName && !activeTeam;
   const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
 
   const itemClass = useCallback((isActive: boolean) => {
@@ -175,7 +202,8 @@ export function SessionSidebar({
     fetchRepos();
     fetchAgents();
     fetchChannels();
-  }, [fetchRepos, fetchAgents, fetchChannels]);
+    fetchTeams();
+  }, [fetchRepos, fetchAgents, fetchChannels, fetchTeams]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -187,15 +215,18 @@ export function SessionSidebar({
         fetchAgents();
       } else if (type === "channel") {
         fetchChannels();
+      } else if (type === "team") {
+        fetchTeams();
       } else if (type !== "experiment") {
         fetchRepos();
         fetchAgents();
         fetchChannels();
+        fetchTeams();
       }
     };
     window.addEventListener("entity-updated", handleUpdate);
     return () => window.removeEventListener("entity-updated", handleUpdate);
-  }, [fetchRepos, fetchAgents, fetchChannels]);
+  }, [fetchRepos, fetchAgents, fetchChannels, fetchTeams]);
 
   const handleSelectExperimentClick = useCallback(
     (expId: string) => {
@@ -209,32 +240,53 @@ export function SessionSidebar({
     if (onSelectProject) onSelectProject(null, null);
     if (onSelectAgent) onSelectAgent(null);
     if (onSelectChannel) onSelectChannel(null);
-    if (onNavigate) onNavigate("/");
+    if (onSelectTeam) onSelectTeam(null);
+    if (onNavigate) onNavigate("/chat");
     onCloseSidebar?.();
-  }, [onSelectProject, onSelectAgent, onSelectChannel, onNavigate, onCloseSidebar]);
+  }, [onSelectProject, onSelectAgent, onSelectChannel, onSelectTeam, onNavigate, onCloseSidebar]);
 
   const handleSelectRepoClick = useCallback(
     (projectId: string, projectName: string) => {
       if (onSelectProject) onSelectProject(projectId, projectName);
+      if (onSelectAgent) onSelectAgent(null);
+      if (onSelectChannel) onSelectChannel(null);
+      if (onSelectTeam) onSelectTeam(null);
       onCloseSidebar?.();
     },
-    [onSelectProject, onCloseSidebar]
+    [onSelectProject, onSelectAgent, onSelectChannel, onSelectTeam, onCloseSidebar]
   );
 
   const handleSelectAgentClick = useCallback(
     (agent: { id: string; name: string; avatarUrl?: string }) => {
       if (onSelectAgent) onSelectAgent(agent);
+      if (onSelectProject) onSelectProject(null, null);
+      if (onSelectChannel) onSelectChannel(null);
+      if (onSelectTeam) onSelectTeam(null);
       onCloseSidebar?.();
     },
-    [onSelectAgent, onCloseSidebar]
+    [onSelectAgent, onSelectProject, onSelectChannel, onSelectTeam, onCloseSidebar]
   );
 
   const handleSelectChannelClick = useCallback(
     (channel: { id: string; name: string }) => {
       if (onSelectChannel) onSelectChannel(channel);
+      if (onSelectProject) onSelectProject(null, null);
+      if (onSelectAgent) onSelectAgent(null);
+      if (onSelectTeam) onSelectTeam(null);
       onCloseSidebar?.();
     },
-    [onSelectChannel, onCloseSidebar]
+    [onSelectChannel, onSelectProject, onSelectAgent, onSelectTeam, onCloseSidebar]
+  );
+
+  const handleSelectTeamClick = useCallback(
+    (team: { id: string; name: string }) => {
+      if (onSelectTeam) onSelectTeam(team);
+      if (onSelectProject) onSelectProject(null, null);
+      if (onSelectAgent) onSelectAgent(null);
+      if (onSelectChannel) onSelectChannel(null);
+      onCloseSidebar?.();
+    },
+    [onSelectTeam, onSelectProject, onSelectAgent, onSelectChannel, onCloseSidebar]
   );
 
   const adminItems = useMemo(
@@ -511,6 +563,64 @@ export function SessionSidebar({
                     >
                       <span className={isMobile ? "font-bold text-base text-muted-foreground flex-shrink-0 w-5 text-center" : "font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center"}>#</span>
                       <span className="truncate">{channel.name}</span>
+                    </button>
+                  );
+                })
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Teams Accordion */}
+        <div className="flex flex-col">
+          <div className={accordionHeaderClass}>
+            <button
+              onClick={() => setIsOpenTeams((prev) => !prev)}
+              className={accordionButtonClass}
+            >
+              <svg
+                width={chevronSize}
+                height={chevronSize}
+                viewBox="0 0 20 20"
+                fill="currentColor"
+                className={`transform transition-transform ${isOpenTeams ? "rotate-90" : ""}`}
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                  clipRule="evenodd"
+                />
+              </svg>
+              <span>{l.sectionTeams} ({teams.length})</span>
+            </button>
+            <button
+              onClick={() => { onCloseSidebar?.(); onNavigate?.("/teams"); }}
+              className={actionButtonClass}
+              title={l.manageTeams}
+            >
+              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
+            </button>
+          </div>
+
+          {isOpenTeams && (
+            <div className={isMobile ? "px-3 mt-1 space-y-1.5" : "px-2 mt-1 space-y-0.5"}>
+              {loadingTeams ? (
+                <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
+              ) : teams.length === 0 ? (
+                <div className="text-xs text-muted-foreground px-3 py-1">{l.noTeams}</div>
+              ) : (
+                teams.map((team) => {
+                  const isActive = isSessionView && activeTeam?.id === team.id;
+                  return (
+                    <button
+                      key={team.id}
+                      onClick={() => handleSelectTeamClick({ id: team.id, name: team.name })}
+                      className={itemClass(isActive)}
+                    >
+                      <span className={isMobile ? "font-bold text-base text-muted-foreground flex-shrink-0 w-5 text-center" : "font-mono font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center"}>@</span>
+                      <span className="truncate">{team.name}</span>
                     </button>
                   );
                 })

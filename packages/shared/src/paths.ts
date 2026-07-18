@@ -24,6 +24,8 @@ export const GENERATED_DIR = "generated";
 export const SKILLS_SUBDIR = ".agents/skills";
 export const EXECUTIONS_DIR = "executions";
 export const PIPELINES_DIR = "pipelines";
+export const TEAMS_DIR = "teams";
+export const RUNS_DIR = "runs";
 
 export function getAuditDir(): string {
   return join(CREWFACTORY_DATA_PATH(), AUDIT_DIR);
@@ -115,6 +117,38 @@ export function getPipelineRunsDir(username: string, pipelineId: string): string
 
 export function getPipelineRunDir(username: string, pipelineId: string, runId: string): string {
   return join(getPipelineRunsDir(username, pipelineId), runId);
+}
+
+export function getTeamsDir(username: string): string {
+  return join(getUserDir(username), TEAMS_DIR);
+}
+
+export function getTeamDir(username: string, teamId: string): string {
+  return join(getTeamsDir(username), teamId);
+}
+
+export function getTeamWorkspaceDir(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), WORKSPACE_DIR);
+}
+
+export function getTeamMemoriesDir(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), MEMORIES_DIR);
+}
+
+export function getTeamMemoryDbPath(username: string, teamId: string): string {
+  return join(getTeamMemoriesDir(username, teamId), "memory.db");
+}
+
+export function getTeamRunsDir(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), RUNS_DIR);
+}
+
+export function getTeamRunDir(username: string, teamId: string, runId: string): string {
+  return join(getTeamRunsDir(username, teamId), runId);
+}
+
+export function getTeamSessionsDir(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), SESSIONS_DIR);
 }
 
 export function getMcpServersPath(username: string): string {

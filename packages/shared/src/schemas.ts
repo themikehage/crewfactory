@@ -800,6 +800,147 @@ export const ChannelBenchmarkRunSchema = z.object({
 });
 export type ChannelBenchmarkRun = z.infer<typeof ChannelBenchmarkRunSchema>;
 
+// ─── Teams ────────────────────────────────────────────────────────────────────
+
+export const TeamTopologySchema = z.enum(["leader_specialists", "roundtable"]);
+export type TeamTopology = z.infer<typeof TeamTopologySchema>;
+
+export const TeamMemberRoleSchema = z.enum(["leader", "specialist", "peer"]);
+export type TeamMemberRole = z.infer<typeof TeamMemberRoleSchema>;
+
+export const TeamMemberSchema = z.object({
+  agentId: z.string().min(1),
+  role: TeamMemberRoleSchema,
+  order: z.number().int().min(0),
+});
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+export const TeamDefinitionSchema = z.object({
+  id: z.string().min(1),
+  name: z.string().min(1).max(100),
+  description: z.string().optional(),
+  topology: TeamTopologySchema,
+  members: z.array(TeamMemberSchema),
+  showThinking: z.boolean().default(false),
+  showTools: z.boolean().default(true),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+});
+export type TeamDefinition = z.infer<typeof TeamDefinitionSchema>;
+
+export const CreateTeamSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().optional(),
+  topology: TeamTopologySchema,
+  members: z.array(TeamMemberSchema).min(1),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
+});
+export type CreateTeam = z.infer<typeof CreateTeamSchema>;
+
+export const UpdateTeamSchema = z.object({
+  name: z.string().min(1).max(100).optional(),
+  description: z.string().optional(),
+  topology: TeamTopologySchema.optional(),
+  members: z.array(TeamMemberSchema).optional(),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
+});
+export type UpdateTeam = z.infer<typeof UpdateTeamSchema>;
+
+export const TeamSessionSchema = z.object({
+  id: z.string().min(1),
+  teamId: z.string().min(1),
+  name: z.string().min(1).max(200),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  lastRunId: z.string().optional(),
+});
+export type TeamSession = z.infer<typeof TeamSessionSchema>;
+
+export const TeamMessageRoleSchema = z.enum(["user", "agent", "system"]);
+export type TeamMessageRole = z.infer<typeof TeamMessageRoleSchema>;
+
+export const TeamMessageSchema = z.object({
+  id: z.string().min(1),
+  role: TeamMessageRoleSchema,
+  content: z.string(),
+  agentId: z.string().optional(),
+  agentName: z.string().optional(),
+  createdAt: z.string(),
+});
+export type TeamMessage = z.infer<typeof TeamMessageSchema>;
+
+export const TeamTurnStatusSchema = z.enum(["running", "completed", "failed", "skipped"]);
+export type TeamTurnStatus = z.infer<typeof TeamTurnStatusSchema>;
+
+export const TeamTurnSchema = z.object({
+  id: z.string().min(1),
+  runId: z.string().min(1),
+  agentId: z.string().min(1),
+  index: z.number().int().min(0),
+  status: TeamTurnStatusSchema,
+  messageId: z.string().optional(),
+  error: z.string().optional(),
+  skipReason: z.string().optional(),
+  createdAt: z.string(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  updatedAt: z.string(),
+});
+export type TeamTurn = z.infer<typeof TeamTurnSchema>;
+
+export const TeamRunStatusSchema = z.enum(["pending", "running", "completed", "aborted", "failed", "stalled"]);
+export type TeamRunStatus = z.infer<typeof TeamRunStatusSchema>;
+
+export const TeamRunSchema = z.object({
+  id: z.string().min(1),
+  teamId: z.string().min(1),
+  sessionId: z.string().min(1),
+  task: z.string(),
+  status: TeamRunStatusSchema,
+  turns: z.array(TeamTurnSchema),
+  lastSequence: z.number().int().min(0),
+  createdAt: z.string(),
+  startedAt: z.string().optional(),
+  completedAt: z.string().optional(),
+  updatedAt: z.string(),
+  terminalReason: z.string().optional(),
+});
+export type TeamRun = z.infer<typeof TeamRunSchema>;
+
+export const CreateTeamRunSchema = z.object({
+  id: z.string().optional(),
+  sessionId: z.string().min(1),
+  task: z.string().min(1),
+});
+export type CreateTeamRun = z.infer<typeof CreateTeamRunSchema>;
+
+// TeamEvent — persisted in JSONL + broadcast over WS
+export const TeamEventTypeSchema = z.enum([
+  "run_started", "run_completed", "run_aborted", "run_failed", "run_stalled",
+  "turn_started", "turn_completed", "turn_failed", "turn_skipped",
+  "token", "thinking", "tool_start", "tool_update", "tool_end",
+  "agent_error",
+]);
+export type TeamEventType = z.infer<typeof TeamEventTypeSchema>;
+
+export const TeamEventSchema = z.object({
+  id: z.string().min(1),
+  runId: z.string().min(1),
+  teamId: z.string().min(1),
+  sessionId: z.string().min(1),
+  type: TeamEventTypeSchema,
+  sequence: z.number().int().min(1),
+  agentId: z.string().optional(),
+  agentName: z.string().optional(),
+  toolCallId: z.string().optional(),
+  payload: z.record(z.unknown()).default({}),
+  createdAt: z.string(),
+});
+export type TeamEvent = z.infer<typeof TeamEventSchema>;
+
+
 
 
 

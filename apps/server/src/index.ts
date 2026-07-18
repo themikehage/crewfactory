@@ -27,7 +27,9 @@ import { factoryRouter } from "./routes/factory";
 import { pipelinesRouter } from "./routes/pipelines";
 import { channelBenchmarksRouter } from "./routes/channel-benchmarks";
 import { approvalsRouter } from "./routes/approvals";
+import { teamsRouter } from "./routes/teams";
 import { channelExecutionStore, channelStore } from "./channels";
+import { teamStore, teamRunStore, setTeamBroadcastHandler } from "./teams";
 import { CREWFACTORY_DATA_PATH } from "shared";
 import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
@@ -76,6 +78,7 @@ app.route("/api/gallery", galleryRouter);
 app.route("/api/factory", factoryRouter);
 app.route("/api/pipelines", pipelinesRouter);
 app.route("/api/approvals", approvalsRouter);
+app.route("/api/teams", teamsRouter);
 
 app.get(
   "/ws",
@@ -103,6 +106,9 @@ try {
       channelStore.cleanupOrphanBenchmarkClones(username);
       for (const channel of channelStore.listChannels(username)) {
         channelExecutionStore.recoverInterruptedExecutions(username, channel.id);
+      }
+      for (const team of teamStore.listTeams(username)) {
+        teamRunStore.recoverInterruptedRuns(username, team.id);
       }
     }
   }

@@ -6,7 +6,8 @@ function printUsage() {
 Usage: bun run scripts/refresh.ts [options]
 
 Options:
-  --type <type>      Type of mutation: 'project', 'agent', 'channel', 'skill', or 'all' (default: 'all')
+  --type <type>      Type of mutation: 'project', 'agent', 'channel', 'team', 'skill', or 'all' (default: 'all')
+
 `);
 }
 

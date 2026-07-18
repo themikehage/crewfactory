@@ -12,8 +12,19 @@ import { sessionManager } from "../core/session-manager";
 import { SessionPrefix, getSessionMetadataPath } from "shared";
 import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-watcher";
 import { ChannelBusyError, channelOrchestrator, channelStore } from "../channels";
+import { teamStore, teamRunner, TeamBusyError, setTeamBroadcastHandler } from "../teams";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
 import { approvalManager } from "../core/approvals/approval-manager";
+import type { TeamEvent } from "shared";
+
+setTeamBroadcastHandler((teamId: string, event: TeamEvent) => {
+  const sockets = wsRegistry.teamSockets.get(teamId);
+  if (!sockets) return;
+  const payload = JSON.stringify({ ...event, teamId });
+  for (const ws of sockets) {
+    try { ws.send(payload); } catch {}
+  }
+});
 
 function getProjectNameForSession(username: string, sessionId: string): string | undefined {
   const p = getSessionMetadataPath(username, sessionId);
@@ -250,6 +261,10 @@ export function createWsContext(): WsConnectionContext {
 
     if (meta?.channelId) {
       wsRegistry.removeChannelSocket(meta.channelId, meta.ws ?? _ws);
+    }
+
+    if (meta?.teamId) {
+      wsRegistry.removeTeamSocket(meta.teamId, meta.ws ?? _ws);
     }
 
     wsRegistry.deleteMeta(id);
@@ -590,6 +605,52 @@ export function createWsContext(): WsConnectionContext {
         } else if (channelId) {
           safeSend(ws, JSON.stringify({ type: "channel_error", channelId, sessionId, error: "Channel not found" }));
         }
+        return;
+      }
+
+      if (data.type === "team_join") {
+        const teamId = data.teamId as string;
+        if (!teamId) return;
+        if (!teamStore.getTeam(user.username, teamId)) {
+          safeSend(ws, JSON.stringify({ type: "team_error", teamId, error: "Team not found" }));
+          return;
+        }
+        const meta = wsRegistry.getMeta(id);
+        if (meta?.teamId && meta.teamId !== teamId) {
+          wsRegistry.removeTeamSocket(meta.teamId, ws);
+        }
+        wsRegistry.updateMeta(id, { teamId });
+        wsRegistry.addTeamSocket(teamId, ws);
+        safeSend(ws, JSON.stringify({ type: "team_joined", teamId }));
+        return;
+      }
+
+      if (data.type === "team_task") {
+        const teamId = data.teamId as string;
+        const sessionId = data.sessionId as string;
+        const task = data.task as string;
+        if (!teamId || !sessionId || !task) return;
+        if (!teamStore.getTeam(user.username, teamId)) {
+          safeSend(ws, JSON.stringify({ type: "team_error", teamId, error: "Team not found" }));
+          return;
+        }
+        if (teamRunner.isRunning(teamId, sessionId)) {
+          safeSend(ws, JSON.stringify({ type: "team_busy", teamId, sessionId, runId: teamRunner.getActiveRunId(teamId, sessionId) }));
+          return;
+        }
+        teamRunner.executeRun(user.username, teamId, sessionId, task).catch((err) => {
+          wsLogger.error("team_task execution error", { error: err });
+        });
+        return;
+      }
+
+      if (data.type === "team_abort") {
+        const teamId = data.teamId as string;
+        const sessionId = data.sessionId as string;
+        if (!teamId || !sessionId) return;
+        teamRunner.abort(user.username, teamId, sessionId).catch((err) => {
+          wsLogger.error("team_abort error", { error: err });
+        });
         return;
       }
 

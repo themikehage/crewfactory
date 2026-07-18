@@ -19,6 +19,8 @@ export type Route =
   | { page: "mcps" }
   | { page: "plugins" }
   | { page: "sessions" }
+  | { page: "teams" }
+  | { page: "team"; teamId: string }
   | { page: "pipelines"; pipelineId?: string | null; runId?: string | null };
 
 function parseRoute(): Route {
@@ -123,6 +125,7 @@ function parseRoute(): Route {
     return { page: "channel", channelId: id };
   }
   if (path === "/projects") return { page: "projects" };
+  if (path === "/chat") return { page: "chat", sessionId: null };
   if (path === "/dashboard" || path === "/") return { page: "dashboard" };
   if (path === "/settings") return { page: "settings" };
   if (path === "/skills") return { page: "skills" };
@@ -130,6 +133,11 @@ function parseRoute(): Route {
   if (path === "/preview") return { page: "preview" };
   if (path === "/agents") return { page: "agents" };
   if (path === "/channels") return { page: "channels" };
+  if (path === "/teams") return { page: "teams" };
+  if (path.startsWith("/teams/")) {
+    const id = path.slice("/teams/".length);
+    return { page: "team", teamId: id };
+  }
   if (path === "/logs") return { page: "logs" };
   if (path === "/mcps") return { page: "mcps" };
   if (path === "/plugins") return { page: "plugins" };

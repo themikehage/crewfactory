@@ -24,6 +24,9 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     sectionAgents: "Agents",
     sectionChannels: "Channels",
     sectionExperiments: "Experiments",
+    sectionTeams: "Teams",
+    manageTeams: "Manage Teams",
+    noTeams: "No teams",
   },
   es: {
     navLaboratory: "Laboratorio",
@@ -48,5 +51,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     sectionAgents: "Agentes",
     sectionChannels: "Canales",
     sectionExperiments: "Experimentos",
+    sectionTeams: "Equipos",
+    manageTeams: "Gestionar Equipos",
+    noTeams: "Sin equipos",
   },
 };
