@@ -1,4 +1,5 @@
 import { channelStore } from "./channel-store";
+import { channelExecutionStore } from "./channel-execution-store";
 import { agentRegistry } from "../agents";
 import { type Channel, type ChannelMember, type ChannelMessage } from "shared";
 import { AgentWorkQueue } from "./agent-work-queue";
@@ -38,6 +39,7 @@ class ChannelOrchestrator {
   private activeStreams = new Map<string, Map<string, ActiveAgentStream>>();
   private activeChains = new Map<string, { count: number; resolve: () => void }>();
   private consecutiveSilentRounds = new Map<string, number>();
+  private activeExecutionIds = new Map<string, { username: string; channelId: string; executionId: string }>();
 
   private promptRunner: AgentPromptRunner;
   private messagePublisher: ReturnType<typeof createMessagePublisher>;
@@ -59,6 +61,11 @@ class ChannelOrchestrator {
     if (entry) {
       entry.count--;
       if (entry.count <= 0) {
+        const execution = this.activeExecutionIds.get(key);
+        if (execution && !this.abortedDispatches.has(key)) {
+          channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, { type: "execution_completed" });
+          this.activeExecutionIds.delete(key);
+        }
         entry.resolve();
         this.activeChains.delete(key);
       }
@@ -105,6 +112,11 @@ class ChannelOrchestrator {
     const controller = this.channelAbortControllers.get(key);
     controller?.abort();
     this.channelAbortControllers.delete(key);
+    const execution = this.activeExecutionIds.get(key);
+    if (execution) {
+      channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, { type: "execution_aborted" });
+      this.activeExecutionIds.delete(key);
+    }
 
     const channel = channelStore.getChannel(username, channelId);
     if (channel) {
@@ -135,6 +147,10 @@ class ChannelOrchestrator {
 
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) throw new Error("Channel not found");
+
+    const execution = channelExecutionStore.createExecution(username, channelId, { sessionId });
+    this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
+    channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
 
     const agentNameMap = buildAgentNameMap(channel.members);
     const mentions = parseMentions(userContent, channel.members, agentNameMap);
@@ -263,6 +279,15 @@ class ChannelOrchestrator {
     }
 
     const queue = this.getOrCreateQueue(member.agentId);
+    const execution = this.activeExecutionIds.get(key);
+    if (execution) {
+      channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
+        type: "turn_started",
+        sessionId: incomingMsg.sessionId,
+        agentId: member.agentId,
+        payload: { depth, incomingMessageId: incomingMsg.id },
+      });
+    }
     const members = channelStore.getChannel(username, channelId)?.members || [];
     const agentNameMap = buildAgentNameMap(members);
 
@@ -283,11 +308,27 @@ class ChannelOrchestrator {
         return;
       }
       console.error(`[ChannelOrchestrator] Queue error for agent ${member.agentId}:`, err);
+      if (execution) {
+        channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
+          type: "turn_failed",
+          sessionId: incomingMsg.sessionId,
+          agentId: member.agentId,
+          payload: { error: String(err.message || err), depth },
+        });
+      }
       return;
     }
 
     if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) {
       if (!signal.aborted && !this.abortedDispatches.has(key) && !result.agentMsg) {
+        if (execution) {
+          channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
+            type: "turn_skipped",
+            sessionId: incomingMsg.sessionId,
+            agentId: member.agentId,
+            payload: { reason: "silent", depth },
+          });
+        }
         const silentCount = (this.consecutiveSilentRounds.get(key) ?? 0) + 1;
         this.consecutiveSilentRounds.set(key, silentCount);
         if (silentCount >= 2) {
@@ -300,6 +341,15 @@ class ChannelOrchestrator {
 
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) return;
+
+    if (execution) {
+      channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
+        type: "turn_completed",
+        sessionId: incomingMsg.sessionId,
+        agentId: member.agentId,
+        payload: { messageId: result.agentMsg.id, depth },
+      });
+    }
 
     const negResult = handleNegotiation(
       username,

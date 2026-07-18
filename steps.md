@@ -757,6 +757,12 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 152.3 Add authenticated read APIs for execution summaries, execution detail, and cursor-based event recovery
 - [x] 152.4 Verify clean server production build
 
+## Phase 153: Durable Channel Dispatch Lifecycle
+- [x] 153.1 Create and start a durable execution for every dispatched channel user message
+- [x] 153.2 Persist execution completion and explicit abort terminal states with the existing chain lifecycle
+- [x] 153.3 Persist agent turn start, completion, failure, and silent outcome events without changing legacy dispatch scheduling
+- [x] 153.4 Verify clean server production build
+
 
 
 
