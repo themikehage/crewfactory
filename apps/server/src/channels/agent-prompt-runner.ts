@@ -28,6 +28,14 @@ export interface ActiveAgentStream {
   >;
 }
 
+export type ChannelExecutionEventSink = (input: {
+  channelId: string;
+  sessionId?: string;
+  agentId: string;
+  type: "text_delta" | "thinking_delta" | "tool_started" | "tool_updated" | "tool_completed" | "tool_failed";
+  payload: Record<string, unknown>;
+}) => void;
+
 export function buildAgentNameMap(members: ChannelMember[]): Map<string, string> {
   const map = new Map<string, string>();
   for (const member of members) {
@@ -50,7 +58,8 @@ function isSubstantiveMessage(content: string): boolean {
 export class AgentPromptRunner {
   constructor(
     private activeStreams: Map<string, Map<string, ActiveAgentStream>>,
-    private broadcastFn: (channelId: string, data: any) => void
+    private broadcastFn: (channelId: string, data: any) => void,
+    private executionEventSink?: ChannelExecutionEventSink
   ) {}
 
   async run(
@@ -222,6 +231,7 @@ export class AgentPromptRunner {
               token: delta,
               fullText: stream ? stream.text : undefined,
             });
+            this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "text_delta", payload: { delta } });
           }
         } else if (ev.assistantMessageEvent?.type === "thinking_delta" && channel.showThinking) {
           const delta = ev.assistantMessageEvent.delta;
@@ -238,6 +248,7 @@ export class AgentPromptRunner {
               token: delta,
               fullThinking: stream ? stream.thinking : undefined,
             });
+            this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "thinking_delta", payload: { delta } });
           }
         }
       } else if (evt.type === "tool_execution_start" && channel.showTools) {
@@ -259,6 +270,7 @@ export class AgentPromptRunner {
           args: ev.args,
           toolCallId: ev.toolCallId,
         });
+        this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "tool_started", payload: { toolCallId: ev.toolCallId, toolName: ev.toolName, args: ev.args } });
       } else if (evt.type === "tool_execution_update" && channel.showTools) {
         this.broadcastFn(channelId, {
           type: "channel_agent_tool_update",
@@ -269,6 +281,7 @@ export class AgentPromptRunner {
           toolName: ev.toolName,
           partialResult: ev.partialResult,
         });
+        this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "tool_updated", payload: { toolCallId: ev.toolCallId, toolName: ev.toolName, partialResult: ev.partialResult } });
       } else if (evt.type === "tool_execution_end" && channel.showTools) {
         const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
         if (stream && stream.toolCalls[ev.toolCallId]) {
@@ -285,6 +298,7 @@ export class AgentPromptRunner {
           isError: ev.isError,
           toolCallId: ev.toolCallId,
         });
+        this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: ev.isError ? "tool_failed" : "tool_completed", payload: { toolCallId: ev.toolCallId, toolName: ev.toolName, result: ev.result } });
       }
     });
 

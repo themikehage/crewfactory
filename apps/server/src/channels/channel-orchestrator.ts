@@ -45,7 +45,13 @@ class ChannelOrchestrator {
   private messagePublisher: ReturnType<typeof createMessagePublisher>;
 
   constructor() {
-    this.promptRunner = new AgentPromptRunner(this.activeStreams, broadcast);
+    this.promptRunner = new AgentPromptRunner(this.activeStreams, broadcast, (event) => {
+      const key = `${event.channelId}:${event.sessionId || "default"}`;
+      const execution = this.activeExecutionIds.get(key);
+      if (execution) {
+        channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, event);
+      }
+    });
     this.messagePublisher = createMessagePublisher(broadcast);
   }
 
