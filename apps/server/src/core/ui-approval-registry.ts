@@ -1,3 +1,4 @@
+import { activeContextStorage } from "./session/active-context";
 import { approvalManager } from "./approvals/approval-manager";
 
 type PendingApprovalValue = {
@@ -7,9 +8,13 @@ type PendingApprovalValue = {
 
 class UiApprovalRegistry {
   register(toolCallId: string): Promise<PendingApprovalValue> {
+    const activeContext = activeContextStorage.getStore();
+    const username = activeContext?.username || "default_user";
+    const sessionId = activeContext?.sessionId || "default";
+
     return approvalManager.request({
-      username: "default_user",
-      sessionId: "default",
+      username,
+      sessionId,
       toolCallId,
       toolName: "unknown",
       args: {},

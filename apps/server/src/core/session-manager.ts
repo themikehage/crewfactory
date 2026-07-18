@@ -404,7 +404,8 @@ class SessionManager {
           resourceLoader,
           customTools: finalCustomTools,
           beforeToolCall,
-        });
+          username,
+        } as any);
 
         const context = sessionManager.buildSessionContext();
         if (!context.model) {

@@ -147,6 +147,7 @@ export function TeamMessageList({
       <MessageList
         messages={mappedMessages}
         sessionId={sessionId || null}
+        serialTools={["request_approval", "ask_question"]}
       />
     </div>
   );

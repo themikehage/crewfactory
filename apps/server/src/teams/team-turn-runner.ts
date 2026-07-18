@@ -1,5 +1,6 @@
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
+import { activeContextStorage } from "../core/session/active-context";
 import { resolveModelWithFallback } from "../core/agent-utils";
 import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
 import { buildDeploymentContext } from "../core/channel/deployment-context";
@@ -162,11 +163,11 @@ export async function runTeamTurn(
           const delta = ev.assistantMessageEvent.delta;
           if (delta) broadcast("thinking", member.agentId, agentName, { delta });
         }
-      } else if (evt.type === "tool_execution_start" && team.showTools) {
+      } else if (evt.type === "tool_execution_start" && (team.showTools || ["request_approval", "ask_question"].includes(ev.toolName))) {
         broadcast("tool_start", member.agentId, agentName, { toolName: ev.toolName, args: ev.args }, ev.toolCallId);
-      } else if (evt.type === "tool_execution_update" && team.showTools) {
+      } else if (evt.type === "tool_execution_update" && (team.showTools || ["request_approval", "ask_question"].includes(ev.toolName))) {
         broadcast("tool_update", member.agentId, agentName, { toolName: ev.toolName, partialResult: ev.partialResult }, ev.toolCallId);
-      } else if (evt.type === "tool_execution_end" && team.showTools) {
+      } else if (evt.type === "tool_execution_end" && (team.showTools || ["request_approval", "ask_question"].includes(ev.toolName))) {
         broadcast("tool_end", member.agentId, agentName, { toolName: ev.toolName, result: ev.result, isError: ev.isError }, ev.toolCallId);
       }
     });
@@ -177,7 +178,9 @@ export async function runTeamTurn(
         member.agentId,
         combinedPrefix
       );
-      await agentEntry.server.session.continue();
+      await activeContextStorage.run({ username, sessionId }, async () => {
+        await agentEntry.server.session.continue();
+      });
     } catch (err: any) {
       unsub();
       const isAbort = signal.aborted || err.message?.includes("abort") || err.message?.includes("cancel");

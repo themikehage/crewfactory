@@ -54,7 +54,9 @@ export function estimateMessageTokens(message: Message): number {
 		} else if (block.type === "thinking") {
 			chars += block.thinking.length;
 		} else {
-			chars += block.name.length + safeJsonStringify(block.arguments).length;
+			const nameLen = (block as any).name ? (block as any).name.length : 0;
+			const argsLen = (block as any).arguments ? safeJsonStringify((block as any).arguments).length : 0;
+			chars += nameLen + argsLen;
 		}
 	}
 	return Math.ceil(chars / CHARS_PER_TOKEN);

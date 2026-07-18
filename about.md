@@ -75,6 +75,7 @@
 - **WebSocket Replay y Resiliencia:** El historial de ejecuciones y transiciones de estado de los turnos se escribe atómicamente en formato JSONL (`events.jsonl`) con secuencias (`sequence`) continuas. En caso de micro-desconexiones, el cliente solicita los eventos perdidos usando el endpoint `/events?afterSequence=N` para una reconciliación perfecta.
 - **Interfaz de Progreso en Tiempo Real:** Visualización en vivo (`TeamRunProgress`) que detalla de forma interactiva qué agente está pensando, sus tokens de texto generados en vivo y las herramientas activas en ejecución, manteniendo coherencia visual con la experiencia de agentes individuales.
 - **Asistente de Creación (Wizard Modal):** Formulario modular por pasos para configurar el nombre del equipo, topología, selección ordenada de agentes según roles y visualización de trazas.
+- **Propagación del Contexto Activo (`ActiveContext`):** Integración de `AsyncLocalStorage` (`activeContextStorage`) para capturar dinámicamente el `username` y `sessionId` de la llamada activa. Resuelve los bloqueos y errores en las delegaciones de equipo (`delegate_task`, `spawn_subagent`) y herramientas de UI (`ask_question`, `request_approval`) garantizando que operen y se reanuden bajo la sesión del equipo en lugar del ID estático `"main"` del agente.
 
 ### Multimedia Support (Images & Documents)
 - **Hybrid Input Strategy**:

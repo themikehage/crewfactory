@@ -8,6 +8,7 @@ import {
   createBashToolDefinition,
 } from "../../ai";
 import { createUiTools } from "./ui-tools";
+import { activeContextStorage } from "../session/active-context";
 import { sessionManager } from "../session-manager";
 import { filterSecretsFromOutput } from "../bash-output-filter";
 import { assemblePromptAppends } from "../prompts/prompt-assembly";
@@ -62,6 +63,13 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
       required: ["task"],
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
+      const activeContext = activeContextStorage.getStore();
+      const resolvedUsername = activeContext?.username || username;
+      const resolvedParentSessionId = activeContext?.sessionId || parentSessionId;
+
+      const username = resolvedUsername;
+      const parentSessionId = resolvedParentSessionId;
+
       const userSettings = sessionManager.userConfig.getUserSettings(username);
       const appConfig = getAppConfig();
       const maxDepth = userSettings.subagentMaxDepth !== undefined

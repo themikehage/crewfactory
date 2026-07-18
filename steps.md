@@ -820,6 +820,15 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 162.4 Store lastUserMessage in executions and update UI sessions to stalled with system log messages on server restart
 - [x] 162.5 Implement client-side watchdog and stalled execution banner with Retry/Abort actions in the UI
 
+## Phase 163: Fix Teams UI Tools, Subagent Delegation, and Agent Message Persistence
+- [x] 163.1 Implement AsyncLocalStorage activeContextStorage context wrapper for username and sessionId
+- [x] 163.2 Wrap prompt and continue agent executions in activeContextStorage context
+- [x] 163.3 Dynamically resolve username and sessionId in uiApprovalRegistry and delegation tools
+- [x] 163.4 Enwrap team agent run turns in activeContextStorage and bypass showTools filter for interactive tools
+- [x] 163.5 Pass serialTools to MessageList inside TeamMessageList.tsx
+- [x] 163.6 Verify client and server compilation and successful production builds
 
-
-
+## Phase 164: Safe ToolCall Token Estimation
+- [x] 164.1 Add null-safety check for block.name and block.arguments during token estimation in estimate.ts
+- [x] 164.2 Add null-safety check for block.name and block.arguments during token estimation in compaction.ts
+- [x] 164.3 Verify successful backend production build compile

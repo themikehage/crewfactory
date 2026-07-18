@@ -1,6 +1,7 @@
 import { channelStore } from "./channel-store";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
+import { activeContextStorage } from "../core/session/active-context";
 import { resolveModelWithFallback } from "../core/agent-utils";
 import { channelPolicyPrompt, compileChannelPolicy, type ChannelMember, type ChannelMessage, getChannelMemoryDbPath, getChannelWorkspaceDir } from "shared";
 import { ensureWorkspaceSubdirs } from "../core/session/workspace-resolver";
@@ -266,7 +267,7 @@ export class AgentPromptRunner {
               this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "thinking_delta", payload: { delta } });
             }
           }
-        } else if (evt.type === "tool_execution_start" && channel.showTools) {
+        } else if (evt.type === "tool_execution_start" && (channel.showTools || ["request_approval", "ask_question"].includes(ev.toolName))) {
           const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
           if (stream) {
             stream.toolCalls[ev.toolCallId] = {
@@ -286,7 +287,7 @@ export class AgentPromptRunner {
             toolCallId: ev.toolCallId,
           });
           this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "tool_started", payload: { toolCallId: ev.toolCallId, toolName: ev.toolName, args: ev.args } });
-        } else if (evt.type === "tool_execution_update" && channel.showTools) {
+        } else if (evt.type === "tool_execution_update" && (channel.showTools || ["request_approval", "ask_question"].includes(ev.toolName))) {
           this.broadcastFn(channelId, {
             type: "channel_agent_tool_update",
             channelId,
@@ -297,7 +298,7 @@ export class AgentPromptRunner {
             partialResult: ev.partialResult,
           });
           this.executionEventSink?.({ channelId, sessionId: incomingMsg.sessionId, agentId: member.agentId, type: "tool_updated", payload: { toolCallId: ev.toolCallId, toolName: ev.toolName, partialResult: ev.partialResult } });
-        } else if (evt.type === "tool_execution_end" && channel.showTools) {
+        } else if (evt.type === "tool_execution_end" && (channel.showTools || ["request_approval", "ask_question"].includes(ev.toolName))) {
           const stream = this.activeStreams.get(streamKey)?.get(member.agentId);
           if (stream && stream.toolCalls[ev.toolCallId]) {
             stream.toolCalls[ev.toolCallId].result = ev.result;
@@ -323,7 +324,9 @@ export class AgentPromptRunner {
           member.agentId,
           combinedPrefix
         );
-        await agentEntry.server.session.continue();
+        await activeContextStorage.run({ username, sessionId: incomingMsg.sessionId || channelId }, async () => {
+          await agentEntry.server.session.continue();
+        });
       } catch (err: any) {
         unsub();
         const isAbort =

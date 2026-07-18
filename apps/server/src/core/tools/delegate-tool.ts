@@ -1,3 +1,4 @@
+import { activeContextStorage } from "../session/active-context";
 import { sessionManager } from "../session-manager";
 import { agentRegistry } from "../../agents";
 import { channelStore } from "../../channels/channel-store";
@@ -52,6 +53,13 @@ Allows keeping parent context clean by returning a structured summary instead of
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
       const { targetType, targetId, task, includeFullHistory = false } = args;
+      const activeContext = activeContextStorage.getStore();
+      const resolvedUsername = activeContext?.username || username;
+      const resolvedParentSessionId = activeContext?.sessionId || parentSessionId;
+
+      const username = resolvedUsername;
+      const parentSessionId = resolvedParentSessionId;
+
       const userSettings = sessionManager.userConfig.getUserSettings(username);
       const appConfig = getAppConfig();
       const maxDepth = userSettings.subagentMaxDepth !== undefined

@@ -9,6 +9,7 @@ import { convertToLlm } from "./messages";
 import { estimateContextTokens } from "./vendor/ai/src/utils/estimate.ts";
 import type { AuthStorage } from "./auth-storage.ts";
 import { existsSync, readFileSync } from "node:fs";
+import { activeContextStorage } from "../core/session/active-context";
 
 export interface CreateAgentSessionOptions {
   cwd: string;
@@ -19,6 +20,7 @@ export interface CreateAgentSessionOptions {
   customTools?: any[];
   beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;
   delegationRegistry?: any;
+  username?: string;
 }
 
 export type AgentSessionEvent = any;
@@ -33,6 +35,7 @@ export class AgentSession {
   _customTools: any[];
   beforeToolCall?: (context: BeforeToolCallContext, signal?: AbortSignal) => Promise<BeforeToolCallResult | undefined>;
   delegationRegistry?: any;
+  username?: string;
 
   model: AvailableModel | null = null;
 
@@ -84,6 +87,7 @@ export class AgentSession {
     this._customTools = this.customTools;
     this.beforeToolCall = options.beforeToolCall;
     this.delegationRegistry = options.delegationRegistry;
+    this.username = options.username;
 
     this.initializeTools();
     this.restoreSessionState();
@@ -406,73 +410,79 @@ export class AgentSession {
       throw new Error("Session is already streaming");
     }
 
-    this.abortController = new AbortController();
-    this.isStreaming = true;
+    const activeContext = activeContextStorage.getStore();
+    const resolvedUsername = activeContext?.username || this.username || "default_user";
+    const resolvedSessionId = activeContext?.sessionId || this.sessionManager.getSessionId();
 
-    try {
-      // Load matching skills content
-      this.loadMatchedSkills(messageText);
+    return activeContextStorage.run({ username: resolvedUsername, sessionId: resolvedSessionId }, async () => {
+      this.abortController = new AbortController();
+      this.isStreaming = true;
 
-      const contentParts: any[] = [{ type: "text" as const, text: messageText }];
-      if (opts?.images && Array.isArray(opts.images)) {
-        for (const img of opts.images) {
-          let base64Part = img.data || "";
-          if (base64Part.includes("base64,")) {
-            base64Part = base64Part.substring(base64Part.indexOf("base64,") + 7);
+      try {
+        // Load matching skills content
+        this.loadMatchedSkills(messageText);
+
+        const contentParts: any[] = [{ type: "text" as const, text: messageText }];
+        if (opts?.images && Array.isArray(opts.images)) {
+          for (const img of opts.images) {
+            let base64Part = img.data || "";
+            if (base64Part.includes("base64,")) {
+              base64Part = base64Part.substring(base64Part.indexOf("base64,") + 7);
+            }
+            contentParts.push({
+              type: "image" as const,
+              mimeType: img.mimeType || "image/png",
+              data: base64Part,
+            });
           }
-          contentParts.push({
-            type: "image" as const,
-            mimeType: img.mimeType || "image/png",
-            data: base64Part,
-          });
         }
-      }
 
-      const userMessage = {
-        role: "user" as const,
-        content: contentParts.length > 1 ? contentParts : messageText,
-        timestamp: Date.now(),
-      };
-
-      if (!this.model?.contextWindow) {
-        throw new Error(`Model ${this.model?.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model?.provider}/refresh`);
-      }
-      if (this.model) {
-        const modelObj = {
-          id: this.model.id,
-          name: this.model.name,
-          provider: this.model.provider,
-          api: this.model.api,
-          baseUrl: this.model.baseUrl,
-          apiKey: this.model.apiKey,
-          reasoning: !!this.model.reasoning,
-          contextWindow: this.model.contextWindow!,
-          maxTokens: this.model.maxTokens ?? 0,
-          compat: this.model.compat,
-          input: (this.model as any).input || [],
-          cost: (this.model as any).cost || {},
+        const userMessage = {
+          role: "user" as const,
+          content: contentParts.length > 1 ? contentParts : messageText,
+          timestamp: Date.now(),
         };
-        (this.agent.state as any).model = modelObj;
+
+        if (!this.model?.contextWindow) {
+          throw new Error(`Model ${this.model?.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model?.provider}/refresh`);
+        }
+        if (this.model) {
+          const modelObj = {
+            id: this.model.id,
+            name: this.model.name,
+            provider: this.model.provider,
+            api: this.model.api,
+            baseUrl: this.model.baseUrl,
+            apiKey: this.model.apiKey,
+            reasoning: !!this.model.reasoning,
+            contextWindow: this.model.contextWindow!,
+            maxTokens: this.model.maxTokens ?? 0,
+            compat: this.model.compat,
+            input: (this.model as any).input || [],
+            cost: (this.model as any).cost || {},
+          };
+          (this.agent.state as any).model = modelObj;
+        }
+
+        const systemPrompt = [
+          this.resourceLoader.getSystemPrompt() || "",
+          ...(this.resourceLoader.getAppendSystemPrompt() || []),
+          ...this.activeSkillPrompts,
+        ].filter(Boolean).join("\n\n");
+        (this.agent.state as any).systemPrompt = systemPrompt;
+
+        const currentMessages = this.sessionManager.buildSessionContext().messages;
+        (this.agent.state as any).messages = currentMessages;
+
+        await this.agent.prompt(userMessage as any);
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
+        this.handleSessionError(errorMsg);
+      } finally {
+        this.isStreaming = false;
+        this.abortController = null;
       }
-
-      const systemPrompt = [
-        this.resourceLoader.getSystemPrompt() || "",
-        ...(this.resourceLoader.getAppendSystemPrompt() || []),
-        ...this.activeSkillPrompts,
-      ].filter(Boolean).join("\n\n");
-      (this.agent.state as any).systemPrompt = systemPrompt;
-
-      const currentMessages = this.sessionManager.buildSessionContext().messages;
-      (this.agent.state as any).messages = currentMessages;
-
-      await this.agent.prompt(userMessage as any);
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
-      this.handleSessionError(errorMsg);
-    } finally {
-      this.isStreaming = false;
-      this.abortController = null;
-    }
+    });
   }
 
   async continue(): Promise<any> {
@@ -480,61 +490,67 @@ export class AgentSession {
       throw new Error("Session is already streaming");
     }
 
-    this.abortController = new AbortController();
-    this.isStreaming = true;
+    const activeContext = activeContextStorage.getStore();
+    const resolvedUsername = activeContext?.username || this.username || "default_user";
+    const resolvedSessionId = activeContext?.sessionId || this.sessionManager.getSessionId();
 
-    try {
-      if (this.model) {
-        if (!this.model.contextWindow) {
-          throw new Error(`Model ${this.model.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model.provider}/refresh`);
+    return activeContextStorage.run({ username: resolvedUsername, sessionId: resolvedSessionId }, async () => {
+      this.abortController = new AbortController();
+      this.isStreaming = true;
+
+      try {
+        if (this.model) {
+          if (!this.model.contextWindow) {
+            throw new Error(`Model ${this.model.id} missing contextWindow - fetch mandatory, run POST /api/providers/${this.model.provider}/refresh`);
+          }
+          const modelObj = {
+            id: this.model.id,
+            name: this.model.name,
+            provider: this.model.provider,
+            api: this.model.api,
+            baseUrl: this.model.baseUrl,
+            apiKey: this.model.apiKey,
+            reasoning: !!this.model.reasoning,
+            contextWindow: this.model.contextWindow!,
+            maxTokens: this.model.maxTokens ?? 0,
+            compat: this.model.compat,
+            input: (this.model as any).input || [],
+            cost: (this.model as any).cost || {},
+          };
+          (this.agent.state as any).model = modelObj;
         }
-        const modelObj = {
-          id: this.model.id,
-          name: this.model.name,
-          provider: this.model.provider,
-          api: this.model.api,
-          baseUrl: this.model.baseUrl,
-          apiKey: this.model.apiKey,
-          reasoning: !!this.model.reasoning,
-          contextWindow: this.model.contextWindow!,
-          maxTokens: this.model.maxTokens ?? 0,
-          compat: this.model.compat,
-          input: (this.model as any).input || [],
-          cost: (this.model as any).cost || {},
-        };
-        (this.agent.state as any).model = modelObj;
+
+        const currentMessages = this.sessionManager.buildSessionContext().messages;
+        const lastUserMsg = currentMessages.findLast((m) => m.role === "user");
+        if (lastUserMsg) {
+          let textToMatch = "";
+          if (typeof lastUserMsg.content === "string") {
+            textToMatch = lastUserMsg.content;
+          } else if (Array.isArray(lastUserMsg.content)) {
+            textToMatch = lastUserMsg.content.map((c: any) => c.text || "").join("\n");
+          }
+          if (textToMatch) {
+            this.loadMatchedSkills(textToMatch);
+          }
+        }
+
+        const systemPrompt = [
+          this.resourceLoader.getSystemPrompt() || "",
+          ...(this.resourceLoader.getAppendSystemPrompt() || []),
+          ...this.activeSkillPrompts,
+        ].filter(Boolean).join("\n\n");
+        (this.agent.state as any).systemPrompt = systemPrompt;
+        (this.agent.state as any).messages = currentMessages;
+
+        await this.agent.continue();
+      } catch (err: unknown) {
+        const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
+        this.handleSessionError(errorMsg);
+      } finally {
+        this.isStreaming = false;
+        this.abortController = null;
       }
-
-      const currentMessages = this.sessionManager.buildSessionContext().messages;
-      const lastUserMsg = currentMessages.findLast((m) => m.role === "user");
-      if (lastUserMsg) {
-        let textToMatch = "";
-        if (typeof lastUserMsg.content === "string") {
-          textToMatch = lastUserMsg.content;
-        } else if (Array.isArray(lastUserMsg.content)) {
-          textToMatch = lastUserMsg.content.map((c: any) => c.text || "").join("\n");
-        }
-        if (textToMatch) {
-          this.loadMatchedSkills(textToMatch);
-        }
-      }
-
-      const systemPrompt = [
-        this.resourceLoader.getSystemPrompt() || "",
-        ...(this.resourceLoader.getAppendSystemPrompt() || []),
-        ...this.activeSkillPrompts,
-      ].filter(Boolean).join("\n\n");
-      (this.agent.state as any).systemPrompt = systemPrompt;
-      (this.agent.state as any).messages = currentMessages;
-
-      await this.agent.continue();
-    } catch (err: unknown) {
-      const errorMsg = err instanceof Error ? err.message : String(err ?? "Unknown error");
-      this.handleSessionError(errorMsg);
-    } finally {
-      this.isStreaming = false;
-      this.abortController = null;
-    }
+    });
   }
 
   steer(messageText: string): void {

@@ -239,7 +239,9 @@ export function estimateTokens(message: AgentMessage): number {
 				} else if (block.type === "thinking") {
 					chars += block.thinking.length;
 				} else if (block.type === "toolCall") {
-					chars += block.name.length + safeJsonStringify(block.arguments).length;
+					const nameLen = block.name ? block.name.length : 0;
+					const argsLen = block.arguments ? safeJsonStringify(block.arguments).length : 0;
+					chars += nameLen + argsLen;
 				}
 			}
 			return Math.ceil(chars / 4);

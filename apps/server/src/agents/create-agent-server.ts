@@ -167,7 +167,8 @@ export async function createAgentServer(definition: AgentDefinition, username: s
       ...memoryTools as any
     ],
     beforeToolCall,
-  });
+    username,
+  } as any);
   session = sessionResult.session;
 
   const activeToolNames = [
