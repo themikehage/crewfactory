@@ -213,30 +213,15 @@ class ChannelOrchestrator {
     this.activeChains.set(key, { count: 0, resolve: resolveChain });
     this.activeDispatchUsers.set(key, username);
 
-    const isBroadcastChannel = !channel.topology || channel.topology.kind === "legacy_custom"
-      ? channel.members.some((m) => m.replyMode === "broadcast")
-      : false;
-
-    if (isBroadcastChannel) {
-      this.incrementChain(key);
-      this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal)
-        .catch((err) => {
-          console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
-        })
-        .finally(() => {
-          this.decrementChain(key);
-        });
-    } else {
-      this.incrementChain(key);
-      Promise.resolve()
-        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal, (channel.topology?.schedulerMode ?? channel.executionSchedulerMode) === "parallel"))
-        .catch((err) => {
-          console.error(`[ChannelOrchestrator] Non-broadcast dispatch error:`, err);
-        })
-        .finally(() => {
-          this.decrementChain(key);
-        });
-    }
+    this.incrementChain(key);
+    Promise.resolve()
+      .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal, false, true))
+      .catch((err) => {
+        console.error(`[ChannelOrchestrator] MVP dispatch error:`, err);
+      })
+      .finally(() => {
+        this.decrementChain(key);
+      });
 
     return chainPromise;
   }
@@ -247,7 +232,8 @@ class ChannelOrchestrator {
     incomingMsg: ChannelMessage,
     depth: number,
     signal: AbortSignal,
-    parallel = false
+    parallel = false,
+    mvpMode = false
   ): Promise<void> {
     if (signal.aborted) return;
 
@@ -274,7 +260,7 @@ class ChannelOrchestrator {
 
     const dispatchMember = async (member: ChannelMember) => {
       this.incrementChain(key);
-      await this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal).catch((err) => {
+      await this.dispatchToAgentAsync(username, channelId, member, incomingMsg, depth, signal, mvpMode).catch((err) => {
         console.error(`[ChannelOrchestrator] Unexpected error dispatching to ${member.agentId}:`, err);
       });
     };
@@ -291,11 +277,12 @@ class ChannelOrchestrator {
     member: ChannelMember,
     incomingMsg: ChannelMessage,
     depth: number,
-    signal: AbortSignal
+    signal: AbortSignal,
+    mvpMode = false
   ): Promise<void> {
     const key = `${channelId}:${incomingMsg.sessionId || "default"}`;
     try {
-      await this.dispatchToAgentAsyncInternal(username, channelId, member, incomingMsg, depth, signal);
+      await this.dispatchToAgentAsyncInternal(username, channelId, member, incomingMsg, depth, signal, mvpMode);
     } finally {
       this.decrementChain(key);
     }
@@ -307,7 +294,8 @@ class ChannelOrchestrator {
     member: ChannelMember,
     incomingMsg: ChannelMessage,
     depth: number,
-    signal: AbortSignal
+    signal: AbortSignal,
+    mvpMode = false
   ): Promise<void> {
     if (signal.aborted) return;
 
@@ -416,6 +404,12 @@ class ChannelOrchestrator {
         payload: { messageId: result.agentMsg.id, depth, conformance },
       });
     };
+
+    if (mvpMode) {
+      this.messagePublisher(username, channelId, channel.name, result.agentMsg);
+      completeTurn();
+      return;
+    }
 
     const negResult = handleNegotiation(
       username,
