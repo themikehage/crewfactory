@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, renameSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { ChannelExecutionEventSchema, ChannelExecutionSchema, CreateChannelExecutionSchema, type ChannelExecution, type ChannelExecutionEvent, type ChannelExecutionEventType, getChannelsDir } from "shared";
+import { ChannelExecutionEventSchema, ChannelExecutionSchema, ChannelTurnSchema, CreateChannelExecutionSchema, type ChannelExecution, type ChannelExecutionEvent, type ChannelExecutionEventType, type ChannelTurn, type ChannelTurnStatus, getChannelsDir } from "shared";
 
 const MAX_EXECUTIONS = 200;
 type Summary = Pick<ChannelExecution, "id" | "channelId" | "sessionId" | "schedulerMode" | "status" | "createdAt" | "updatedAt" | "completedAt" | "lastSequence">;
@@ -48,6 +48,20 @@ export class ChannelExecutionStore {
     try { const parsed = ChannelExecutionSchema.safeParse(JSON.parse(readFileSync(path, "utf-8"))); return parsed.success ? parsed.data : null; } catch { return null; }
   }
   listExecutions(username: string, channelId: string, limit = 50): Summary[] { return this.readIndex(username, channelId).slice(0, Math.max(1, Math.min(limit, MAX_EXECUTIONS))); }
+  createTurn(username: string, channelId: string, executionId: string, agentId: string, index: number): ChannelTurn {
+    const execution = this.getExecution(username, channelId, executionId); if (!execution) throw new Error("Channel execution not found");
+    if (execution.turns.some((turn) => turn.index === index)) throw new Error(`Channel turn index ${index} already exists`);
+    const now = new Date().toISOString();
+    const turn = ChannelTurnSchema.parse({ id: crypto.randomUUID(), executionId, index, agentId, status: "running", createdAt: now, startedAt: now, updatedAt: now });
+    execution.turns.push(turn); execution.updatedAt = now; this.save(execution, username); return turn;
+  }
+  updateTurn(username: string, channelId: string, executionId: string, turnId: string, status: ChannelTurnStatus, details: Partial<Pick<ChannelTurn, "skipReason" | "messageId" | "error">> = {}): ChannelTurn {
+    const execution = this.getExecution(username, channelId, executionId); if (!execution) throw new Error("Channel execution not found");
+    const index = execution.turns.findIndex((turn) => turn.id === turnId); if (index < 0) throw new Error("Channel turn not found");
+    const now = new Date().toISOString(); const current = execution.turns[index];
+    const turn = ChannelTurnSchema.parse({ ...current, ...details, status, completedAt: ["completed", "skipped", "failed", "aborted"].includes(status) ? now : current.completedAt, updatedAt: now });
+    execution.turns[index] = turn; execution.updatedAt = now; this.save(execution, username); return turn;
+  }
   private readEvents(username: string, channelId: string, executionId: string): ChannelExecutionEvent[] {
     const path = this.eventsPath(username, channelId, executionId);
     if (!existsSync(path)) return [];

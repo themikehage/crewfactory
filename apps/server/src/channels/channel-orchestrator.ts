@@ -154,9 +154,11 @@ class ChannelOrchestrator {
     const channel = channelStore.getChannel(username, channelId);
     if (!channel) throw new Error("Channel not found");
 
-    const execution = channelExecutionStore.createExecution(username, channelId, { sessionId });
-    this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
-    channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
+    if (channel.executionProtocolEnabled !== false) {
+      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId });
+      this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
+      channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
+    }
 
     const agentNameMap = buildAgentNameMap(channel.members);
     const mentions = parseMentions(userContent, channel.members, agentNameMap);
@@ -286,11 +288,15 @@ class ChannelOrchestrator {
 
     const queue = this.getOrCreateQueue(member.agentId);
     const execution = this.activeExecutionIds.get(key);
+    const turn = execution
+      ? channelExecutionStore.createTurn(username, channelId, execution.executionId, member.agentId, channelExecutionStore.getExecution(username, channelId, execution.executionId)?.turns.length ?? 0)
+      : null;
     if (execution) {
       channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
         type: "turn_started",
         sessionId: incomingMsg.sessionId,
         agentId: member.agentId,
+        turnId: turn?.id,
         payload: { depth, incomingMessageId: incomingMsg.id },
       });
     }
@@ -315,6 +321,7 @@ class ChannelOrchestrator {
       }
       console.error(`[ChannelOrchestrator] Queue error for agent ${member.agentId}:`, err);
       if (execution) {
+        if (turn) channelExecutionStore.updateTurn(username, channelId, execution.executionId, turn.id, "failed", { error: String(err.message || err) });
         channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
           type: "turn_failed",
           sessionId: incomingMsg.sessionId,
@@ -327,7 +334,8 @@ class ChannelOrchestrator {
 
     if (!result.agentMsg || signal.aborted || this.abortedDispatches.has(key)) {
       if (!signal.aborted && !this.abortedDispatches.has(key) && !result.agentMsg) {
-        if (execution) {
+          if (execution) {
+          if (turn) channelExecutionStore.updateTurn(username, channelId, execution.executionId, turn.id, "skipped", { skipReason: "silent" });
           channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
             type: "turn_skipped",
             sessionId: incomingMsg.sessionId,
@@ -349,10 +357,12 @@ class ChannelOrchestrator {
     if (!channel) return;
 
     if (execution) {
+      if (turn) channelExecutionStore.updateTurn(username, channelId, execution.executionId, turn.id, "completed", { messageId: result.agentMsg.id });
       channelExecutionStore.appendEvent(username, channelId, execution.executionId, {
         type: "turn_completed",
         sessionId: incomingMsg.sessionId,
         agentId: member.agentId,
+        turnId: turn?.id,
         payload: { messageId: result.agentMsg.id, depth },
       });
     }
