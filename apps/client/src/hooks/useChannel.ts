@@ -108,9 +108,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       const executionsResponse = await apiFetch(`/api/channels/${channelId}/executions?limit=50`);
       if (!executionsResponse.ok) return;
       const data = await executionsResponse.json() as { executions?: ChannelExecution[] };
-      const execution = data.executions?.find((item) =>
-        item.status === "running" && (!sessionId || item.sessionId === sessionId)
-      );
+      const execution = data.executions?.find((item) => !sessionId || item.sessionId === sessionId);
       if (!execution) return;
       const eventsResponse = await apiFetch(`/api/channels/${channelId}/executions/${execution.id}/events?limit=1000`);
       if (!eventsResponse.ok) return;
@@ -119,6 +117,13 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
         executionViewRef.current = (eventData.events ?? []).reduce(applyChannelExecutionEvent, emptyChannelExecutionViewState);
         return executionViewRef.current.agents;
       });
+      setExecutionActivities((eventData.events ?? []).reduce<ChannelExecutionActivity[]>((activities, event) => {
+        if (event.type === "turn_skipped") activities.push({ id: event.id, type: "skipped", agentId: event.agentId, reason: typeof event.payload.reason === "string" ? event.payload.reason : undefined });
+        if (event.type === "turn_failed") activities.push({ id: event.id, type: "failed", agentId: event.agentId, reason: typeof event.payload.error === "string" ? event.payload.error : undefined });
+        if (event.type === "execution_aborted") activities.push({ id: event.id, type: "aborted" });
+        if (event.type === "execution_completed" && event.payload.withWarnings === true) activities.push({ id: event.id, type: "completed_with_warnings", reason: typeof event.payload.reason === "string" ? event.payload.reason : undefined });
+        return activities;
+      }, []));
     } catch (err) {
       console.error("Failed to recover durable channel streaming:", err);
     }
@@ -129,6 +134,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       setChannel(null);
       setMessages([]);
       setStreamingAgents({});
+      setExecutionActivities([]);
+      executionViewRef.current = emptyChannelExecutionViewState;
       setLoading(false);
       prevChannelIdRef.current = null;
       return;
@@ -137,6 +144,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
     if (prevChannelIdRef.current !== channelId) {
       setMessages([]);
       setStreamingAgents({});
+      setExecutionActivities([]);
+      executionViewRef.current = emptyChannelExecutionViewState;
       setLoading(true);
       setError(null);
     }

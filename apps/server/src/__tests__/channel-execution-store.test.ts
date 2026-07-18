@@ -34,4 +34,20 @@ describe("ChannelExecutionStore", () => {
     expect(persisted?.status).toBe("completed");
     expect(persisted?.turns[0]).toMatchObject({ id: turn.id, status: "completed", messageId: "message-1" });
   });
+
+  test("marks unfinished turns aborted and records warning completion", () => {
+    const store = new ChannelExecutionStore();
+    const execution = store.createExecution(username, channelId, { sessionId: "session-2" });
+    store.appendEvent(username, channelId, execution.id, { type: "execution_started" });
+    const active = store.createTurn(username, channelId, execution.id, "agent-2", 0);
+    store.finishOpenTurns(username, channelId, execution.id, "aborted", "aborted");
+    store.appendEvent(username, channelId, execution.id, { type: "execution_aborted" });
+
+    expect(store.getExecution(username, channelId, execution.id)).toMatchObject({ status: "aborted", turns: [{ id: active.id, status: "aborted", skipReason: "aborted" }] });
+
+    const warningExecution = store.createExecution(username, channelId, { sessionId: "session-3" });
+    store.appendEvent(username, channelId, warningExecution.id, { type: "execution_started" });
+    store.appendEvent(username, channelId, warningExecution.id, { type: "execution_completed", payload: { withWarnings: true, reason: "chain_limit" } });
+    expect(store.getExecution(username, channelId, warningExecution.id)).toMatchObject({ status: "completed_with_warnings", terminalReason: "chain_limit" });
+  });
 });

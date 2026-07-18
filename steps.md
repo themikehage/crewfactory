@@ -779,6 +779,7 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 ## Phase 156: Visible Execution Outcomes
 - [x] 156.1 Surface skipped, failed, aborted, and warning-completed execution events as activity separate from conversation messages
 - [x] 156.2 Verify the channel client production build
+- [x] 156.3 Rehydrate terminal execution activity from the durable log after reload
 
 
 

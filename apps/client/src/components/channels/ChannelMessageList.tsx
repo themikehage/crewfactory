@@ -196,7 +196,7 @@ export function ChannelMessageList({
   return (
     <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
       <div className="max-w-3xl mx-auto space-y-5 w-full">
-      {messages.length === 0 && !isStreaming ? (
+      {messages.length === 0 && !isStreaming && executionActivities.length === 0 ? (
         <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-3">
           <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
             <span className="text-primary font-bold text-lg">#</span>
