@@ -770,6 +770,12 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 154.4 Rebuild active channel streaming state from the durable event log after WebSocket reconnection
 - [x] 154.5 Verify execution-store test and production builds for server and client
 
+## Phase 155: Sequenced Event Bridge and Client Reducer
+- [x] 155.1 Broadcast persisted execution events only after the durable store assigns their sequence
+- [x] 155.2 Add an idempotent execution reducer keyed by execution sequence and tool lifecycle
+- [x] 155.3 Reuse the reducer for durable reconnection and live persisted-event delivery
+- [x] 155.4 Test replay deduplication and terminal tool-state preservation; verify server and client builds
+
 
 
 

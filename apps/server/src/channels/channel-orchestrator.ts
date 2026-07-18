@@ -49,7 +49,8 @@ class ChannelOrchestrator {
       const key = `${event.channelId}:${event.sessionId || "default"}`;
       const execution = this.activeExecutionIds.get(key);
       if (execution) {
-        channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, event);
+        const persisted = channelExecutionStore.appendEvent(execution.username, execution.channelId, execution.executionId, event);
+        broadcast(event.channelId, { type: "channel_execution_event", event: persisted });
       }
     });
     this.messagePublisher = createMessagePublisher(broadcast);

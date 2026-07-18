@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import type { Channel, ChannelExecution, ChannelExecutionEvent, ChannelMessage, AddMember, UpdateMember, UpdateChannel } from "shared";
 import { wsClient } from "@/lib/ws-client";
 import { useConnectionAwareEffect } from "./useConnectionAware";
+import { applyChannelExecutionEvent, emptyChannelExecutionViewState, type ChannelExecutionViewState } from "@/lib/channel-execution-reducer";
 
 
 
@@ -18,6 +19,7 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
   const [channel, setChannel] = useState<Channel | null>(null);
   const [messages, setMessages] = useState<ChannelMessage[]>([]);
   const [streamingAgents, setStreamingAgents] = useState<Record<string, StreamingAgentState>>({});
+  const executionViewRef = useRef<ChannelExecutionViewState>(emptyChannelExecutionViewState);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -106,30 +108,8 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
       if (!eventsResponse.ok) return;
       const eventData = await eventsResponse.json() as { events?: ChannelExecutionEvent[] };
       setStreamingAgents(() => {
-        const recovered: Record<string, StreamingAgentState> = {};
-        for (const event of eventData.events ?? []) {
-          if (!event.agentId) continue;
-          const payload = event.payload as Record<string, unknown>;
-          const current = recovered[event.agentId] ?? { agentId: event.agentId, text: "" };
-          if (event.type === "text_delta") {
-            recovered[event.agentId] = { ...current, text: current.text + String(payload.delta ?? "") };
-          } else if (event.type === "thinking_delta") {
-            recovered[event.agentId] = { ...current, thinking: (current.thinking ?? "") + String(payload.delta ?? "") };
-          } else if (event.type === "tool_started") {
-            const toolCallId = String(payload.toolCallId ?? "");
-            if (toolCallId) {
-              recovered[event.agentId] = { ...current, toolCalls: { ...(current.toolCalls ?? {}), [toolCallId]: { toolName: String(payload.toolName ?? "tool"), args: (payload.args as Record<string, unknown>) ?? {}, result: null, isError: false } } };
-            }
-          } else if (event.type === "tool_updated" || event.type === "tool_completed" || event.type === "tool_failed") {
-            const toolCallId = String(payload.toolCallId ?? "");
-            const existingTool = current.toolCalls?.[toolCallId];
-            if (toolCallId && existingTool) {
-              const output = event.type === "tool_updated" ? payload.partialResult : payload.result;
-              recovered[event.agentId] = { ...current, toolCalls: { ...current.toolCalls, [toolCallId]: { ...existingTool, result: { content: [{ type: "text", text: typeof output === "string" ? output : JSON.stringify(output ?? "") }], isError: event.type === "tool_failed" }, isError: event.type === "tool_failed" } } };
-            }
-          }
-        }
-        return recovered;
+        executionViewRef.current = (eventData.events ?? []).reduce(applyChannelExecutionEvent, emptyChannelExecutionViewState);
+        return executionViewRef.current.agents;
       });
     } catch (err) {
       console.error("Failed to recover durable channel streaming:", err);
@@ -180,6 +160,9 @@ export function useChannel(channelId: string | null, sessionId?: string | null) 
           if (sessionIdRef.current && newMsg.sessionId !== sessionIdRef.current) return prev;
           return [...prev, newMsg];
         });
+      } else if (data.type === "channel_execution_event" && data.event) {
+        executionViewRef.current = applyChannelExecutionEvent(executionViewRef.current, data.event as ChannelExecutionEvent);
+        setStreamingAgents(executionViewRef.current.agents);
       } else if (data.type === "channel_agent_start") {
         setStreamingAgents((prev) => ({
           ...prev,
