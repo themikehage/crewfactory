@@ -70,6 +70,16 @@ export class ChannelExecutionStore {
       : turn);
     execution.updatedAt = now; this.save(execution, username);
   }
+  recoverInterruptedExecutions(username: string, channelId: string): number {
+    let recovered = 0;
+    for (const summary of this.listExecutions(username, channelId, MAX_EXECUTIONS)) {
+      if (summary.status !== "pending" && summary.status !== "running") continue;
+      this.finishOpenTurns(username, channelId, summary.id, "aborted", "aborted");
+      this.appendEvent(username, channelId, summary.id, { type: "execution_stalled", sessionId: summary.sessionId, payload: { reason: "server_restart" } });
+      recovered++;
+    }
+    return recovered;
+  }
   private readEvents(username: string, channelId: string, executionId: string): ChannelExecutionEvent[] {
     const path = this.eventsPath(username, channelId, executionId);
     if (!existsSync(path)) return [];
@@ -85,7 +95,7 @@ export class ChannelExecutionStore {
     if (event.type === "execution_completed") { execution.status = event.payload.withWarnings === true ? "completed_with_warnings" : "completed"; execution.completedAt = now; execution.terminalReason = typeof event.payload.reason === "string" ? event.payload.reason : undefined; }
     if (event.type === "execution_aborted") { execution.status = "aborted"; execution.completedAt = now; }
     if (event.type === "execution_failed") { execution.status = "failed"; execution.completedAt = now; }
-    if (event.type === "execution_stalled") { execution.status = "stalled"; execution.completedAt = now; }
+    if (event.type === "execution_stalled") { execution.status = "stalled"; execution.completedAt = now; execution.terminalReason = typeof event.payload.reason === "string" ? event.payload.reason : undefined; }
     this.save(execution, username); return event;
   }
   getEvents(username: string, channelId: string, executionId: string, afterSequence = 0, limit = 200): ChannelExecutionEvent[] { return this.readEvents(username, channelId, executionId).filter((event) => event.sequence > afterSequence).slice(0, Math.max(1, Math.min(limit, 1000))); }

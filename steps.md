@@ -809,7 +809,7 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 ## Phase 161: Channel MVP Corrective Hardening
 - [x] 161.1 Establish the execution identity, ownership checks, and single-active-execution contract
 - [x] 161.2 Restrict the MVP scheduler to bounded sequential turn execution and explicitly isolate advanced modes
-- [ ] 161.3 Make execution/turn terminal transitions recoverable across reconnection and server restart
+- [x] 161.3 Make execution/turn terminal transitions recoverable across reconnection and server restart
 - [ ] 161.4 Rebuild the client from scoped execution snapshots and remove terminal streaming state
 - [ ] 161.5 Guard configuration mutations, normalize configuration versioning, and verify the MUST flow matrix
 

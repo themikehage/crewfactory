@@ -27,7 +27,7 @@ import { factoryRouter } from "./routes/factory";
 import { pipelinesRouter } from "./routes/pipelines";
 import { channelBenchmarksRouter } from "./routes/channel-benchmarks";
 import { approvalsRouter } from "./routes/approvals";
-import { channelStore } from "./channels";
+import { channelExecutionStore, channelStore } from "./channels";
 import { CREWFACTORY_DATA_PATH } from "shared";
 import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
@@ -101,6 +101,9 @@ try {
       .map((ent) => ent.name);
     for (const username of userDirs) {
       channelStore.cleanupOrphanBenchmarkClones(username);
+      for (const channel of channelStore.listChannels(username)) {
+        channelExecutionStore.recoverInterruptedExecutions(username, channel.id);
+      }
     }
   }
 } catch (err) {

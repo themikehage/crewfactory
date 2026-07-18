@@ -50,4 +50,15 @@ describe("ChannelExecutionStore", () => {
     store.appendEvent(username, channelId, warningExecution.id, { type: "execution_completed", payload: { withWarnings: true, reason: "chain_limit" } });
     expect(store.getExecution(username, channelId, warningExecution.id)).toMatchObject({ status: "completed_with_warnings", terminalReason: "chain_limit" });
   });
+
+  test("marks open executions stalled after a server restart", () => {
+    const store = new ChannelExecutionStore();
+    const execution = store.createExecution(username, channelId, { sessionId: "session-4" });
+    store.appendEvent(username, channelId, execution.id, { type: "execution_started" });
+    const turn = store.createTurn(username, channelId, execution.id, "agent-3", 0);
+
+    expect(store.recoverInterruptedExecutions(username, channelId)).toBe(1);
+    expect(store.getExecution(username, channelId, execution.id)).toMatchObject({ status: "stalled", terminalReason: "server_restart", turns: [{ id: turn.id, status: "aborted", skipReason: "aborted" }] });
+    expect(store.getEvents(username, channelId, execution.id).at(-1)?.type).toBe("execution_stalled");
+  });
 });
