@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, statSync, openSync, fstatSync, readSync, closeSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, CreateChannel, UpdateChannel } from "shared";
+import type { Channel, ChannelContextItem, ChannelMember, ChannelMessage, ChannelTopology, CreateChannel, UpdateChannel } from "shared";
 import { SessionPrefix, getChannelsDir } from "shared";
 
 export interface NegotiationPairState {
@@ -45,7 +45,7 @@ class ChannelStore {
       id,
       name: data.name,
       description: data.description,
-      members: [],
+      members: data.members ?? [],
       context: data.context || [],
       maxChainDepth: data.maxChainDepth ?? 5,
       showThinking: data.showThinking ?? false,
@@ -53,6 +53,7 @@ class ChannelStore {
       streamingRenderMode: data.streamingRenderMode ?? "live",
       executionProtocolEnabled: data.executionProtocolEnabled ?? true,
       executionSchedulerMode: data.executionSchedulerMode ?? "sequential",
+      topology: data.topology,
       negotiationProtocol: data.negotiationProtocol,
       delegationPattern: data.delegationPattern,
       createdAt: now,
@@ -70,7 +71,7 @@ class ChannelStore {
     if (!existsSync(jsonPath)) return null;
     try {
       const parsed = JSON.parse(readFileSync(jsonPath, "utf-8"));
-      return {
+      const channel = {
         ...parsed,
         context: parsed.context || [],
         maxChainDepth: parsed.maxChainDepth ?? 5,
@@ -79,7 +80,8 @@ class ChannelStore {
         streamingRenderMode: parsed.streamingRenderMode ?? "live",
         executionProtocolEnabled: parsed.executionProtocolEnabled ?? true,
         executionSchedulerMode: parsed.executionSchedulerMode ?? "sequential",
-      };
+      } as Channel;
+      return channel;
     } catch {
       return null;
     }
@@ -126,6 +128,7 @@ class ChannelStore {
     if (updates.streamingRenderMode !== undefined) channel.streamingRenderMode = updates.streamingRenderMode;
     if (updates.executionProtocolEnabled !== undefined) channel.executionProtocolEnabled = updates.executionProtocolEnabled;
     if (updates.executionSchedulerMode !== undefined) channel.executionSchedulerMode = updates.executionSchedulerMode;
+    if (updates.topology !== undefined) channel.topology = updates.topology;
     if (updates.negotiationProtocol !== undefined) channel.negotiationProtocol = updates.negotiationProtocol;
     if (updates.delegationPattern !== undefined) channel.delegationPattern = updates.delegationPattern;
     channel.updatedAt = new Date().toISOString();
@@ -152,6 +155,17 @@ class ChannelStore {
     channel.members = members;
     channel.updatedAt = new Date().toISOString();
 
+    writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
+    return channel;
+  }
+
+  applyTopology(username: string, id: string, topology: ChannelTopology, members: ChannelMember[]): Channel | null {
+    const channel = this.getChannel(username, id);
+    if (!channel) return null;
+    channel.topology = topology;
+    channel.executionSchedulerMode = topology.schedulerMode;
+    channel.members = members;
+    channel.updatedAt = new Date().toISOString();
     writeFileSync(this.getChannelJsonPath(username, id), JSON.stringify(channel, null, 2), "utf-8");
     return channel;
   }

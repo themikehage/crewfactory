@@ -6,7 +6,7 @@ import { getUsername } from "../lib/auth-helpers";
 import { channelExecutionStore, channelStore, channelOrchestrator } from "../channels";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
-import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema } from "shared";
+import { CreateChannelSchema, UpdateChannelSchema, AddMemberSchema, UpdateMemberSchema, ChannelTopologySchema, inferChannelTopology, previewChannelTopology, validateChannelTopology } from "shared";
 import { scopeConfigManager } from "../core/scope";
 import { eventBroker } from "../lib/event-broker";
 
@@ -53,6 +53,15 @@ channelsRouter.post("/", zValidator("json", CreateChannelSchema), (c) => {
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const data = c.req.valid("json");
+  if (data.topology) {
+    const members = data.members ?? [];
+    for (const member of members) {
+      const agent = agentRegistry.get(member.agentId);
+      if (!agent || agent.username !== username) return c.json({ error: `Agent "${member.agentId}" not registered or not owned by you` }, 400);
+    }
+    const validation = validateChannelTopology(data.topology, members, data.negotiationProtocol);
+    if (!validation.valid) return c.json({ error: "Invalid channel topology", diagnostics: validation.diagnostics }, 400);
+  }
   const channel = channelStore.createChannel(username, data);
   return c.json(channel, 201);
 });
@@ -109,6 +118,15 @@ channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
   const id = c.req.param("id");
   const data = c.req.valid("json");
 
+  const existing = channelStore.getChannel(username, id);
+  if (!existing) return c.json({ error: "Channel not found" }, 404);
+  const effectiveTopology = data.topology ?? existing.topology;
+  if (effectiveTopology) {
+    const validation = validateChannelTopology(effectiveTopology, existing.members, data.negotiationProtocol ?? existing.negotiationProtocol);
+    if (!validation.valid) return c.json({ error: "Invalid channel topology", diagnostics: validation.diagnostics }, 400);
+    if (data.topology) data.executionSchedulerMode = data.topology.schedulerMode;
+  }
+
   const arbiterAgentId = data.negotiationProtocol?.arbiterAgentId;
   if (arbiterAgentId) {
     const channel = channelStore.getChannel(username, id);
@@ -123,6 +141,59 @@ channelsRouter.patch("/:id", zValidator("json", UpdateChannelSchema), (c) => {
   const updated = channelStore.updateChannel(username, id, data);
   if (!updated) return c.json({ error: "Channel not found" }, 404);
   return c.json(updated);
+});
+
+channelsRouter.get("/:id/topology/migration", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const channel = channelStore.getChannel(username, c.req.param("id"));
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  const inferred = channel.topology ?? inferChannelTopology(channel.members, channel.negotiationProtocol);
+  const validation = validateChannelTopology(inferred, channel.members, channel.negotiationProtocol);
+  return c.json({ topology: inferred, diagnostics: validation.diagnostics, preview: previewChannelTopology(inferred), requiresReview: inferred.kind === "legacy_custom" || !validation.valid });
+});
+
+channelsRouter.get("/:id/topology/export", (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const channel = channelStore.getChannel(username, c.req.param("id"));
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  const topology = channel.topology ?? inferChannelTopology(channel.members, channel.negotiationProtocol);
+  return c.json({ schemaVersion: topology.version, topology });
+});
+
+channelsRouter.put("/:id/topology/import", zValidator("json", z.object({ topology: ChannelTopologySchema })), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const channel = channelStore.getChannel(username, c.req.param("id"));
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  const topology = c.req.valid("json").topology;
+  const validation = validateChannelTopology(topology, channel.members, channel.negotiationProtocol);
+  if (!validation.valid) return c.json({ error: "Invalid channel topology", diagnostics: validation.diagnostics }, 400);
+  return c.json(channelStore.updateChannel(username, channel.id, { topology, executionSchedulerMode: topology.schedulerMode }));
+});
+
+channelsRouter.put("/:id/topology", zValidator("json", z.object({ topology: ChannelTopologySchema })), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const channel = channelStore.getChannel(username, c.req.param("id"));
+  if (!channel) return c.json({ error: "Channel not found" }, 404);
+  const topology = c.req.valid("json").topology;
+  const memberIds = topology.assignments.map((assignment) => assignment.agentId);
+  if (new Set(memberIds).size !== memberIds.length) return c.json({ error: "Topology assignments must have unique agents" }, 400);
+  for (const agentId of memberIds) {
+    const agent = agentRegistry.get(agentId);
+    if (!agent || agent.username !== username) return c.json({ error: `Agent "${agentId}" not registered or not owned by you` }, 400);
+  }
+  const members = topology.assignments.map((assignment) => ({
+    agentId: assignment.agentId,
+    role: assignment.role === "leader" ? "lead" as const : "member" as const,
+    replyMode: topology.kind === "mention_only" ? "mention-only" as const : "user-only" as const,
+    targetAgentIds: assignment.targets,
+  }));
+  const validation = validateChannelTopology(topology, members, channel.negotiationProtocol);
+  if (!validation.valid) return c.json({ error: "Invalid channel topology", diagnostics: validation.diagnostics }, 400);
+  return c.json(channelStore.applyTopology(username, channel.id, topology, members));
 });
 
 channelsRouter.put("/:id/context", zValidator("json", z.object({ context: z.array(z.object({ key: z.string().min(1), value: z.string() })) })), (c) => {
@@ -176,6 +247,7 @@ channelsRouter.post("/:id/members", zValidator("json", AddMemberSchema), (c) => 
   const id = c.req.param("id");
   const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
+  if (channel.topology && channel.topology.kind !== "legacy_custom") return c.json({ error: "This channel uses a guided topology. Update its topology assignments in one save.", code: "topology_managed" }, 409);
 
   const data = c.req.valid("json");
   const agentEntry = agentRegistry.get(data.agentId);
@@ -216,6 +288,7 @@ channelsRouter.patch("/:id/members/:agentId", zValidator("json", UpdateMemberSch
   const agentId = c.req.param("agentId");
   const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
+  if (channel.topology && channel.topology.kind !== "legacy_custom") return c.json({ error: "This channel uses a guided topology. Update its topology assignments in one save.", code: "topology_managed" }, 409);
 
   const data = c.req.valid("json");
 
@@ -254,6 +327,7 @@ channelsRouter.delete("/:id/members/:agentId", (c) => {
   const agentId = c.req.param("agentId");
   const channel = channelStore.getChannel(username, id);
   if (!channel) return c.json({ error: "Channel not found" }, 404);
+  if (channel.topology && channel.topology.kind !== "legacy_custom") return c.json({ error: "This channel uses a guided topology. Update its topology assignments in one save.", code: "topology_managed" }, 409);
 
   const updatedMembers = channel.members.filter((m) => m.agentId !== agentId);
   const updatedChannel = channelStore.updateMembers(username, id, updatedMembers);

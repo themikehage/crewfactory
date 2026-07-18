@@ -785,6 +785,13 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 157.1 Persist `turn_completed` only after the final channel message projection is published
 - [x] 157.2 Verify server build and durable transition tests
 
+## Phase 158: Channel Topology Product Model
+- [x] 158.1 Define versioned topologies, assignments, diagnostics, migration inference, and execution previews
+- [x] 158.2 Validate and persist topology/member updates atomically through channel APIs
+- [x] 158.3 Use topology semantics and scheduler policy in channel execution and durable execution metadata
+- [x] 158.4 Provide guided channel creation and team-flow configuration UI
+- [x] 158.5 Add topology invariant tests and verify server/client builds
+
 
 
 

@@ -5,7 +5,7 @@ import { channelStore } from "../../channels";
 import { sessionManager } from "../session-manager";
 import { ExperimentStore } from "../../laboratory/experiment-store";
 import { loadSkills } from "../../ai";
-import { getProjectsDir, getWorkspaceSkillsDir } from "shared";
+import { ChannelTopologySchema, getProjectsDir, getWorkspaceSkillsDir, validateChannelTopology } from "shared";
 import { FACTORY_CONTRACTS } from "./factory-contracts";
 
 export interface FactoryToolOptions {
@@ -257,8 +257,15 @@ async function handleChannels(action: string, id: string | undefined, params: an
   if (action === "upsert") {
     if (!id) return err("id is required for upsert");
     const existing = channelStore.getChannel(username, id);
+    const topologyResult = ChannelTopologySchema.safeParse(params.topology);
+    if (!topologyResult.success) return err("topology is required and must be a valid versioned channel topology");
+    const members = params.members ?? existing?.members ?? [];
+    const validation = validateChannelTopology(topologyResult.data, members, params.negotiationProtocol ?? existing?.negotiationProtocol);
+    if (!validation.valid) return err(`Invalid channel topology: ${validation.diagnostics.filter((diagnostic) => diagnostic.severity === "error").map((diagnostic) => diagnostic.message).join(" ")}`);
     if (existing) {
-      const updated = channelStore.updateChannel(username, id, {
+      const updated = channelStore.applyTopology(username, id, topologyResult.data, members);
+      if (!updated) return err(`Channel "${id}" not found`);
+      const metadata = channelStore.updateChannel(username, id, {
         name: params.name,
         description: params.description,
         context: params.context,
@@ -269,16 +276,14 @@ async function handleChannels(action: string, id: string | undefined, params: an
         negotiationProtocol: params.negotiationProtocol,
         delegationPattern: params.delegationPattern,
       });
-      if (params.members) {
-        channelStore.updateMembers(username, id, params.members);
-      }
-      return ok(`Channel "${id}" updated`, { entity: "channels", id, status: "updated", data: updated });
+      return ok(`Channel "${id}" updated`, { entity: "channels", id, status: "updated", data: metadata });
     }
     const channel = channelStore.createChannel(username, {
       id,
       name: params.name,
       description: params.description ?? "",
       members: params.members ?? [],
+      topology: topologyResult.data,
       context: params.context,
       maxChainDepth: params.maxChainDepth,
       showThinking: params.showThinking,

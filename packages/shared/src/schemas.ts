@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { ChannelTopologySchema } from "./channel-topology";
 
 export const LoginSchema = z.object({
   username: z.string().min(3).max(50),
@@ -277,6 +278,7 @@ export const ChannelSchema = z.object({
   streamingRenderMode: z.enum(["live", "complete"]).optional(),
   executionProtocolEnabled: z.boolean().optional(),
   executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
+  topology: ChannelTopologySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   createdAt: z.string(),
@@ -288,6 +290,7 @@ export type Channel = z.infer<typeof ChannelSchema>;
 export const CreateChannelSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
+  members: z.array(ChannelMemberSchema).optional(),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
   showThinking: z.boolean().optional(),
@@ -295,6 +298,7 @@ export const CreateChannelSchema = z.object({
   streamingRenderMode: z.enum(["live", "complete"]).optional(),
   executionProtocolEnabled: z.boolean().optional(),
   executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
+  topology: ChannelTopologySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),
@@ -311,6 +315,7 @@ export const UpdateChannelSchema = z.object({
   streamingRenderMode: z.enum(["live", "complete"]).optional(),
   executionProtocolEnabled: z.boolean().optional(),
   executionSchedulerMode: ChannelSchedulerModeSchema.optional(),
+  topology: ChannelTopologySchema.optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   delegationPattern: DelegationPatternSchema.optional(),
   blueprintId: z.string().optional(),

@@ -5,22 +5,26 @@ import { useChannels } from "@/hooks/useChannels";
 import { ChannelCard } from "@/components/channels/ChannelCard";
 import { ChannelMembersModal } from "@/components/channels/ChannelMembersModal";
 import { ChannelContextModal } from "@/components/channels/ChannelContextModal";
-import type { Channel, ChannelMember, AgentInfo, AddMember, UpdateMember, CreateChannel, ChannelContextItem } from "shared";
+import { CHANNEL_TOPOLOGY_VERSION, type Channel, type ChannelMember, type ChannelTopologyKind, type AgentInfo, type AddMember, type UpdateMember, type CreateChannel, type ChannelContextItem } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChannelsPage.literals";
 import { Button } from "@/components/ui/Button";
 
 function CreateChannelModal({
   onClose,
-  onCreate}: {
+  onCreate,
+  availableAgents}: {
   onClose: () => void;
   onCreate: (data: CreateChannel) => Promise<void>;
+  availableAgents: AgentInfo[];
 }) {
   const l = useLiterals(u);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [kind, setKind] = useState<Exclude<ChannelTopologyKind, "legacy_custom">>("leader_specialists");
+  const [selectedAgentIds, setSelectedAgentIds] = useState<string[]>([]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -28,7 +32,11 @@ function CreateChannelModal({
     setError(null);
     setSubmitting(true);
     try {
-      await onCreate({ name: name.trim(), description: description.trim() || undefined });
+      const members = selectedAgentIds.map((agentId, order) => ({ agentId, role: kind === "leader_specialists" || kind === "sequential_review" ? (order === 0 ? "lead" as const : "member" as const) : "member" as const, replyMode: kind === "mention_only" ? "mention-only" as const : "user-only" as const }));
+      const assignments = selectedAgentIds.map((agentId, order) => ({ agentId, role: kind === "leader_specialists" || kind === "sequential_review" ? (order === 0 ? "leader" as const : kind === "leader_specialists" ? "specialist" as const : "reviewer" as const) : kind === "roundtable" ? "peer" as const : kind === "debate_with_arbiter" && order === selectedAgentIds.length - 1 ? "arbiter" as const : kind === "debate_with_arbiter" ? "position" as const : "participant" as const, targets: [], order }));
+      const first = selectedAgentIds[0];
+      const arbiter = assignments.find((assignment) => assignment.role === "arbiter")?.agentId;
+      await onCreate({ name: name.trim(), description: description.trim() || undefined, members, topology: { version: CHANNEL_TOPOLOGY_VERSION, kind, schedulerMode: kind === "leader_specialists" ? "leader-gated" : "sequential", entryPointAgentId: kind === "roundtable" || kind === "mention_only" ? undefined : first, terminalOwnerAgentId: kind === "leader_specialists" ? first : kind === "debate_with_arbiter" ? arbiter : selectedAgentIds[selectedAgentIds.length - 1], arbiterAgentId: arbiter, assignments }, negotiationProtocol: kind === "debate_with_arbiter" ? { agreementPattern: "(AGREEMENT|ACUERDO)", maxRounds: 3, arbiterAgentId: arbiter } : undefined });
       onClose();
     } catch (err: any) {
       setError(err.message || l.createError);
@@ -51,6 +59,17 @@ function CreateChannelModal({
           <div>
             <h2 className="text-sm font-semibold text-foreground">{l.emptyButton}</h2>
             <p className="text-xs text-muted-foreground mt-0.5">Start a new multi-agent conversation space</p>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Team flow</label>
+            <select value={kind} onChange={(event) => setKind(event.target.value as Exclude<ChannelTopologyKind, "legacy_custom">)} className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground">
+              <option value="leader_specialists">Leader & specialists</option><option value="sequential_review">Sequential review</option><option value="roundtable">Roundtable</option><option value="debate_with_arbiter">Debate with arbiter</option><option value="mention_only">Mention only</option>
+            </select>
+          </div>
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">Team members</label>
+            <div className="max-h-32 space-y-1 overflow-y-auto rounded-lg border border-input p-2">{availableAgents.map((agent) => <label key={agent.id} className="flex items-center gap-2 text-xs text-foreground"><input type="checkbox" checked={selectedAgentIds.includes(agent.id)} onChange={(event) => setSelectedAgentIds((current) => event.target.checked ? [...current, agent.id] : current.filter((id) => id !== agent.id))} /><span>{agent.name}</span></label>)}</div>
           </div>
           <button onClick={onClose} className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors">
             <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
@@ -91,7 +110,7 @@ function CreateChannelModal({
             <Button variant="outline" type="button" onClick={onClose} className="flex-1">
               Cancel
             </Button>
-            <Button type="submit" disabled={submitting || !name.trim()} className="flex-1">
+            <Button type="submit" disabled={submitting || !name.trim() || selectedAgentIds.length === 0 || (kind === "debate_with_arbiter" && selectedAgentIds.length < 3)} className="flex-1">
               {submitting ? l.creating : l.createChannel}
             </Button>
           </div>
@@ -290,6 +309,7 @@ export function ChannelsPage({ onNavigate, onSelectChannel }: Props) {
                 onNavigate(`/channel/${ch.id}`);
               }
             }}
+            availableAgents={registeredAgents}
           />
         )}
       </AnimatePresence>

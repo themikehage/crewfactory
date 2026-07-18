@@ -1,7 +1,7 @@
 import { channelStore } from "./channel-store";
 import { channelExecutionStore } from "./channel-execution-store";
 import { agentRegistry } from "../agents";
-import { type Channel, type ChannelMember, type ChannelMessage } from "shared";
+import { type Channel, type ChannelMember, type ChannelMessage, type ChannelTopology } from "shared";
 import { AgentWorkQueue } from "./agent-work-queue";
 import type { DispatchResult } from "./agent-work-queue";
 import {
@@ -160,7 +160,7 @@ class ChannelOrchestrator {
     if (!channel) throw new Error("Channel not found");
 
     if (channel.executionProtocolEnabled !== false) {
-      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId, schedulerMode: channel.executionSchedulerMode ?? "sequential" });
+      const execution = channelExecutionStore.createExecution(username, channelId, { sessionId, schedulerMode: channel.topology?.schedulerMode ?? channel.executionSchedulerMode ?? "sequential", topologyVersion: channel.topology?.version });
       this.activeExecutionIds.set(key, { username, channelId, executionId: execution.id });
       channelExecutionStore.appendEvent(username, channelId, execution.id, { type: "execution_started", sessionId });
     }
@@ -192,7 +192,9 @@ class ChannelOrchestrator {
     });
     this.activeChains.set(key, { count: 0, resolve: resolveChain });
 
-    const isBroadcastChannel = channel.members.some((m) => m.replyMode === "broadcast");
+    const isBroadcastChannel = !channel.topology || channel.topology.kind === "legacy_custom"
+      ? channel.members.some((m) => m.replyMode === "broadcast")
+      : false;
 
     if (isBroadcastChannel) {
       this.incrementChain(key);
@@ -206,7 +208,7 @@ class ChannelOrchestrator {
     } else {
       this.incrementChain(key);
       Promise.resolve()
-        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal, channel.executionSchedulerMode === "parallel"))
+        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal, (channel.topology?.schedulerMode ?? channel.executionSchedulerMode) === "parallel"))
         .catch((err) => {
           console.error(`[ChannelOrchestrator] Non-broadcast dispatch error:`, err);
         })
@@ -440,11 +442,14 @@ class ChannelOrchestrator {
     this.consecutiveSilentRounds.set(key, 0);
 
     if (negResult.action === "continue") {
-      await this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal, channel.executionSchedulerMode === "parallel");
+      await this.runDispatchRound(username, channelId, result.agentMsg, depth + 1, signal, (channel.topology?.schedulerMode ?? channel.executionSchedulerMode) === "parallel");
     }
   }
 
   private resolveRecipients(channel: Channel, incomingMsg: ChannelMessage): ChannelMember[] {
+    if (channel.topology && channel.topology.kind !== "legacy_custom") {
+      return this.resolveTopologyRecipients(channel, channel.topology, incomingMsg);
+    }
     const mentioned = incomingMsg.mentions ?? [];
     const recipientSet = new Set<string>();
     const result: ChannelMember[] = [];
@@ -485,6 +490,26 @@ class ChannelOrchestrator {
       return lead ? [lead] : result;
     }
     return result;
+  }
+
+  private resolveTopologyRecipients(channel: Channel, topology: ChannelTopology, incomingMsg: ChannelMessage): ChannelMember[] {
+    const byId = new Map(channel.members.map((member) => [member.agentId, member]));
+    const ordered = [...topology.assignments].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+    const select = (ids: string[]) => ids.flatMap((id) => byId.get(id) ? [byId.get(id)!] : []);
+    if (topology.kind === "mention_only") return select(incomingMsg.mentions ?? []);
+    if (topology.kind === "roundtable") return incomingMsg.role === "user" ? select(ordered.map((assignment) => assignment.agentId)) : [];
+    if (topology.kind === "debate_with_arbiter") return incomingMsg.role === "user"
+      ? select(ordered.filter((assignment) => assignment.role === "position").map((assignment) => assignment.agentId))
+      : [];
+    if (topology.kind === "sequential_review") {
+      if (incomingMsg.role === "user") return select([topology.entryPointAgentId ?? ordered[0]?.agentId].filter(Boolean));
+      const index = ordered.findIndex((assignment) => assignment.agentId === incomingMsg.agentId);
+      return index >= 0 ? select([ordered[index + 1]?.agentId].filter(Boolean)) : [];
+    }
+    if (incomingMsg.role === "user") return select([topology.entryPointAgentId].filter(Boolean));
+    if (incomingMsg.agentId === topology.entryPointAgentId) return select(ordered.filter((assignment) => assignment.role === "specialist").map((assignment) => assignment.agentId));
+    if (incomingMsg.agentId !== topology.terminalOwnerAgentId) return select([topology.terminalOwnerAgentId].filter(Boolean));
+    return [];
   }
 
   private async runSequentialBroadcastLoop(

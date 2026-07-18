@@ -1,9 +1,10 @@
 import { useState, useEffect, useMemo } from "react";
 import { motion } from "framer-motion";
-import type { Channel } from "shared";
+import type { Channel, ChannelTopology } from "shared";
 import { useLiterals } from "@/lib";
 import { apiFetch } from "@/lib/api";
 import { literals as u } from "./ChannelSettingsModal.literals";
+import { ChannelTopologyEditor } from "./ChannelTopologyEditor";
 
 interface Props {
   channel: Channel;
@@ -17,12 +18,14 @@ interface Props {
     streamingRenderMode?: "live" | "complete";
     negotiationProtocol?: any;
     delegationPattern?: any;
+    topology?: ChannelTopology;
   }) => Promise<void>;
 }
 
 export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const l = useLiterals(u);
-  const [activeTab, setActiveTab] = useState<"general" | "negotiation">("general");
+  const [activeTab, setActiveTab] = useState<"general" | "topology" | "negotiation">("general");
+  const [topology, setTopology] = useState<ChannelTopology | undefined>(channel.topology);
 
   const [name, setName] = useState(channel.name);
   const [description, setDescription] = useState(channel.description || "");
@@ -130,6 +133,17 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
     }
 
     try {
+      if (topology) {
+        const topologyResponse = await apiFetch(`/api/channels/${channel.id}/topology`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ topology }),
+        });
+        if (!topologyResponse.ok) {
+          const body = await topologyResponse.json().catch(() => null) as { error?: string } | null;
+          throw new Error(body?.error || "Unable to save team flow");
+        }
+      }
       await onSave({
         name: name.trim(),
         description: description.trim() || undefined,
@@ -189,6 +203,13 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
             }`}
           >
             {l.tabGeneral}
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveTab("topology")}
+            className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition-colors ${activeTab === "topology" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}
+          >
+            Team flow
           </button>
           <button
             type="button"
@@ -289,6 +310,8 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
                 </div>
               </div>
             )}
+
+            {activeTab === "topology" && <ChannelTopologyEditor channel={channel} value={topology} onChange={setTopology} />}
 
             {activeTab === "negotiation" && (
               <div className="space-y-4">

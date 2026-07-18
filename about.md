@@ -1,6 +1,7 @@
 # CrewFactory
 
 ## Channel Production Hardening Roadmap
+- Channel configuration now has a versioned topology contract with five guided collaboration patterns, structural diagnostics, execution previews, atomic topology/member updates, import/export APIs, and a product-level team-flow editor. New channel setup selects a topology and participants rather than raw reply modes.
 - The channel audit identifies four coordinated plans: a completed durable execution protocol, validated team topologies, governed layered prompts, and verification/rollout controls. They are documented in `plans/COMPLETED/channel-execution-protocol.md`, `plans/channel-topology-product-model.md`, `plans/channel-prompt-governance.md`, and `plans/channel-production-verification-rollout.md`.
 - The roadmap stabilizes execution ordering, event durability, and recovery before altering collaboration defaults or expanding the channel UX.
 - The first execution-protocol foundation is available: shared execution/turn/event contracts, atomic channel execution snapshots, sequenced durable event logs, and read-only execution/event APIs. Legacy channel scheduling and rendering remain unchanged until the next phases.
