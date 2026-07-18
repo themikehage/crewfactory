@@ -54,6 +54,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [state-of-the-art-2026.md](./state-of-the-art-2026.md) — Estado del arte de plataformas AI agenticas (Cursor, Devin Desktop, Claude Code, Copilot, Codex) con 14 funcionalidades priorizadas para CrewFactory
 - [sandboxing.md](./sandboxing.md) — Sandboxing profesional: Permission Engine, Docker sandbox, Network Proxy, Secret Filter, Resource Limits, UI de configuracion
+- [areas-of-opportunity.md](./areas-of-opportunity.md) — Analisis detallado de brechas, mejoras y oportunidades estrategicas (26 areas) basado en comparacion con A2A Protocol y auditoria del sistema de canales actual. Cubre: interoperabilidad, escalabilidad, seguridad, negociacion, robustez, observabilidad y ecosistema.
 
 ### Performance
 
@@ -106,6 +107,10 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [channel-benchmarks.md](./channel-benchmarks.md) — Benchmarks sobre canales EXISTENTES. Invierte el flujo actual: el canal es el origen, no el destino. Permite validar y optimizar canales reales comparando multi-agente vs single-agent.
 - [fix-channel-delegation-bugs.md](./fix-channel-delegation-bugs.md) — Quick fixes B1-B4: race condition en delegacion a canal, avatares rotos, tools invisibles, redireccion fuera del canal.
+
+### Observability
+
+- [session-observability.md](./session-observability.md) — Plan de observabilidad de sesiones: metadata enriquecida, busqueda/filtrado server-side, exportacion individual, dashboard de analitica, observabilidad de canal, archivo/soft-delete, timeline visual y auditoria. 8 fases.
 
 
 ## Completados (76)

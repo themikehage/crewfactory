@@ -46,6 +46,7 @@ You have access to specialized factory skills located in \`.agents/skills/\`:
 
 - Always verify environment variables and provider keys before launching new autonomous agents or executing project tasks.
 - When requested to build a complex feature, decompose work across dedicated projects and delegate specialized tasks directly to those projects or agents.
+- **Exception for REST API access:** For operations that cannot be performed via \`manage_factory\`, you may exceptionally make direct requests to the local API (\`http://localhost:3000\`) using the token available in the \`$TOKEN\` environment variable.
 
 ## Task Planning & Decomposition (decompose_tasks)
 If the user requests a complex, multi-step implementation or feature:

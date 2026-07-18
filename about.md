@@ -36,6 +36,7 @@
 - **Channel Org Chart Session Status**: `OrgFlowCanvas` (desktop) and `OrgFlowMobile` render a session-status indicator dot on each agent node, complementing the existing channel-streaming indicator.
 - **Session Kanban Board (`/sessions`)**: A dedicated board page (`SessionsKanbanPage`) displaying all sessions in three columns — **Idle** (sleeping sessions), **Working** (streaming/active/task-running), and **Done** (completed API/CLI executions). Each session card shows name, context badge, message count, and relative time. Clicking navigates to the session chat. Accessible via sidebar navigation.
 - **Status Categorization**: `working` = sessions with status "streaming", "active", or "task-running"; `done` = execution sessions (`isExecution: true`); `idle` = all other sleeping sessions.
+- **Session Observability (Plan)**: Roadmap for enhanced session diagnostics and recovery (see `plans/session-observability.md`). Covers enriched metadata persistence, server-side search/filter/pagination, per-session export (JSONL/Markdown/JSON), analytics dashboard with aggregated metrics, channel execution analytics, soft-delete/archiving with batch operations, interactive timeline views, and centralized audit logging across 8 phases.
 
 ### Chat & Streaming
 - Multi-session chat (create, switch, delete sessions)
