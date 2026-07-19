@@ -7,6 +7,7 @@ interface MobileBottomBarProps {
   onSelectProject?: (projectId: string | null, projectName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
+  onSelectTeam?: (team: { id: string; name: string } | null) => void;
   setSidebarOpen: (open: boolean) => void;
 }
 
@@ -17,6 +18,7 @@ export function MobileBottomBar({
   onSelectProject,
   onSelectAgent,
   onSelectChannel,
+  onSelectTeam,
   setSidebarOpen,
 }: MobileBottomBarProps) {
   const tabs = [
@@ -33,6 +35,7 @@ export function MobileBottomBar({
       if (onSelectProject) onSelectProject(null, null);
       if (onSelectAgent) onSelectAgent(null);
       if (onSelectChannel) onSelectChannel(null);
+      if (onSelectTeam) onSelectTeam(null);
       onNavigate("/");
     } else if (tabId === "skills") {
       onNavigate("/skills");

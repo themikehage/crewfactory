@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 
 export interface NavigationStackItem {
   type: "home" | "context" | "admin";
-  contextType?: "project" | "agent" | "channel";
+  contextType?: "project" | "agent" | "channel" | "team";
   contextId?: string;
   contextName?: string;
   page?: string;

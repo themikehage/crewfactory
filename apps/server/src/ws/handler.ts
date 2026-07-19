@@ -2,6 +2,7 @@ import type { WSContext } from "hono/ws";
 import { wsRegistry, startHeartbeat } from "./registry";
 import { setAgentStopCallback } from "../agents/agent-stop-callback";
 import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
+import { teamOrchestrator, setTeamBroadcastHandler } from "../teams";
 import { setEventBroadcaster } from "../lib/event-broker";
 
 setAgentStopCallback((agentId) => {
@@ -13,6 +14,7 @@ startHeartbeat();
 export const sessionSockets = wsRegistry.sessionSockets;
 export const userSockets = wsRegistry.userSockets;
 export const channelSockets = wsRegistry.channelSockets;
+export const teamSockets = wsRegistry.teamSockets;
 
 interface ChannelInterceptor {
   channelId: string;
@@ -88,7 +90,22 @@ export function broadcastToSession(sessionId: string, data: any): void {
   }
 }
 
+export function broadcastToTeam(teamId: string, data: any): void {
+  const sockets = wsRegistry.teamSockets.get(teamId);
+  if (sockets) {
+    const payload = JSON.stringify(data);
+    for (const ws of sockets) {
+      try {
+        ws.send(payload);
+      } catch (err) {
+        console.error("[WS] broadcastToTeam ws.send failed:", err);
+      }
+    }
+  }
+}
+
 setChannelBroadcastHandler(broadcastToChannel);
+setTeamBroadcastHandler(broadcastToTeam);
 setEventBroadcaster(broadcastToUser);
 
 import { setWsHandlerBridge } from "../core/agent-utils";
@@ -153,6 +170,7 @@ export function onClose(evt: any, _ws: WSContext, forcedWsId?: string | null) {
       if (user) wsRegistry.removeUserSocket(user.username, _ws);
       if (meta.sessionId) wsRegistry.removeSessionSocket(meta.sessionId, _ws);
       if (meta.channelId) wsRegistry.removeChannelSocket(meta.channelId, _ws);
+      if (meta.teamId) wsRegistry.removeTeamSocket(meta.teamId, _ws);
       wsRegistry.deleteMeta(wsId);
       return;
     }

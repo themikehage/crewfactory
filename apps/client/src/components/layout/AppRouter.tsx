@@ -19,8 +19,11 @@ import { WorkspacePanel } from "@/components/workspace/WorkspacePanel";
 import { ChatArea } from "@/components/chat/ChatArea";
 import { DelegationsPanel } from "@/components/chat/DelegationsPanel";
 import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
+import { TeamChatArea } from "@/components/teams/TeamChatArea";
 import { PreviewPanel } from "@/components/preview/PreviewPanel";
 import { DashboardPage } from "@/pages/DashboardPage";
+import { TeamsPage } from "@/pages/TeamsPage";
+import { TeamDetailPage } from "@/pages/TeamDetailPage";
 import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
 import { SessionsProvider } from "@/contexts/SessionsContext";
 import { useRouter } from "@/hooks/useRouter";
@@ -63,6 +66,15 @@ export function AppRouter() {
   const [activeChannel, setActiveChannel] = useState<{ id: string; name: string } | null>(() => {
     try {
       const stored = localStorage.getItem("active-channel");
+      return stored ? JSON.parse(stored) : null;
+    } catch {
+      return null;
+    }
+  });
+
+  const [activeTeam, setActiveTeam] = useState<{ id: string; name: string } | null>(() => {
+    try {
+      const stored = localStorage.getItem("active-team");
       return stored ? JSON.parse(stored) : null;
     } catch {
       return null;
@@ -309,6 +321,16 @@ export function AppRouter() {
           path: r.sessionId ? `/channels/${activeChannel.id}/session/${r.sessionId}` : `/channels/${activeChannel.id}/chat`,
         };
       }
+      if (activeTeam) {
+        return {
+          type: "context",
+          contextType: "team",
+          contextId: activeTeam.id,
+          contextName: activeTeam.name,
+          page: "chat",
+          path: r.sessionId ? `/teams/${activeTeam.id}/session/${r.sessionId}` : `/teams/${activeTeam.id}/chat`,
+        };
+      }
       return {
         type: "home",
         page: "chat",
@@ -317,9 +339,9 @@ export function AppRouter() {
     }
 
     if (isWorkspace) {
-      const cType = activeProjectId ? "project" : activeAgent ? "agent" : activeChannel ? "channel" : undefined;
-      const cId = activeProjectId || activeAgent?.id || activeChannel?.id || undefined;
-      const cName = activeProjectFriendlyName || activeAgent?.name || activeChannel?.name || undefined;
+      const cType = activeProjectId ? "project" : activeAgent ? "agent" : activeChannel ? "channel" : activeTeam ? "team" : undefined;
+      const cId = activeProjectId || activeAgent?.id || activeChannel?.id || activeTeam?.id || undefined;
+      const cName = activeProjectFriendlyName || activeAgent?.name || activeChannel?.name || activeTeam?.name || undefined;
       return {
         type: "context",
         contextType: cType,
@@ -332,7 +354,9 @@ export function AppRouter() {
             ? `/agents/${activeAgent.id}/workspace`
             : activeChannel
               ? `/channels/${activeChannel.id}/workspace`
-              : "/workspace",
+              : activeTeam
+                ? `/teams/${activeTeam.id}/workspace`
+                : "/workspace",
       };
     }
 
@@ -363,7 +387,7 @@ export function AppRouter() {
       page: r.page,
       path: `/${r.page}`,
     };
-  }, [activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel]);
+  }, [activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam]);
 
   useEffect(() => {
     const item = routeToStackItem(route);
@@ -425,17 +449,20 @@ export function AppRouter() {
     const routeProject = "projectName" in route ? route.projectName : null;
     const routeAgent = "agentId" in route ? route.agentId : null;
     const routeChannel = "channelId" in route ? route.channelId : null;
+    const routeTeam = "teamId" in route ? route.teamId : null;
 
     if (routeProject && routeProject !== activeProjectId) {
       localStorage.setItem("active-project-id", routeProject);
       localStorage.setItem("active-project-name", routeProject);
       localStorage.removeItem("active-agent");
       localStorage.removeItem("active-channel");
+      localStorage.removeItem("active-team");
       localStorage.setItem("has-context", "true");
       setActiveProjectId(routeProject);
       setActiveProjectFriendlyName(routeProject);
       setActiveAgent(null);
       setActiveChannel(null);
+      setActiveTeam(null);
       setHasContext(true);
     } else if (routeAgent && (!activeAgent || activeAgent.id !== routeAgent)) {
       const agentObj = { id: routeAgent, name: routeAgent };
@@ -443,11 +470,13 @@ export function AppRouter() {
       localStorage.removeItem("active-project-id");
       localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-channel");
+      localStorage.removeItem("active-team");
       localStorage.setItem("has-context", "true");
       setActiveAgent(agentObj);
       setActiveProjectId(null);
       setActiveProjectFriendlyName(null);
       setActiveChannel(null);
+      setActiveTeam(null);
       setHasContext(true);
     } else if (routeChannel && (!activeChannel || activeChannel.id !== routeChannel)) {
       const channelObj = { id: routeChannel, name: routeChannel };
@@ -455,14 +484,53 @@ export function AppRouter() {
       localStorage.removeItem("active-project-id");
       localStorage.removeItem("active-project-name");
       localStorage.removeItem("active-agent");
+      localStorage.removeItem("active-team");
       localStorage.setItem("has-context", "true");
       setActiveChannel(channelObj);
       setActiveProjectId(null);
       setActiveProjectFriendlyName(null);
       setActiveAgent(null);
+      setActiveTeam(null);
+      setHasContext(true);
+    } else if (routeTeam && (!activeTeam || activeTeam.id !== routeTeam)) {
+      const teamObj = { id: routeTeam, name: routeTeam };
+      localStorage.setItem("active-team", JSON.stringify(teamObj));
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
+      localStorage.removeItem("active-agent");
+      localStorage.removeItem("active-channel");
+      localStorage.setItem("has-context", "true");
+      setActiveTeam(teamObj);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
+      setActiveAgent(null);
+      setActiveChannel(null);
       setHasContext(true);
     }
-  }, [route, activeProjectId, activeAgent, activeChannel]);
+  }, [route, activeProjectId, activeAgent, activeChannel, activeTeam]);
+
+  const handleSelectTeam = useCallback((team: { id: string; name: string } | null) => {
+    if (team === null) {
+      localStorage.removeItem("active-team");
+      setActiveTeam(null);
+      setHasContext(false);
+      navigate("/");
+    } else {
+      localStorage.setItem("active-team", JSON.stringify(team));
+      localStorage.removeItem("active-project-id");
+      localStorage.removeItem("active-project-name");
+      localStorage.removeItem("active-agent");
+      localStorage.removeItem("active-channel");
+      localStorage.setItem("has-context", "true");
+      setActiveTeam(team);
+      setActiveProjectId(null);
+      setActiveProjectFriendlyName(null);
+      setActiveAgent(null);
+      setActiveChannel(null);
+      setHasContext(true);
+      navigate(`/teams/${team.id}/chat`);
+    }
+  }, [navigate]);
 
   const handleSelectProject = useCallback((projectId: string | null, projectName: string | null) => {
     if (projectId === null) {
@@ -564,9 +632,11 @@ export function AppRouter() {
         activeProjectId={activeProjectId}
         activeAgent={route.page === "laboratory" && !route.experimentId ? { id: "lab-architect", name: "Lab Architect" } : activeAgent}
         activeChannel={activeChannel}
+        activeTeam={activeTeam}
         onSelectProject={handleSelectProject}
         onSelectAgent={handleSelectAgent}
         onSelectChannel={handleSelectChannel}
+        onSelectTeam={handleSelectTeam}
         isMobile={isMobileState.isMobile}
         canGoBack={navigationStack.canGoBack}
         onBack={handleBack}
@@ -670,27 +740,35 @@ export function AppRouter() {
         {route.page === "channel" && (
           <ChannelDetailPage channelId={route.channelId} onNavigate={navigate} />
         )}
+        {route.page === "team" && (
+          <TeamDetailPage teamId={route.teamId} onNavigate={navigate} />
+        )}
         {route.page === "org" && (
           <ChannelOrgPage channelId={route.channelId} onNavigate={navigate} />
         )}
         {route.page === "benchmark" && (
           <ChannelBenchmarkPage channelId={route.channelId} onNavigate={navigate} />
         )}
+        {route.page === "teams" && (
+          <TeamsPage />
+        )}
         {route.page === "delegations" && (
           <DelegationsPanel
-            key={`${route.sessionId}-${activeProjectId}-${activeAgent?.id}-${activeChannel?.id}`}
+            key={`${route.sessionId}-${activeProjectId}-${activeAgent?.id}-${activeChannel?.id}-${activeTeam?.id}`}
             sessionId={route.sessionId}
             activeProjectName={activeProjectId}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
+            activeTeam={activeTeam}
           />
         )}
         {route.page === "workspace" && (
           <WorkspacePanel
-            key={activeProjectId || activeAgent?.id || activeChannel?.id || "global"}
+            key={activeProjectId || activeAgent?.id || activeChannel?.id || activeTeam?.id || "global"}
             activeProjectName={activeProjectId}
             activeAgentId={activeAgent?.id}
             activeChannelId={activeChannel?.id}
+            activeTeamId={activeTeam?.id}
           />
         )}
         {route.page === "chat" && (
@@ -698,6 +776,12 @@ export function AppRouter() {
             <ChannelChatArea
               key={`${route.sessionId}-${activeChannel.id}`}
               activeChannel={activeChannel}
+              sessionId={route.sessionId}
+            />
+          ) : activeTeam ? (
+            <TeamChatArea
+              key={`${route.sessionId}-${activeTeam.id}`}
+              activeTeam={activeTeam}
               sessionId={route.sessionId}
             />
           ) : (

@@ -1,18 +1,20 @@
 import { useState, useEffect, useCallback } from "react";
 
 export type Route =
-  | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
-  | { page: "delegations"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null }
+  | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null; teamId?: string | null }
+  | { page: "delegations"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null; teamId?: string | null }
   | { page: "projects" }
   | { page: "settings" }
   | { page: "skills" }
-  | { page: "workspace"; projectName?: string | null; agentId?: string | null; channelId?: string | null }
+  | { page: "workspace"; projectName?: string | null; agentId?: string | null; channelId?: string | null; teamId?: string | null }
   | { page: "preview"; projectName?: string | null }
   | { page: "agents" }
   | { page: "channels" }
   | { page: "channel"; channelId: string }
   | { page: "org"; channelId: string }
   | { page: "benchmark"; channelId: string }
+  | { page: "teams" }
+  | { page: "team"; teamId: string }
   | { page: "logs" }
   | { page: "laboratory"; experimentId?: string | null; sessionId?: string | null }
   | { page: "mcps" }
@@ -107,6 +109,31 @@ function parseRoute(): Route {
     return { page: "chat", sessionId: null, channelId };
   }
 
+  // Formato: /teams/{teamId}/...
+  if (path.startsWith("/teams/")) {
+    const parts = path.slice("/teams/".length).split("/");
+    const teamId = parts[0];
+    const subPage = parts[1];
+
+    if (subPage === "session") {
+      const remaining = parts.slice(2);
+      if (remaining[remaining.length - 1] === "delegations") {
+        const sessionId = remaining.slice(0, -1).join("/");
+        return { page: "delegations", sessionId: sessionId || null, teamId };
+      }
+      const sessionId = remaining.join("/");
+      return { page: "chat", sessionId: sessionId || null, teamId };
+    }
+    if (subPage === "delegations") {
+      return { page: "delegations", sessionId: null, teamId };
+    }
+    if (subPage === "workspace") {
+      return { page: "workspace", teamId };
+    }
+    // Default
+    return { page: "chat", sessionId: null, teamId };
+  }
+
   // Formato global heredado y otras páginas fijas
   if (path.startsWith("/session/")) {
     const remaining = path.slice("/session/".length);
@@ -121,6 +148,10 @@ function parseRoute(): Route {
     const id = path.slice("/channel/".length);
     return { page: "channel", channelId: id };
   }
+  if (path.startsWith("/team/")) {
+    const id = path.slice("/team/".length);
+    return { page: "team", teamId: id };
+  }
   if (path === "/projects") return { page: "projects" };
   if (path === "/settings") return { page: "settings" };
   if (path === "/skills") return { page: "skills" };
@@ -128,6 +159,7 @@ function parseRoute(): Route {
   if (path === "/preview") return { page: "preview" };
   if (path === "/agents") return { page: "agents" };
   if (path === "/channels") return { page: "channels" };
+  if (path === "/teams") return { page: "teams" };
   if (path === "/logs") return { page: "logs" };
   if (path === "/mcps") return { page: "mcps" };
   if (path === "/plugins") return { page: "plugins" };

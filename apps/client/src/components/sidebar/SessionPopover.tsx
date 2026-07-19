@@ -30,6 +30,7 @@ interface Props {
   activeProjectFriendlyName?: string | null;
   activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
   onSelectSession: (id: string) => void;
   onNewSession: (id: string) => void;
 }
@@ -49,6 +50,7 @@ export function SessionPopover({
   activeProjectFriendlyName = null,
   activeAgent,
   activeChannel,
+  activeTeam = null,
   onSelectSession,
   onNewSession,
 }: Props) {
@@ -104,19 +106,19 @@ export function SessionPopover({
   const [showExecutions, setShowExecutions] = useState(false);
 
   const filteredSessions = useMemo(() => {
-    const predicate = getSessionContextPredicate({ activeChannel, activeAgent, activeProjectName });
+    const predicate = getSessionContextPredicate({ activeChannel, activeTeam, activeAgent, activeProjectName });
     return sessions.filter((s) => {
       const isExec = getSessionMeta(s.id).isExecution || (s as any).isExecution;
       if (isExec && !showExecutions) return false;
       return predicate(s);
     });
-  }, [sessions, activeProjectName, activeAgent, activeChannel, showExecutions]);
+  }, [sessions, activeProjectName, activeAgent, activeChannel, activeTeam, showExecutions]);
 
   const createSession = useCallback(async () => {
     setCreating(true);
     try {
       const sessionName = getSessionName(
-        { activeChannel, activeAgent, activeProjectName, activeProjectFriendlyName },
+        { activeChannel, activeTeam, activeAgent, activeProjectName, activeProjectFriendlyName },
         filteredSessions.length
       );
 
@@ -127,6 +129,7 @@ export function SessionPopover({
         },
         body: JSON.stringify(buildCreateSessionBody(sessionName, {
           activeChannel,
+          activeTeam,
           activeAgent,
           activeProjectName,
         })),
@@ -142,7 +145,7 @@ export function SessionPopover({
     } finally {
       setCreating(false);
     }
-  }, [filteredSessions.length, activeProjectName, activeAgent, activeChannel, onNewSession, sessions]);
+  }, [filteredSessions.length, activeProjectName, activeAgent, activeChannel, activeTeam, onNewSession, sessions]);
 
   const deleteSession = useCallback(
     async (id: string) => {
@@ -154,14 +157,14 @@ export function SessionPopover({
       setSessions(remaining);
 
       const filteredRemaining = remaining.filter(
-        getSessionContextPredicate({ activeChannel, activeAgent, activeProjectName })
+        getSessionContextPredicate({ activeChannel, activeTeam, activeAgent, activeProjectName })
       );
 
       if (activeSessionId === id) {
         onSelectSession(filteredRemaining[0]?.id ?? "");
       }
     },
-    [activeSessionId, onSelectSession, sessions, activeProjectName, activeAgent, activeChannel]
+    [activeSessionId, onSelectSession, sessions, activeProjectName, activeAgent, activeChannel, activeTeam]
   );
 
   const handleDeleteClick = useCallback((e: React.MouseEvent, id: string) => {
@@ -182,10 +185,11 @@ export function SessionPopover({
 
   const contextLabel = useMemo(() => {
     if (activeChannel) return `#${activeChannel.name}`;
+    if (activeTeam) return `#${activeTeam.name}`;
     if (activeAgent) return activeAgent.name;
     if (activeProjectFriendlyName) return activeProjectFriendlyName;
     return l.contextGlobal;
-  }, [activeChannel, activeAgent, activeProjectFriendlyName]);
+  }, [activeChannel, activeTeam, activeAgent, activeProjectFriendlyName]);
 
   if (!isOpen) return null;
 

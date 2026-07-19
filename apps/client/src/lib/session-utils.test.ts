@@ -127,6 +127,7 @@ describe("session-utils", () => {
         isDelegation: false,
         isLab: false,
         isChannelExecution: false,
+        isTeamExecution: false,
       });
     });
 
@@ -135,6 +136,7 @@ describe("session-utils", () => {
       expect(meta.isReadOnly).toBe(true);
       expect(meta.isExecution).toBe(true);
       expect(meta.isChannelExecution).toBe(false);
+      expect(meta.isTeamExecution).toBe(false);
     });
 
     it("handles channel exec sessions", () => {
@@ -142,6 +144,15 @@ describe("session-utils", () => {
       expect(meta.isReadOnly).toBe(true);
       expect(meta.isExecution).toBe(true);
       expect(meta.isChannelExecution).toBe(true);
+      expect(meta.isTeamExecution).toBe(false);
+    });
+
+    it("handles team exec sessions", () => {
+      const meta = getSessionMeta("exec_123_team_456");
+      expect(meta.isReadOnly).toBe(true);
+      expect(meta.isExecution).toBe(true);
+      expect(meta.isChannelExecution).toBe(false);
+      expect(meta.isTeamExecution).toBe(true);
     });
 
     it("handles subagent sessions", () => {

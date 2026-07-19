@@ -50,9 +50,11 @@ interface Props {
   activeProjectId?: string | null;
   activeAgent: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
   onSelectProject?: (projectId: string | null, projectName: string | null) => void;
   onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
   onSelectChannel?: (channel: { id: string; name: string } | null) => void;
+  onSelectTeam?: (team: { id: string; name: string } | null) => void;
   children: ReactNode;
   isMobile?: boolean;
   canGoBack?: boolean;
@@ -67,9 +69,11 @@ export function MainLayout({
   activeProjectId = null,
   activeAgent,
   activeChannel = null,
+  activeTeam = null,
   onSelectProject,
   onSelectAgent,
   onSelectChannel,
+  onSelectTeam,
   children,
   isMobile = false,
   canGoBack = false,
@@ -304,6 +308,7 @@ export function MainLayout({
             activeProjectFriendlyName={activeProjectName}
             activeAgent={activeAgent}
             activeChannel={activeChannel}
+            activeTeam={activeTeam}
             onSelectSession={handleSelectSession}
             onNewSession={handleNewSession}
           />
@@ -330,11 +335,13 @@ export function MainLayout({
       activeProjectName={activeProjectId}
       activeAgent={activeAgent}
       activeChannel={activeChannel}
+      activeTeam={activeTeam}
       currentPage={route.page}
       onNavigate={onNavigate}
       onSelectProject={onSelectProject}
       onSelectAgent={onSelectAgent}
       onSelectChannel={onSelectChannel}
+      onSelectTeam={onSelectTeam}
       selectedExpId={lab?.selectedExpId}
       isMobile={isMobile}
       onCloseSidebar={() => setSidebarOpen(false)}
@@ -395,6 +402,7 @@ export function MainLayout({
                 onSelectProject={onSelectProject}
                 onSelectAgent={onSelectAgent}
                 onSelectChannel={onSelectChannel}
+                onSelectTeam={onSelectTeam}
                 setSidebarOpen={setSidebarOpen}
               />
             )}

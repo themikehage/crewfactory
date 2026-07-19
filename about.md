@@ -329,6 +329,14 @@
 - **Hierarchical Roles & Interactive Org Chart (@xyflow/react)**: Channel members can be assigned hierarchical roles (`lead`, `senior`, `member`, `observer`). Displays Lead indicators in card previews and handles visualization as a primary first-level tab next to Chat. It features an interactive, high-performance visual canvas powered by `@xyflow/react` with custom node configurations, dynamic edge routing animations, fit-view/zoom controls, and minimap navigation on desktop. In mobile viewports, it falls back to a clean grouping card list layout. Clicking/tapping any agent node opens a sliding panel (desktop) or a bottom-sheet (mobile) containing editing selectors (role, replyMode, targeted partners), skills tags, and real-time streaming of current agent activity (thinking logs, output tokens, and active tool calls).
 - **Cascading Membership Cleanup & Orphan Validation**: Deleting an agent cascades to remove its membership and target tags across all user channels on the server. Reads dynamically filter out deleted agent IDs, and the client displays warning badges, dashed red borders, and detailed panels for "missing" orphan agents to ensure robust workspace validation.
 
+### Multi-Agent Stateless Debate Teams (`teamId`) & Negotiation
+- **Collaborative Debate Spaces**: Multi-agent stateless team spaces with isolated workspaces at `/tmp/crewfactory/{username}/teams/{teamId}/workspace` and append-only message logs (`messages.jsonl`), fully isolated per user.
+- **Parallel Stateless Round Loop**: Parallel execution (`Promise.all`) of active debater members using `streamSimple` to query model configurations. Accumulates rounds as stateless text contexts (JSONL) preventing memory contamination of target agent histories.
+- **Auto-Negotiation & Consensus Detection**: Consensus evaluation using Regex expressions (e.g. `(ACUERDO ALCANZADO:|ACEPTO)`). If all active members align in consensus, the debate terminates early. If max rounds are reached without agreement, the debate escalates to an Arbiter Agent (`arbiterAgentId`) to deliver a binding arbitrage resolution.
+- **Hierarchical Roles**: Roster composition with `lead` (designated Arbiter), `member` (active debater), and `observer` (silent listener). Individual output modes per agent: `full-proposal` (forces full report outputs), `diff-suggestion` (forces code/text diff output), and `normal` (conversational response).
+- **WS Event Streaming**: Real-time websocket streaming of thinking tokens and message deltas using specialized `team_send`, `team_join`, `team_abort`, and `team_*` events.
+- **Management Modals & Detailed Canvas**: Collapsible `TeamMembersPanel`, configuration `TeamSettingsModal` to adjust agreement/veto regexes, and listing dashboard `TeamsPage` next to interactive chat console `TeamDetailPage`.
+
 ### Multi-Variant Agent Benchmarking Laboratory (`experimentId`)
 - **Decoupled Architecture**: No hardcoding or concrete project coupling. Standardized blueprints loaded dynamically from JSON configurations (`apps/server/src/laboratory/blueprints/`).
 - **Sequential Multi-Variant Runs**: Executes three variants sequentially to prevent rate limits:
@@ -444,6 +452,7 @@
 | GET | /api/sessions/projects/:projectName/executions | List saved execution logs for the project |
 | GET | /api/sessions/projects/:projectName/executions/:execId | Retrieve detail logs of a specific project execution |
 | GET/POST/PATCH/DELETE | /api/channels | Channel CRUD, member management (`/members`), context variables (`PUT /:id/context`), abort execution (`POST /:id/abort`), message dispatch (`/send`) |
+| GET/POST/PATCH/DELETE | /api/teams | Team CRUD, member management (`/members`), settings updates, and message dispatches (`/send`, `/:id/abort`) |
 | GET/POST | /api/mcp | Retrieve and update the full Model Context Protocol (MCP) server configuration settings |
 | GET | /api/mcp/catalog | Retrieve the official marketplace pre-curated collection of servers |
 | GET | /api/mcp/servers | Retrieve the list of all configured user servers |
@@ -498,6 +507,11 @@ packages/shared/  Shared Zod schemas and types
 - `routes/mcp.ts` — REST endpoints for MCP catalog, server configs management, manual connections, testing, and status queries.
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
 - `routes/channels.ts` — REST endpoints for channel CRUD, member administration, and message dispatch.
+- `routes/teams.ts` — REST endpoints for team CRUD, member administration, and message dispatch.
+- `teams/team-store.ts` — Filesystem store for team definitions and message logs.
+- `teams/team-prompt-runner.ts` — Stateless agent prompt runner executing direct models.
+- `teams/team-negotiation.ts` — Consensus checking and arbiter resolution builder.
+- `teams/team-orchestrator.ts` — Parallel execution round and consensus loop orchestrator.
 - `ws/factory.ts` — Factory creating closure-captured WS connection contexts (`crypto.randomUUID()` id, no `ws.wsId` mutation). Handles cookie auth via `auth.api.getSession` + fallback sync lookup, pong tracking, prompt auto-subscribe transactionally, channel join/send, and UI approvals. Uses structured logger.
 - `ws/registry.ts` — Singleton registry managing `userSockets`, `sessionSockets`, `channelSockets` Maps and per-connection meta (`missedPings`, `sessionId`, `channelId`) with explicit cleanup, no global counter, no raw object mutation.
 - `ws/logger.ts` — Structured logger for WS layer with levelled `info/warn/error/debug` and contextual `wsId/username/sessionId`.
@@ -522,12 +536,23 @@ packages/shared/  Shared Zod schemas and types
 - `components/channels/ChannelMessageList.tsx` — Multi-agent message list with agent badges, avatars, and RichMarkdown.
 - `components/channels/ChannelMembersModal.tsx` — Floating modal for member management and targeted agent selection.
 - `components/channels/ChannelContextModal.tsx` — Floating modal for managing key-value channel context variables.
+- `components/teams/TeamChatArea.tsx` — Dedicated container for stateless debate teams WS streaming.
+- `components/teams/TeamMessages.tsx` — Render messages timeline for teams.
+- `components/teams/TeamMessageList.tsx` — Debater and Arbiter messages list rendering.
+- `components/teams/TeamCard.tsx` — Preview cards for Teams list screen.
+- `components/teams/TeamSettingsModal.tsx` — Modal managing team parameters and regex-based thresholds.
+- `components/teams/TeamMembersModal.tsx` — Modal managing team members, roles, and output modes.
+- `components/teams/TeamMembersPanel.tsx` — Sliding panel for team members in chat dashboard.
+- `pages/TeamsPage.tsx` — Stateless debate teams CRUD dashboard.
+- `pages/TeamDetailPage.tsx` — Detailed workspace chat and console panel for teams.
 - `lib/ws-client.ts` — **Singleton WebSocket client** shared across the entire app. Handles cookie-based auth (no localStorage fallback), type-keyed event dispatch, exponential-backoff reconnect, bounded offline queue (max 50, drops oldest with warning, `isConnected()` guard), and `session_subscribe` protocol. Uses singleton for `preview_status`/`preview_build_log` to avoid second WS connection. Replaces the per-hook WS connections that previously caused 3 simultaneous connections.
 - `hooks/useWebSocket.ts` — Thin React wrapper over `wsClient`. Sends `session_subscribe` on connect via `useConnectionAwareEffect` with dedup and exposes `send`/`subscribe` + `connected` for offline banner.
 - `hooks/useConnectionAware.ts` — Reentrant hook implementing "send now + replay on reconnect" with `useRef` wrapper, dep-key dedup (JSON.stringify), `wasConnected` tracking, and `hasRunForCurrentDeps` guard to prevent duplicate handlers on StrictMode remount.
 - `components/preview/PreviewPanel.tsx` — Live preview using dedicated preview server (3001) for origin isolation, now reusing `wsClient` singleton for `preview_status`/`preview_build_log` instead of separate `new WebSocket()`.
 - `hooks/useSessionStatusWs.ts` — Pure hook subscribing to `session_status` events via `wsClient`. No module-level mutable state.
 - `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
+- `hooks/useTeam.ts` — Team data + WS event hook. Uses `wsClient.subscribe("*")` and filters by teamId/sessionId locally.
+- `hooks/useTeams.ts` — CRUD list manager hook for Teams.
 - `hooks/useRouter.ts` — Custom routing hook. Emits a global `popstate` event on pushState navigation to automatically sync independent hook states across SPA components.
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection. Features reactive validation to automatically resolve fallback models in both frontend (`localStorage`) and backend session states when a selected provider key is disconnected.
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).

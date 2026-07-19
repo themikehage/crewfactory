@@ -764,6 +764,78 @@ export const ChannelBenchmarkRunSchema = z.object({
 });
 export type ChannelBenchmarkRun = z.infer<typeof ChannelBenchmarkRunSchema>;
 
+// --- TEAMS SCHEMAS ---
+export const TeamTypeSchema = z.enum(["Orchestration", "Negotiation"]);
+export type TeamType = z.infer<typeof TeamTypeSchema>;
+
+export const TeamModeSchema = z.enum(["debate"]);
+export type TeamMode = z.infer<typeof TeamModeSchema>;
+
+export const TeamRoleSchema = z.enum(["lead", "member", "observer"]);
+export type TeamRole = z.infer<typeof TeamRoleSchema>;
+
+export const TeamMemberSchema = z.object({
+  agentId: z.string(),
+  role: TeamRoleSchema.default("member"),
+  outputMode: z.enum(["full-proposal", "diff-suggestion", "normal"]).optional(),
+});
+export type TeamMember = z.infer<typeof TeamMemberSchema>;
+
+export const TeamSchema = z.object({
+  id: z.string(),
+  name: z.string(),
+  description: z.string().optional(),
+  mode: TeamModeSchema.default("debate"),
+  teamType: TeamTypeSchema.default("Negotiation"),
+  members: z.array(TeamMemberSchema),
+  maxRounds: z.number().int().min(1).max(20).default(5),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
+  negotiationProtocol: NegotiationProtocolSchema.optional(),
+  createdAt: z.string(),
+  updatedAt: z.string(),
+  blueprintId: z.string().optional(),
+});
+export type Team = z.infer<typeof TeamSchema>;
+
+export const CreateTeamSchema = z.object({
+  name: z.string().min(1).max(100),
+  description: z.string().optional(),
+  mode: TeamModeSchema.default("debate").optional(),
+  teamType: TeamTypeSchema.default("Negotiation").optional(),
+  members: z.array(TeamMemberSchema).optional(),
+  maxRounds: z.number().int().min(1).max(20).default(5).optional(),
+  showThinking: z.boolean().optional(),
+  showTools: z.boolean().optional(),
+  negotiationProtocol: NegotiationProtocolSchema.optional(),
+  blueprintId: z.string().optional(),
+});
+export type CreateTeam = z.infer<typeof CreateTeamSchema>;
+
+export const UpdateTeamSchema = CreateTeamSchema.partial();
+export type UpdateTeam = z.infer<typeof UpdateTeamSchema>;
+
+export const TeamMessageRoleSchema = z.enum(["user", "agent", "system"]);
+export type TeamMessageRole = z.infer<typeof TeamMessageRoleSchema>;
+
+export const TeamMessageSchema = z.object({
+  id: z.string(),
+  teamId: z.string(),
+  sessionId: z.string().optional(),
+  role: TeamMessageRoleSchema,
+  agentId: z.string().optional(),
+  agentName: z.string().optional(),
+  content: z.string(),
+  thinking: z.string().optional(),
+  toolCalls: z.array(z.any()).optional(),
+  mentions: z.array(z.string()).optional(),
+  tokensIn: z.number().optional(),
+  tokensOut: z.number().optional(),
+  createdAt: z.string(),
+});
+export type TeamMessage = z.infer<typeof TeamMessageSchema>;
+
+
 
 
 

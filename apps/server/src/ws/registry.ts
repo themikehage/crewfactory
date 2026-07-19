@@ -7,6 +7,7 @@ export interface WsSocketMeta {
   user?: AuthPayload;
   sessionId?: string;
   channelId?: string;
+  teamId?: string;
   missedPings: number;
 }
 
@@ -23,6 +24,7 @@ class WsRegistry {
   userSockets = new Map<string, Set<WSContext>>();
   sessionSockets = new Map<string, Set<WSContext>>();
   channelSockets = new Map<string, Set<WSContext>>();
+  teamSockets = new Map<string, Set<WSContext>>();
   private userById = new Map<string, AuthPayload>();
 
   createMeta(wsId: string, ws: WSContext): WsSocketMeta {
@@ -140,6 +142,23 @@ class WsRegistry {
     if (set) {
       set.delete(ws);
       if (set.size === 0) this.channelSockets.delete(channelId);
+    }
+  }
+
+  addTeamSocket(teamId: string, ws: WSContext): void {
+    let set = this.teamSockets.get(teamId);
+    if (!set) {
+      set = new Set();
+      this.teamSockets.set(teamId, set);
+    }
+    set.add(ws);
+  }
+
+  removeTeamSocket(teamId: string, ws: WSContext): void {
+    const set = this.teamSockets.get(teamId);
+    if (set) {
+      set.delete(ws);
+      if (set.size === 0) this.teamSockets.delete(teamId);
     }
   }
 

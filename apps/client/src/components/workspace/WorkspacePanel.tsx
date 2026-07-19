@@ -9,9 +9,10 @@ interface Props {
   activeProjectName: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  activeTeamId?: string | null;
 }
 
-export function WorkspacePanel({ activeProjectName, activeAgentId = null, activeChannelId = null }: Props) {
+export function WorkspacePanel({ activeProjectName, activeAgentId = null, activeChannelId = null, activeTeamId = null }: Props) {
   const [files, setFiles] = useState<FileInfo[]>([]);
   const [selectedFile, setSelectedFile] = useState<FileInfo | null>(null);
   const [expandedPaths, setExpandedPaths] = useState<Set<string>>(new Set());
@@ -24,16 +25,17 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
   const [pendingDeletePath, setPendingDeletePath] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  // Helper centralizado para construir las URLs con scoping de repositorio/agente/canal
+  // Helper centralizado para construir las URLs con scoping de repositorio/agente/canal/equipo
   const getWorkspaceUrl = useCallback((path: string) => {
     const base = `/api/workspace/${path}`;
     const params = new URLSearchParams();
     if (activeProjectName) params.append("project", activeProjectName);
     if (activeAgentId) params.append("agentId", activeAgentId);
     if (activeChannelId) params.append("channelId", activeChannelId);
+    if (activeTeamId) params.append("teamId", activeTeamId);
     const query = params.toString();
     return query ? `${base}?${query}` : base;
-  }, [activeProjectName, activeAgentId, activeChannelId]);
+  }, [activeProjectName, activeAgentId, activeChannelId, activeTeamId]);
 
   // Helper for auth headers
   

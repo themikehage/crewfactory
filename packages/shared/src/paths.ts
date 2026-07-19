@@ -15,6 +15,7 @@ export const WORKSPACE_DIR = "workspace";
 export const PROJECTS_DIR = "projects";
 export const AGENTS_DIR = "agents";
 export const CHANNELS_DIR = "channels";
+export const TEAMS_DIR = "teams";
 export const SESSIONS_DIR = "sessions";
 export const EXPERIMENTS_DIR = "experiments";
 export const MEMORIES_DIR = "memories";
@@ -83,6 +84,22 @@ export function getChannelWorkspaceDir(username: string, channelId: string): str
 
 export function getChannelMemoriesDir(username: string, channelId: string): string {
   return join(getChannelDir(username, channelId), MEMORIES_DIR);
+}
+
+export function getTeamsDir(username: string): string {
+  return join(getUserDir(username), TEAMS_DIR);
+}
+
+export function getTeamDir(username: string, teamId: string): string {
+  return join(getTeamsDir(username), teamId);
+}
+
+export function getTeamWorkspaceDir(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), WORKSPACE_DIR);
+}
+
+export function getTeamMemoriesDir(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), MEMORIES_DIR);
 }
 
 export function getSessionsDir(username: string): string {
@@ -187,6 +204,14 @@ export function getChannelMemoryDbPath(username: string, channelId: string): str
   return join(getChannelMemoriesDir(username, channelId), "memory.db");
 }
 
+export function getTeamMessagesPath(username: string, teamId: string): string {
+  return join(getTeamDir(username, teamId), "messages.jsonl");
+}
+
+export function getTeamMemoryDbPath(username: string, teamId: string): string {
+  return join(getTeamMemoriesDir(username, teamId), "memory.db");
+}
+
 export function ensureUserDir(username: string): string {
   const dir = getUserDir(username);
   if (!existsSync(dir)) {
@@ -220,6 +245,7 @@ export function ensureAllDirs(username: string): void {
     getProjectsDir(username),
     getSessionsDir(username),
     getChannelsDir(username),
+    getTeamsDir(username),
     getExperimentsDir(username),
     getPipelinesDir(username),
     getWorkspaceSkillsDir(username),

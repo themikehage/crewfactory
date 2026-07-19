@@ -12,6 +12,7 @@ import { sessionManager } from "../core/session-manager";
 import { SessionPrefix, getSessionMetadataPath } from "shared";
 import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-watcher";
 import { channelOrchestrator } from "../channels";
+import { teamOrchestrator } from "../teams";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
 import { approvalManager } from "../core/approvals/approval-manager";
 
@@ -46,6 +47,10 @@ async function subscribeWsToSession(
   if (meta?.channelId) {
     wsRegistry.removeChannelSocket(meta.channelId, ws);
     wsRegistry.updateMeta(wsId, { channelId: undefined });
+  }
+  if (meta?.teamId) {
+    wsRegistry.removeTeamSocket(meta.teamId, ws);
+    wsRegistry.updateMeta(wsId, { teamId: undefined });
   }
   if (meta?.sessionId && meta.sessionId !== sessionId) {
     wsRegistry.removeSessionSocket(meta.sessionId, ws);
@@ -250,6 +255,10 @@ export function createWsContext(): WsConnectionContext {
 
     if (meta?.channelId) {
       wsRegistry.removeChannelSocket(meta.channelId, meta.ws ?? _ws);
+    }
+
+    if (meta?.teamId) {
+      wsRegistry.removeTeamSocket(meta.teamId, meta.ws ?? _ws);
     }
 
     wsRegistry.deleteMeta(id);
@@ -576,6 +585,49 @@ export function createWsContext(): WsConnectionContext {
         const sessionId = data.sessionId as string | undefined;
         if (channelId) {
           channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
+        }
+        return;
+      }
+
+      if (data.type === "team_join") {
+        const teamId = data.teamId as string;
+        if (!teamId) return;
+
+        wsRegistry.clearUnsub(id);
+
+        const meta = wsRegistry.getMeta(id);
+        if (meta?.sessionId) {
+          wsRegistry.removeSessionSocket(meta.sessionId, ws);
+          wsRegistry.updateMeta(id, { sessionId: undefined });
+        }
+        if (meta?.teamId && meta.teamId !== teamId) {
+          wsRegistry.removeTeamSocket(meta.teamId, ws);
+        }
+        wsRegistry.updateMeta(id, { teamId });
+        wsRegistry.addTeamSocket(teamId, ws);
+        safeSend(ws, JSON.stringify({ type: "team_joined", teamId }));
+        return;
+      }
+
+      if (data.type === "team_send") {
+        const teamId = data.teamId as string;
+        const message = data.message as string;
+        const sessionId = data.sessionId as string | undefined;
+        if (teamId && message) {
+          teamOrchestrator
+            .dispatchUserMessage(user.username, teamId, message, sessionId)
+            .catch((err) => {
+              wsLogger.error("Error dispatching team message", { error: err });
+            });
+        }
+        return;
+      }
+
+      if (data.type === "team_abort") {
+        const teamId = data.teamId as string;
+        const sessionId = data.sessionId as string | undefined;
+        if (teamId) {
+          teamOrchestrator.abortDispatch(user.username, teamId, sessionId);
         }
         return;
       }

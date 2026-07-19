@@ -1,5 +1,6 @@
 export interface SessionContext {
   activeChannel?: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
   activeAgent?: { id: string; name: string } | null;
   activeProjectName?: string | null;
   activeProjectFriendlyName?: string | null;
@@ -10,50 +11,59 @@ export interface CreateSessionBody {
   projectName?: string;
   agentId?: string;
   channelId?: string;
+  teamId?: string;
 }
 
 export function buildCreateSessionBody(
   sessionName: string,
   context: SessionContext
 ): CreateSessionBody {
-  const { activeChannel, activeAgent, activeProjectName } = context;
+  const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
   return {
     name: sessionName,
-    projectName: activeAgent || activeChannel ? undefined : activeProjectName || undefined,
-    agentId: activeChannel ? undefined : activeAgent ? activeAgent.id : undefined,
+    projectName: activeAgent || activeChannel || activeTeam ? undefined : activeProjectName || undefined,
+    agentId: activeChannel || activeTeam ? undefined : activeAgent ? activeAgent.id : undefined,
     channelId: activeChannel ? activeChannel.id : undefined,
+    teamId: activeTeam ? activeTeam.id : undefined,
   };
 }
 
 export function getSessionContextPredicate(
   context: SessionContext
-): (session: { projectName?: string; agentId?: string; channelId?: string; experimentId?: string }) => boolean {
-  const { activeChannel, activeAgent, activeProjectName } = context;
+): (session: { projectName?: string; agentId?: string; channelId?: string; teamId?: string; experimentId?: string }) => boolean {
+  const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
   return (session) => {
     if (activeChannel) {
       return session.channelId === activeChannel.id;
     }
+    if (activeTeam) {
+      return session.teamId === activeTeam.id;
+    }
     if (activeAgent) {
       if (activeAgent.id === "lab-architect") {
-        return session.agentId === "lab-architect" && !session.experimentId && !session.channelId;
+        return session.agentId === "lab-architect" && !session.experimentId && !session.channelId && !session.teamId;
       }
-      return session.agentId === activeAgent.id && !session.channelId;
+      return session.agentId === activeAgent.id && !session.channelId && !session.teamId;
     }
     if (activeProjectName) {
       return (
         session.projectName === activeProjectName &&
         !session.agentId &&
-        !session.channelId
+        !session.channelId &&
+        !session.teamId
       );
     }
-    return !session.projectName && !session.agentId && !session.channelId;
+    return !session.projectName && !session.agentId && !session.channelId && !session.teamId;
   };
 }
 
 export function getSessionPath(sessionId: string, context: SessionContext): string {
-  const { activeChannel, activeAgent, activeProjectName } = context;
+  const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
   if (activeChannel) {
     return `/channels/${activeChannel.id}/session/${sessionId}`;
+  }
+  if (activeTeam) {
+    return `/teams/${activeTeam.id}/session/${sessionId}`;
   }
   if (activeAgent) {
     if (activeAgent.id === "lab-architect") {
@@ -68,11 +78,14 @@ export function getSessionPath(sessionId: string, context: SessionContext): stri
 }
 
 export function getSessionName(context: SessionContext, count?: number): string {
-  const { activeChannel, activeAgent, activeProjectName, activeProjectFriendlyName } = context;
+  const { activeChannel, activeTeam, activeAgent, activeProjectName, activeProjectFriendlyName } = context;
   const suffix = count !== undefined ? ` ${count + 1}` : "";
 
   if (activeChannel) {
     return `#${activeChannel.name} - Session${suffix}`;
+  }
+  if (activeTeam) {
+    return `#${activeTeam.name} - Session${suffix}`;
   }
   if (activeAgent) {
     return `${activeAgent.name} - Session${suffix}`;
@@ -93,6 +106,7 @@ export interface SessionMeta {
   isDelegation: boolean;
   isLab: boolean;
   isChannelExecution: boolean;
+  isTeamExecution: boolean;
 }
 
 export function getSessionMeta(sessionId: string | null): SessionMeta {
@@ -104,6 +118,7 @@ export function getSessionMeta(sessionId: string | null): SessionMeta {
       isDelegation: false,
       isLab: false,
       isChannelExecution: false,
+      isTeamExecution: false,
     };
   }
 
@@ -112,6 +127,7 @@ export function getSessionMeta(sessionId: string | null): SessionMeta {
   const isDelegation = sessionId.startsWith("del_");
   const isLab = sessionId.startsWith("lab_");
   const isChannelExecution = isExecution && sessionId.includes("_channel_");
+  const isTeamExecution = isExecution && sessionId.includes("_team_");
 
   return {
     isReadOnly: isExecution,
@@ -120,5 +136,6 @@ export function getSessionMeta(sessionId: string | null): SessionMeta {
     isDelegation,
     isLab,
     isChannelExecution,
+    isTeamExecution,
   };
 }

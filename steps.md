@@ -754,5 +754,15 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 151.5 Crear pruebas unitarias en `channel-debate.test.ts` y validar que compila y pasa con éxito
 - [x] 151.6 Actualizar la documentación del sistema en `steps.md` y `about.md`
 
-
+## Phase 152: Stateless Debate Teams (Resolución de Conflictos)
+- [x] 152.1 Registrar esquemas de `Team`, `TeamMember`, `TeamMessage` en `packages/shared/src/schemas.ts` y paths en `paths.ts`
+- [x] 152.2 Implementar persistencia de disco `team-store.ts` y ejecución de prompt stateless `team-prompt-runner.ts`
+- [x] 152.3 Implementar `team-negotiation.ts` para consensos/vetos y `team-orchestrator.ts` para loops paralelos de debate y arbitraje
+- [x] 152.4 Definir endpoints CRUD en `routes/teams.ts` e integrar sockets WebSocket (`team_join`, `team_send`, `team_abort`) en servidor
+- [x] 152.5 Crear hooks cliente `useTeam.ts` y `useTeams.ts` para suscripciones reactivas y WebSocket streaming
+- [x] 152.6 Desarrollar componentes cliente (`TeamChatArea`, `TeamMessages`, `TeamMessageList`, `TeamCard`, `TeamSettingsModal`, `TeamMembersModal`, `TeamMembersPanel`) en `@/components/teams/`
+- [x] 152.7 Desarrollar páginas cliente (`TeamsPage`, `TeamDetailPage`) en `@/pages/`
+- [x] 152.8 Integrar rutas del equipo en `useRouter.ts` y navegación en `AppRouter.tsx`, `MainLayout.tsx` y `SessionSidebar.tsx`
+- [x] 152.9 Adaptar test specs en `session-utils.test.ts` y verificar builds limpios de monorepo compilando exitosamente
+- [x] 152.10 Actualizar documentación de arquitectura en `about.md` y `steps.md`
 
