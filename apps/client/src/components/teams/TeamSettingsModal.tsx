@@ -14,6 +14,7 @@ interface Props {
     maxRounds?: number;
     showThinking?: boolean;
     showTools?: boolean;
+    streamingEnabled?: boolean;
     negotiationProtocol?: any;
   }) => Promise<void>;
 }
@@ -27,6 +28,7 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
   const [maxRounds, setMaxRounds] = useState(team.maxRounds ?? 5);
   const [showThinking, setShowThinking] = useState(team.showThinking ?? false);
   const [showTools, setShowTools] = useState(team.showTools ?? false);
+  const [streamingEnabled, setStreamingEnabled] = useState(team.streamingEnabled ?? true);
   const teamType = team.teamType || "Negotiation";
   const isNegotiation = teamType === "Negotiation";
 
@@ -110,6 +112,7 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
         maxRounds: Number(maxRounds),
         showThinking,
         showTools,
+        streamingEnabled,
         negotiationProtocol,
       });
       onClose();
@@ -240,6 +243,16 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
                       className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
                     />
                     <span>{l.showTools}</span>
+                  </label>
+
+                  <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
+                    <input
+                      type="checkbox"
+                      checked={streamingEnabled}
+                      onChange={(e) => setStreamingEnabled(e.target.checked)}
+                      className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
+                    />
+                    <span>{l.streamingEnabled}</span>
                   </label>
                 </div>
               </div>

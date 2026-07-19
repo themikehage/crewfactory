@@ -259,11 +259,13 @@ export class TeamOrchestrator {
       if (activeMembers.length === 0) return;
 
       const agentNameMap = buildAgentNameMap(team.members as any);
-      const recentHistory = teamStore.getMessages(username, teamId, 40, initialMsg.sessionId);
 
-      // Run all active agents in parallel
-      const roundPromises = activeMembers.map((member) =>
-        this.promptRunner.runStateless(
+      // Run agents sequentially so only one streams at a time
+      const activeResults: { agentMsg: TeamMessage }[] = [];
+      for (const member of activeMembers) {
+        if (signal.aborted || this.abortedDispatches.has(key)) return;
+        const recentHistory = teamStore.getMessages(username, teamId, 40, initialMsg.sessionId);
+        const res = await this.promptRunner.runStateless(
           username,
           teamId,
           member,
@@ -271,33 +273,30 @@ export class TeamOrchestrator {
           recentHistory,
           agentNameMap,
           signal
-        )
-      );
+        );
+        if (res.agentMsg) {
+          activeResults.push(res as { agentMsg: TeamMessage });
+          // Update currentIncomingMsg so each next agent receives the prior agent's response
+          currentIncomingMsg = res.agentMsg;
+          // Publish each response immediately
+          teamStore.appendMessage(username, teamId, res.agentMsg);
+          broadcast(teamId, {
+            type: "team_message",
+            teamId,
+            sessionId: initialMsg.sessionId,
+            message: res.agentMsg,
+            eventType: "agent_message",
+          });
+        }
+      }
 
-      const results = await Promise.all(roundPromises);
       if (signal.aborted || this.abortedDispatches.has(key)) return;
-
-      const activeResults = results.filter((r) => r.agentMsg !== null) as { agentMsg: TeamMessage }[];
 
       if (activeResults.length === 0) {
         console.log(`[TeamOrchestrator] All agents silent in team debate round ${round}. Stopping.`);
         return;
       }
 
-      // Publish responses
-      for (const res of activeResults) {
-        teamStore.appendMessage(username, teamId, res.agentMsg);
-        broadcast(teamId, {
-          type: "team_message",
-          teamId,
-          sessionId: initialMsg.sessionId,
-          message: res.agentMsg,
-          eventType: "agent_message",
-        });
-      }
-
-      const lastResult = activeResults[activeResults.length - 1];
-      currentIncomingMsg = lastResult.agentMsg;
 
       // Evaluate consensus / divergence
       let stopLoop = false;

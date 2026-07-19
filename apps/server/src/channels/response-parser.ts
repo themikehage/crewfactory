@@ -79,14 +79,31 @@ export function parseAgentResponse(
     }
   }
 
+  let cleanContent = trimmed;
+
+  // If the LLM returned structured content blocks (array), extract clean text
+  // from only the 'text' type blocks — ignoring any tool call output mixed into the stream buffer.
+  if (lastMsg && Array.isArray(lastMsg.content) && lastMsg.content.some((b: any) => b.type === "toolCall")) {
+    const textFromBlocks = lastMsg.content
+      .filter((b: any) => b.type === "text" && b.text)
+      .map((b: any) => b.text as string)
+      .join("\n")
+      .trim();
+    if (textFromBlocks) {
+      cleanContent = channel.showThinking ? textFromBlocks : stripThinkBlocks(textFromBlocks);
+    } else {
+      cleanContent = "";
+    }
+  }
+
   return {
-    content: trimmed,
+    content: cleanContent,
     stripped,
     thinking: finalThinking || "",
     toolCalls: finalToolCalls,
     tokensIn,
     tokensOut,
-    isSilent,
+    isSilent: cleanContent ? isSilentContent(cleanContent) : isSilent,
   };
 }
 

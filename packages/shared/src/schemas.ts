@@ -793,6 +793,7 @@ export const TeamSchema = z.object({
   maxRounds: z.number().int().min(1).max(20).default(5),
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
+  streamingEnabled: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
@@ -809,6 +810,7 @@ export const CreateTeamSchema = z.object({
   maxRounds: z.number().int().min(1).max(20).default(5).optional(),
   showThinking: z.boolean().optional(),
   showTools: z.boolean().optional(),
+  streamingEnabled: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
   blueprintId: z.string().optional(),
 });

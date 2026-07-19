@@ -246,6 +246,7 @@ export class TeamPromptRunner {
       stream = streamSimple(model as any, context as any, options);
       
       // Consume the stream asynchronously to broadcast token updates
+      const streamingEnabled = team.streamingEnabled !== false;
       (async () => {
         try {
           for await (const evt of stream) {
@@ -256,28 +257,32 @@ export class TeamPromptRunner {
               if (activeStream) {
                 activeStream.text += evt.delta;
               }
-              this.broadcastFn(teamId, {
-                type: "team_agent_token",
-                teamId,
-                sessionId: incomingMsg.sessionId,
-                agentId: member.agentId,
-                token: evt.delta,
-                fullText: activeStream ? activeStream.text : undefined,
-              });
+              if (streamingEnabled) {
+                this.broadcastFn(teamId, {
+                  type: "team_agent_token",
+                  teamId,
+                  sessionId: incomingMsg.sessionId,
+                  agentId: member.agentId,
+                  token: evt.delta,
+                  fullText: activeStream ? activeStream.text : undefined,
+                });
+              }
             } else if (evt.type === "thinking_delta" && evt.delta && team.showThinking) {
               const activeStreamsMap = this.activeStreams.get(streamKey);
               const activeStream = activeStreamsMap?.get(member.agentId);
               if (activeStream) {
                 activeStream.thinking += evt.delta;
               }
-              this.broadcastFn(teamId, {
-                type: "team_agent_thinking",
-                teamId,
-                sessionId: incomingMsg.sessionId,
-                agentId: member.agentId,
-                token: evt.delta,
-                fullThinking: activeStream ? activeStream.thinking : undefined,
-              });
+              if (streamingEnabled) {
+                this.broadcastFn(teamId, {
+                  type: "team_agent_thinking",
+                  teamId,
+                  sessionId: incomingMsg.sessionId,
+                  agentId: member.agentId,
+                  token: evt.delta,
+                  fullThinking: activeStream ? activeStream.thinking : undefined,
+                });
+              }
             }
           }
         } catch (streamErr) {
@@ -289,7 +294,7 @@ export class TeamPromptRunner {
 
       const parseResult = parseAgentResponse(
         [finalMsg],
-        team as any,
+        { showThinking: team.showThinking, showTools: true },
         fullResponse
       );
 
