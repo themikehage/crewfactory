@@ -7,18 +7,20 @@ Make `Negotiation` and `Orchestration` two irreversible Team creation choices, a
 ## Findings (2026-07-19)
 
 1. **Team type is currently mutable end-to-end.** `UpdateTeamSchema` accepts `teamType`, `TeamSettingsModal` lets the user select either type, `PATCH /api/teams/:id` persists it, and `TeamStore.updateTeam()` applies it. Existing tests explicitly assert that switching works.
-2. **Orchestration is a leader-only stub.** `TeamOrchestrator.runOrchestrationLoop()` calls `TeamPromptRunner.runStateless()` only once for the leader; it never invokes team specialists or gathers their results.
+2. **Orchestration is a leader-only stateless stub.** `TeamOrchestrator.runOrchestrationLoop()` calls `TeamPromptRunner.runStateless()` only once for the leader; it never invokes team specialists or gathers their results.
 3. **The active prompt is a Channel prompt, not an Orchestration prompt.** Teams reuse `channel-member` composition with a broadcast deployment. `role.leader.delegation` directs the leader to use `@Name`, and `instance.channel.roster` states that mentions activate participants. Neither is true in Teams.
 4. **Changing the wording alone cannot enable delegation.** `runStateless()` uses `streamSimple()` without an agent tool-execution loop, so the leader cannot call `delegate_task`. Although the standard tool activation engine exposes that tool to normal agent sessions, stateless Team calls do not receive or execute it.
-5. **The existing `delegate_task` contract is usable for Team members.** It supports `targetType: "agent"`, an agent id, cancellation, depth limits, structured result envelopes, and forwarding of tool events. Orchestration must give the leader a parent execution session capable of running this tool and translate its results into Team messages/streaming.
+5. **The existing session and delegation infrastructure already fits Orchestration.** `SessionManager.getOrCreateSession()` accepts a workspace override, and `delegate_task` already provides cancellation, depth limits, structured result envelopes, and event forwarding. Today an agent-target delegation opens the target agent's workspace, so it needs a shared-workspace override and a Team member allowlist.
 
 ## Design Decisions
 
 - `teamType` is selected only in creation. Legacy Teams without it remain `Negotiation` through the current compatibility fallback.
 - `Negotiation` retains stateless parallel debate and the negotiation/arbitration configuration.
-- `Orchestration` has exactly one `lead`; all other members are selectable delegation targets. Its leader receives a dedicated Team roster with agent id, display name, role, and concise role/system-prompt capability summary.
+- `Orchestration` is a persistent agent session owned by the Team leader. It reuses the standard chat/session lifecycle, tool UI, history, delegation cards, permissions, and cancellation behavior instead of a Team-specific execution loop.
+- Every Orchestration Team owns one shared workspace. The owner and every delegated member operate in that same workspace for the lifetime of the Team session.
+- `lead` identifies the owner agent; all other members are allowed delegation targets. The owner prompt receives their agent id, display name, role, and concise capability summary.
 - Use a Team-specific prompt assembly mode and fragments. Do not change the Channel fragments: channels remain mention-driven and broadcast/targeted as they are today.
-- Reuse `delegate_task(targetType: "agent", targetId: member.agentId, task)` for execution. Do not add a Team-specific transport or infer calls from textual `@mentions`.
+- Reuse `delegate_task(targetType: "agent", targetId: member.agentId, task)` for execution, constrained to the configured Team members. Do not add a Team-specific transport or infer calls from textual `@mentions`.
 
 ## Implementation Plan
 
@@ -41,24 +43,25 @@ Make `Negotiation` and `Orchestration` two irreversible Team creation choices, a
 - Ensure Negotiation keeps its current stateless debate prompt, with a team-neutral roster that does not promise mention activation.
 - Add prompt composition tests proving the Orchestration leader sees its roster and tool-only delegation rule, while Channel leader prompts remain unchanged.
 
-### Phase 154C: Tool-Capable Orchestration Runtime
+### Phase 154C: Persistent Orchestration Session and Shared Workspace
 
-- Introduce an isolated per-dispatch orchestration parent session (or a dedicated tool-capable Team runner) for the leader. It must accept the Team-composed system prompt, have the standard tool activation set, and not reuse/mutate the leader agent's normal chat history.
-- Wire `delegate_task` into that parent context and expose only current non-lead Team members as valid `targetType: "agent"` targets. Validate target membership server-side so a leader cannot delegate outside its Team through this path.
-- Map delegated lifecycle events and structured results to Team WebSocket events/messages, including tool start/end/error and specialist reports, so the Team UI shows why and to whom work was delegated.
-- Feed completed delegation summaries back to the leader in the same orchestration turn (or explicit bounded follow-up turns), then persist and broadcast its final synthesis as the leader Team message.
-- Make abort propagate from `team_abort` to the orchestration parent and its `delegationRegistry` descendants; retain session/depth/permission protections.
+- Create one persistent owner session for an Orchestration Team (stable Team-derived session id, bound to the `lead` agent) instead of calling `TeamPromptRunner.runStateless()`. The Team detail route should reuse the standard session chat, streaming, tool logs, delegation cards, history, permissions, and abort controls.
+- Resolve and persist one Team workspace, then pass it as `SessionOverrides.workspaceDir` to the owner session. The current session manager supports this override, so no parallel workspace system is needed.
+- Extend the `delegate_task` construction context with an optional inherited workspace and permitted agent-id set. For an Orchestration owner, agent-target delegations must use the Team workspace override and reject targets outside the Team's non-lead members.
+- Add a Team orchestration prompt context containing the owner identity and a roster of permitted delegates: agent id, name, role, and capability summary. Require `delegate_task` for work delegation and explicitly prohibit `@` mentions as a dispatch mechanism.
+- Keep delegation results on the owner session's normal continuation queue; its existing result envelopes and tool UI become the Team's specialist reports without translating them through Team stateless messages.
+- Make the Team abort action abort the owner session and recursively cancel its `delegationRegistry` descendants. Preserve the existing depth and permission protections.
 
 ### Phase 154D: Verification and Documentation
 
 - Unit-test immutable type behavior, team-specific prompt selection, membership validation, delegation result aggregation, and abort propagation.
-- Add an integration test with a mocked tool-capable runner that proves the leader delegates to a listed specialist by id, receives its envelope, and produces the final Team response without `@` activation.
+- Add an integration test proving the owner session delegates to a listed specialist by id in the Team workspace, receives its envelope, and produces the final response without `@` activation.
 - Build server, shared package, and client; update `about.md` and mark the related steps complete after implementation.
 
 ## Acceptance Criteria
 
 - A Team's type cannot be changed after creation through the UI, API, schema, or store.
-- Negotiation Teams run only the debate/consensus path; Orchestration Teams run only the leader/delegation path.
+- Negotiation Teams run only the stateless debate/consensus path; Orchestration Teams open only their persistent owner-session path.
 - The Orchestration leader has an accurate member roster and uses executable `delegate_task` calls with team-member ids.
 - Textual `@member` mentions do not trigger or stand in for delegation in Orchestration.
-- Delegated results, failures, and cancellation are visible in the Team conversation and the leader can synthesize them.
+- Delegated results, failures, and cancellation are visible through the reused session chat/tool UI, and the owner can synthesize them.
