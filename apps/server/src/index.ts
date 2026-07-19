@@ -32,6 +32,7 @@ import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
 import { ensureAuthTables } from "./auth/migrate";
 import { startPreviewServer, handleRequest as previewRequest } from "./preview-server";
+import { join } from "node:path";
 
 const PREVIEW_HOST = (process.env.PREVIEW_HOST ?? "").toLowerCase();
 

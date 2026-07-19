@@ -25,6 +25,9 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     streamingRenderMode: "Message Rendering Mode",
     renderModeLive: "Live Streaming (character by character)",
     renderModeComplete: "Show on Complete (hides partial text)",
+    channelType: "Channel Type",
+    typeDebate: "Debate (Stateless)",
+    typeLeaderSpecialist: "Leader + Specialists",
   },
   es: {
     invalidJsonNegotiation: "JSON inválido en Protocolo de Negociación",
@@ -50,5 +53,8 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     streamingRenderMode: "Modo de Renderizado de Mensajes",
     renderModeLive: "Streaming en Vivo (carácter por carácter)",
     renderModeComplete: "Mostrar al Completar (oculta texto parcial)",
+    channelType: "Tipo de Canal",
+    typeDebate: "Debate (Sin Estado)",
+    typeLeaderSpecialist: "Líder + Especialistas",
   },
 };

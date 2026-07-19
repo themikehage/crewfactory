@@ -9,6 +9,7 @@ import { buildDeploymentContext, getOutputMode } from "../core/channel/deploymen
 import { parseAgentResponse, enforceDiffFormat } from "./response-parser";
 import { parseMentions } from "./mention-parser";
 import type { DispatchResult } from "./agent-work-queue";
+import { streamSimple } from "../ai/vendor/ai/src/compat.ts";
 
 const _promptCache = new Map<string, string[]>();
 
@@ -403,5 +404,296 @@ export class AgentPromptRunner {
     };
 
     return { agentMsg };
+  }
+
+  async runStateless(
+    username: string,
+    channelId: string,
+    member: ChannelMember,
+    incomingMsg: ChannelMessage,
+    recentHistory: ChannelMessage[],
+    agentNameMap: Map<string, string>,
+    signal: AbortSignal
+  ): Promise<DispatchResult> {
+    if (signal.aborted) return { agentMsg: null };
+
+    const channel = channelStore.getChannel(username, channelId);
+    if (!channel) return { agentMsg: null };
+
+    // Pre-LLM silent bypass
+    if (channel.members.length > 1) {
+      const isObserver = member.role === "observer";
+      if (isObserver) {
+        return { agentMsg: null };
+      }
+    }
+
+    const agentEntry = agentRegistry.get(member.agentId);
+    if (!agentEntry || agentEntry.status === "stopped") {
+      this.broadcastFn(channelId, {
+        type: "channel_agent_error",
+        channelId,
+        agentId: member.agentId,
+        error: `Agent "${member.agentId}" is not available`,
+      });
+      return { agentMsg: null };
+    }
+
+    const agentName = agentEntry.server.definition.name;
+
+    // Resolve model settings (reusing logic from run)
+    let model = agentEntry.server.session.model;
+    if (!model) {
+      const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
+      modelRegistry.refresh();
+      const resolved = resolveModelWithFallback(undefined, modelRegistry);
+      if (resolved) {
+        model = modelRegistry
+          .getAvailable()
+          .find((m) => m.id === resolved || `${m.provider}/${m.id}` === resolved) || null;
+        if (model) {
+          try {
+            await agentEntry.server.session.setModel(model);
+          } catch (e) {
+            console.error(`[AgentPromptRunner] Failed to assign model to ${member.agentId}:`, e);
+          }
+        }
+      }
+    }
+
+    if (!model) {
+      this.broadcastFn(channelId, {
+        type: "channel_agent_error",
+        channelId,
+        agentId: member.agentId,
+        error: `No LLM providers or models available for agent "${agentName}". Please configure API keys in Settings.`,
+      });
+      return { agentMsg: null };
+    }
+
+    const streamKey = `${channelId}:${incomingMsg.sessionId || "default"}`;
+    let channelStreams = this.activeStreams.get(streamKey);
+    if (!channelStreams) {
+      channelStreams = new Map();
+      this.activeStreams.set(streamKey, channelStreams);
+    }
+    channelStreams.set(member.agentId, {
+      agentId: member.agentId,
+      agentName,
+      text: "",
+      thinking: "",
+      toolCalls: {},
+    });
+
+    this.broadcastFn(channelId, {
+      type: "channel_agent_start",
+      channelId,
+      sessionId: incomingMsg.sessionId,
+      agentId: member.agentId,
+      agentName,
+    });
+
+    // Resolve memory contexts
+    const userSettings = sessionManager.userConfig.getUserSettings(username);
+    const memoryEnabled = userSettings.memoryEnabled ?? true;
+    const channelDbPath = getChannelMemoryDbPath(username, channelId);
+    const channelMemory = await memoryRegistry.get(`channel:${channelId}`, channelDbPath, memoryEnabled);
+
+    const substantive = isSubstantiveMessage(incomingMsg.content);
+    const [agentMemCtx, channelMemCtx] = substantive
+      ? await Promise.all([
+          agentEntry.server.memory.buildContext(incomingMsg.content, { sessionId: incomingMsg.sessionId }),
+          channelMemory.buildContext(incomingMsg.content, { sessionId: incomingMsg.sessionId }),
+        ])
+      : ["", ""];
+
+    let memoryPrefix = "";
+    if (agentMemCtx) {
+      memoryPrefix += `${agentMemCtx}\n\n`;
+    }
+    if (channelMemCtx) {
+      const channelFormatted = channelMemCtx.replace(
+        "--- Memories from previous sessions (historical context only — do not resume or re-execute past tasks unless explicitly asked) ---",
+        "--- Channel Memories from previous sessions (historical context only — do not resume or re-execute past tasks unless explicitly asked) ---"
+      );
+      memoryPrefix += `${channelFormatted}\n\n`;
+    }
+
+    const deployment = buildDeploymentContext(channel, member.agentId, agentNameMap);
+    const workspaceDir = agentEntry.server.session.cwd;
+    const isLabChannel = channelId.startsWith("lab_");
+    const cacheKey = isLabChannel ? `lab:${member.agentId}:${channelId}` : `${member.agentId}:${channelId}`;
+
+    let appendSystemPrompts = _promptCache.get(cacheKey);
+    if (!appendSystemPrompts) {
+      appendSystemPrompts = assemblePromptAppends({
+        mode: isLabChannel ? "experiment-member" : "channel-member",
+        workspaceDir,
+        agentDef: agentEntry.server.definition,
+        deployment,
+      });
+      _promptCache.set(cacheKey, appendSystemPrompts);
+    }
+
+    const resourceLoader = agentEntry.server.session.resourceLoader;
+    const baseSystemPrompt = resourceLoader.getSystemPrompt() || "";
+    const fullSystemPrompt = [
+      baseSystemPrompt,
+      ...(appendSystemPrompts || []),
+    ].filter(Boolean).join("\n\n");
+
+    const promptText =
+      memoryPrefix + buildAgentPrompt(incomingMsg, recentHistory, channel.context || []);
+
+    const context = {
+      systemPrompt: fullSystemPrompt,
+      messages: [
+        {
+          role: "user" as const,
+          content: promptText,
+          timestamp: Date.now(),
+        },
+      ],
+    };
+
+    let fullResponse = "";
+
+    const apiKey = model.apiKey;
+    const options = {
+      apiKey,
+      signal,
+      reasoning: agentEntry.server.session.thinkingLevel as any,
+    };
+
+    let stream;
+    try {
+      stream = streamSimple(model as any, context as any, options);
+      
+      // Consume the stream asynchronously to broadcast token updates
+      (async () => {
+        try {
+          for await (const evt of stream) {
+            if (evt.type === "text_delta" && evt.delta) {
+              fullResponse += evt.delta;
+              const activeStreamsMap = this.activeStreams.get(streamKey);
+              const activeStream = activeStreamsMap?.get(member.agentId);
+              if (activeStream) {
+                activeStream.text += evt.delta;
+              }
+              this.broadcastFn(channelId, {
+                type: "channel_agent_token",
+                channelId,
+                sessionId: incomingMsg.sessionId,
+                agentId: member.agentId,
+                token: evt.delta,
+                fullText: activeStream ? activeStream.text : undefined,
+              });
+            } else if (evt.type === "thinking_delta" && evt.delta && channel.showThinking) {
+              const activeStreamsMap = this.activeStreams.get(streamKey);
+              const activeStream = activeStreamsMap?.get(member.agentId);
+              if (activeStream) {
+                activeStream.thinking += evt.delta;
+              }
+              this.broadcastFn(channelId, {
+                type: "channel_agent_thinking",
+                channelId,
+                sessionId: incomingMsg.sessionId,
+                agentId: member.agentId,
+                token: evt.delta,
+                fullThinking: activeStream ? activeStream.thinking : undefined,
+              });
+            }
+          }
+        } catch (streamErr) {
+          console.error(`[AgentPromptRunner] Stream reading error for ${member.agentId}:`, streamErr);
+        }
+      })();
+
+      const finalMsg = await stream.result();
+
+      const parseResult = parseAgentResponse(
+        [finalMsg],
+        channel,
+        fullResponse
+      );
+
+      parseResult.content = enforceDiffFormat(parseResult.content, deployment.outputMode || "normal");
+
+      if (
+        memoryEnabled &&
+        userSettings.memoryAutoStore !== false &&
+        parseResult.content &&
+        !parseResult.isSilent
+      ) {
+        await agentEntry.server.memory.store(
+          parseResult.content.slice(0, 500),
+          "episodic",
+          0.5,
+          ["interaction", `channel:${channelId}`],
+          incomingMsg.sessionId
+        );
+      }
+
+      this.broadcastFn(channelId, {
+        type: "channel_agent_end",
+        channelId,
+        sessionId: incomingMsg.sessionId,
+        agentId: member.agentId,
+      });
+
+      if (parseResult.isSilent) {
+        console.log(`[AgentPromptRunner] Agent ${member.agentId} produced silent response`);
+        return { agentMsg: null };
+      }
+
+      const agentMentions = parseMentions(parseResult.content, channel.members, agentNameMap);
+
+      const agentMsg: ChannelMessage = {
+        id: crypto.randomUUID(),
+        channelId,
+        sessionId: incomingMsg.sessionId,
+        role: "agent",
+        agentId: member.agentId,
+        agentName,
+        content: parseResult.content,
+        thinking: parseResult.thinking || undefined,
+        toolCalls: parseResult.toolCalls.length > 0 ? parseResult.toolCalls : undefined,
+        mentions: agentMentions.length > 0 ? agentMentions : undefined,
+        tokensIn: parseResult.tokensIn || undefined,
+        tokensOut: parseResult.tokensOut || undefined,
+        createdAt: new Date().toISOString(),
+      };
+
+      return { agentMsg };
+
+    } catch (err: any) {
+      const isAbort =
+        signal.aborted || err.message?.includes("abort") || err.message?.includes("cancel");
+      if (!isAbort) {
+        console.error(`[AgentPromptRunner] Error prompting stateless agent ${member.agentId}:`, err);
+        this.broadcastFn(channelId, {
+          type: "channel_agent_error",
+          channelId,
+          sessionId: incomingMsg.sessionId,
+          agentId: member.agentId,
+          error: String(err.message || err),
+        });
+      }
+      this.broadcastFn(channelId, {
+        type: "channel_agent_end",
+        channelId,
+        sessionId: incomingMsg.sessionId,
+        agentId: member.agentId,
+      });
+      return { agentMsg: null };
+    } finally {
+      const activeStreamsMap = this.activeStreams.get(streamKey);
+      if (activeStreamsMap) {
+        activeStreamsMap.delete(member.agentId);
+        if (activeStreamsMap.size === 0) {
+          this.activeStreams.delete(streamKey);
+        }
+      }
+    }
   }
 }

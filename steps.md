@@ -746,4 +746,13 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 150.4 Verify builds compile and all tests pass cleanly
 
 
+## Phase 151: Simplificación de Canales (Debate Stateless)
+- [x] 151.1 Agregar `channelType: "debate" | "leader-specialist"` a los schemas de `Channel` en `packages/shared/src/schemas.ts`
+- [x] 151.2 Implementar `runStateless` en `apps/server/src/channels/agent-prompt-runner.ts` para ejecutar llamadas stateless usando `streamSimple` y emitir tokens delta
+- [x] 151.3 Modificar `apps/server/src/channels/channel-orchestrator.ts` para bifurcar el despacho y ejecutar el loop de debate en paralelo stateless
+- [x] 151.4 Agregar el selector de `channelType` a la pestaña General del modal de configuraciones de canal en el cliente
+- [x] 151.5 Crear pruebas unitarias en `channel-debate.test.ts` y validar que compila y pasa con éxito
+- [x] 151.6 Actualizar la documentación del sistema en `steps.md` y `about.md`
+
+
 

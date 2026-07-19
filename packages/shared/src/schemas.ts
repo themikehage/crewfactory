@@ -266,6 +266,7 @@ export const ChannelSchema = z.object({
   id: z.string(),
   name: z.string(),
   description: z.string().optional(),
+  channelType: z.enum(["debate", "leader-specialist"]).optional(),
   members: z.array(ChannelMemberSchema),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
@@ -283,6 +284,7 @@ export type Channel = z.infer<typeof ChannelSchema>;
 export const CreateChannelSchema = z.object({
   name: z.string().min(1).max(100),
   description: z.string().optional(),
+  channelType: z.enum(["debate", "leader-specialist"]).optional(),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
   showThinking: z.boolean().optional(),
@@ -297,6 +299,7 @@ export type CreateChannel = z.infer<typeof CreateChannelSchema>;
 export const UpdateChannelSchema = z.object({
   name: z.string().min(1).max(100).optional(),
   description: z.string().optional(),
+  channelType: z.enum(["debate", "leader-specialist"]).optional(),
   context: z.array(ChannelContextItemSchema).optional(),
   maxChainDepth: z.number().int().min(1).max(50).optional(),
   showThinking: z.boolean().optional(),

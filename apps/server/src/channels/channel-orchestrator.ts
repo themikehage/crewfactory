@@ -17,7 +17,7 @@ import { type RunToCompletionConfig, type RunToCompletionResult } from "./types"
 
 
 type BroadcastFn = (channelId: string, data: any) => void;
-let broadcastToChannelFn: BroadcastFn | null = null;
+var broadcastToChannelFn: BroadcastFn | null = null;
 
 export function setChannelBroadcastHandler(fn: BroadcastFn) {
   broadcastToChannelFn = fn;
@@ -163,23 +163,36 @@ class ChannelOrchestrator {
     });
     this.activeChains.set(key, { count: 0, resolve: resolveChain });
 
-    const isBroadcastChannel = channel.members.some((m) => m.replyMode === "broadcast");
+    const channelType = channel.channelType || "debate";
 
-    if (isBroadcastChannel) {
-      this.incrementChain(key);
-      this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal)
-        .catch((err) => {
-          console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
-        })
-        .finally(() => {
-          this.decrementChain(key);
-        });
+    if (channelType === "leader-specialist") {
+      const isBroadcastChannel = channel.members.some((m) => m.replyMode === "broadcast");
+      if (isBroadcastChannel) {
+        this.incrementChain(key);
+        this.runSequentialBroadcastLoop(username, channelId, userMsg, controller.signal)
+          .catch((err) => {
+            console.error(`[ChannelOrchestrator] Sequential broadcast loop error:`, err);
+          })
+          .finally(() => {
+            this.decrementChain(key);
+          });
+      } else {
+        this.incrementChain(key);
+        Promise.resolve()
+          .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal))
+          .catch((err) => {
+            console.error(`[ChannelOrchestrator] Non-broadcast dispatch error:`, err);
+          })
+          .finally(() => {
+            this.decrementChain(key);
+          });
+      }
     } else {
+      // Default to "debate" stateless parallel loop
       this.incrementChain(key);
-      Promise.resolve()
-        .then(() => this.runDispatchRound(username, channelId, userMsg, 1, controller.signal))
+      this.runStatelessDebateLoop(username, channelId, userMsg, controller, controller.signal)
         .catch((err) => {
-          console.error(`[ChannelOrchestrator] Non-broadcast dispatch error:`, err);
+          console.error(`[ChannelOrchestrator] Stateless debate loop error:`, err);
         })
         .finally(() => {
           this.decrementChain(key);
@@ -187,6 +200,152 @@ class ChannelOrchestrator {
     }
 
     return chainPromise;
+  }
+
+  private async runStatelessDebateLoop(
+    username: string,
+    channelId: string,
+    initialMsg: ChannelMessage,
+    controller: AbortController,
+    signal: AbortSignal
+  ): Promise<void> {
+    const key = `${channelId}:${initialMsg.sessionId || "default"}`;
+    const channel = channelStore.getChannel(username, channelId);
+    if (!channel || channel.members.length === 0) return;
+
+    const maxDepth = channel.maxChainDepth ?? MAX_CHAIN_DEPTH;
+    let depth = 1;
+    let currentIncomingMsg = initialMsg;
+
+    while (depth <= maxDepth && !signal.aborted && !this.abortedDispatches.has(key)) {
+      console.log(`[ChannelOrchestrator] Stateless Debate Round ${depth} starting...`);
+
+      // 1. All participants (except observers and arbiter) run in parallel.
+      const activeMembers = channel.members.filter(
+        (m) => m.role !== "observer" && m.agentId !== channel.negotiationProtocol?.arbiterAgentId
+      );
+
+      if (activeMembers.length === 0) return;
+
+      const agentNameMap = buildAgentNameMap(channel.members);
+      const recentHistory = channelStore.getMessages(username, channelId, 40, initialMsg.sessionId);
+
+      // Run all active agents in parallel
+      const roundPromises = activeMembers.map((member) =>
+        this.promptRunner.runStateless(
+          username,
+          channelId,
+          member,
+          currentIncomingMsg,
+          recentHistory,
+          agentNameMap,
+          signal
+        )
+      );
+
+      const results = await Promise.all(roundPromises);
+      if (signal.aborted || this.abortedDispatches.has(key)) return;
+
+      // Filter out null/silent results
+      const activeResults = results.filter((r) => r.agentMsg !== null) as { agentMsg: ChannelMessage }[];
+
+      if (activeResults.length === 0) {
+        console.log(`[ChannelOrchestrator] All agents silent in stateless round ${depth}. Stopping loop.`);
+        return;
+      }
+
+      // 2. Publish all messages from this round to the channel & save to store
+      for (const res of activeResults) {
+        this.messagePublisher(username, channelId, channel.name, res.agentMsg);
+      }
+
+      // We'll treat the combination of answers or the last answer as the next incoming message
+      const lastResult = activeResults[activeResults.length - 1];
+      currentIncomingMsg = lastResult.agentMsg;
+
+      // 3. Evaluate consensus / divergence for each response
+      let stopLoop = false;
+      let escalationMsg: ChannelMessage | null = null;
+      let arbiterMember: ChannelMember | null = null;
+
+      for (const res of activeResults) {
+        const negResult = handleNegotiation(
+          username,
+          channelId,
+          channel,
+          res.agentMsg.agentId!,
+          initialMsg, // problem statement/original user msg
+          res.agentMsg,
+          agentNameMap,
+          broadcast
+        );
+
+        if (negResult.action === "stop-agreed" || negResult.action === "stop-rejected") {
+          stopLoop = true;
+          break;
+        }
+
+        if (negResult.action === "escalate" && negResult.escalationMessage && negResult.arbiterMember) {
+          escalationMsg = negResult.escalationMessage;
+          arbiterMember = negResult.arbiterMember;
+          break;
+        }
+      }
+
+      if (stopLoop) {
+        console.log(`[ChannelOrchestrator] Consensus / stop state reached.`);
+        return;
+      }
+
+      // 4. Handle Escalation to Arbiter
+      if (escalationMsg && arbiterMember) {
+        const negotiationState = channelStore.getNegotiationState(username, channelId);
+        const currentArbitrations = negotiationState._arbitrations || 0;
+
+        if (currentArbitrations >= 3) {
+          console.log(`[ChannelOrchestrator] Max arbitrations reached (${currentArbitrations}). Forcing safety fallback resolution.`);
+          
+          const fallbackMsg: ChannelMessage = {
+            id: crypto.randomUUID(),
+            channelId,
+            sessionId: initialMsg.sessionId || crypto.randomUUID(),
+            role: "system",
+            content: `RESOLUTION: Se aplica el protocolo de contingencia "Safety First". Se da por finalizado el debate técnico stateless sin consenso claro tras superar el límite de arbitrajes. Se adopta la última recomendación del árbitro para garantizar la seguridad técnica.`,
+            createdAt: new Date().toISOString(),
+          };
+
+          this.messagePublisher(username, channelId, channel.name, fallbackMsg);
+          return;
+        }
+
+        console.log(`[ChannelOrchestrator] Escalation triggered. Invoking arbiter ${arbiterMember.agentId} statelessly.`);
+        this.messagePublisher(username, channelId, channel.name, escalationMsg);
+
+        // Run the arbiter statelessly
+        const arbiterHistory = channelStore.getMessages(username, channelId, 40, initialMsg.sessionId);
+        const arbiterResult = await this.promptRunner.runStateless(
+          username,
+          channelId,
+          arbiterMember,
+          escalationMsg,
+          arbiterHistory,
+          agentNameMap,
+          signal
+        );
+
+        if (arbiterResult.agentMsg) {
+          this.messagePublisher(username, channelId, channel.name, arbiterResult.agentMsg);
+          currentIncomingMsg = arbiterResult.agentMsg;
+        }
+      }
+
+      depth++;
+    }
+
+    if (depth > maxDepth) {
+      console.warn(`[ChannelOrchestrator] Max chain depth reached (${maxDepth}) for channel ${channelId}`);
+      broadcast(channelId, { type: "channel_chain_limit", channelId, maxChainDepth: maxDepth });
+    }
   }
 
   private runDispatchRound(

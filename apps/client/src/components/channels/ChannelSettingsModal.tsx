@@ -11,6 +11,7 @@ interface Props {
   onSave: (updates: {
     name?: string;
     description?: string;
+    channelType?: "debate" | "leader-specialist";
     maxChainDepth?: number;
     showThinking?: boolean;
     showTools?: boolean;
@@ -30,6 +31,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
   const [showThinking, setShowThinking] = useState(channel.showThinking ?? false);
   const [showTools, setShowTools] = useState(channel.showTools ?? false);
   const [streamingRenderMode, setStreamingRenderMode] = useState<"live" | "complete">(channel.streamingRenderMode ?? "live");
+  const [channelType, setChannelType] = useState<"debate" | "leader-specialist">(channel.channelType ?? "debate");
   
   // Structured negotiation states
   const [negotiationEnabled, setNegotiationEnabled] = useState(
@@ -133,6 +135,7 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
       await onSave({
         name: name.trim(),
         description: description.trim() || undefined,
+        channelType,
         maxChainDepth: Number(maxChainDepth),
         showThinking,
         showTools,
@@ -272,6 +275,20 @@ export function ChannelSettingsModal({ channel, onClose, onSave }: Props) {
                     />
                     <span>Mostrar uso de herramientas (tools)</span>
                   </label>
+                </div>
+
+                <div className="pt-3 border-t border-input/40">
+                  <label className="block text-muted-foreground font-medium mb-1">
+                    {l.channelType}
+                  </label>
+                  <select
+                    value={channelType}
+                    onChange={(e) => setChannelType(e.target.value as "debate" | "leader-specialist")}
+                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary cursor-pointer"
+                  >
+                    <option value="debate">{l.typeDebate}</option>
+                    <option value="leader-specialist">{l.typeLeaderSpecialist}</option>
+                  </select>
                 </div>
 
                 <div className="pt-3 border-t border-input/40">
