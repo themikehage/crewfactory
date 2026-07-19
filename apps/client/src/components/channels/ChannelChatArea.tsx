@@ -7,7 +7,7 @@ import type { MentionTarget } from "@/components/chat/ChatInput";
 import { ChannelMembersModal } from "./ChannelMembersModal";
 import { ChannelContextModal } from "./ChannelContextModal";
 import { ChannelSettingsModal } from "./ChannelSettingsModal";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 import { getSessionPath } from "@/lib/session-utils";
 import type { ChannelMember, AgentInfo, AddMember, UpdateMember, ChannelContextItem } from "shared";
 
@@ -19,7 +19,7 @@ interface Props {
 
 export function ChannelChatArea({ activeChannel, sessionId, variantMode = false }: Props) {
   const { channel, messages, streamingAgents, sendMessage, abortDispatch, updateChannel, fetchChannel } = useChannel(activeChannel.id, sessionId);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);

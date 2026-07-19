@@ -10,6 +10,7 @@
 
 - **React Router Compatibility Tree:** `AppRoutes` is the single declarative route entry point below `BrowserRouter`, covering global, contextual, laboratory, pipeline, administrative, and legacy-splat URLs while the remaining page elements are migrated incrementally.
 - **Typed Navigation Paths:** `router/paths.ts` centralizes contextual, session, delegation, and workspace URL construction. `WorkspaceContextProvider` owns active project, agent, channel, and team state plus its persisted convenience data, keeping the URL as the route authority.
+- **Route and Laboratory Boundaries:** `AppRouter` now limits itself to guard, providers, layout, and navigation coordination. `AppRouteContent` renders the active page while `LaboratoryModals` owns the controller-driven modal boundary.
 
 ## Features
 

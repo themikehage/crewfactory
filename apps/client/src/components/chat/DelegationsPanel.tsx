@@ -3,7 +3,7 @@ import { useCallback, useEffect, useState } from "react";
 import { useWebSocket } from "@/hooks/useWebSocket";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./DelegationsPanel.literals";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 import type { PendingDelegation } from "./FloatingDelegations";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -17,7 +17,7 @@ interface Props {
 
 export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = null, activeChannel = null, activeTeam = null }: Props) {
   const l = useLiterals(u);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
   const [delegations, setDelegations] = useState<PendingDelegation[]>([]);
   const [loading, setLoading] = useState(false);
   const [selectedDelegationId, setSelectedDelegationId] = useState<string | null>(null);

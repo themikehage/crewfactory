@@ -10,7 +10,7 @@ import { AnimatePresence } from "framer-motion";
 import type { TaskRunnerState } from "shared";
 import { useLiterals, type MessageUsage, type ContextUsage } from "@/lib";
 import { literals as u } from "./ChatArea.literals";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 import { WelcomeChatInput } from "./WelcomeChatInput";
 import { useToast } from "@/contexts/ToastContext";
 import { getSessionPath, getSessionName, buildCreateSessionBody, getSessionMeta } from "@/lib/session-utils";
@@ -49,7 +49,7 @@ interface Props {
 
 export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeChannel = null, activeTeam = null }: Props) {
   const l = useLiterals(u);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
   const { addToast } = useToast();
   const [messages, setMessages] = useState<Message[]>([]);
   const [loadingMessages, setLoadingMessages] = useState(true);

@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useRef } from "react";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 import { PortalPopover } from "./PortalPopover";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./ChatInput.literals";
@@ -64,7 +64,7 @@ export function ModelSelector({ sessionId, disabled = false, value, onChange, co
   const [error, setError] = useState<string | null>(null);
   const selectedRef = useRef<SelectedModel | null>(selected);
   const triggerRef = useRef<HTMLButtonElement>(null);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   const applyModelToSession = useCallback(
     async (model: SelectedModel, sid: string) => {

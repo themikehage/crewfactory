@@ -6,7 +6,7 @@ import { ChatInput } from "@/components/chat/ChatInput";
 import type { MentionTarget } from "@/components/chat/ChatInput";
 import { TeamMembersModal } from "./TeamMembersModal";
 import { TeamSettingsModal } from "./TeamSettingsModal";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 import { getSessionPath } from "@/lib/session-utils";
 import { ChatArea } from "@/components/chat/ChatArea";
 import type { TeamMember, AgentInfo } from "shared";
@@ -18,7 +18,7 @@ interface Props {
 
 export function TeamChatArea({ activeTeam, sessionId }: Props) {
   const { team, messages, streamingAgents, sendMessage, abortDispatch, updateTeam, fetchTeam } = useTeam(activeTeam.id, sessionId);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);
