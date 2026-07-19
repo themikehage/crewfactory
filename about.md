@@ -558,7 +558,7 @@ packages/shared/  Shared Zod schemas and types
 - `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
 - `hooks/useTeam.ts` — Team data + WS event hook. Uses `wsClient.subscribe("*")` and filters by teamId/sessionId locally.
 - `hooks/useTeams.ts` — CRUD list manager hook for Teams.
-- `hooks/useRouter.ts` — Router manual actual basado en `history` y evento `popstate` sintético. Su sustitución por un router declarativo está planificada en `plans/app-router-refactor.md`, preservando las rutas jerárquicas y los IDs de sesión con splats.
+- `hooks/useRouter.ts` — Adaptador temporal sobre React Router: conserva el contrato tipado `route`/`navigate` mientras deriva la ruta desde `useLocation` y navega con `useNavigate`, sin evento `popstate` sintético. Su retirada tras migrar consumidores a APIs nativas está planificada en `plans/app-router-refactor.md`.
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection. Features reactive validation to automatically resolve fallback models in both frontend (`localStorage`) and backend session states when a selected provider key is disconnected.
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/settings/ProvidersTab.tsx` — Tab view managing API credentials. Features an interactive **Sincronizar** action for dynamic model fetching and an **Info** action displaying a premium capability matrix modal.

@@ -18,7 +18,7 @@ Se mantendrán sin redirecciones destructivas las rutas actuales: `/`, `/session
 
 ## Plan de implementación
 
-- [ ] 1. Añadir `react-router-dom` al workspace del cliente con Bun y definir una matriz de compatibilidad de rutas antes de modificar componentes. Incluir rutas directas, recarga, atrás/adelante, rutas legacy y casos con `sessionId` que contiene `/`.
+- [x] 1. Añadir `react-router-dom` al workspace del cliente con Bun y definir una matriz de compatibilidad de rutas antes de modificar componentes. Incluir rutas directas, recarga, atrás/adelante, rutas legacy y casos con `sessionId` que contiene `/`.
 - [ ] 2. Crear `router/routes.tsx` con un único árbol declarativo bajo `BrowserRouter`: rutas públicas de onboarding/login, guardia autenticada, `MainLayout` como layout route y rutas indexadas para las páginas. Usar parámetros y rutas `*` para conservar todos los formatos existentes.
 - [ ] 3. Introducir helpers tipados de construcción de URLs y de contexto (`buildContextPath`, `buildSessionPath`, `buildDelegationsPath`). Migrar los consumidores de `useRouter` a `useNavigate`, `useLocation` y esos helpers, eliminando el evento `popstate` sintético.
 - [ ] 4. Extraer `WorkspaceContextProvider`/`useWorkspaceContext`: resolver el contexto prioritariamente desde los params de URL, hidratar nombres desde el recurso seleccionado o la persistencia existente y centralizar sincronización de `localStorage`. Exponer operaciones genéricas `selectContext` y `clearContext` para eliminar los cuatro handlers duplicados.
@@ -34,3 +34,7 @@ Se mantendrán sin redirecciones destructivas las rutas actuales: `/`, `/session
 - Se usará `BrowserRouter`, no rutas hash, porque la aplicación ya expone URLs jerárquicas y el servidor sirve el cliente como SPA.
 - La URL será la fuente de verdad para qué vista y contexto están activos; `localStorage` quedará como memoria de conveniencia para nombres y la última selección, nunca como autoridad sobre un parámetro explícito.
 - La migración será incremental: primero rutas y adaptadores compatibles, después contextos/controladores, y solo al final se borrará el router manual. Así se pueden validar rutas existentes en cada paso.
+
+## Avance
+
+- 2026-07-19: `react-router-dom` está instalado y `App.tsx` monta un `BrowserRouter`. `useRouter` conserva temporalmente su contrato `route`/`navigate`, pero ya deriva la ruta de `useLocation` y navega con `useNavigate`; se eliminó el evento `popstate` sintético. `bun run typecheck` y `bun run build` del cliente pasan correctamente.
