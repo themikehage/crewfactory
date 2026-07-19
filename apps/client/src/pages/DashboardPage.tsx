@@ -29,11 +29,11 @@ interface AgentItem {
   avatarUrl?: string;
 }
 
-interface ChannelItem {
+interface TeamItem {
   id: string;
   name: string;
   description?: string;
-  avatarUrl?: string;
+  teamType?: string;
   members: any[];
 }
 
@@ -50,7 +50,7 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
 
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
-  const [channels, setChannels] = useState<ChannelItem[]>([]);
+  const [teams, setTeams] = useState<TeamItem[]>([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -81,10 +81,10 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
       setLoading(true);
       setError(null);
 
-      const [reposRes, agentsRes, channelsRes] = await Promise.all([
+      const [reposRes, agentsRes, teamsRes] = await Promise.all([
         apiFetch("/api/workspace-projects"),
         apiFetch("/api/agents"),
-        apiFetch("/api/channels"),
+        apiFetch("/api/teams"),
       ]);
 
       if (reposRes.ok) {
@@ -95,9 +95,9 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
         const data = await agentsRes.json();
         setAgents(data.agents || []);
       }
-      if (channelsRes.ok) {
-        const data = await channelsRes.json();
-        setChannels(data.channels || []);
+      if (teamsRes.ok) {
+        const data = await teamsRes.json();
+        setTeams(data.teams || data || []);
       }
     } catch (err: any) {
       setError(err.message || l.loadError);
@@ -347,10 +347,10 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
               {l.projectsSection}
             </button>
             <button
-              onClick={() => scrollToSection("channels-sec")}
+              onClick={() => scrollToSection("teams-sec")}
               className="px-4 py-1.5 bg-surface-hover/80 hover:bg-surface text-[11px] font-bold rounded-full text-text-primary shrink-0 transition-all border border-input/20 cursor-pointer snap-start"
             >
-              {l.channelsSection}
+              {l.teamsSection}
             </button>
             <button
               onClick={() => scrollToSection("agents-sec")}
@@ -519,14 +519,14 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
               </div>
             </div>
 
-            <div id="channels-sec" className="space-y-3">
+            <div id="teams-sec" className="space-y-3">
               <div className="flex justify-between items-center">
                 <h2 className="text-foreground font-extrabold text-base sm:text-lg tracking-tight font-display">
-                  {l.channelsSection}
+                  {l.teamsSection}
                 </h2>
                 {onNavigate && (
                   <button
-                    onClick={() => onNavigate("/channels")}
+                    onClick={() => onNavigate("/teams")}
                     className="text-[11px] text-accent hover:underline font-bold"
                   >
                     {l.viewAll || "View All"}
@@ -534,37 +534,39 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                 )}
               </div>
               <div className="flex overflow-x-auto snap-x snap-mandatory gap-4 pb-3 -mx-5 px-5 scrollbar-none sm:mx-0 sm:px-0 sm:grid sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
-                {channels.map((channel) => (
+                {teams.map((team) => (
                   <div
-                    key={channel.id}
+                    key={team.id}
                     className="w-[145px] shrink-0 snap-start bg-surface/40 hover:bg-surface/90 border border-input/15 hover:border-accent/30 rounded-2xl p-3 flex flex-col justify-between transition-all sm:w-auto"
                   >
                     <div>
                       <div className="w-full aspect-square relative rounded-xl overflow-hidden bg-surface-hover shadow-sm group">
                         <EntityAvatar
-                          name={channel.name}
-                          avatarUrl={channel.avatarUrl}
+                          name={team.name}
+                          avatarUrl={null}
                           size="full"
                           type="channel"
                           className="rounded-none w-full h-full object-cover"
                         />
-
+                        <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/50 text-[8px] text-text-primary font-bold rounded-md uppercase tracking-wider">
+                          {team.teamType === "Orchestration" ? "ORCH" : "NEG"}
+                        </div>
                       </div>
 
                       <h3 className="font-extrabold text-xs text-foreground truncate mt-2.5 leading-tight">
-                        #{channel.name}
+                        {team.name}
                       </h3>
                       <p className="text-[9px] text-text-secondary mt-1 font-medium line-clamp-2 h-6 leading-tight">
-                        {channel.description || "No description provided."}
+                        {team.description || "No description provided."}
                       </p>
                       <div className="text-[8px] text-accent/80 font-bold uppercase tracking-wider mt-1 px-1.5 py-0.5 bg-accent/10 rounded-sm inline-block">
-                        {l.membersCount.replace("{count}", String(channel.members?.length || 0))}
+                        {l.membersCount.replace("{count}", String(team.members?.length || 0))}
                       </div>
                     </div>
 
                     {onNavigate && (
                       <button
-                        onClick={() => onNavigate(`/channels/${channel.id}/chat`)}
+                        onClick={() => onNavigate(`/teams/${team.id}/chat`)}
                         className="w-full mt-3 py-1.5 bg-bg hover:bg-accent hover:text-bg text-foreground rounded-lg text-[10px] font-bold transition-all cursor-pointer text-center"
                       >
                         {l.open}
@@ -573,9 +575,9 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                   </div>
                 ))}
 
-                {channels.length === 0 && (
+                {teams.length === 0 && (
                   <div className="w-[200px] shrink-0 bg-surface/30 rounded-2xl p-6 text-center border border-input/10 border-dashed sm:w-auto sm:col-span-full">
-                    <p className="text-xs text-text-secondary">No channels</p>
+                    <p className="text-xs text-text-secondary">No teams</p>
                   </div>
                 )}
               </div>
