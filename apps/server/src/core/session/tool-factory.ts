@@ -1,4 +1,5 @@
 import { createProgrammaticSessionSync } from "../../auth/onboarding";
+import { sessionManager } from "../session-manager";
 import {
   createBashToolDefinition,
   createReadToolDefinition,
@@ -74,6 +75,29 @@ export class SessionToolFactory {
     const webFetchTool = createWebFetchTool({ username });
     const memoryTools = memoryEnabled ? createMemoryTools(memory) : [];
 
+    const { getTeamWorkspaceDir } = require("shared");
+    const meta = sessionManager.metadataStore.getSessionMetadata(username, sessionId);
+    const teamId = meta?.teamId;
+    let inheritedWorkspaceDir: string | undefined;
+    let permittedAgentIds: Set<string> | undefined;
+
+    if (teamId) {
+      try {
+        const { teamStore } = require("../../teams/team-store");
+        const team = teamStore.getTeam(username, teamId);
+        if (team && team.teamType === "Orchestration") {
+          inheritedWorkspaceDir = getTeamWorkspaceDir(username, teamId);
+          permittedAgentIds = new Set(
+            team.members
+              .filter((m: any) => m.role !== "lead")
+              .map((m: any) => m.agentId)
+          );
+        }
+      } catch (e) {
+        console.error("[SessionToolFactory] Failed to load team restrictions:", e);
+      }
+    }
+
     const uiTools = createUiTools(workspaceDir, username, false, {
       workspaceDir,
       username,
@@ -81,6 +105,8 @@ export class SessionToolFactory {
       modelRegistry,
       authStorage,
       resourceLoader,
+      inheritedWorkspaceDir,
+      permittedAgentIds,
     });
 
     const userEnv = userConfigManager.getUserEnv(username);

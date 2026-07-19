@@ -58,7 +58,7 @@ function buildTeamDeploymentContext(
   const selfOutputMode = selfMember ? getOutputMode(selfMember, team) : "normal";
 
   return {
-    mode: "broadcast" as const, // For debate, everyone is broadcast-oriented
+    mode: "negotiation-team" as const, // For debate, everyone is negotiation-team mode
     channelId: team.id,
     agentRole: selfMember?.role || "member",
     members: team.members.map((m) => ({
@@ -203,7 +203,7 @@ export class TeamPromptRunner {
     let appendSystemPrompts = _promptCache.get(cacheKey);
     if (!appendSystemPrompts) {
       appendSystemPrompts = assemblePromptAppends({
-        mode: "channel-member", // We reuse "channel-member" mode which resolves the layered prompts
+        mode: "orchestration-team", // We use "orchestration-team" mode which resolves the team layered prompts
         workspaceDir,
         agentDef: agentEntry.server.definition,
         deployment: deployment as any,

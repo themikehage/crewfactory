@@ -72,18 +72,40 @@ teamsRouter.post("/:id/orchestration-session", async (c) => {
     return c.json({ error: "The orchestration leader is not available" }, 400);
   }
 
-  const sessionId = crypto.randomUUID();
+  const sessionId = `${SessionPrefix.TEAM}${team.id}`;
   const now = new Date().toISOString();
-  sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
-    name: `${team.name} — Orchestration`,
-    createdAt: now,
-    updatedAt: now,
-    agentId: leader.agentId,
-    teamId: team.id,
-  });
+  
+  const meta = sessionManager.metadataStore.getSessionMetadata(username, sessionId);
+  if (!meta) {
+    sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
+      name: `${team.name} — Orchestration`,
+      createdAt: now,
+      updatedAt: now,
+      agentId: leader.agentId,
+      teamId: team.id,
+    });
+  }
+
   await sessionManager.getOrCreateSession(username, sessionId, undefined, leader.agentId, undefined, {
     workspaceDir: getTeamWorkspaceDir(username, team.id),
   });
+  return c.json({ sessionId, leaderAgentId: leader.agentId });
+});
+
+teamsRouter.get("/:id/orchestration-session", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const team = teamStore.getTeam(username, c.req.param("id"));
+  if (!team) return c.json({ error: "Team not found" }, 404);
+  if (team.teamType !== "Orchestration") return c.json({ error: "Only Orchestration teams have an owner session" }, 400);
+
+  const leader = team.members.find((member) => member.role === "lead");
+  if (!leader) {
+    return c.json({ error: "The orchestration leader is not available" }, 400);
+  }
+
+  const sessionId = `${SessionPrefix.TEAM}${team.id}`;
   return c.json({ sessionId, leaderAgentId: leader.agentId });
 });
 
@@ -291,14 +313,28 @@ teamsRouter.post("/:id/send", zValidator("json", z.object({ message: z.string().
   if (!username) return c.json({ error: "Unauthorized" }, 401);
 
   const id = c.req.param("id");
-  const { message, sessionId } = c.req.valid("json");
+  const { message } = c.req.valid("json");
   const team = teamStore.getTeam(username, id);
   if (!team) return c.json({ error: "Team not found" }, 404);
 
-  // Trigger dispatch asynchronously
-  teamOrchestrator.dispatchUserMessage(username, id, message, sessionId).catch((err) => {
-    console.error(`[TeamsRoute] Error dispatching message for team ${id}:`, err);
-  });
+  if (team.teamType === "Orchestration") {
+    const leader = team.members.find((member) => member.role === "lead");
+    if (!leader) {
+      return c.json({ error: "The orchestration leader is not available" }, 400);
+    }
+    const ownerSessionId = `${SessionPrefix.TEAM}${team.id}`;
+    const session = await sessionManager.getOrCreateSession(username, ownerSessionId, undefined, leader.agentId, undefined, {
+      workspaceDir: getTeamWorkspaceDir(username, team.id),
+    });
+    session.prompt(message).catch((err) => {
+      console.error(`[TeamsRoute] Persistent session prompt error:`, err);
+    });
+  } else {
+    // Trigger dispatch asynchronously for Negotiation
+    teamOrchestrator.dispatchUserMessage(username, id, message, c.req.valid("json").sessionId).catch((err) => {
+      console.error(`[TeamsRoute] Error dispatching message for team ${id}:`, err);
+    });
+  }
 
   return c.json({ success: true });
 });
@@ -309,7 +345,19 @@ teamsRouter.post("/:id/abort", zValidator("json", z.object({ sessionId: z.string
 
   const id = c.req.param("id");
   const body = c.req.valid("json");
-  teamOrchestrator.abortDispatch(username, id, body?.sessionId);
+  const team = teamStore.getTeam(username, id);
+
+  if (team && team.teamType === "Orchestration") {
+    const ownerSessionId = `${SessionPrefix.TEAM}${team.id}`;
+    const session = sessionManager.getSession(username, ownerSessionId);
+    if (session) {
+      await session.abort().catch(() => {});
+    }
+    const { delegationRegistry } = await import("../core/delegation-registry");
+    delegationRegistry.abortAllRecursive(ownerSessionId);
+  } else {
+    teamOrchestrator.abortDispatch(username, id, body?.sessionId);
+  }
   return c.json({ success: true });
 });
 

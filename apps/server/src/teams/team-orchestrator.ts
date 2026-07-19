@@ -1,10 +1,11 @@
 import { teamStore } from "./team-store";
 import { agentRegistry } from "../agents";
-import { type Team, type TeamMember, type TeamMessage } from "shared";
+import { type Team, type TeamMember, type TeamMessage, SessionPrefix, getTeamWorkspaceDir } from "shared";
 import { TeamPromptRunner, type ActiveTeamStream } from "./team-prompt-runner";
 import { handleTeamNegotiation } from "./team-negotiation";
 import { buildAgentNameMap } from "../channels/agent-prompt-runner";
 import { parseMentions } from "../channels/mention-parser";
+import { sessionManager } from "../core/session-manager";
 
 type TeamBroadcastFn = (teamId: string, data: any) => void;
 let broadcastToTeamFn: TeamBroadcastFn | null = null;
@@ -61,6 +62,19 @@ export class TeamOrchestrator {
   }
 
   abortDispatch(username: string, teamId: string, sessionId?: string): void {
+    const team = teamStore.getTeam(username, teamId);
+    if (team && team.teamType === "Orchestration") {
+      const ownerSessionId = `${SessionPrefix.TEAM}${teamId}`;
+      const session = sessionManager.getSession(username, ownerSessionId);
+      if (session) {
+        session.abort().catch(() => {});
+      }
+      import("../core/delegation-registry").then(({ delegationRegistry }) => {
+        delegationRegistry.abortAllRecursive(ownerSessionId);
+      }).catch(console.error);
+      return;
+    }
+
     const key = `${teamId}:${sessionId || "default"}`;
     this.abortedDispatches.add(key);
     console.log(`[TeamOrchestrator] Aborting dispatch for ${key}`);
@@ -71,7 +85,6 @@ export class TeamOrchestrator {
     controller?.abort();
     this.teamAbortControllers.delete(key);
 
-    const team = teamStore.getTeam(username, teamId);
     if (team) {
       for (const member of team.members) {
         const entry = agentRegistry.get(member.agentId);
@@ -95,6 +108,32 @@ export class TeamOrchestrator {
 
     const team = teamStore.getTeam(username, teamId);
     if (!team) throw new Error("Team not found");
+
+    if (team.teamType === "Orchestration") {
+      const leader = team.members.find((member) => member.role === "lead");
+      if (!leader) {
+        throw new Error("Orchestration leader not found");
+      }
+      const ownerSessionId = `${SessionPrefix.TEAM}${team.id}`;
+      const meta = sessionManager.metadataStore.getSessionMetadata(username, ownerSessionId);
+      if (!meta) {
+        const now = new Date().toISOString();
+        sessionManager.metadataStore.saveSessionMetadata(username, ownerSessionId, {
+          name: `${team.name} — Orchestration`,
+          createdAt: now,
+          updatedAt: now,
+          agentId: leader.agentId,
+          teamId: team.id,
+        });
+      }
+      const session = await sessionManager.getOrCreateSession(username, ownerSessionId, undefined, leader.agentId, undefined, {
+        workspaceDir: getTeamWorkspaceDir(username, team.id),
+      });
+      session.prompt(userContent).catch((err) => {
+        console.error(`[TeamOrchestrator] Persistent session prompt error:`, err);
+      });
+      return;
+    }
 
     const agentNameMap = buildAgentNameMap(team.members as any);
     const mentions = parseMentions(userContent, team.members as any, agentNameMap);

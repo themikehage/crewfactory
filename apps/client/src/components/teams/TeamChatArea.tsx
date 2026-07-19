@@ -104,7 +104,7 @@ export function TeamChatArea({ activeTeam, sessionId }: Props) {
   const leadMember = teamMembers.find((m) => m.role === "lead");
   const leadAgent = leadMember ? registeredAgents.find((a) => a.id === leadMember.agentId) : null;
 
-  if (team?.teamType === "Orchestration") {
+  if (team?.teamType === "Orchestration" || (sessionId && sessionId.startsWith("team_"))) {
     return (
       <ChatArea
         sessionId={sessionId}

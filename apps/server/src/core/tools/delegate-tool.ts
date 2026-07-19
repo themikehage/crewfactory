@@ -17,6 +17,9 @@ export interface DelegateTaskOptions {
   modelRegistry: ModelRegistry;
   authStorage: AuthStorage;
   resourceLoader: DefaultResourceLoader;
+  inheritedWorkspaceDir?: string;
+  permittedAgentIds?: Set<string>;
+  parentModel?: any;
 }
 
 export function createDelegateTaskTool(opts: DelegateTaskOptions) {
@@ -47,11 +50,27 @@ Allows keeping parent context clean by returning a structured summary instead of
           description: "If true, includes the full conversation history in the tool result content. Defaults to false (clean mode).",
           default: false,
         },
+        model: {
+          type: "string",
+          description: "Optional explicit model ID or provider/model string to use for the delegation execution.",
+        },
+        autonomyMode: {
+          type: "string",
+          enum: ["read-only", "standard", "autonomous"],
+          description: "Optional explicit autonomy/execution mode to use for the delegation execution.",
+        },
       },
       required: ["targetType", "targetId", "task"],
     },
     execute: async (toolCallId: string, args: any, parentSignal?: AbortSignal) => {
-      const { targetType, targetId, task, includeFullHistory = false } = args;
+      const { targetType, targetId, task, includeFullHistory = false, model: customModel, autonomyMode: customAutonomyMode } = args;
+
+      if (targetType === "agent" && opts.permittedAgentIds && !opts.permittedAgentIds.has(targetId)) {
+        throw new Error(
+          `Agent "${targetId}" is not a permitted delegate in this Team context. Allowed targets: ${[...opts.permittedAgentIds].join(", ")}`
+        );
+      }
+
       const userSettings = sessionManager.userConfig.getUserSettings(username);
       const appConfig = getAppConfig();
       const maxDepth = userSettings.subagentMaxDepth !== undefined
@@ -73,7 +92,9 @@ Allows keeping parent context clean by returning a structured summary instead of
 
       const parentMeta = sessionManager.metadataStore.getSessionMetadata(username, parentSessionId) || {};
       const parentExecutionMode = parentMeta.executionMode;
-      const derivedExecutionMode = parentExecutionMode === "autonomous" ? "autonomous" : undefined;
+      
+      // Resolve autonomy mode parameter or inherit parent's executionMode
+      const resolvedExecutionMode = customAutonomyMode || parentExecutionMode || undefined;
 
       sessionManager.metadataStore.saveSessionMetadata(username, delegateSessionId, {
         name: `Delegation: ${targetType} - ${targetId}`,
@@ -84,7 +105,7 @@ Allows keeping parent context clean by returning a structured summary instead of
         targetId,
         task: task.slice(0, 500),
         subagentDepth: effectiveDepth,
-        executionMode: derivedExecutionMode,
+        executionMode: resolvedExecutionMode,
       });
 
       const runPromise = async () => {
@@ -104,8 +125,44 @@ Allows keeping parent context clean by returning a structured summary instead of
               username,
               delegateSessionId,
               undefined,
-              targetId
+              targetId,
+              undefined,
+              opts.inheritedWorkspaceDir ? { workspaceDir: opts.inheritedWorkspaceDir } : undefined
             );
+
+            // Resolve and set model (explicit customModel parameter or inherited parentModel / parent session model)
+            let resolvedModel = opts.parentModel || null;
+            if (!resolvedModel) {
+              try {
+                const parentSession = sessionManager.getSession(username, parentSessionId);
+                if (parentSession?.model) {
+                  resolvedModel = parentSession.model;
+                }
+              } catch {}
+            }
+
+            if (customModel) {
+              try {
+                const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
+                modelRegistry.refresh();
+                const found = modelRegistry
+                  .getAvailable()
+                  .find((m: any) => m.id === customModel || `${m.provider}/${m.id}` === customModel || m.name === customModel);
+                if (found) {
+                  resolvedModel = found;
+                }
+              } catch (e) {
+                console.error("[Delegate Tool] Failed to resolve custom model:", e);
+              }
+            }
+
+            if (resolvedModel) {
+              try {
+                await session.setModel(resolvedModel);
+              } catch (e) {
+                console.error(`[Delegate Tool] Failed to set model on delegate session ${delegateSessionId}:`, e);
+              }
+            }
 
             childToken.register(() => {
               session.abort();

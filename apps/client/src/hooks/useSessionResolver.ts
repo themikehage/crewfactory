@@ -1,7 +1,6 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { apiFetch } from "@/lib/api";
 import {
-  getSessionPath,
   getSessionName,
   buildCreateSessionBody,
   getSessionContextPredicate,
@@ -15,7 +14,11 @@ interface UseSessionResolverParams {
   activeChannel: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
   currentPage: string;
-  onNavigate: (path: string) => void;
+}
+
+export interface UseSessionResolverReturn {
+  resolvedSessionId: string | null;
+  resolving: boolean;
 }
 
 export function useSessionResolver({
@@ -26,18 +29,58 @@ export function useSessionResolver({
   activeChannel,
   activeTeam = null,
   currentPage,
-  onNavigate,
-}: UseSessionResolverParams) {
+}: UseSessionResolverParams): UseSessionResolverReturn {
+  const [resolvedSessionId, setResolvedSessionId] = useState<string | null>(null);
+  const [resolving, setResolving] = useState<boolean>(false);
   const resolutionIdRef = useRef(0);
 
+  const contextKey = [
+    currentPage,
+    sessionId,
+    activeProjectName,
+    activeAgent?.id,
+    activeChannel?.id,
+    activeTeam?.id,
+  ].join(":");
+
   useEffect(() => {
+    setResolvedSessionId(null);
+
+    if (currentPage !== "chat") {
+      setResolving(false);
+      return;
+    }
+    if (sessionId) {
+      setResolving(false);
+      return;
+    }
+
     const resolutionId = ++resolutionIdRef.current;
     const isCurrentResolution = () => resolutionIdRef.current === resolutionId;
-    if (currentPage !== "chat") return;
-    if (sessionId) return;
+
+    setResolving(true);
 
     const resolve = async () => {
       try {
+        if (activeTeam) {
+          const teamRes = await apiFetch(`/api/teams/${activeTeam.id}`);
+          if (teamRes.ok) {
+            const team = await teamRes.json();
+            if (team && team.teamType === "Orchestration") {
+              const sessionRes = await apiFetch(`/api/teams/${activeTeam.id}/orchestration-session`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" }
+              });
+              if (sessionRes.ok && isCurrentResolution()) {
+                const sessionData = await sessionRes.json();
+                setResolvedSessionId(sessionData.sessionId);
+                setResolving(false);
+                return;
+              }
+            }
+          }
+        }
+
         const res = await apiFetch("/api/sessions");
         if (!res.ok || !isCurrentResolution()) return;
 
@@ -56,7 +99,10 @@ export function useSessionResolver({
         const filtered = all.filter(getSessionContextPredicate(context));
 
         if (filtered.length > 0) {
-          if (isCurrentResolution()) onNavigate(getSessionPath(filtered[0].id, context));
+          if (isCurrentResolution()) {
+            setResolvedSessionId(filtered[0].id);
+            setResolving(false);
+          }
           return;
         }
 
@@ -71,9 +117,14 @@ export function useSessionResolver({
         if (!createRes.ok || !isCurrentResolution()) return;
 
         const session = await createRes.json();
-        if (isCurrentResolution()) onNavigate(getSessionPath(session.id, context));
+        if (isCurrentResolution()) {
+          setResolvedSessionId(session.id);
+          setResolving(false);
+        }
       } catch {
-        return;
+        if (isCurrentResolution()) {
+          setResolving(false);
+        }
       }
     };
 
@@ -81,19 +132,10 @@ export function useSessionResolver({
     return () => {
       if (resolutionIdRef.current === resolutionId) resolutionIdRef.current++;
     };
-  }, [
-    sessionId,
-    activeProjectName,
-    activeProjectFriendlyName,
-    activeAgent?.id,
-    activeAgent?.name,
-    activeChannel?.id,
-    activeChannel?.name,
-    activeTeam?.id,
-    activeTeam?.name,
-    currentPage,
-    onNavigate,
-  ]);
+  }, [contextKey]);
+
+  return {
+    resolvedSessionId,
+    resolving,
+  };
 }
-
-

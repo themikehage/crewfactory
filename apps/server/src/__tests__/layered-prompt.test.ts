@@ -122,11 +122,37 @@ describe("Layered Prompt System Tests", () => {
     const result = promptComposer.compose(agentDef, deployment);
     expect(result.applied).toContain("identity.agent_core");
     expect(result.applied).toContain("instance.team.orchestration");
+    expect(result.applied).toContain("instance.team.orchestration.leader-contract");
     expect(result.applied).not.toContain("role.leader.delegation");
     expect(result.applied).not.toContain("instance.channel.roster");
     expect(result.composed).toContain("delegate_task");
     expect(result.composed).toContain("Researcher (id: researcher, role: member, capability: Research technical options)");
     expect(result.composed).toContain("No uses menciones `@Nombre`");
+    expect(result.composed).toContain("ambient broadcast channel");
+  });
+
+  test("PromptComposer - Negotiation Team Context", () => {
+    const agentDef = {
+      name: "Negotiator",
+      role: "Member",
+      systemPrompt: "Debate choices."
+    };
+    const deployment: DeploymentContext = {
+      mode: "negotiation-team",
+      agentRole: "member",
+      members: [
+        { agentId: "neg1", agentName: "Negotiator", role: "member", replyMode: "broadcast" },
+        { agentId: "neg2", agentName: "Expert", role: "member", replyMode: "broadcast" }
+      ]
+    };
+
+    const result = promptComposer.compose(agentDef, deployment);
+    expect(result.applied).toContain("identity.agent_core");
+    expect(result.applied).toContain("instance.team.negotiation.roster");
+    expect(result.applied).not.toContain("instance.team.orchestration");
+    expect(result.applied).not.toContain("instance.channel.roster");
+    expect(result.composed).not.toContain("Mencionar a un participante");
+    expect(result.composed).toContain("Debate de Equipo (Negotiation)");
   });
 
   test("PromptComposer - Senior Role Context", () => {

@@ -16,7 +16,19 @@ export const instanceFragments: PromptFragment[] = [
   {
     key: "instance.team.orchestration",
     category: "instance",
-    content: "CONTEXTO DE EJECUCIÓN: Team de Orquestación.\nEres el agente propietario de una sesión persistente y coordinas el trabajo en un workspace compartido. Estos son los únicos agentes a los que puedes delegar:\n{roster}\n\nPROTOCOLO DE ORQUESTACIÓN:\n1. Descompón el objetivo y usa la herramienta `delegate_task` con `targetType: \"agent\"` y el `id` exacto del miembro adecuado para cada tarea especializada.\n2. No uses menciones `@Nombre` ni `@id` para delegar: las menciones no ejecutan trabajo en este Team.\n3. Delega solo a los miembros listados, revisa sus resultados y sintetiza una respuesta final para el usuario.\n4. Todos los delegados trabajan en el mismo workspace compartido; indica los archivos, restricciones y resultado esperado en cada tarea.",
+    content: "CONTEXTO DE EJECUCIÓN: Team de Orquestación.\nEres el agente propietario de una sesión persistente y coordinas el trabajo en un workspace compartido. Estos son los únicos agentes registrados en tu roster a los que puedes delegar:\n{roster}\n\nREGLAS DE ROSTER Y CANALES:\n- Los miembros del roster NO son un canal de broadcast ambiental (ambient broadcast channel). No asumas que reciben tus mensajes de chat automáticamente.\n- No uses menciones `@Nombre` ni `@id` para comunicarte o delegar tareas: las menciones no tienen ningún efecto y no inician ejecuciones en este Team.\n- Toda delegación debe ser explícita mediante la herramienta `delegate_task` targeting a un `agentId` permitido.",
+    priority: 1,
+  },
+  {
+    key: "instance.team.orchestration.leader-contract",
+    category: "instance",
+    content: "CONTRATO DEL LÍDER ORQUESTRADOR:\n1. Descomposición de Tareas: Divide el objetivo principal en subtareas aisladas e independientes.\n2. Delegación por Herramientas: Invoca la herramienta `delegate_task` para cada subtarea pasando el `agentId` del especialista correspondiente.\n3. Ejemplo de Uso: `delegate_task(targetType: \"agent\", targetId: \"nombre-especialista\", task: \"instrucciones claras de la tarea\", model: \"modelo-especifico\", autonomyMode: \"autonomous\")`.\n4. Revisión y Síntesis: Espera a recibir los reportes/resultados de cada especialista, analízalos y sintetiza una respuesta consolidada para el usuario final.",
+    priority: 2,
+  },
+  {
+    key: "instance.team.negotiation.roster",
+    category: "instance",
+    content: "CONTEXTO DE EJECUCIÓN: Debate de Equipo (Negotiation).\nLos siguientes agentes son miembros de este equipo y deliberan en paralelo para alcanzar un consenso:\n{roster}\n\nNota: Las menciones en el chat no activan ejecuciones automáticas en este modo. Todos los participantes responden según el protocolo del debate.",
     priority: 1,
   },
   {
