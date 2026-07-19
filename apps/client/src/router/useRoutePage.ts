@@ -13,7 +13,7 @@ export function useRoutePage(): RoutePage {
   if (pathname.includes("/delegations")) return "delegations";
   if (pathname.includes("/workspace") || pathname === "/workspace") return "workspace";
   if (pathname.includes("/preview") || pathname === "/preview") return "preview";
-  if (pathname === "/projects") return "projects";
+  if (pathname === "/dashboard" || pathname === "/projects") return "projects";
   if (pathname === "/settings") return "settings";
   if (pathname === "/skills") return "skills";
   if (pathname === "/agents") return "agents";

@@ -12,6 +12,7 @@ export function AppRoutes() {
       <Route index element={<ChatRoute />} />
       <Route path="session/*" element={<SessionRoute />} />
       <Route path="delegations" element={<DelegationsRoute />} />
+      <Route path="dashboard" element={<ProjectsRoute />} />
       <Route path="projects" element={<ProjectsRoute />} />
       <Route path="projects/:projectId" element={<ChatRoute />} />
       <Route path="projects/:projectId/chat" element={<ChatRoute />} />

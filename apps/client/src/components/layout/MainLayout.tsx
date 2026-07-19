@@ -386,7 +386,7 @@ export function MainLayout({
         />
       ) : (
         <DesktopHeader
-          onHome={() => onSelectProject ? onSelectProject(null, null) : onNavigate("/")}
+          onHome={() => { onSelectProject(null, null); onNavigate("/dashboard"); }}
           onToggleSidebar={() => setSidebarOpen((p) => !p)}
           onNavigate={onNavigate}
           wsState={wsState}
