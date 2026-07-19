@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useLiterals } from "@/lib";
 import { RichMarkdown } from "./RichMarkdown";
-import { resolveFileUrl, extractFileMarkers, isHtml, HtmlFileFetcher } from "./ToolResultInspector";
+import { extractFileMarkers, isHtml, HtmlFileFetcher } from "./ToolResultInspector";
+import { resolveFileUrl } from "@/lib/file-urls";
+import { useAuth } from "@/contexts/AuthContext";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
 import { literals as ml } from "./MessageBlocks.literals";
@@ -107,7 +109,7 @@ export function AssistantTextBlock({
   );
 
   if (htmlOutput || markers.length > 0) {
-    const token = "";
+    const { token } = useAuth();
     return (
       <div className="relative group">
         {copyButton}
@@ -135,7 +137,7 @@ export function AssistantTextBlock({
         )}
 
         {pdfMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-input overflow-hidden bg-card flex flex-col font-sans">
@@ -160,7 +162,7 @@ export function AssistantTextBlock({
         })}
 
         {audioMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`audio-${i}`} className="w-full p-3 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -171,7 +173,7 @@ export function AssistantTextBlock({
         })}
 
         {videoMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           return (
             <div key={`video-${i}`} className="w-full p-2 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -182,7 +184,7 @@ export function AssistantTextBlock({
         })}
 
         {officeMarkers.map((m, i) => {
-          const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+          const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
           const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
           const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
           const extension = m.url.split(".").pop() || "file";

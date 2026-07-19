@@ -10,6 +10,7 @@ import {
   getSessionDir, getUserDir
 } from "shared";
 import { scopeConfigManager } from "../core/scope";
+import { applyCacheHeaders } from "../core/cache-headers";
 
 export const filesRouter = new Hono();
 
@@ -90,7 +91,21 @@ filesRouter.get("/sessions/:sessionId/files/*", async (c) => {
     });
   }
 
-  return c.body(file.stream());
+  const cacheResponse = applyCacheHeaders(c, finalPath);
+  if (cacheResponse) {
+    return cacheResponse;
+  }
+
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": file.type || "application/octet-stream",
+  };
+  c.res.headers.forEach((val, key) => {
+    responseHeaders[key] = val;
+  });
+
+  return new Response(file.stream(), {
+    headers: responseHeaders,
+  });
 });
 
 function getRelativePath(c: any): string {
@@ -175,10 +190,19 @@ const handleGetWorkspace = async (c: any) => {
       const file = Bun.file(fullPath);
 
       if (raw) {
+        const isImmutable = fullPath.includes("/assets/generated/") || fullPath.includes("\\assets\\generated\\");
+        const cacheResponse = applyCacheHeaders(c, fullPath, { immutable: isImmutable });
+        if (cacheResponse) return cacheResponse;
+
+        const responseHeaders: Record<string, string> = {
+          "Content-Type": file.type || "application/octet-stream",
+        };
+        c.res.headers.forEach((val, key) => {
+          responseHeaders[key] = val;
+        });
+
         return new Response(file.stream(), {
-          headers: {
-            "Content-Type": file.type || "application/octet-stream",
-          },
+          headers: responseHeaders,
         });
       }
 

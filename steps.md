@@ -44,3 +44,33 @@
 - [x] 164.3 Wire teams to main execute switch in factory-tool.ts and add refresh hooks.
 - [x] 164.4 Update DEFAULT_AGENTS_MD with section 4. Teams and add factory-teams skill content to default-factory-skills.ts.
 - [x] 164.5 Verify server typechecks and existing team tests pass successfully.
+
+## Phase 165: Session Observability MVP (Phases 1-3)
+- [x] 165.1 Implement computeAndPersistMetrics in metadata-store.ts and hook it in session-event-publisher.ts on agent_end event
+- [x] 165.2 Extend SessionListItem and SessionSchema in shared packages with metrics fields
+- [x] 165.3 Optimize session-lister.ts messageCount reading from metadata and map metric fields for regular and virtual sessions
+- [x] 165.4 Update GET /api/sessions endpoint in Hono to support search, filtering, pagination, and sorting
+- [x] 165.5 Implement GET /api/sessions/:id/export endpoint in Hono supporting JSON, JSONL, and Markdown formats with 10MB limit
+- [x] 165.6 Integrate Export dropdown button in MainLayout.tsx workspace toolbar for direct downloads
+- [x] 165.7 Verify TypeScript build compilation of both apps/server and apps/client successfully
+
+## Phase 166: Session Observability (Fases 4-7)
+- [x] 166.1 Add executionId, turnCount, schedulingMode, and archived flags to SessionSchema in packages/shared/src/schemas.ts
+- [x] 166.2 Update SessionListItem type and listSessions in apps/server/src/core/session/session-lister.ts, calculating turnCount dynamically for CLI executions
+- [x] 166.3 Implement autoCleanupSessions method in SessionManager and hook it in index.ts startup and 12-hour interval
+- [x] 166.4 Create analytics and batch routes in routes/sessions.ts and channels analytics routes in routes/channels.ts
+- [x] 166.5 Build global AnalyticsPage dashboard with date filters and composed charts
+- [x] 166.6 Create SessionTimeline component for vertical milestone rendering and integrate in ChatArea
+- [x] 166.7 Integrate internal tabs (Chat, Analytics, Swimlanes) in ChannelDetailPage, rendering parallel rows and connecting turns with an SVG path
+- [x] 166.8 Verify client and server compilation build checks
+
+## Phase 167: Image Pipeline Optimization (Fases 1, 3, 6)
+- [x] 167.1 Crear utilidad cache-headers.ts para aplicar headers HTTP (Cache-Control, ETag, Last-Modified) y manejar responses 304 Not Modified
+- [x] 167.2 Integrar caching HTTP en endpoints de assets del workspace y archivos de sesión en files.ts, y en endpoint de avatar de agentes en agents.ts
+- [x] 167.3 Modificar backend (auth.ts) para exponer el token de sesión en /api/auth/status, /api/auth/login y /api/auth/register
+- [x] 167.4 Guardar y exponer el token de sesión en el cliente a través de AuthContext.tsx
+- [x] 167.5 Crear file-urls.ts con una utilidad consolidada de resolución de URLs (resolveFileUrl) que soporte todos los contextos
+- [x] 167.6 Simplificar AuthenticatedImage en ImageGrid.tsx para usar etiquetas <img> nativas con ?token=..., permitiendo caching nativo de navegador y reduciendo overhead
+- [x] 167.7 Migrar todas las llamadas del cliente de resolveImageUrl y resolveFileUrl a la nueva utilidad consolidada en ImageGrid.tsx, ToolResultInspector.tsx, MessageBlocks.tsx y MessageList.tsx
+- [x] 167.8 Verificar la compilación de producción de client y server
+

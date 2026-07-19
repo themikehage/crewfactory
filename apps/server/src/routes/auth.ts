@@ -35,6 +35,7 @@ authRouter.get("/status", async (c) => {
     needsSetup: false,
     authenticated: !!session,
     user: session ? { username: (session.user as any).username } : null,
+    token: session ? session.session.token : null,
   });
 });
 
@@ -69,11 +70,15 @@ authRouter.post("/register", zValidator("json", RegisterSchema), async (c) => {
     });
 
     const setCookies = signIn.headers.getSetCookie();
+    let token: string | null = null;
     for (const cookie of setCookies) {
       c.res.headers.append("Set-Cookie", cookie);
+      if (cookie.startsWith("better-auth.session_token=")) {
+        token = cookie.split("=")[1].split(";")[0];
+      }
     }
 
-    return c.json({ user: { username } });
+    return c.json({ user: { username }, token });
   } catch (err: any) {
     const message = err?.message || "Registration failed";
     if (message.toLowerCase().includes("already exists") || message.toLowerCase().includes("unique")) {
@@ -102,11 +107,15 @@ authRouter.post("/login", zValidator("json", LoginSchema), async (c) => {
     }
 
     const setCookies = result.headers.getSetCookie();
+    let token: string | null = null;
     for (const cookie of setCookies) {
       c.res.headers.append("Set-Cookie", cookie);
+      if (cookie.startsWith("better-auth.session_token=")) {
+        token = cookie.split("=")[1].split(";")[0];
+      }
     }
 
-    return c.json({ user: { username } });
+    return c.json({ user: { username }, token });
   } catch {
     return c.json({ error: "Invalid credentials" }, 401);
   }

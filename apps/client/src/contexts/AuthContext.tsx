@@ -14,6 +14,7 @@ interface User {
 
 interface AuthContextType {
   user: User | null;
+  token: string | null;
   loading: boolean;
   needsSetup: boolean;
   login: (username: string, password: string) => Promise<void>;
@@ -26,6 +27,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [token, setToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [needsSetup, setNeedsSetup] = useState(false);
 
@@ -44,10 +46,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     apiFetch("/api/auth/status")
       .then(async (res) => {
         if (!res.ok) return;
-        const data = await res.json() as { needsSetup: boolean; authenticated: boolean; user?: User };
+        const data = await res.json() as { needsSetup: boolean; authenticated: boolean; user?: User; token?: string };
         setNeedsSetup(data.needsSetup);
         if (data.authenticated && data.user) {
           setUser(data.user);
+          if (data.token) {
+            setToken(data.token);
+          }
         }
       })
       .catch(() => {})
@@ -57,6 +62,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const handleUnauthorized = () => {
       setUser(null);
+      setToken(null);
       clearAppState();
     };
     window.addEventListener("auth-unauthorized", handleUnauthorized);
@@ -77,8 +83,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error ?? "Login failed");
       }
 
-      const data = await res.json() as { user: User };
+      const data = await res.json() as { user: User; token: string | null };
       setUser(data.user);
+      setToken(data.token);
       setNeedsSetup(false);
     } finally {
       setLoading(false);
@@ -99,8 +106,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         throw new Error(data.error ?? "Registration failed");
       }
 
-      const data = await res.json() as { user: User };
+      const data = await res.json() as { user: User; token: string | null };
       setUser(data.user);
+      setToken(data.token);
       setNeedsSetup(false);
     } finally {
       setLoading(false);
@@ -110,6 +118,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const logout = useCallback(async () => {
     await apiFetch("/api/auth/logout", { method: "POST" }).catch(() => {});
     setUser(null);
+    setToken(null);
     clearAppState();
   }, []);
 
@@ -127,7 +136,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   return (
-    <AuthContext.Provider value={{ user, loading, needsSetup, login, register, logout, changePassword }}>
+    <AuthContext.Provider value={{ user, token, loading, needsSetup, login, register, logout, changePassword }}>
       {children}
     </AuthContext.Provider>
   );

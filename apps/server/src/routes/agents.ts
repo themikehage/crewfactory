@@ -11,6 +11,7 @@ import { sessionManager } from "../core/session-manager";
 import { join } from "node:path";
 import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
 import { channelStore } from "../channels";
+import { applyCacheHeaders } from "../core/cache-headers";
 
 export const agentsRouter = new Hono();
 
@@ -30,8 +31,23 @@ agentsRouter.get("/:id/avatar", async (c) => {
   const avatarFile = files.find((f) => f.startsWith("avatar."));
   if (!avatarFile) return c.notFound();
 
-  const file = Bun.file(join(agentDir, avatarFile));
-  return c.body(file.stream());
+  const avatarPath = join(agentDir, avatarFile);
+  const cacheResponse = applyCacheHeaders(c, avatarPath);
+  if (cacheResponse) {
+    return cacheResponse;
+  }
+
+  const file = Bun.file(avatarPath);
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": file.type || "application/octet-stream",
+  };
+  c.res.headers.forEach((val, key) => {
+    responseHeaders[key] = val;
+  });
+
+  return new Response(file.stream(), {
+    headers: responseHeaders,
+  });
 });
 
 agentsRouter.use("/*", authMiddleware);

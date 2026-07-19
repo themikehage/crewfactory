@@ -1,5 +1,7 @@
 import { apiFetch } from "@/lib/api";
 import { useCallback, useState, useEffect, useRef } from "react";
+import { resolveFileUrl } from "@/lib/file-urls";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface ImageItem {
   url: string;
@@ -23,44 +25,12 @@ export function resolveImageUrl(
   activeChannelId?: string | null,
   activeTeamId?: string | null
 ): string {
-  if (!url) return "";
-
-  if (url.startsWith("data:image/") || url.startsWith("http://") || url.startsWith("https://")) {
-    return url;
-  }
-
-  if (sessionId && (url.includes("/tmp/") || url.includes("C:\\tmp\\") || url.includes("C:/tmp/"))) {
-    const sessionMarker = `sessions/${sessionId}/`;
-    const idx = url.indexOf(sessionMarker);
-    if (idx !== -1) {
-      const relativePath = url.substring(idx + sessionMarker.length);
-      const cleanedPath = relativePath.replace(/\\/g, "/");
-      return `/api/sessions/${sessionId}/files/${cleanedPath}`;
-    }
-
-    const match = url.match(/sessions\/([a-zA-Z0-9-]+)\/(.+)/);
-    if (match) {
-      const cleanedPath = match[2].replace(/\\/g, "/");
-      return `/api/sessions/${match[1]}/files/${cleanedPath}`;
-    }
-
-    const baseName = url.split(/[\\/]/).pop();
-    if (baseName) {
-      return `/api/sessions/${sessionId}/files/${baseName}`;
-    }
-  }
-
-  let cleanPath = url.replace(/\\/g, "/");
-  if (cleanPath.startsWith("workspace/")) {
-    cleanPath = cleanPath.substring("workspace/".length);
-  }
-  const params = new URLSearchParams();
-  if (activeProjectName) params.append("project", activeProjectName);
-  if (activeAgentId) params.append("agentId", activeAgentId);
-  if (activeChannelId) params.append("channelId", activeChannelId);
-  if (activeTeamId) params.append("teamId", activeTeamId);
-  params.append("raw", "true");
-  return `/api/workspace/${cleanPath}?${params.toString()}`;
+  return resolveFileUrl(url, sessionId, {
+    project: activeProjectName,
+    agentId: activeAgentId,
+    channelId: activeChannelId,
+    teamId: activeTeamId,
+  });
 }
 
 interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageElement> {
@@ -68,10 +38,9 @@ interface AuthenticatedImageProps extends React.ImgHTMLAttributes<HTMLImageEleme
 }
 
 export function AuthenticatedImage({ src, alt, className, ...props }: AuthenticatedImageProps) {
-  const [blobUrl, setBlobUrl] = useState<string>("");
   const [inView, setInView] = useState(false);
-  const [loading, setLoading] = useState(true);
   const containerRef = useRef<HTMLDivElement>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     const el = containerRef.current;
@@ -91,46 +60,13 @@ export function AuthenticatedImage({ src, alt, className, ...props }: Authentica
     return () => observer.disconnect();
   }, []);
 
-  useEffect(() => {
-    if (!inView || !src) return;
-    if (!src.startsWith("/api/")) {
-      setBlobUrl(src);
-      setLoading(false);
-      return;
-    }
-
-    let active = true;
-    let url = "";
-
-    const loadImg = async () => {
-      try {
-        const token = "";
-        const res = await apiFetch(src, {
-          headers: token ? {  } : {}});
-        if (!res.ok) return;
-        const blob = await res.blob();
-        if (active) {
-          url = URL.createObjectURL(blob);
-          setBlobUrl(url);
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("Failed to load image:", err);
-        if (active) setLoading(false);
-      }
-    };
-
-    loadImg();
-
-    return () => {
-      active = false;
-      if (url) URL.revokeObjectURL(url);
-    };
-  }, [inView, src]);
+  const imgSrc = !src.startsWith("/api/") || !token
+    ? src
+    : `${src}${src.includes("?") ? "&" : "?"}token=${token}`;
 
   return (
     <div ref={containerRef} className="w-full h-full">
-      {loading ? (
+      {!inView ? (
         <div className="w-full h-full flex items-center justify-center bg-card animate-pulse">
           <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" className="text-muted-foreground">
             <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
@@ -139,7 +75,7 @@ export function AuthenticatedImage({ src, alt, className, ...props }: Authentica
           </svg>
         </div>
       ) : (
-        <img src={blobUrl} alt={alt} className={className} {...props} />
+        <img src={imgSrc} alt={alt} className={className} loading="lazy" {...props} />
       )}
     </div>
   );
@@ -155,6 +91,7 @@ export function ImageGrid({
 }: Props) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+  const { token } = useAuth();
 
   useEffect(() => {
     if (!previewUrl) return;
@@ -168,10 +105,9 @@ export function ImageGrid({
   const downloadImage = useCallback(async (resolvedUrl: string, filename?: string) => {
     setDownloading(resolvedUrl);
     try {
-      const token = "";
       const res = await apiFetch(resolvedUrl, {
         headers: resolvedUrl.startsWith("/api/") && token
-          ? {  }
+          ? { Authorization: `Bearer ${token}` }
           : {}});
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const blob = await res.blob();
@@ -200,14 +136,13 @@ export function ImageGrid({
     } finally {
       setDownloading(null);
     }
-  }, []);
+  }, [token]);
 
   const openImageInNewTab = async (resolvedUrl: string) => {
     try {
-      const token = "";
       const res = await apiFetch(resolvedUrl, {
         headers: resolvedUrl.startsWith("/api/") && token
-          ? {  }
+          ? { Authorization: `Bearer ${token}` }
           : {}});
       if (!res.ok) throw new Error("Failed to load image");
       const blob = await res.blob();

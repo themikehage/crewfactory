@@ -2,6 +2,8 @@ import { apiFetch } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { HtmlPreview } from "./HtmlPreview";
 import { ImageGrid } from "./ImageGrid";
+import { resolveFileUrl } from "@/lib/file-urls";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface Props {
   toolName: string;
@@ -17,50 +19,6 @@ interface FileMarker {
   title: string;
   url: string;
   type: MediaType;
-}
-
-export function resolveFileUrl(
-  rawUrl: string,
-  sessionId: string | null,
-  activeProjectName?: string | null,
-  activeAgentId?: string | null,
-  activeChannelId?: string | null
-): string {
-  if (!rawUrl) return "";
-
-  if (rawUrl.startsWith("data:") || rawUrl.startsWith("http://") || rawUrl.startsWith("https://")) {
-    return rawUrl;
-  }
-
-  if (sessionId && (rawUrl.includes("/tmp/") || rawUrl.includes("C:\\tmp\\") || rawUrl.includes("C:/tmp/"))) {
-    const sessionMarker = `sessions/${sessionId}/`;
-    const idx = rawUrl.indexOf(sessionMarker);
-    if (idx !== -1) {
-      const relativePath = rawUrl.substring(idx + sessionMarker.length);
-      return `/api/sessions/${sessionId}/files/${relativePath.replace(/\\/g, "/")}`;
-    }
-
-    const match = rawUrl.match(/sessions\/([a-zA-Z0-9-]+)\/(.+)/);
-    if (match) {
-      return `/api/sessions/${match[1]}/files/${match[2].replace(/\\/g, "/")}`;
-    }
-
-    const baseName = rawUrl.split(/[\\/]/).pop();
-    if (baseName) {
-      return `/api/sessions/${sessionId}/files/${baseName}`;
-    }
-  }
-
-  let cleanPath = rawUrl.replace(/\\/g, "/");
-  if (cleanPath.startsWith("workspace/")) {
-    cleanPath = cleanPath.substring("workspace/".length);
-  }
-  const params = new URLSearchParams();
-  if (activeProjectName) params.append("project", activeProjectName);
-  if (activeAgentId) params.append("agentId", activeAgentId);
-  if (activeChannelId) params.append("channelId", activeChannelId);
-  params.append("raw", "true");
-  return `/api/workspace/${cleanPath}?${params.toString()}`;
 }
 
 export function getFileType(url: string): MediaType {
@@ -155,18 +113,22 @@ export function HtmlFileFetcher({
   const [html, setHtml] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { token } = useAuth();
 
-  const resolvedUrl = resolveFileUrl(url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+  const resolvedUrl = resolveFileUrl(url, sessionId, {
+    project: activeProjectName,
+    agentId: activeAgentId,
+    channelId: activeChannelId,
+  });
 
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
     setError(null);
 
-    const token = "";
     apiFetch(resolvedUrl, {
       headers: resolvedUrl.startsWith("/api/") && token
-        ? {}
+        ? { Authorization: `Bearer ${token}` }
         : {}
     })
       .then((res) => {
@@ -231,10 +193,9 @@ function MediaRenderer({
   const audioMarkers = markers.filter((m) => m.type === "audio");
   const videoMarkers = markers.filter((m) => m.type === "video");
   const officeMarkers = markers.filter((m) => m.type === "office" || m.type === "other");
+  const { token } = useAuth();
 
   if (markers.length === 0) return null;
-
-  const token = "";
 
   return (
     <div className="space-y-3">
@@ -261,7 +222,7 @@ function MediaRenderer({
       )}
 
       {pdfMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`pdf-${i}`} className="w-full h-96 rounded-lg border border-input overflow-hidden bg-card flex flex-col font-sans">
@@ -286,7 +247,7 @@ function MediaRenderer({
       })}
 
       {audioMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`audio-${i}`} className="w-full p-3 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -297,7 +258,7 @@ function MediaRenderer({
       })}
 
       {videoMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         return (
           <div key={`video-${i}`} className="w-full p-2 bg-card border border-input rounded-lg flex flex-col gap-1.5 font-sans">
@@ -308,7 +269,7 @@ function MediaRenderer({
       })}
 
       {officeMarkers.map((m, i) => {
-        const resolved = resolveFileUrl(m.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+        const resolved = resolveFileUrl(m.url, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
         const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
         const filename = m.title || m.url.split(/[\\/]/).pop() || "file";
         const extension = m.url.split(".").pop() || "file";

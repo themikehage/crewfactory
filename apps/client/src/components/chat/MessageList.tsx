@@ -4,7 +4,9 @@ import clsx from "clsx";
 import { useLiterals, type MessageUsage } from "@/lib";
 import { literals as u } from "./MessageList.literals";
 import { ToolCallRow, type ToolResultData } from "./tools/ToolCallRow";
-import { resolveFileUrl, getFileType, type MediaType } from "./ToolResultInspector";
+import { getFileType, type MediaType } from "./ToolResultInspector";
+import { resolveFileUrl } from "@/lib/file-urls";
+import { useAuth } from "@/contexts/AuthContext";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
 import { ImageGrid } from "./ImageGrid";
 import { ThinkingBlock, AssistantTextBlock } from "./MessageBlocks";
@@ -470,7 +472,7 @@ function UserBubble({
   const images = attachments.filter(a => a.type === "image");
   const nonImages = attachments.filter(a => a.type !== "image");
 
-  const token = "";
+  const { token } = useAuth();
 
   return (
     <div className="flex gap-3 justify-end my-1">
@@ -499,7 +501,7 @@ function UserBubble({
         {nonImages.length > 0 && (
           <div className="space-y-1.5 w-64">
             {nonImages.map((att, idx) => {
-              const resolved = resolveFileUrl(att.path, sessionId, activeProjectName, activeAgentId, activeChannelId);
+              const resolved = resolveFileUrl(att.path, sessionId, { project: activeProjectName, agentId: activeAgentId, channelId: activeChannelId });
               const fileUrl = resolved.startsWith("/api/") && token ? `${resolved}&token=${token}` : resolved;
               return (
                 <div key={idx} className="flex items-center justify-between p-2.5 bg-card border border-input rounded-lg font-sans text-left w-full">
