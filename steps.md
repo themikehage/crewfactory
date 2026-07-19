@@ -798,3 +798,8 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 156.2 Make workspace context selection idempotent for repeated context actions
 - [x] 156.3 Verify client typecheck and production build
 
+## Phase 157: Route Context Stability
+- [x] 157.1 Derive workspace context segments from the pathname at the pathless router shell
+- [x] 157.2 Scope session resolution to the current context and cancel stale redirects
+- [x] 157.3 Deduplicate React runtime modules in Vite and verify client typecheck and production build
+

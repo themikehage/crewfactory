@@ -1,5 +1,5 @@
-import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { useLocation, useNavigate, useParams } from "react-router-dom";
+import { createContext, createElement, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { matchPath, useLocation, useNavigate } from "react-router-dom";
 import { buildContextPath } from "@/router/paths";
 
 export interface ActiveAgent {
@@ -36,10 +36,21 @@ function readStoredValue<T>(key: string): T | null {
   }
 }
 
+function getRouteContext(pathname: string) {
+  const projectId = matchPath("/projects/:projectId/*", pathname)?.params.projectId ?? null;
+  if (projectId) return { type: "project" as const, id: projectId };
+  const agentId = matchPath("/agents/:agentId/*", pathname)?.params.agentId ?? null;
+  if (agentId) return { type: "agent" as const, id: agentId };
+  const channelId = matchPath("/channels/:channelId/*", pathname)?.params.channelId ?? null;
+  if (channelId) return { type: "channel" as const, id: channelId };
+  const teamId = matchPath("/teams/:teamId/*", pathname)?.params.teamId ?? null;
+  return teamId ? { type: "team" as const, id: teamId } : null;
+}
+
 function useWorkspaceContextState(): WorkspaceContextValue {
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const { projectId, agentId, channelId, teamId } = useParams();
+  const routeContext = useMemo(() => getRouteContext(pathname), [pathname]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => localStorage.getItem("active-project-id"));
   const [activeProjectFriendlyName, setActiveProjectFriendlyName] = useState<string | null>(() => localStorage.getItem("active-project-name"));
   const [activeAgent, setActiveAgent] = useState<ActiveAgent | null>(() => readStoredValue<ActiveAgent>("active-agent"));
@@ -148,10 +159,10 @@ function useWorkspaceContextState(): WorkspaceContextValue {
   }, [activeAgent, activeChannel, activeProjectFriendlyName, activeProjectId, activeTeam, clearPersistedContexts, clearState, navigateIfNeeded]);
 
   useEffect(() => {
-    const routeProject = projectId ?? null;
-    const routeAgent = agentId ?? null;
-    const routeChannel = channelId ?? null;
-    const routeTeam = teamId ?? null;
+    const routeProject = routeContext?.type === "project" ? routeContext.id : null;
+    const routeAgent = routeContext?.type === "agent" ? routeContext.id : null;
+    const routeChannel = routeContext?.type === "channel" ? routeContext.id : null;
+    const routeTeam = routeContext?.type === "team" ? routeContext.id : null;
 
     if (routeProject && routeProject !== activeProjectId) {
       clearPersistedContexts();
@@ -203,7 +214,7 @@ function useWorkspaceContextState(): WorkspaceContextValue {
       setActiveChannel(null);
       setActiveTeam(team);
     }
-  }, [activeAgent?.id, activeChannel?.id, activeProjectId, activeTeam?.id, agentId, channelId, clearPersistedContexts, projectId, teamId]);
+  }, [activeAgent?.id, activeChannel?.id, activeProjectId, activeTeam?.id, clearPersistedContexts, routeContext]);
 
   return {
     activeProjectId,

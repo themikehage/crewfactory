@@ -28,20 +28,21 @@ export function useSessionResolver({
   currentPage,
   onNavigate,
 }: UseSessionResolverParams) {
-  const resolvingRef = useRef(false);
+  const resolutionIdRef = useRef(0);
 
   useEffect(() => {
+    const resolutionId = ++resolutionIdRef.current;
+    const isCurrentResolution = () => resolutionIdRef.current === resolutionId;
     if (currentPage !== "chat") return;
-    if (sessionId || resolvingRef.current) return;
-
-    resolvingRef.current = true;
+    if (sessionId) return;
 
     const resolve = async () => {
       try {
         const res = await apiFetch("/api/sessions");
-        if (!res.ok) return;
+        if (!res.ok || !isCurrentResolution()) return;
 
         const data = await res.json();
+        if (!isCurrentResolution()) return;
         const all = data.sessions ?? [];
 
         const context = {
@@ -55,7 +56,7 @@ export function useSessionResolver({
         const filtered = all.filter(getSessionContextPredicate(context));
 
         if (filtered.length > 0) {
-          onNavigate(getSessionPath(filtered[0].id, context));
+          if (isCurrentResolution()) onNavigate(getSessionPath(filtered[0].id, context));
           return;
         }
 
@@ -67,16 +68,19 @@ export function useSessionResolver({
           body: JSON.stringify(buildCreateSessionBody(sessionName, context)),
         });
 
-        if (!createRes.ok) return;
+        if (!createRes.ok || !isCurrentResolution()) return;
 
         const session = await createRes.json();
-        onNavigate(getSessionPath(session.id, context));
-      } finally {
-        resolvingRef.current = false;
+        if (isCurrentResolution()) onNavigate(getSessionPath(session.id, context));
+      } catch {
+        return;
       }
     };
 
     resolve();
+    return () => {
+      if (resolutionIdRef.current === resolutionId) resolutionIdRef.current++;
+    };
   }, [
     sessionId,
     activeProjectName,

@@ -10,8 +10,8 @@
 
 - **React Router Route Tree:** `AppRoutes` is the single declarative entry point below `BrowserRouter`, with an authenticated `AppRouter` layout and independent leaves for chat, delegations, workspace, preview, channels, teams, laboratory, pipelines, administration, MCP alias, and 404.
 - **Typed Navigation Paths:** `router/paths.ts` centralizes contextual, session, delegation, and workspace URL construction. `WorkspaceContextProvider` owns active project, agent, channel, and team state plus its persisted convenience data, keeping the URL as the route authority.
-- **Native URL State:** Route elements derive identifiers from `useParams`, locations from `useLocation`, and session suffixes from splats. `WorkspaceContextProvider` treats URL params as the context authority and localStorage only as convenience persistence.
-- **Shell and Laboratory Boundaries:** `AppRouter` limits itself to authentication, providers, shell coordination, and URL-driven mobile history. Its stack records each pathname once, while workspace selection is idempotent and never re-navigates to the active URL. `LaboratoryContext` exposes the isolated controller to laboratory leaves and modals.
+- **Native URL State:** Route elements derive identifiers from `useParams`, locations from `useLocation`, and session suffixes from splats. `WorkspaceContextProvider` reads contextual segments from the full pathname, so its pathless shell boundary cannot retain stale route parameters; localStorage is convenience persistence only.
+- **Shell and Laboratory Boundaries:** `AppRouter` limits itself to authentication, providers, shell coordination, and URL-driven mobile history. Its stack records each pathname once, workspace selection is idempotent, and session resolution is scoped to the current route context to prevent stale asynchronous redirects. Vite resolves React and React DOM as singletons. `LaboratoryContext` exposes the isolated controller to laboratory leaves and modals.
 
 ## Features
 
