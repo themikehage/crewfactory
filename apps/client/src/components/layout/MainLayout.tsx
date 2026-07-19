@@ -6,6 +6,8 @@ import { AnimatePresence } from "framer-motion";
 import type { RoutePage } from "@/router/useRoutePage";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { useLiterals } from "@/lib";
+import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
+import { getSessionPath } from "@/lib/session-utils";
 import { literals as u } from "./MainLayout.literals";
 import { MobileTopbar } from "./MobileTopbar";
 import { wsClient, type ConnectionState } from "@/lib/ws-client";
@@ -47,15 +49,6 @@ interface LabProps {
 interface Props {
   page: RoutePage;
   onNavigate: (path: string) => void;
-  activeProjectName: string | null;
-  activeProjectId?: string | null;
-  activeAgent: { id: string; name: string; avatarUrl?: string } | null;
-  activeChannel: { id: string; name: string } | null;
-  activeTeam?: { id: string; name: string } | null;
-  onSelectProject?: (projectId: string | null, projectName: string | null) => void;
-  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
-  onSelectChannel?: (channel: { id: string; name: string } | null) => void;
-  onSelectTeam?: (team: { id: string; name: string } | null) => void;
   children: ReactNode;
   isMobile?: boolean;
   canGoBack?: boolean;
@@ -66,21 +59,26 @@ interface Props {
 export function MainLayout({
   page,
   onNavigate,
-  activeProjectName,
-  activeProjectId = null,
-  activeAgent,
-  activeChannel = null,
-  activeTeam = null,
-  onSelectProject,
-  onSelectAgent,
-  onSelectChannel,
-  onSelectTeam,
   children,
   isMobile = false,
   canGoBack = false,
   onBack,
   lab,
 }: Props) {
+  const workspace = useWorkspaceContext();
+  const {
+    activeProjectId,
+    activeProjectFriendlyName: activeProjectName,
+    activeAgent: rawActiveAgent,
+    activeChannel,
+    activeTeam,
+    selectProject: onSelectProject,
+  } = workspace;
+
+  const activeAgent = (page === "laboratory" && !lab?.selectedExpId)
+    ? { id: "lab-architect", name: "Lab Architect" }
+    : rawActiveAgent;
+
   const l = useLiterals(u);
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -106,8 +104,10 @@ export function MainLayout({
     handleQuickCreate,
   } = useSessionActions({
     activeProjectId,
+    activeProjectFriendlyName: activeProjectName,
     activeAgent,
     activeChannel,
+    activeTeam,
     onNavigate,
     setSidebarOpen,
   });
@@ -141,7 +141,7 @@ export function MainLayout({
   const sessionMatch = pathname.match(/\/session\/(.+?)(?:\/delegations)?$/);
   const sessionId = sessionMatch?.[1] ?? null;
 
-  useSessionResolver({
+  const { resolvedSessionId, resolving } = useSessionResolver({
     sessionId,
     activeProjectName: activeProjectId,
     activeProjectFriendlyName: activeProjectName,
@@ -149,8 +149,30 @@ export function MainLayout({
     activeChannel,
     activeTeam,
     currentPage: page,
-    onNavigate,
   });
+
+  useEffect(() => {
+    if (resolvedSessionId && !sessionId) {
+      const context = {
+        activeChannel,
+        activeTeam,
+        activeAgent,
+        activeProjectName: activeProjectId,
+        activeProjectFriendlyName: activeProjectName,
+      };
+      onNavigate(getSessionPath(resolvedSessionId, context));
+    }
+  }, [resolvedSessionId, sessionId, activeChannel, activeTeam, activeAgent, activeProjectId, activeProjectName, onNavigate]);
+
+  const resolvingSession = !sessionId && page === "chat" && resolving;
+
+  const contentElement = resolvingSession ? (
+    <div className="absolute inset-0 flex items-center justify-center bg-background">
+      <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+    </div>
+  ) : (
+    children
+  );
 
   const isContextView = page === "chat" || page === "workspace" || page === "preview" || page === "laboratory" || page === "org" || page === "delegations";
   const showNewSessionButton = !isHome && isContextView && page !== "laboratory";
@@ -211,7 +233,7 @@ export function MainLayout({
       });
     }
 
-    if (activeChannel) {
+    if (activeChannel || activeTeam) {
       list.push({
         id: "org",
         label: l.tabOrgChart,
@@ -222,20 +244,22 @@ export function MainLayout({
           </svg>
         ),
       });
-      list.push({
-        id: "benchmark",
-        label: l.tabBenchmark || "Benchmark",
-        path: `${basePath}/benchmarks`,
-        icon: (
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-            <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
-          </svg>
-        ),
-      });
+      if (activeChannel) {
+        list.push({
+          id: "benchmark",
+          label: l.tabBenchmark || "Benchmark",
+          path: `${basePath}/benchmarks`,
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
+            </svg>
+          ),
+        });
+      }
     }
 
     return list;
-  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeChannel, l]);
+  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeChannel, activeTeam, l]);
 
   const breadcrumbsElement = (
     <Breadcrumbs
@@ -336,16 +360,8 @@ export function MainLayout({
 
   const sessionSidebarElement = (
     <SessionSidebar
-      activeProjectName={activeProjectId}
-      activeAgent={activeAgent}
-      activeChannel={activeChannel}
-      activeTeam={activeTeam}
       currentPage={page}
       onNavigate={onNavigate}
-      onSelectProject={onSelectProject}
-      onSelectAgent={onSelectAgent}
-      onSelectChannel={onSelectChannel}
-      onSelectTeam={onSelectTeam}
       selectedExpId={lab?.selectedExpId}
       isMobile={isMobile}
       onCloseSidebar={() => setSidebarOpen(false)}
@@ -395,7 +411,7 @@ export function MainLayout({
               } z-30 flex flex-col bg-background`}
             >
               {isContextView && sharedTabBar}
-              <div className="flex-1 min-h-0 relative">{children}</div>
+              <div className="flex-1 min-h-0 relative">{contentElement}</div>
             </main>
 
             {sidebarOpen && (
@@ -403,10 +419,6 @@ export function MainLayout({
                 currentPage={page}
                 isHome={isHome}
                 onNavigate={onNavigate}
-                onSelectProject={onSelectProject}
-                onSelectAgent={onSelectAgent}
-                onSelectChannel={onSelectChannel}
-                onSelectTeam={onSelectTeam}
                 setSidebarOpen={setSidebarOpen}
               />
             )}
@@ -419,7 +431,7 @@ export function MainLayout({
 
             <main className="flex-1 min-w-0 flex flex-col h-full bg-background">
               {isContextView && sharedTabBar}
-              <div className="flex-1 min-h-0 relative">{children}</div>
+              <div className="flex-1 min-h-0 relative">{contentElement}</div>
             </main>
           </>
         )}

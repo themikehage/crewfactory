@@ -77,6 +77,12 @@ export function useSessionResolver({
                 setResolving(false);
                 return;
               }
+            } else {
+              if (isCurrentResolution()) {
+                setResolvedSessionId(null);
+                setResolving(false);
+              }
+              return;
             }
           }
         }

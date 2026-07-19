@@ -9,6 +9,7 @@ import { ChannelBenchmarkPage } from "@/pages/ChannelBenchmarkPage";
 import { ChannelDetailPage } from "@/pages/ChannelDetailPage";
 import { ChannelOrgPage } from "@/pages/ChannelOrgPage";
 import { TeamDetailPage } from "@/pages/TeamDetailPage";
+import { TeamOrgPage } from "@/pages/TeamOrgPage";
 import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
 
 function sessionFromSplat(splat: string | undefined, suffix = ""): string | null {
@@ -69,4 +70,10 @@ export function ChannelBenchmarkRoute() {
   const { channelId = "" } = useParams();
   const navigate = useNavigate();
   return <ChannelBenchmarkPage channelId={channelId} onNavigate={navigate} />;
+}
+
+export function TeamOrgRoute() {
+  const { teamId = "" } = useParams();
+  const navigate = useNavigate();
+  return <TeamOrgPage teamId={teamId} onNavigate={navigate} />;
 }

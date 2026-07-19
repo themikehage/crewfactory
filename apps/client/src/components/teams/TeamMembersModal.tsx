@@ -268,15 +268,20 @@ export function AddTeamMemberModal({ availableAgents, currentMemberAgentIds, onC
                       key={a.id}
                       type="button"
                       onClick={() => setSelectedAgentId(a.id)}
-                      className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors cursor-pointer ${
+                      className={`w-full flex items-center gap-2.5 px-3 py-2 rounded-xl text-xs text-left transition-colors cursor-pointer ${
                         selectedAgentId === a.id
                           ? "bg-primary/15 border border-primary/30 text-foreground"
                           : "border border-transparent text-muted-foreground hover:bg-card-hover hover:text-foreground"
                       }`}
                     >
                       <AgentAvatar name={a.name} avatarUrl={a.avatarUrl} size="xs" />
-                      <span className="truncate">{a.name}</span>
-                      <span className="text-muted-foreground ml-auto flex-shrink-0">({a.role})</span>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center justify-between gap-1.5">
+                          <span className="font-semibold text-foreground truncate">{a.name}</span>
+                          <span className="text-[10px] text-muted-foreground truncate font-mono">@{a.id}</span>
+                        </div>
+                        <p className="text-[10px] text-muted-foreground truncate mt-0.5">{a.role}</p>
+                      </div>
                     </button>
                   ))}
                 </div>

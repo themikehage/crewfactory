@@ -18,3 +18,12 @@
 - [x] 160.6 Pass activeTeamId down from ChatArea through MessageList, ToolCallRow, ToolBody to ImageGrid and WorkspaceFileEditor
 - [x] 160.7 Verify client and server compilation build checks
 
+## Phase 161: Teams UI Improvements
+- [x] 161.1 Resolve loading issue on Negotiation teams by returning null immediately instead of sending fallback sessions API call (useSessionResolver.ts)
+- [x] 161.2 Update agent selection UI in AddTeamMemberModal / AddMemberModal to display agent ID and role clearly, avoiding name confusion
+- [x] 161.3 Create TeamOrgTab.tsx and TeamOrgPage.tsx components to visualize team hierarchy flow
+- [x] 161.4 Enable Org tab on workspace ContextTabBar for activeTeam contexts and add teams route path mapping
+- [x] 161.5 Integrate header with members/settings buttons in Orchestration team view within TeamChatArea.tsx
+- [x] 161.6 Verify full TypeScript client compilation build checks successfully
+
+
