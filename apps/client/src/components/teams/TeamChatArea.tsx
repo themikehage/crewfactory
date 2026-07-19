@@ -109,7 +109,6 @@ export function TeamChatArea({ activeTeam, sessionId }: Props) {
       <ChatArea
         sessionId={sessionId}
         activeProjectName={null}
-        activeAgent={leadAgent ? { id: leadAgent.id, name: leadAgent.name, avatarUrl: leadAgent.avatarUrl } : null}
         activeTeam={activeTeam}
       />
     );
