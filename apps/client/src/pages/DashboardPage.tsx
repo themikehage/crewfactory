@@ -451,16 +451,6 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                           type="project"
                           className="rounded-none w-full h-full object-cover"
                         />
-                        <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                          <button
-                            onClick={() => onSelectProject(repo.id || repo.name, repo.name)}
-                            className="w-10 h-10 bg-accent text-bg rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer"
-                          >
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                              <polygon points="5 3 19 12 5 21" />
-                            </svg>
-                          </button>
-                        </div>
                         <button
                           onClick={() => handleStartInfo(repo)}
                           className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black text-text-primary rounded-full hover:scale-105 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
@@ -558,18 +548,7 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                           type="channel"
                           className="rounded-none w-full h-full object-cover"
                         />
-                        {onNavigate && (
-                          <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                            <button
-                              onClick={() => onNavigate(`/channels/${channel.id}/chat`)}
-                              className="w-10 h-10 bg-accent text-bg rounded-full flex items-center justify-center shadow-lg hover:scale-105 transition-transform cursor-pointer"
-                            >
-                              <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
-                                <polygon points="5 3 19 12 5 21" />
-                              </svg>
-                            </button>
-                          </div>
-                        )}
+
                       </div>
 
                       <h3 className="font-extrabold text-xs text-foreground truncate mt-2.5 leading-tight">
@@ -621,13 +600,13 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                   <div
                     key={agent.id}
                     onClick={() => onNavigate?.(`/agents/${agent.id}/chat`)}
-                    className="flex flex-col items-center text-center w-[76px] shrink-0 group relative cursor-pointer"
+                    className="flex flex-col items-center text-center w-[72px] shrink-0 group relative cursor-pointer"
                   >
                     <div className="relative mb-1.5">
                       <EntityAvatar
                         name={agent.name}
                         avatarUrl={agent.avatarUrl}
-                        size="3xl"
+                        size="xl"
                         type="agent"
                         className="group-hover:scale-105 transition-transform duration-300 border border-input/20 shadow-md"
                       />
