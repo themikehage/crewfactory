@@ -38,11 +38,13 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
   const sessionId = crypto.randomUUID();
 
   const team = teamId ? teamStore.getTeam(username, teamId) : null;
-  if (teamId && (!team || team.teamType !== "Orchestration")) {
-    return c.json({ error: "Team sessions require an Orchestration team" }, 400);
+  const isOrchestration = team?.teamType === "Orchestration";
+  const leader = isOrchestration
+    ? team.members.find((member) => member.role === "lead")
+    : null;
+  if (teamId && isOrchestration && !leader) {
+    return c.json({ error: "Orchestration team requires a leader" }, 400);
   }
-  const leader = team?.members.find((member) => member.role === "lead");
-  if (teamId && !leader) return c.json({ error: "Orchestration team requires a leader" }, 400);
   const ownerAgentId = leader?.agentId || agentId;
 
   const now = new Date().toISOString();
@@ -70,11 +72,13 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     experimentId: experimentId || null,
   });
 
-  sessionManager.getOrCreateSession(username, sessionId, projectName, ownerAgentId, channelId, teamId ? {
-    workspaceDir: getTeamWorkspaceDir(username, teamId),
-  } : undefined).catch(err => {
-    console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
-  });
+  if (!teamId || isOrchestration) {
+    sessionManager.getOrCreateSession(username, sessionId, projectName, ownerAgentId, channelId, teamId ? {
+      workspaceDir: getTeamWorkspaceDir(username, teamId),
+    } : undefined).catch(err => {
+      console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
+    });
+  }
 
   return c.json(session, 201);
 });

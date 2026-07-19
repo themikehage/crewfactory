@@ -26,4 +26,10 @@
 - [x] 161.5 Integrate header with members/settings buttons in Orchestration team view within TeamChatArea.tsx
 - [x] 161.6 Verify full TypeScript client compilation build checks successfully
 
+## Phase 162: Negotiation Team Session Support
+- [x] 162.1 Lifted Orchestration-only constraint on POST /api/sessions and skipped starting agent sessions for Negotiation teams
+- [x] 162.2 Refactored useSessionResolver to allow Negotiation team sessions to fall through to standard multi-session resolution
+- [x] 162.3 Verified client and server compilation build checks successfully
+
+
 
