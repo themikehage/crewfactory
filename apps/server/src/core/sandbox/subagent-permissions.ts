@@ -120,8 +120,15 @@ export function buildSubagentRules(
   let resolvedType = subagentType;
   if (!resolvedType) {
     const meta = sessionMetadataStore.getSessionMetadata(username, subagentSessionId);
-    if (meta && typeof meta.subagentType === "string") {
-      resolvedType = meta.subagentType;
+    if (meta) {
+      if (typeof meta.subagentType === "string") {
+        resolvedType = meta.subagentType;
+      } else if (typeof meta.executionMode === "string") {
+        resolvedType =
+          meta.executionMode === "readonly" ? "explorer" :
+          meta.executionMode === "autonomous" ? "autonomous" :
+          "builder";
+      }
     }
   }
 

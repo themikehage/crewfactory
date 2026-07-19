@@ -168,4 +168,22 @@ describe("Subagent Permission Inheritance", () => {
       expect(writeVerdict!.allow).toBe(true);
     });
   });
+
+  describe("PermissionEngine evaluation under autonomous mode", () => {
+    it("should allow bash command without asking in autonomous mode when subagentType is missing in metadata but executionMode is autonomous", () => {
+      const delSessionId = "del_delegated_session_test";
+      // Save metadata for delegate session with only executionMode: autonomous
+      sessionMetadataStore.saveSessionMetadata(testUser, delSessionId, { executionMode: "autonomous" });
+
+      const verdict = permissionEngine.evaluate("bash", { command: "git clone x" }, {
+        isSubagent: true,
+        username: testUser,
+        sessionId: delSessionId,
+        executionMode: "autonomous"
+      });
+
+      expect(verdict.allow).toBe(true);
+    });
+  });
 });
+

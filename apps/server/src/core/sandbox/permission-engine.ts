@@ -140,10 +140,14 @@ export class PermissionEngine {
 
     // 2. Evaluate dynamic rules for subagents if username and sessionId are available
     if (options?.isSubagent && options.username && options.sessionId) {
+      const subagentType = options.executionMode === "readonly" ? "explorer"
+        : options.executionMode === "autonomous" ? "autonomous"
+        : "builder";
       const dynamicRules = buildSubagentRules(
         options.username,
         options.sessionId,
-        options.parentSessionId
+        options.parentSessionId,
+        subagentType
       );
       const verdict = evaluateSubagentRules(toolName, args, dynamicRules);
       if (verdict) {
