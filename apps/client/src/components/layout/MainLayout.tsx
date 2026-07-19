@@ -145,6 +145,7 @@ export function MainLayout({
     activeProjectFriendlyName: activeProjectName,
     activeAgent,
     activeChannel,
+    activeTeam,
     currentPage: route.page,
     onNavigate,
   });
@@ -155,6 +156,7 @@ export function MainLayout({
   const contextTabs = useMemo(() => {
     let basePath = "";
     if (activeChannel) basePath = `/channels/${activeChannel.id}`;
+    else if (activeTeam) basePath = `/teams/${activeTeam.id}`;
     else if (activeAgent) basePath = `/agents/${activeAgent.id}`;
     else if (activeProjectId) basePath = `/projects/${activeProjectId}`;
 

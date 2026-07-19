@@ -13,6 +13,7 @@ interface UseSessionResolverParams {
   activeProjectFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
   currentPage: string;
   onNavigate: (path: string) => void;
 }
@@ -23,6 +24,7 @@ export function useSessionResolver({
   activeProjectFriendlyName = null,
   activeAgent,
   activeChannel,
+  activeTeam = null,
   currentPage,
   onNavigate,
 }: UseSessionResolverParams) {
@@ -44,6 +46,7 @@ export function useSessionResolver({
 
         const context = {
           activeChannel,
+          activeTeam,
           activeAgent,
           activeProjectName,
           activeProjectFriendlyName,
@@ -82,6 +85,8 @@ export function useSessionResolver({
     activeAgent?.name,
     activeChannel?.id,
     activeChannel?.name,
+    activeTeam?.id,
+    activeTeam?.name,
     currentPage,
     onNavigate,
   ]);

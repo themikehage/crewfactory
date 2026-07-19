@@ -782,6 +782,7 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 154.2 Add Team-specific orchestration prompt composition with a permitted-delegate roster
 - [x] 154.3 Create persistent owner sessions with a Team shared workspace and reuse the standard session UI
 - [x] 154.3a Keep the reused Orchestration chat isolated from the leader's frontend agent context
+- [x] 154.3b Resolve Team sessions on entry and retain `/teams/{teamId}/session/{sessionId}` navigation
 - [ ] 154.4 Restrict and route owner delegations to Team members in the shared workspace
 - [ ] 154.5 Add orchestration integration coverage, complete builds, and update documentation
 
