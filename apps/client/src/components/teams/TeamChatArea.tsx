@@ -86,11 +86,15 @@ export function TeamChatArea({ activeTeam, sessionId }: Props) {
     let context: any = { activeTeam };
 
     if (targetType && targetId) {
-      context = {
-        activeTeam: targetType === "channel" ? { id: targetId, name: "" } : null, // channels fall back to channel routing if needed
-        activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
-        activeProjectName: targetType === "project" ? targetId : null,
-      };
+      if (activeTeam) {
+        context = { activeTeam };
+      } else {
+        context = {
+          activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
+          activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
+          activeProjectName: targetType === "project" ? targetId : null,
+        };
+      }
     }
 
     navigate(getSessionPath(subSessionId, context));
