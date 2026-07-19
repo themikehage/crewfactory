@@ -791,5 +791,5 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 155.2a Extract laboratory state, API actions, and WebSocket synchronization into `useLaboratoryController`
 - [x] 155.2b Extract project, agent, channel, and team context selection and persistence into `useWorkspaceContext`
 - [x] 155.2 Extract declarative route elements, workspace context state, and laboratory controller state from `AppRouter`
-- [ ] 155.3 Migrate consumers to native router APIs, remove the compatibility router, and verify the complete route matrix
+- [x] 155.3 Migrate consumers to native router APIs, remove the compatibility router, and verify the complete route matrix
 

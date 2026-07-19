@@ -8,10 +8,10 @@
 
 ## Client Routing
 
-- **React Router Compatibility Tree:** `AppRoutes` is the single declarative route entry point below `BrowserRouter`, with `AppRouter` as a `MainLayout` layout route and `Outlet`-rendered leaves covering global, contextual, laboratory, pipeline, administrative, and legacy-splat URLs.
+- **React Router Route Tree:** `AppRoutes` is the single declarative entry point below `BrowserRouter`, with an authenticated `AppRouter` layout and independent leaves for chat, delegations, workspace, preview, channels, teams, laboratory, pipelines, administration, MCP alias, and 404.
 - **Typed Navigation Paths:** `router/paths.ts` centralizes contextual, session, delegation, and workspace URL construction. `WorkspaceContextProvider` owns active project, agent, channel, and team state plus its persisted convenience data, keeping the URL as the route authority.
-- **Route and Laboratory Boundaries:** `AppRouter` now limits itself to guard, providers, layout, and navigation coordination. `AdministrativeRoute`, `LaboratoryRoute`, and `ContextRoute` render isolated page domains, while `LaboratoryModals` owns the controller-driven modal boundary.
-- **Compatibility State Boundary:** The temporary legacy URL parser is located in `router/route-state.ts`, separate from navigation hooks and page components, while layout consumers migrate to native React Router route state.
+- **Native URL State:** Route elements derive identifiers from `useParams`, locations from `useLocation`, and session suffixes from splats. `WorkspaceContextProvider` treats URL params as the context authority and localStorage only as convenience persistence.
+- **Shell and Laboratory Boundaries:** `AppRouter` limits itself to authentication, providers, shell coordination, and URL-driven mobile history. `LaboratoryContext` exposes the isolated controller to laboratory leaves and modals.
 
 ## Features
 

@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
-import type { Route } from "@/router/route-state";
+import type { RoutePage } from "@/router/useRoutePage";
 
-export function useWorkspaceNavigation(route: Route, onNavigate: (path: string) => void) {
+export function useWorkspaceNavigation(page: RoutePage, onNavigate: (path: string) => void) {
   const pendingWorkspaceFile = useRef<string | null>(null);
 
   useEffect(() => {
     const handleOpenWorkspace = (e: Event) => {
       const path = (e as CustomEvent<{ path?: string }>).detail?.path ?? null;
-      if (route.page !== "workspace") {
+      if (page !== "workspace") {
         pendingWorkspaceFile.current = path;
         onNavigate("/workspace");
       }
@@ -16,15 +16,15 @@ export function useWorkspaceNavigation(route: Route, onNavigate: (path: string) 
     return () => {
       window.removeEventListener("openWorkspaceFile", handleOpenWorkspace);
     };
-  }, [onNavigate, route.page]);
+  }, [onNavigate, page]);
 
   useEffect(() => {
-    if (route.page === "workspace" && pendingWorkspaceFile.current) {
+    if (page === "workspace" && pendingWorkspaceFile.current) {
       const path = pendingWorkspaceFile.current;
       pendingWorkspaceFile.current = null;
       setTimeout(() => {
         window.dispatchEvent(new CustomEvent("openWorkspaceFile", { detail: { path } }));
       }, 150);
     }
-  }, [route.page]);
+  }, [page]);
 }

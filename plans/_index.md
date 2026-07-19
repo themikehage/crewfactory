@@ -24,7 +24,7 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ### Refactoring
 
-- [app-router-refactor.md](./app-router-refactor.md) — Migrar el router manual a `react-router-dom`, separar el contexto de trabajo y el controlador de laboratorio, y conservar la compatibilidad completa de URLs y navegación.
+- [app-router-refactor.md](./COMPLETED/app-router-refactor.md) — Completado: migración del router manual a `react-router-dom` con contexto de trabajo, controlador de laboratorio y compatibilidad de URLs.
 - [unify-lab-channel-orchestration.md](./unify-lab-channel-orchestration.md) — Unificar orquestracion del laboratorio con `ChannelOrchestrator`: el lab debe consumir el subsistema de canales como cliente en lugar de reinventar el pipeline completo (gen, channel, dispatch, tokens, destroy). ~500 lineas eliminadas.
 
 ### Bug Fixes

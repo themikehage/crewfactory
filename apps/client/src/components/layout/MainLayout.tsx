@@ -1,8 +1,9 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
+import { useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
 import { Plus, Settings } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import type { Route } from "@/router/route-state";
+import type { RoutePage } from "@/router/useRoutePage";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";
@@ -44,7 +45,7 @@ interface LabProps {
 }
 
 interface Props {
-  route: Route;
+  page: RoutePage;
   onNavigate: (path: string) => void;
   activeProjectName: string | null;
   activeProjectId?: string | null;
@@ -63,7 +64,7 @@ interface Props {
 }
 
 export function MainLayout({
-  route,
+  page,
   onNavigate,
   activeProjectName,
   activeProjectId = null,
@@ -81,6 +82,7 @@ export function MainLayout({
   lab,
 }: Props) {
   const l = useLiterals(u);
+  const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
   const [wsState, setWsState] = useState<ConnectionState>(() => wsClient.getState());
@@ -95,7 +97,7 @@ export function MainLayout({
   }, []);
 
   // Hooks extraídos
-  useWorkspaceNavigation(route, onNavigate);
+  useWorkspaceNavigation(page, onNavigate);
 
   const {
     quickCreating,
@@ -122,22 +124,22 @@ export function MainLayout({
     await updateAgent(activeAgent.id, updates);
   }, [activeAgent, updateAgent]);
 
-  const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && route.page === "chat";
+  const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && page === "chat";
 
   const mobileTitle = useMemo(() => {
     if (activeProjectId) return activeProjectName || activeProjectId;
     if (activeAgent) return activeAgent.name;
     if (activeChannel) return `#${activeChannel.name}`;
-    if (route.page === "laboratory") return "Laboratorio";
-    if (route.page === "settings") return l.breadSettings || "Settings";
-    if (route.page === "skills") return l.breadSkills || "Skills";
-    if (route.page === "logs") return l.breadLogs || "Logs";
-    if (route.page === "mcps") return l.breadMcps || "MCP Marketplace";
-    if (route.page === "plugins") return "Plugins";
+    if (page === "laboratory") return "Laboratorio";
+    if (page === "settings") return l.breadSettings || "Settings";
+    if (page === "skills") return l.breadSkills || "Skills";
+    if (page === "logs") return l.breadLogs || "Logs";
+    if (page === "plugins") return "Plugins";
     return "Factory";
-  }, [activeProjectId, activeProjectName, activeAgent, activeChannel, route.page, l]);
+  }, [activeProjectId, activeProjectName, activeAgent, activeChannel, page, l]);
 
-  const sessionId = (route.page === "chat" || (route.page === "laboratory" && !route.experimentId)) ? (route.sessionId ?? null) : null;
+  const sessionMatch = pathname.match(/\/session\/(.+?)(?:\/delegations)?$/);
+  const sessionId = sessionMatch?.[1] ?? null;
 
   useSessionResolver({
     sessionId,
@@ -146,12 +148,12 @@ export function MainLayout({
     activeAgent,
     activeChannel,
     activeTeam,
-    currentPage: route.page,
+    currentPage: page,
     onNavigate,
   });
 
-  const isContextView = route.page === "chat" || route.page === "workspace" || route.page === "preview" || route.page === "laboratory" || route.page === "org" || route.page === "delegations";
-  const showNewSessionButton = !isHome && isContextView && route.page !== "laboratory";
+  const isContextView = page === "chat" || page === "workspace" || page === "preview" || page === "laboratory" || page === "org" || page === "delegations";
+  const showNewSessionButton = !isHome && isContextView && page !== "laboratory";
 
   const contextTabs = useMemo(() => {
     let basePath = "";
@@ -237,7 +239,7 @@ export function MainLayout({
 
   const breadcrumbsElement = (
     <Breadcrumbs
-      route={route}
+      page={page}
       activeProjectId={activeProjectId}
       activeProjectName={activeProjectName}
       activeAgent={activeAgent}
@@ -251,7 +253,7 @@ export function MainLayout({
 
   const rightToolbarElement = (
     <>
-      {route.page === "laboratory" && lab?.selectedExpId ? (
+      {page === "laboratory" && lab?.selectedExpId ? (
         <LabActionsToolbar
           selectedExpId={lab.selectedExpId}
           experiments={lab.experiments || []}
@@ -321,7 +323,7 @@ export function MainLayout({
 
   const sharedTabBar = (
     <ContextTabBar
-      route={route}
+      page={page}
       contextTabs={contextTabs}
       selectedExpId={lab?.selectedExpId}
       experiments={lab?.experiments}
@@ -338,7 +340,7 @@ export function MainLayout({
       activeAgent={activeAgent}
       activeChannel={activeChannel}
       activeTeam={activeTeam}
-      currentPage={route.page}
+      currentPage={page}
       onNavigate={onNavigate}
       onSelectProject={onSelectProject}
       onSelectAgent={onSelectAgent}
@@ -398,7 +400,7 @@ export function MainLayout({
 
             {sidebarOpen && (
               <MobileBottomBar
-                currentPage={route.page}
+                currentPage={page}
                 isHome={isHome}
                 onNavigate={onNavigate}
                 onSelectProject={onSelectProject}

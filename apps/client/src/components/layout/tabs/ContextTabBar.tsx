@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Route } from "@/router/route-state";
+import type { RoutePage } from "@/router/useRoutePage";
 import { LabVariantTabs } from "./LabVariantTabs";
 import { literals as layoutLiterals } from "@/components/layout/MainLayout.literals";
 import { useLiterals } from "@/lib";
@@ -14,7 +14,7 @@ interface Tab {
 type VariantTab = "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare";
 
 interface ContextTabBarProps {
-  route: Route;
+  page: RoutePage;
   contextTabs: Tab[];
   selectedExpId?: string | null;
   experiments?: any[];
@@ -25,7 +25,7 @@ interface ContextTabBarProps {
 }
 
 export function ContextTabBar({
-  route,
+  page,
   contextTabs,
   selectedExpId,
   experiments = [],
@@ -40,7 +40,7 @@ export function ContextTabBar({
   return (
     <div className="flex items-center justify-between px-4 border-b border-border bg-card/5 flex-shrink-0">
       <div className="flex gap-1 overflow-x-auto scrollbar-none flex-nowrap">
-        {route.page === "laboratory" ? (
+        {page === "laboratory" ? (
           selectedExpId && activeExp ? (
             <LabVariantTabs
               activeExp={activeExp}
@@ -66,7 +66,7 @@ export function ContextTabBar({
           )
         ) : (
           contextTabs.map((tab) => {
-            const isActive = route.page === tab.id;
+            const isActive = page === tab.id;
             return (
               <button
                 key={tab.id}

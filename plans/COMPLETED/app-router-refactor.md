@@ -1,3 +1,5 @@
+COMPLETED
+
 # Refactor de AppRouter con React Router
 
 ## Objetivo

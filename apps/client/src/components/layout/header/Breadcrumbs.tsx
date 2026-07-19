@@ -1,7 +1,7 @@
-import type { Route } from "@/router/route-state";
+import type { RoutePage } from "@/router/useRoutePage";
 
 interface BreadcrumbsProps {
-  route: Route;
+  page: RoutePage;
   activeProjectId: string | null;
   activeProjectName: string | null;
   activeAgent: { id: string; name: string } | null;
@@ -13,7 +13,7 @@ interface BreadcrumbsProps {
 }
 
 export function Breadcrumbs({
-  route,
+  page,
   activeProjectId,
   activeProjectName,
   activeAgent,
@@ -49,34 +49,32 @@ export function Breadcrumbs({
     items = [{ label: l.breadFactory || "Factory", path: "/" }];
   }
 
-  if (route.page === "workspace") {
+  if (page === "workspace") {
     items.push({ label: l.tabFiles || "Files" });
-  } else if (route.page === "preview") {
+  } else if (page === "preview") {
     items.push({ label: l.tabPreview || "Preview" });
-  } else if (route.page === "chat") {
+  } else if (page === "chat") {
     items.push({ label: l.tabChat || "Chat" });
-  } else if (route.page === "settings") {
+  } else if (page === "settings") {
     items = [{ label: l.breadSettings || "Settings" }];
-  } else if (route.page === "skills") {
+  } else if (page === "skills") {
     items = [{ label: l.breadSkills || "Skills" }];
-  } else if (route.page === "logs") {
+  } else if (page === "logs") {
     items = [{ label: l.breadLogs || "Logs" }];
-  } else if (route.page === "mcps") {
-    items = [{ label: l.breadMcps || "MCP Marketplace" }];
-  } else if (route.page === "projects") {
+  } else if (page === "projects") {
     items = [{ label: l.breadProyectos || "Projects" }];
-  } else if (route.page === "agents") {
+  } else if (page === "agents") {
     items = [{ label: l.breadAgentes || "Agents" }];
-  } else if (route.page === "channels") {
+  } else if (page === "channels") {
     items = [{ label: l.breadCanales || "Channels" }];
-  } else if (route.page === "channel") {
+  } else if (page === "channel") {
     items = [{ label: l.breadCanales || "Channels", path: "/channels" }];
     if (activeChannel) {
       items.push({ label: `#${activeChannel.name}` });
     }
-  } else if (route.page === "org") {
+  } else if (page === "org") {
     items.push({ label: l.tabOrgChart || "Org Chart" });
-  } else if (route.page === "laboratory") {
+  } else if (page === "laboratory") {
     items = [{ label: "Laboratorio", path: "/laboratory" }];
     if (selectedExpId) {
       const activeExp = experiments.find((e: any) => e.id === selectedExpId);
