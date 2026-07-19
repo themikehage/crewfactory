@@ -4,7 +4,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/pages/LoginPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
 import { SessionsProvider } from "@/contexts/SessionsContext";
-import { parseRoute, type Route } from "@/hooks/useRouter";
+import { parseRoute, type Route } from "@/router/route-state";
 import { MainLayout } from "./MainLayout";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";

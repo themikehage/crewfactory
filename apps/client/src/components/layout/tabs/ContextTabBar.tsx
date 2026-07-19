@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import type { Route } from "@/hooks/useRouter";
+import type { Route } from "@/router/route-state";
 import { LabVariantTabs } from "./LabVariantTabs";
 import { literals as layoutLiterals } from "@/components/layout/MainLayout.literals";
 import { useLiterals } from "@/lib";

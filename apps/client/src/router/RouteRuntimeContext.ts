@@ -1,5 +1,5 @@
 import { createContext, createElement, useContext, type ReactNode } from "react";
-import type { Route } from "@/hooks/useRouter";
+import type { Route } from "@/router/route-state";
 import type { useLaboratoryController } from "@/hooks/useLaboratoryController";
 import type { ActiveAgent, ActiveNamedContext } from "@/hooks/useWorkspaceContext";
 

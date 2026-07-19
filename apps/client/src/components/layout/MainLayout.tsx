@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import type { ReactNode } from "react";
 import { Plus, Settings } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
-import type { Route } from "@/hooks/useRouter";
+import type { Route } from "@/router/route-state";
 import { useSessionResolver } from "@/hooks/useSessionResolver";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./MainLayout.literals";

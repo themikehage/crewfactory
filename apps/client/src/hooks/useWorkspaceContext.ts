@@ -1,5 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import type { Route } from "@/hooks/useRouter";
+import type { Route } from "@/router/route-state";
 import { buildContextPath } from "@/router/paths";
 
 export interface ActiveAgent {

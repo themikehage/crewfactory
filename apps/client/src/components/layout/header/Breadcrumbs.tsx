@@ -1,4 +1,4 @@
-import type { Route } from "@/hooks/useRouter";
+import type { Route } from "@/router/route-state";
 
 interface BreadcrumbsProps {
   route: Route;

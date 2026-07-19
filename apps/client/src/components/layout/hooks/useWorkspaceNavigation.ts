@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { Route } from "@/hooks/useRouter";
+import type { Route } from "@/router/route-state";
 
 export function useWorkspaceNavigation(route: Route, onNavigate: (path: string) => void) {
   const pendingWorkspaceFile = useRef<string | null>(null);
