@@ -1,21 +1,25 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useMemo } from "react";
+import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/pages/LoginPage";
 import { OnboardingPage } from "@/pages/OnboardingPage";
 import { SessionsProvider } from "@/contexts/SessionsContext";
-import { useRouter, type Route } from "@/hooks/useRouter";
+import { parseRoute, type Route } from "@/hooks/useRouter";
 import { MainLayout } from "./MainLayout";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";
 import { GlobalApprovalOverlay } from "@/components/approvals/GlobalApprovalOverlay";
 import { useLaboratoryController } from "@/hooks/useLaboratoryController";
 import { useWorkspaceContext, WorkspaceContextProvider } from "@/hooks/useWorkspaceContext";
-import { AppRouteContent } from "@/router/AppRouteContent";
 import { LaboratoryModals } from "@/components/laboratory/LaboratoryModals";
 import { buildContextPath, buildSessionPath, buildWorkspacePath, type ContextPathInput } from "@/router/paths";
+import { RouteRuntimeProvider } from "@/router/RouteRuntimeContext";
 
 export function AppRouter() {
-  const { route, navigate } = useRouter();
+  const location = useLocation();
+  const routerNavigate = useNavigate();
+  const route = useMemo(() => parseRoute(location.pathname), [location.pathname]);
+  const navigate = useCallback((path: string) => routerNavigate(path), [routerNavigate]);
   return <WorkspaceContextProvider route={route} navigate={navigate}>
     <AppRouterContent route={route} navigate={navigate} />
   </WorkspaceContextProvider>;
@@ -89,9 +93,11 @@ function AppRouterContent({ route, navigate }: AppRouterContentProps) {
 
   return <SessionsProvider>
     <GlobalApprovalOverlay />
-    <MainLayout route={route} onNavigate={navigate} activeProjectName={activeProjectFriendlyName} activeProjectId={activeProjectId} activeAgent={route.page === "laboratory" && !route.experimentId ? { id: "lab-architect", name: "Lab Architect" } : activeAgent} activeChannel={activeChannel} activeTeam={activeTeam} onSelectProject={selectProject} onSelectAgent={selectAgent} onSelectChannel={selectChannel} onSelectTeam={selectTeam} isMobile={isMobileState.isMobile} canGoBack={navigationStack.canGoBack} onBack={handleBack} lab={{ selectedExpId: currentExpId, experiments: laboratory.experiments, onDeleteExperiment: laboratory.requestDelete, activeVariantTab: laboratory.activeVariantTab, setActiveVariantTab: laboratory.setActiveVariantTab, onRunExperiment: laboratory.requestRun, onStopExperiment: laboratory.stopRun, onEditExperiment: laboratory.requestEdit, onJudgeExperiment: laboratory.judgeExperiment, onExportExperiment: laboratory.requestExport, selectedRunId: laboratory.selectedRunId, pastRuns: laboratory.pastRuns, runPopoverOpen: laboratory.runPopoverOpen, setRunPopoverOpen: laboratory.setRunPopoverOpen, onSelectRun: laboratory.selectRun }}>
-      <AppRouteContent route={route} navigate={navigate} activeProjectId={activeProjectId} activeAgent={activeAgent} activeChannel={activeChannel} activeTeam={activeTeam} selectProject={selectProject} selectAgent={selectAgent} selectChannel={selectChannel} laboratory={laboratory} />
-    </MainLayout>
+    <RouteRuntimeProvider value={{ route, navigate, activeProjectId, activeAgent, activeChannel, activeTeam, selectProject, selectAgent, selectChannel, laboratory }}>
+      <MainLayout route={route} onNavigate={navigate} activeProjectName={activeProjectFriendlyName} activeProjectId={activeProjectId} activeAgent={route.page === "laboratory" && !route.experimentId ? { id: "lab-architect", name: "Lab Architect" } : activeAgent} activeChannel={activeChannel} activeTeam={activeTeam} onSelectProject={selectProject} onSelectAgent={selectAgent} onSelectChannel={selectChannel} onSelectTeam={selectTeam} isMobile={isMobileState.isMobile} canGoBack={navigationStack.canGoBack} onBack={handleBack} lab={{ selectedExpId: currentExpId, experiments: laboratory.experiments, onDeleteExperiment: laboratory.requestDelete, activeVariantTab: laboratory.activeVariantTab, setActiveVariantTab: laboratory.setActiveVariantTab, onRunExperiment: laboratory.requestRun, onStopExperiment: laboratory.stopRun, onEditExperiment: laboratory.requestEdit, onJudgeExperiment: laboratory.judgeExperiment, onExportExperiment: laboratory.requestExport, selectedRunId: laboratory.selectedRunId, pastRuns: laboratory.pastRuns, runPopoverOpen: laboratory.runPopoverOpen, setRunPopoverOpen: laboratory.setRunPopoverOpen, onSelectRun: laboratory.selectRun }}>
+        <Outlet />
+      </MainLayout>
+    </RouteRuntimeProvider>
     <LaboratoryModals controller={laboratory} navigate={navigate} />
   </SessionsProvider>;
 }

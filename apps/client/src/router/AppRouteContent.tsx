@@ -22,35 +22,10 @@ import { TeamDetailPage } from "@/pages/TeamDetailPage";
 import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PipelineDetailPage } from "@/pages/PipelineDetailPage";
-import type { Route } from "@/hooks/useRouter";
-import type { useLaboratoryController } from "@/hooks/useLaboratoryController";
-import type { ActiveAgent, ActiveNamedContext } from "@/hooks/useWorkspaceContext";
+import { useRouteRuntime } from "@/router/RouteRuntimeContext";
 
-interface AppRouteContentProps {
-  route: Route;
-  navigate: (path: string) => void;
-  activeProjectId: string | null;
-  activeAgent: ActiveAgent | null;
-  activeChannel: ActiveNamedContext | null;
-  activeTeam: ActiveNamedContext | null;
-  selectProject: (projectId: string | null, projectName: string | null) => void;
-  selectAgent: (agent: ActiveAgent | null) => void;
-  selectChannel: (channel: ActiveNamedContext | null) => void;
-  laboratory: ReturnType<typeof useLaboratoryController>;
-}
-
-export function AppRouteContent({
-  route,
-  navigate,
-  activeProjectId,
-  activeAgent,
-  activeChannel,
-  activeTeam,
-  selectProject,
-  selectAgent,
-  selectChannel,
-  laboratory,
-}: AppRouteContentProps) {
+export function AppRouteContent() {
+  const { route, navigate, activeProjectId, activeAgent, activeChannel, activeTeam, selectProject, selectAgent, selectChannel, laboratory } = useRouteRuntime();
   if (route.page === "projects") {
     return <DashboardPage onNavigate={navigate} onSelectProject={selectProject} />;
   }

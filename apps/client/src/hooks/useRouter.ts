@@ -1,5 +1,3 @@
-import { useCallback, useMemo } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
 
 export type Route =
   | { page: "chat"; sessionId: string | null; projectName?: string | null; agentId?: string | null; channelId?: string | null; teamId?: string | null }
@@ -193,14 +191,3 @@ export function parseRoute(path: string): Route {
   return { page: "chat", sessionId: null };
 }
 
-export function useRouter() {
-  const location = useLocation();
-  const routerNavigate = useNavigate();
-  const route = useMemo(() => parseRoute(location.pathname), [location.pathname]);
-
-  const navigate = useCallback((path: string) => {
-    routerNavigate(path);
-  }, [routerNavigate]);
-
-  return { route, navigate };
-}

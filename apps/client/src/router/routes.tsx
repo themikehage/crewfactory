@@ -1,5 +1,6 @@
 import { Route, Routes } from "react-router-dom";
 import { AppRouter } from "@/components/layout/AppRouter";
+import { AppRouteContent } from "@/router/AppRouteContent";
 
 const compatiblePaths = [
   "/",
@@ -30,9 +31,9 @@ const compatiblePaths = [
 export function AppRoutes() {
   return (
     <Routes>
-      {compatiblePaths.map((path) => (
-        <Route key={path} path={path} element={<AppRouter />} />
-      ))}
+      <Route element={<AppRouter />}>
+        {compatiblePaths.map((path) => <Route key={path} path={path} element={<AppRouteContent />} />)}
+      </Route>
     </Routes>
   );
 }
