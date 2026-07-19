@@ -1,8 +1,8 @@
-import { NegotiationProtocol } from "../core/negotiation/negotiation-protocol";
+import { TeamNegotiationEvaluator } from "./team-negotiation-evaluator";
 import { ArbitrationProtocol } from "../core/negotiation/arbitration-protocol";
 import { teamStore } from "./team-store";
 import { DivergenceDetector } from "../laboratory/divergence-detector";
-import type { Team, TeamMessage, TeamMember } from "shared";
+import type { Team, TeamMessage, TeamMember, ChannelMessage } from "shared";
 import crypto from "node:crypto";
 
 export interface TeamNegotiationResult {
@@ -25,40 +25,74 @@ export function handleTeamNegotiation(
     return { action: "continue" };
   }
 
-  const negotiationState = teamStore.getNegotiationState(username, teamId);
-  const protocol = new NegotiationProtocol(team.negotiationProtocol, negotiationState);
-  const receiverId = incomingMsg.role === "user" ? "user" : incomingMsg.agentId || "user";
-  const senderId = memberAgentId;
-  const ingestResult = protocol.ingest(senderId, receiverId, agentMsg.content);
+  const protocol = team.negotiationProtocol;
+  const currentRound = agentMsg.round || 1;
+  const state = teamStore.getNegotiationState(username, teamId);
 
-  // If the arbitrator resolved, increment arbitration count
-  const updatedState = protocol.getState();
-  if (memberAgentId === team.negotiationProtocol.arbiterAgentId && agentMsg.content.includes("RESOLUTION:")) {
-    updatedState._arbitrations = (updatedState._arbitrations || 0) + 1;
+  if (!state._rounds) {
+    state._rounds = [];
   }
-  teamStore.saveNegotiationState(username, teamId, updatedState);
+
+  let roundEntry = state._rounds.find((r) => r.roundNumber === currentRound);
+  if (!roundEntry) {
+    roundEntry = {
+      roundNumber: currentRound,
+      votes: {},
+      outcome: "open",
+    };
+    state._rounds.push(roundEntry);
+  }
+
+  const vote = TeamNegotiationEvaluator.classifyVote(agentMsg.content, protocol);
+  roundEntry.votes[memberAgentId] = vote;
+
+  const arbiterId = protocol.arbiterAgentId;
+  const activeMembers = team.members.filter(
+    (m) => m.role !== "observer" && m.agentId !== arbiterId
+  );
+  const activeCount = activeMembers.length;
+  const quorumThreshold = protocol.quorumThreshold ?? 0.51;
+
+  const outcome = TeamNegotiationEvaluator.evaluateRound(
+    roundEntry.votes,
+    quorumThreshold,
+    activeCount,
+    currentRound,
+    team.maxRounds ?? 5
+  );
+
+  roundEntry.outcome = outcome.result === "consensus"
+    ? "consensus"
+    : outcome.result === "conflict"
+      ? "conflict"
+      : outcome.result === "escalate"
+        ? "escalated"
+        : "open";
+
+  if (memberAgentId === arbiterId && agentMsg.content.includes("RESOLUTION:")) {
+    state._arbitrations = (state._arbitrations || 0) + 1;
+  }
+
+  teamStore.saveNegotiationState(username, teamId, state);
 
   broadcastFn(teamId, {
     type: "team_negotiation_round",
     teamId,
     sessionId: incomingMsg.sessionId,
-    agentId: senderId,
-    receiverId,
-    rounds: ingestResult.rounds,
-    status: protocol.getState()[ingestResult.pairKey]?.status || "open",
+    agentId: memberAgentId,
+    receiverId: "user",
+    rounds: currentRound,
+    status: roundEntry.outcome,
   });
 
-  // Divergence Detection Check
   const messages = teamStore.getMessages(username, teamId, 100, incomingMsg.sessionId);
   const allMessages = [...messages, agentMsg];
-  // DivergenceDetector expects ChannelMessage but TeamMessage is structurally compatible
-  const divergence = DivergenceDetector.detect(allMessages as any);
+  const channelMessages = allMessages as unknown as ChannelMessage[];
+  const divergence = DivergenceDetector.detect(channelMessages);
 
-  if (divergence && team.negotiationProtocol.arbiterAgentId) {
-    const arbiterId = team.negotiationProtocol.arbiterAgentId;
+  if (divergence && arbiterId) {
     const arbiterName = agentNameMap.get(arbiterId) || arbiterId;
 
-    // Broadcast divergence event
     broadcastFn(teamId, {
       type: "team_negotiation_divergence",
       teamId,
@@ -66,26 +100,17 @@ export function handleTeamNegotiation(
       divergence,
     });
 
-    // Save escalation and increment divergence count in negotiation state
-    const pairKey = [senderId, receiverId].sort().join(":");
-    const updatedStateWithDivergence = protocol.getState();
-    updatedStateWithDivergence._divergences = (updatedStateWithDivergence._divergences || 0) + 1;
-    if (!updatedStateWithDivergence[pairKey]) {
-      updatedStateWithDivergence[pairKey] = { rounds: ingestResult.rounds, lastOffer: agentMsg.content.slice(0, 500), status: "escalated" };
-    } else {
-      updatedStateWithDivergence[pairKey].status = "escalated";
-    }
-    teamStore.saveNegotiationState(username, teamId, updatedStateWithDivergence);
+    state._divergences = (state._divergences || 0) + 1;
+    teamStore.saveNegotiationState(username, teamId, state);
 
-    // Broadcast escalation event
     broadcastFn(teamId, {
       type: "team_negotiation_escalation",
       teamId,
       sessionId: incomingMsg.sessionId,
       arbiterId,
       arbiterName,
-      rounds: ingestResult.rounds,
-      reason: divergence.reason
+      rounds: currentRound,
+      reason: divergence.reason,
     });
 
     const escalationMsg: TeamMessage = {
@@ -94,6 +119,7 @@ export function handleTeamNegotiation(
       sessionId: incomingMsg.sessionId,
       role: "system",
       content: `[DIVERGENCIA DETECTADA] ${divergence.reason}\n\n@${arbiterName}, emite una resolución formal vinculante para resolver este bloqueo.`,
+      round: currentRound,
       createdAt: new Date().toISOString(),
     };
 
@@ -105,61 +131,104 @@ export function handleTeamNegotiation(
     };
   }
 
-  if (ingestResult.matched === "agreed") {
+  if (outcome.result === "consensus") {
     broadcastFn(teamId, {
       type: "team_negotiation_agreement",
       teamId,
       sessionId: incomingMsg.sessionId,
-      agentId: senderId,
-      receiverId,
+      agentId: memberAgentId,
+      receiverId: "user",
       content: agentMsg.content,
     });
     return { action: "stop-agreed" };
   }
 
-  if (ingestResult.matched === "rejected") {
+  if (outcome.result === "conflict") {
+    const triggerId = outcome.triggerAgentId;
     broadcastFn(teamId, {
       type: "team_negotiation_rejected",
       teamId,
       sessionId: incomingMsg.sessionId,
-      agentId: senderId,
-      receiverId,
+      agentId: triggerId,
+      receiverId: "user",
     });
+
+    if (arbiterId) {
+      const arbiterName = agentNameMap.get(arbiterId) || arbiterId;
+      broadcastFn(teamId, {
+        type: "team_negotiation_escalation",
+        teamId,
+        sessionId: incomingMsg.sessionId,
+        arbiterId,
+        arbiterName,
+        rounds: currentRound,
+      });
+
+      const agentName = agentNameMap.get(triggerId) || triggerId;
+      const arbiterProtocol = new ArbitrationProtocol({ arbiterAgentId: arbiterId });
+      const escalationMsg = arbiterProtocol.buildEscalationMessage({
+        senderId: triggerId,
+        senderName: agentName,
+        receiverId: "user",
+        receiverName: "user",
+        rounds: currentRound,
+        channelId: teamId,
+        sessionId: incomingMsg.sessionId,
+      });
+
+      const arbiterMember = team.members.find((m) => m.agentId === arbiterId);
+      const teamEscalationMsg: TeamMessage = {
+        ...escalationMsg as unknown as TeamMessage,
+        round: currentRound,
+      };
+
+      return {
+        action: "escalate",
+        escalationMessage: teamEscalationMsg,
+        arbiterMember,
+      };
+    }
+
     return { action: "stop-rejected" };
   }
 
-  if (ingestResult.shouldEscalate && team.negotiationProtocol.arbiterAgentId) {
-    const arbiterId = team.negotiationProtocol.arbiterAgentId;
-    const arbiterName = agentNameMap.get(arbiterId) || arbiterId;
+  if (outcome.result === "escalate") {
+    if (arbiterId) {
+      const arbiterName = agentNameMap.get(arbiterId) || arbiterId;
+      broadcastFn(teamId, {
+        type: "team_negotiation_escalation",
+        teamId,
+        sessionId: incomingMsg.sessionId,
+        arbiterId,
+        arbiterName,
+        rounds: currentRound,
+      });
 
-    broadcastFn(teamId, {
-      type: "team_negotiation_escalation",
-      teamId,
-      sessionId: incomingMsg.sessionId,
-      arbiterId,
-      arbiterName,
-      rounds: ingestResult.rounds,
-    });
+      const arbiterProtocol = new ArbitrationProtocol({ arbiterAgentId: arbiterId });
+      const escalationMsg = arbiterProtocol.buildEscalationMessage({
+        senderId: "system",
+        senderName: "consensus_timeout",
+        receiverId: "user",
+        receiverName: "user",
+        rounds: currentRound,
+        channelId: teamId,
+        sessionId: incomingMsg.sessionId,
+      });
 
-    const agentName = agentNameMap.get(senderId) || senderId;
-    const targetName = receiverId === "user" ? "user" : agentNameMap.get(receiverId) || receiverId;
-    const arbiterProtocol = new ArbitrationProtocol({ arbiterAgentId: arbiterId });
-    const escalationMsg = arbiterProtocol.buildEscalationMessage({
-      senderId,
-      senderName: agentName,
-      receiverId,
-      receiverName: targetName,
-      rounds: ingestResult.rounds,
-      channelId: teamId,
-      sessionId: incomingMsg.sessionId,
-    });
+      const arbiterMember = team.members.find((m) => m.agentId === arbiterId);
+      const teamEscalationMsg: TeamMessage = {
+        ...escalationMsg as unknown as TeamMessage,
+        round: currentRound,
+      };
 
-    const arbiterMember = team.members.find((m) => m.agentId === arbiterId);
-    return {
-      action: "escalate",
-      escalationMessage: escalationMsg as any,
-      arbiterMember,
-    };
+      return {
+        action: "escalate",
+        escalationMessage: teamEscalationMsg,
+        arbiterMember,
+      };
+    }
+
+    return { action: "stop-rejected" };
   }
 
   return { action: "continue" };

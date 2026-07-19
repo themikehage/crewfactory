@@ -1,0 +1,228 @@
+# Teams Awareness: Global Agent + manage_factory
+
+## Contexto
+
+El sistema tiene dos tipos de Teams con comportamiento radicalmente distinto:
+
+| Aspecto | **Orchestration** | **Negotiation** |
+|---|---|---|
+| `teamType` | `"Orchestration"` | `"Negotiation"` |
+| Execution model | Un **leader agent persistente** (`team:teamId`) maneja todo via LLM normal. Puede hacer `delegate_task` a specialists. | Stateless debate loop: todos los miembros responden en rondas, con evaluación de consenso y arbitraje. |
+| Session | Una sesión durable `team:{id}` ligada al leader | Multi-session; el chat genera sessions normales |
+| `members.role` | `lead` (requerido) + `member` | `lead` + `member` + `observer` + arbiter (vía `negotiationProtocol.arbiterAgentId`) |
+| `negotiationProtocol` | No aplica | Configura `arbiterAgentId`, `mode` (`debate`/`vote`/`consensus`), `quorumThreshold` |
+| Deleg. a specialists | Vía `delegate_task` desde el leader | N/A |
+| Abort | Aborta sesión persistente del leader + descendientes | Aborta el stateless loop |
+| Endpoint extra | `POST /api/teams/:id/orchestration-session` | — |
+
+El **agente global hoy NO sabe nada de Teams**:
+- `DEFAULT_AGENTS_MD` no menciona Teams (sólo Projects, Agents, Channels).
+- `DEFAULT_FACTORY_SKILLS` no tiene una skill `factory-teams`.
+- `FACTORY_CONTRACTS` no tiene la entidad `teams`.
+- `factory-tool.ts` no tiene `case "teams"` en el switch.
+- `ENTITY_REFRESH_MAP` no incluye `teams`.
+
+## Proposed Changes
+
+---
+
+### 1. `DEFAULT_AGENTS_MD` — Architecture & Scope Section
+
+#### [MODIFY] [default-factory-skills.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/default-factory-skills.ts)
+
+Añadir una sección **4. Teams** en el bloque `## Architecture & Scope Distinctions` del `DEFAULT_AGENTS_MD`, explicando los dos tipos y cuándo usar cada uno:
+
+```
+4. **Teams:**
+   - Teams are structured multi-agent workflows. There are TWO types, chosen at creation time (immutable):
+   
+   **Orchestration Teams** (`teamType: "Orchestration"`)
+   - One persistent leader agent orchestrates the team via a durable session.
+   - The leader can delegate tasks to specialist members via `delegate_task`.
+   - Interact with the team by prompting the leader session: `delegate_task(targetType: "team", targetId: "<teamId>", task: "<prompt>")`
+   - NEVER use the `/send` REST endpoint directly — always use `delegate_task`.
+   - Requires exactly ONE member with `role: "lead"`.
+   
+   **Negotiation Teams** (`teamType: "Negotiation"`)
+   - All members debate in parallel rounds, building consensus or escalating to an arbiter.
+   - Configured via `negotiationProtocol`: `{ arbiterAgentId, mode: "debate"|"vote"|"consensus", quorumThreshold }`.
+   - Interact by sending a message: `manage_factory("teams", "send", teamId, { message: "..." })`.
+   - DO NOT delegate to Negotiation teams via `delegate_task` — use `manage_factory` send action instead.
+```
+
+También añadir `factory-teams` en la lista de Core Capabilities en `DEFAULT_AGENTS_MD`.
+
+---
+
+### 2. Nueva skill `factory-teams`
+
+#### [NEW] entry in `DEFAULT_FACTORY_SKILLS`
+
+Añadir `"factory-teams"` al objeto `DEFAULT_FACTORY_SKILLS` con contenido completo:
+
+```markdown
+---
+name: factory-teams
+description: Create and manage Orchestration and Negotiation teams of agents.
+---
+
+# Teams Guide
+
+Teams are structured multi-agent workflows. The `teamType` is IMMUTABLE after creation.
+
+## Team Types
+
+### Orchestration Team
+- Leader agent holds a persistent session and delegates to specialists.
+- Requires exactly one `role: "lead"` member.
+- Interact via: `manage_factory("teams", "send", teamId, { message: "..." })`
+  or equivalently: `delegate_task(targetType: "team", targetId: "<teamId>", task: "...")`
+
+### Negotiation Team
+- Stateless debate: members run in parallel rounds.
+- Consensus evaluation with optional arbiter escalation.
+- Configure `negotiationProtocol`: `{ arbiterAgentId, mode, quorumThreshold }`.
+- Interact via: `manage_factory("teams", "send", teamId, { message: "..." })`
+
+## Operations via manage_factory
+
+### List all teams
+`manage_factory("teams", "get")`
+
+### Get a specific team
+`manage_factory("teams", "get", "team-id")`
+
+### Create an Orchestration Team
+`manage_factory("teams", "upsert", "my-team", {
+  name: "Engineering Team",
+  teamType: "Orchestration",
+  members: [{ agentId: "lead-agent", role: "lead" }]
+})`
+
+### Create a Negotiation Team
+`manage_factory("teams", "upsert", "debate-team", {
+  name: "Architecture Review",
+  teamType: "Negotiation",
+  mode: "debate",
+  maxRounds: 5,
+  members: [
+    { agentId: "architect-a", role: "lead" },
+    { agentId: "architect-b", role: "member" },
+    { agentId: "arbiter-agent", role: "member" }
+  ],
+  negotiationProtocol: {
+    arbiterAgentId: "arbiter-agent",
+    mode: "debate",
+    quorumThreshold: 0.67
+  }
+})`
+
+### Send a message to any team
+`manage_factory("teams", "send", "team-id", { message: "Start the review" })`
+
+### Add/update a member
+`manage_factory("teams", "member", "team-id", { agentId: "new-agent", role: "member" })`
+
+### Delete a team
+`manage_factory("teams", "delete", "team-id")`
+```
+
+---
+
+### 3. `FACTORY_CONTRACTS` — Entidad `teams`
+
+#### [MODIFY] [factory-contracts.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/tools/factory-contracts.ts)
+
+El contrato actual sólo tiene `get/upsert/delete`. Para teams necesitamos además `send` (despachar mensaje) y `member` (gestión de miembros). El tipo `EntityContract` debe extenderse para soportar acciones adicionales.
+
+**Opción A** (recomendada): Extender `EntityContract.actions` a `Record<string, ActionContract>` para permitir acciones custom por entidad.
+
+```typescript
+teams: {
+  entity: "teams",
+  description: "Structured multi-agent workflows. Two immutable types: Orchestration (persistent leader) and Negotiation (debate rounds).",
+  actions: {
+    get: {
+      description: "List all teams or get one by id with full config",
+      params: {
+        id: { type: "string", required: false, description: "Team ID. Omit to list all." },
+      },
+    },
+    upsert: {
+      description: "Create a new team (teamType is immutable after creation)",
+      params: {
+        id: { type: "string", required: true, description: "Unique team identifier" },
+        name: { type: "string", required: true, description: "Display name" },
+        teamType: { type: "string", required: false, enum: ["Orchestration", "Negotiation"], default: "Negotiation", description: "Immutable after creation" },
+        mode: { type: "string", required: false, enum: ["debate", "vote", "consensus"], description: "Debate mode (Negotiation teams only)" },
+        maxRounds: { type: "number", required: false, description: "Max debate rounds (default 5)" },
+        members: { type: "array", required: false, description: "Array of { agentId, role: lead|member|observer }" },
+        negotiationProtocol: { type: "object", required: false, description: "{ arbiterAgentId?, mode?, quorumThreshold? } — Negotiation teams only" },
+      },
+    },
+    delete: {
+      description: "Delete a team and all its sessions permanently",
+      params: {
+        id: { type: "string", required: true, description: "Team ID to delete" },
+      },
+    },
+    send: {
+      description: "Send a message to the team (triggers orchestration or debate round)",
+      params: {
+        id: { type: "string", required: true, description: "Team ID" },
+        message: { type: "string", required: true, description: "Message content to dispatch" },
+      },
+    },
+    member: {
+      description: "Add or update a member in the team",
+      params: {
+        id: { type: "string", required: true, description: "Team ID" },
+        agentId: { type: "string", required: true, description: "Agent ID to add/update" },
+        role: { type: "string", required: false, enum: ["lead", "member", "observer"], description: "Member role" },
+      },
+    },
+  },
+},
+```
+
+> [!IMPORTANT]
+> El tipo `EntityContract.actions` en la interfaz está tipado como `{ get, upsert, delete }`. Hay que cambiarlo a `Record<string, ActionContract>` para que `send` y `member` no rompan TypeScript. Esta es la única parte que requiere cuidado con el tipo.
+
+---
+
+### 4. `factory-tool.ts` — Handler `handleTeams`
+
+#### [MODIFY] [factory-tool.ts](file:///c:/Users/themi/AgentWorkspace/crewfactory/apps/server/src/core/tools/factory-tool.ts)
+
+Añadir:
+1. Import de `teamStore` desde `../../teams`
+2. Función `handleTeams(action, id, params, username)` con casos:
+   - `get`: `teamStore.getTeam` o `teamStore.listTeams`
+   - `upsert`: `teamStore.createTeam` (solo creación; update si existe con `teamStore.updateTeam`)
+   - `delete`: `teamStore.deleteTeam` + cleanup de sessions
+   - `send`: import dinámico de `teamOrchestrator.dispatchUserMessage` o routing Orchestration via session
+   - `member`: `teamStore.updateMembers` añadiendo/actualizando un miembro
+3. `case "teams"` en el switch principal
+4. `teams: "team"` en `ENTITY_REFRESH_MAP`
+
+---
+
+### 5. `DEFAULT_AGENTS_MD` — Core Capabilities list
+
+Añadir `factory-teams` en la bullet list de Factory Skills:
+```
+- `factory-teams`: Create Orchestration and Negotiation teams, manage members, and trigger team workflows.
+```
+
+## Verification Plan
+
+### Automated Tests
+- `bun test apps/server/src/__tests__/team-type.test.ts` — ya existe, verificar que pasan
+- `bun test apps/server` — todos los tests del server
+
+### Manual Verification
+- Agente global puede hacer `manage_factory("teams", "get")` → lista teams
+- Agente global puede crear un Orchestration team con `upsert`
+- Agente global puede crear un Negotiation team con `upsert` + `negotiationProtocol`
+- Agente global puede enviar mensaje con `send` action
+- `AGENTS.md` del global muestra sección de Teams correctamente

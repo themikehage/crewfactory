@@ -3,14 +3,16 @@ import { join } from "node:path";
 import type { Team, TeamMember, TeamMessage, CreateTeam, UpdateTeam } from "shared";
 import { getTeamsDir, getTeamDir, getTeamMessagesPath } from "shared";
 
-export interface NegotiationPairState {
-  rounds: number;
-  lastOffer: string | null;
-  status: "open" | "agreed" | "rejected" | "escalated";
+export interface NegotiationRound {
+  roundNumber: number;
+  votes: Record<string, "agreed" | "counter" | "rejected" | "neutral">;
+  outcome: "open" | "consensus" | "conflict" | "escalated";
 }
 
 export interface NegotiationState {
   [key: string]: any;
+  _rounds?: NegotiationRound[];
+  _currentRound?: number;
   _arbitrations?: number;
   _divergences?: number;
 }

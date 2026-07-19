@@ -1,13 +1,10 @@
 import { Home, Library, Settings, Terminal, Cpu } from "lucide-react";
+import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
 
 interface MobileBottomBarProps {
   currentPage: string;
   isHome: boolean;
   onNavigate: (path: string) => void;
-  onSelectProject?: (projectId: string | null, projectName: string | null) => void;
-  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
-  onSelectChannel?: (channel: { id: string; name: string } | null) => void;
-  onSelectTeam?: (team: { id: string; name: string } | null) => void;
   setSidebarOpen: (open: boolean) => void;
 }
 
@@ -15,12 +12,9 @@ export function MobileBottomBar({
   currentPage,
   isHome,
   onNavigate,
-  onSelectProject,
-  onSelectAgent,
-  onSelectChannel,
-  onSelectTeam,
   setSidebarOpen,
 }: MobileBottomBarProps) {
+  const { selectProject, selectAgent, selectChannel, selectTeam } = useWorkspaceContext();
   const tabs = [
     { id: "home", label: "Home", icon: <Home size={20} /> },
     { id: "skills", label: "Skills", icon: <Library size={20} /> },
@@ -32,10 +26,10 @@ export function MobileBottomBar({
   const handleTabClick = (tabId: string) => {
     setSidebarOpen(false);
     if (tabId === "home") {
-      if (onSelectProject) onSelectProject(null, null);
-      if (onSelectAgent) onSelectAgent(null);
-      if (onSelectChannel) onSelectChannel(null);
-      if (onSelectTeam) onSelectTeam(null);
+      selectProject(null, null);
+      selectAgent(null);
+      selectChannel(null);
+      selectTeam(null);
       onNavigate("/");
     } else if (tabId === "skills") {
       onNavigate("/skills");

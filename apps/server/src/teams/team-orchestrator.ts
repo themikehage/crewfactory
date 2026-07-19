@@ -250,7 +250,6 @@ export class TeamOrchestrator {
     while (round <= maxRounds && !signal.aborted && !this.abortedDispatches.has(key)) {
       console.log(`[TeamOrchestrator] Stateless Team Debate Round ${round} starting...`);
 
-      // Resolve members eligible to respond in this round (all except observers and arbiter)
       const arbiterId = team.negotiationProtocol?.arbiterAgentId;
       const activeMembers = team.members.filter(
         (m) => m.role !== "observer" && m.agentId !== arbiterId
@@ -258,9 +257,8 @@ export class TeamOrchestrator {
 
       if (activeMembers.length === 0) return;
 
-      const agentNameMap = buildAgentNameMap(team.members as any);
+      const agentNameMap = buildAgentNameMap(team.members as unknown as TeamMember[]);
 
-      // Run agents sequentially so only one streams at a time
       const activeResults: { agentMsg: TeamMessage }[] = [];
       for (const member of activeMembers) {
         if (signal.aborted || this.abortedDispatches.has(key)) return;
@@ -275,10 +273,9 @@ export class TeamOrchestrator {
           signal
         );
         if (res.agentMsg) {
+          res.agentMsg.round = round;
           activeResults.push(res as { agentMsg: TeamMessage });
-          // Update currentIncomingMsg so each next agent receives the prior agent's response
           currentIncomingMsg = res.agentMsg;
-          // Publish each response immediately
           teamStore.appendMessage(username, teamId, res.agentMsg);
           broadcast(teamId, {
             type: "team_message",
@@ -297,8 +294,6 @@ export class TeamOrchestrator {
         return;
       }
 
-
-      // Evaluate consensus / divergence
       let stopLoop = false;
       let escalationMsg: TeamMessage | null = null;
       let arbiterMember: TeamMember | null = null;
@@ -332,31 +327,12 @@ export class TeamOrchestrator {
         return;
       }
 
-      // Handle Escalation to Arbiter
       if (escalationMsg && arbiterMember) {
         const negotiationState = teamStore.getNegotiationState(username, teamId);
         const currentArbitrations = negotiationState._arbitrations || 0;
 
         if (currentArbitrations >= 3) {
-          console.log(`[TeamOrchestrator] Max arbitrations reached (${currentArbitrations}). Forcing fallback resolution.`);
-          
-          const fallbackMsg: TeamMessage = {
-            id: crypto.randomUUID(),
-            teamId,
-            sessionId: initialMsg.sessionId,
-            role: "system",
-            content: `RESOLUTION: Se aplica el protocolo de contingencia "Safety First". Se da por finalizado el debate técnico stateless sin consenso claro tras superar el límite de arbitrajes. Se adopta la última recomendación del árbitro para garantizar la estabilidad operativa.`,
-            createdAt: new Date().toISOString(),
-          };
-
-          teamStore.appendMessage(username, teamId, fallbackMsg);
-          broadcast(teamId, {
-            type: "team_message",
-            teamId,
-            sessionId: initialMsg.sessionId,
-            message: fallbackMsg,
-            eventType: "agent_message",
-          });
+          console.log(`[TeamOrchestrator] Max arbitrations reached (${currentArbitrations}). Stopping debate.`);
           return;
         }
 
@@ -382,6 +358,7 @@ export class TeamOrchestrator {
         );
 
         if (arbiterResult.agentMsg) {
+          arbiterResult.agentMsg.round = round;
           teamStore.appendMessage(username, teamId, arbiterResult.agentMsg);
           broadcast(teamId, {
             type: "team_message",

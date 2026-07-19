@@ -19,6 +19,7 @@ const ENTITY_REFRESH_MAP: Record<string, string> = {
   channels: "channel",
   skills: "skill",
   experiments: "experiment",
+  teams: "team",
 };
 
 export function validateParams(entity: string, action: string, id: string | undefined, params: any) {
@@ -495,15 +496,131 @@ async function handleExperiments(action: string, id: string | undefined, params:
   return err(`Unknown action: ${action}`);
 }
 
+async function handleTeams(action: string, id: string | undefined, params: any, username: string) {
+  const { teamStore, teamOrchestrator } = await import("../../teams");
+
+  if (action === "get") {
+    if (id) {
+      const team = teamStore.getTeam(username, id);
+      if (!team) return err(`Team "${id}" not found`);
+      return ok(JSON.stringify(team, null, 2), { entity: "teams", id, data: team });
+    }
+    const list = teamStore.listTeams(username);
+    return ok(JSON.stringify(list, null, 2), { entity: "teams", data: list });
+  }
+
+  if (action === "upsert") {
+    if (!id) return err("id is required for upsert");
+    const existing = teamStore.getTeam(username, id);
+    if (existing) {
+      try {
+        const updated = teamStore.updateTeam(username, id, params);
+        if (!updated) return err(`Team "${id}" not found`);
+        return ok(`Team "${id}" updated`, { entity: "teams", id, status: "updated", data: updated });
+      } catch (e: any) {
+        return err(e.message || `Failed to update team "${id}"`);
+      }
+    } else {
+      const team = teamStore.createTeam(username, {
+        id,
+        name: params.name || id,
+        description: params.description,
+        mode: params.mode,
+        teamType: params.teamType || "Negotiation",
+        members: params.members || [],
+        maxRounds: params.maxRounds,
+        showThinking: params.showThinking,
+        showTools: params.showTools,
+        negotiationProtocol: params.negotiationProtocol,
+      });
+      return ok(`Team "${id}" created`, { entity: "teams", id, status: "created", data: team });
+    }
+  }
+
+  if (action === "delete") {
+    if (!id) return err("id is required for delete");
+    const existing = teamStore.getTeam(username, id);
+    if (!existing) return err(`Team "${id}" not found`);
+
+    try {
+      const sessions = await sessionManager.listSessions(username).catch(() => []);
+      for (const session of sessions.filter((item) => item.teamId === id)) {
+        await sessionManager.destroySession(username, session.id).catch(() => {});
+      }
+    } catch {}
+
+    const deleted = teamStore.deleteTeam(username, id);
+    if (!deleted) return err(`Failed to delete team "${id}"`);
+    return ok(`Team "${id}" deleted`, { entity: "teams", id, status: "deleted" });
+  }
+
+  if (action === "send") {
+    if (!id) return err("id is required for send");
+    const message = params.message;
+    if (!message) return err("message is required in params for team send");
+
+    const team = teamStore.getTeam(username, id);
+    if (!team) return err(`Team "${id}" not found`);
+
+    if (team.teamType === "Orchestration") {
+      const leader = team.members.find((member) => member.role === "lead");
+      if (!leader) {
+        return err("The orchestration leader is not available");
+      }
+      const { SessionPrefix, getTeamWorkspaceDir } = await import("shared");
+      const ownerSessionId = `${SessionPrefix.TEAM}${team.id}`;
+      const session = await sessionManager.getOrCreateSession(username, ownerSessionId, undefined, leader.agentId, undefined, {
+        workspaceDir: getTeamWorkspaceDir(username, team.id),
+      });
+      session.prompt(message).catch((err) => {
+        console.error(`[manage_factory] Persistent session prompt error:`, err);
+      });
+    } else {
+      teamOrchestrator.dispatchUserMessage(username, id, message, params.sessionId).catch((err) => {
+        console.error(`[manage_factory] Error dispatching message for team ${id}:`, err);
+      });
+    }
+    return ok(`Message sent to team "${id}"`, { entity: "teams", id, status: "sent" });
+  }
+
+  if (action === "member") {
+    if (!id) return err("id is required for member action");
+    const agentId = params.agentId;
+    if (!agentId) return err("agentId is required in params for member action");
+
+    const team = teamStore.getTeam(username, id);
+    if (!team) return err(`Team "${id}" not found`);
+
+    const existingIndex = team.members.findIndex((m) => m.agentId === agentId);
+    const updatedMembers = [...team.members];
+    const memberWithRole = {
+      agentId,
+      role: params.role || "member",
+    };
+
+    if (existingIndex >= 0) {
+      updatedMembers[existingIndex] = memberWithRole;
+    } else {
+      updatedMembers.push(memberWithRole);
+    }
+
+    const updatedTeam = teamStore.updateMembers(username, id, updatedMembers);
+    if (!updatedTeam) return err(`Failed to update members for team "${id}"`);
+    return ok(`Member "${agentId}" added/updated in team "${id}"`, { entity: "teams", id, status: "member_updated", data: updatedTeam });
+  }
+
+  return err(`Unknown action: ${action}`);
+}
+
 export function createFactoryTool(opts: FactoryToolOptions) {
   const { username } = opts;
 
   return {
     name: "manage_factory",
-    description: `Manage CrewFactory entities directly. Operations on agents, projects, channels, sessions, environment variables, LLM providers, custom skills, and laboratory experiments.
+    description: `Manage CrewFactory entities directly. Operations on agents, projects, channels, sessions, environment variables, LLM providers, custom skills, teams, and laboratory experiments.
 
-Available entities: agents, projects, channels, sessions, env, providers, skills, experiments.
-Actions: get (list or read), upsert (create or update), delete (permanently remove).
+Available entities: agents, projects, channels, sessions, env, providers, skills, teams, experiments.
+Actions: get (list or read), upsert (create or update), delete (permanently remove), send (message dispatch to a team), member (add/update member of a team).
 
 Entity-specific notes:
 - sessions: only get and delete. Sessions are created implicitly via chat.
@@ -511,6 +628,7 @@ Entity-specific notes:
 - providers: upsert sets an API key, delete revokes it.
 - skills: upsert writes a SKILL.md file with frontmatter. Requires name, description, and content params.
 - projects: upsert can optionally clone a git repo via cloneUrl param.
+- teams: upsert creates or updates teams, delete removes them, send sends a message to the team, and member manages team members.
 
 For exact parameter schemas, call GET /api/factory/contract/:entity.
 After mutating any entity, call refresh_ui to update the frontend sidebar.`,
@@ -520,17 +638,17 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
       properties: {
         entity: {
           type: "string",
-          enum: ["agents", "projects", "channels", "sessions", "env", "providers", "skills", "experiments"],
+          enum: ["agents", "projects", "channels", "sessions", "env", "providers", "skills", "teams", "experiments"],
           description: "The factory entity type to operate on.",
         },
         action: {
           type: "string",
-          enum: ["get", "upsert", "delete"],
-          description: "get: retrieve entity data (list or single). upsert: create or update. delete: permanently remove.",
+          enum: ["get", "upsert", "delete", "send", "member"],
+          description: "get: retrieve entity data (list or single). upsert: create or update. delete: permanently remove. send: dispatch message to a team. member: add/update a team member.",
         },
         id: {
           type: "string",
-          description: "Entity identifier. Required for delete. For get, omit to list all entities. For upsert on agents/channels/skills/experiments, use as the unique ID. For env, use 'key' in params instead.",
+          description: "Entity identifier. Required for delete, send, and member. For get, omit to list all entities. For upsert on agents/channels/skills/teams/experiments, use as the unique ID. For env, use 'key' in params instead.",
         },
         params: {
           type: "object",
@@ -570,6 +688,9 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
           break;
         case "skills":
           result = await handleSkills(action, id, params, username);
+          break;
+        case "teams":
+          result = await handleTeams(action, id, params, username);
           break;
         case "experiments":
           result = await handleExperiments(action, id, params, username);

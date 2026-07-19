@@ -1,3 +1,5 @@
+import { buildSessionPath, type ContextPathInput } from "@/router/paths";
+
 export interface SessionContext {
   activeChannel?: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
@@ -14,90 +16,125 @@ export interface CreateSessionBody {
   teamId?: string;
 }
 
+type ResolvedContext =
+  | { type: "channel"; id: string; name: string }
+  | { type: "team"; id: string; name: string }
+  | { type: "agent"; id: string; name: string }
+  | { type: "project"; id: string; name: string; friendlyName: string }
+  | { type: "global" };
+
+function resolveContext(context: SessionContext): ResolvedContext {
+  const { activeChannel, activeTeam, activeAgent, activeProjectName, activeProjectFriendlyName } = context;
+  if (activeChannel) {
+    return { type: "channel", id: activeChannel.id, name: activeChannel.name };
+  }
+  if (activeTeam) {
+    return { type: "team", id: activeTeam.id, name: activeTeam.name };
+  }
+  if (activeAgent) {
+    return { type: "agent", id: activeAgent.id, name: activeAgent.name };
+  }
+  if (activeProjectName) {
+    return {
+      type: "project",
+      id: activeProjectName,
+      name: activeProjectName,
+      friendlyName: activeProjectFriendlyName || activeProjectName,
+    };
+  }
+  return { type: "global" };
+}
+
 export function buildCreateSessionBody(
   sessionName: string,
   context: SessionContext
 ): CreateSessionBody {
-  const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
-  return {
-    name: sessionName,
-    projectName: activeAgent || activeChannel || activeTeam ? undefined : activeProjectName || undefined,
-    agentId: activeChannel || activeTeam ? undefined : activeAgent ? activeAgent.id : undefined,
-    channelId: activeChannel ? activeChannel.id : undefined,
-    teamId: activeTeam ? activeTeam.id : undefined,
-  };
+  const resolved = resolveContext(context);
+  switch (resolved.type) {
+    case "channel":
+      return { name: sessionName, channelId: resolved.id };
+    case "team":
+      return { name: sessionName, teamId: resolved.id };
+    case "agent":
+      return { name: sessionName, agentId: resolved.id };
+    case "project":
+      return { name: sessionName, projectName: resolved.id };
+    case "global":
+      return { name: sessionName };
+  }
 }
 
 export function getSessionContextPredicate(
   context: SessionContext
 ): (session: { projectName?: string; agentId?: string; channelId?: string; teamId?: string; experimentId?: string }) => boolean {
-  const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
+  const resolved = resolveContext(context);
   return (session) => {
-    if (activeChannel) {
-      return session.channelId === activeChannel.id;
+    switch (resolved.type) {
+      case "channel":
+        return session.channelId === resolved.id;
+      case "team":
+        return session.teamId === resolved.id;
+      case "agent":
+        if (resolved.id === "lab-architect") {
+          return session.agentId === "lab-architect" && !session.experimentId && !session.channelId && !session.teamId;
+        }
+        return session.agentId === resolved.id && !session.channelId && !session.teamId;
+      case "project":
+        return (
+          session.projectName === resolved.id &&
+          !session.agentId &&
+          !session.channelId &&
+          !session.teamId
+        );
+      case "global":
+        return !session.projectName && !session.agentId && !session.channelId && !session.teamId;
     }
-    if (activeTeam) {
-      return session.teamId === activeTeam.id;
-    }
-    if (activeAgent) {
-      if (activeAgent.id === "lab-architect") {
-        return session.agentId === "lab-architect" && !session.experimentId && !session.channelId && !session.teamId;
-      }
-      return session.agentId === activeAgent.id && !session.channelId && !session.teamId;
-    }
-    if (activeProjectName) {
-      return (
-        session.projectName === activeProjectName &&
-        !session.agentId &&
-        !session.channelId &&
-        !session.teamId
-      );
-    }
-    return !session.projectName && !session.agentId && !session.channelId && !session.teamId;
   };
 }
 
 export function getSessionPath(sessionId: string, context: SessionContext): string {
-  const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
+  const resolved = resolveContext(context);
+  if (resolved.type === "agent" && resolved.id === "lab-architect") {
+    return `/laboratory/session/${sessionId}`;
+  }
+
   let routeContext: ContextPathInput | null = null;
-  if (activeChannel) {
-    routeContext = { type: "channel", id: activeChannel.id };
-  }
-  if (activeTeam && !routeContext) {
-    routeContext = { type: "team", id: activeTeam.id };
-  }
-  if (activeAgent && !routeContext) {
-    if (activeAgent.id === "lab-architect") {
-      return `/laboratory/session/${sessionId}`;
-    }
-    routeContext = { type: "agent", id: activeAgent.id };
-  }
-  if (activeProjectName && !routeContext) {
-    routeContext = { type: "project", id: activeProjectName };
+  switch (resolved.type) {
+    case "channel":
+      routeContext = { type: "channel", id: resolved.id };
+      break;
+    case "team":
+      routeContext = { type: "team", id: resolved.id };
+      break;
+    case "agent":
+      routeContext = { type: "agent", id: resolved.id };
+      break;
+    case "project":
+      routeContext = { type: "project", id: resolved.id };
+      break;
+    case "global":
+      routeContext = null;
+      break;
   }
   return buildSessionPath(routeContext, sessionId);
 }
 
 export function getSessionName(context: SessionContext, count?: number): string {
-  const { activeChannel, activeTeam, activeAgent, activeProjectName, activeProjectFriendlyName } = context;
+  const resolved = resolveContext(context);
   const suffix = count !== undefined ? ` ${count + 1}` : "";
 
-  if (activeChannel) {
-    return `#${activeChannel.name} - Session${suffix}`;
+  switch (resolved.type) {
+    case "channel":
+      return `#${resolved.name} - Session${suffix}`;
+    case "team":
+      return `#${resolved.name} - Session${suffix}`;
+    case "agent":
+      return `${resolved.name} - Session${suffix}`;
+    case "project":
+      return `${resolved.friendlyName} - Session${suffix}`;
+    case "global":
+      return `Global Session${suffix}`;
   }
-  if (activeTeam) {
-    return `#${activeTeam.name} - Session${suffix}`;
-  }
-  if (activeAgent) {
-    return `${activeAgent.name} - Session${suffix}`;
-  }
-  if (activeProjectFriendlyName) {
-    return `${activeProjectFriendlyName} - Session${suffix}`;
-  }
-  if (activeProjectName) {
-    return `${activeProjectName} - Session${suffix}`;
-  }
-  return `Global Session${suffix}`;
 }
 
 export interface SessionMeta {
@@ -140,4 +177,3 @@ export function getSessionMeta(sessionId: string | null): SessionMeta {
     isTeamExecution,
   };
 }
-import { buildSessionPath, type ContextPathInput } from "@/router/paths";

@@ -31,5 +31,16 @@
 - [x] 162.2 Refactored useSessionResolver to allow Negotiation team sessions to fall through to standard multi-session resolution
 - [x] 162.3 Verified client and server compilation build checks successfully
 
+## Phase 163: Robust Negotiation & Arbitration in Negotiation Teams
+- [x] 163.1 Add quorumThreshold to NegotiationProtocolSchema and round to TeamMessageSchema
+- [x] 163.2 Create TeamNegotiationEvaluator with vote classification and round outcome consensus logic
+- [x] 163.3 Refactor handleTeamNegotiation to track round votes and evaluate consensus
+- [x] 163.4 Integrate round numbers and consensus checks in runStatelessDebateLoop, removing hardcoded Spanish fallback
+- [x] 163.5 Add unit test suite in team-negotiation.test.ts and verify all 110 server tests pass successfully
 
-
+## Phase 164: Teams Support in manage_factory & Global Agent Prompt
+- [x] 164.1 Add teams definition to FACTORY_CONTRACTS and allow custom actions via Record<string, ActionContract> actions type definition.
+- [x] 164.2 Implement handleTeams handler in factory-tool.ts to handle CRUD, send, and member updates for teams.
+- [x] 164.3 Wire teams to main execute switch in factory-tool.ts and add refresh hooks.
+- [x] 164.4 Update DEFAULT_AGENTS_MD with section 4. Teams and add factory-teams skill content to default-factory-skills.ts.
+- [x] 164.5 Verify server typechecks and existing team tests pass successfully.

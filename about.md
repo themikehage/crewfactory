@@ -79,10 +79,11 @@
 - **Resolución Dinámica de Modelos:** No se utilizan modelos por defecto hardcodeados en el cliente ni en el backend. Las vistas del cliente guían al usuario con placeholders descriptivos y la última selección guardada en `localStorage` con la clave `crewfy-selected-model`. El backend realiza una validación y resolución en base a los proveedores configurados del usuario (`getUserDefaultModel`), previniendo caídas por llamadas a modelos inaccesibles o inexistentes.
 
 ### Factory Operations & Unified Tool (manage_factory)
-- **Unified Tool:** A meta-tool `manage_factory(entity, action, id?, params?)` allows the agent to interact directly with all system entities (agents, projects, channels, sessions, env vars, LLM providers, custom skills, laboratory experiments) in a single tool call, eliminating the need for slow and error-prone bash/curl command executions.
+- **Unified Tool:** A meta-tool `manage_factory(entity, action, id?, params?)` allows the agent to interact directly with all system entities (agents, projects, channels, sessions, env vars, LLM providers, custom skills, teams, laboratory experiments) in a single tool call, eliminating the need for slow and error-prone bash/curl command executions.
 - **Contract Auto-Discovery:** Endpoints `GET /api/factory/contracts` and `GET /api/factory/contract/:entity` expose the schemas of all entities dynamically, permitting client-side and model-side schema validation without hardcoding parameters.
 - **Runtime Schema Validation:** Parameters passed to `manage_factory` are validated against their respective entity contract schemas at runtime, providing descriptive validation errors for self-correction.
-- **Real-Time UI Synchronization:** Operations like `upsert` and `delete` automatically broadcast WebSocket updates to the client to refresh the sidebar, projects, channels, or custom skills lists instantly.
+- **Real-Time UI Synchronization:** Operations like `upsert` and `delete` automatically broadcast WebSocket updates to the client to refresh the sidebar, projects, channels, teams, or custom skills lists instantly.
+- **Dynamic Team Support:** The `manage_factory` tool natively understands two types of Teams: Orchestration Teams (managed by a persistent leader agent utilizing `delegate_task` to specialist members) and Negotiation Teams (stateless parallel debate loops with arbitration and consensus protocol rules). Includes `send` action to dispatch team prompts asynchronously and `member` action to manage agent assignments.
 
 ### Security & Environment Variables
 - **Cifrado en Reposo:** Cifrado simétrico AES-256-GCM para los archivos de configuración sensibles (`env.json` y `auth.json`) derivando la clave criptográfica a partir del `JWT_SECRET` del servidor. Migración automática de archivos legacy en texto plano.
@@ -523,10 +524,11 @@ packages/shared/  Shared Zod schemas and types
 - `routes/agents.ts` — REST endpoints for programmatic agent management.
 - `routes/channels.ts` — REST endpoints for channel CRUD, member administration, and message dispatch.
 - `routes/teams.ts` — REST endpoints for team CRUD, member administration, and message dispatch.
-- `teams/team-store.ts` — Filesystem store for team definitions and message logs.
+- `teams/team-store.ts` — Filesystem store for team definitions, message logs, and negotiation states.
 - `teams/team-prompt-runner.ts` — Stateless agent prompt runner executing direct models.
-- `teams/team-negotiation.ts` — Consensus checking and arbiter resolution builder.
-- `teams/team-orchestrator.ts` — Parallel execution round and consensus loop orchestrator.
+- `teams/team-negotiation-evaluator.ts` — Evaluator module classifying agent votes (agreed, counter, rejected, neutral) and checking multilateral consensus (quorum ratio threshold).
+- `teams/team-negotiation.ts` — Consensus checking and arbiter resolution coordinator utilizing TeamNegotiationEvaluator.
+- `teams/team-orchestrator.ts` — Parallel execution round and consensus loop orchestrator managing rounds in StatelessDebateLoop.
 - `ws/factory.ts` — Factory creating closure-captured WS connection contexts (`crypto.randomUUID()` id, no `ws.wsId` mutation). Handles cookie auth via `auth.api.getSession` + fallback sync lookup, pong tracking, prompt auto-subscribe transactionally, channel join/send, and UI approvals. Uses structured logger.
 - `ws/registry.ts` — Singleton registry managing `userSockets`, `sessionSockets`, `channelSockets` Maps and per-connection meta (`missedPings`, `sessionId`, `channelId`) with explicit cleanup, no global counter, no raw object mutation.
 - `ws/logger.ts` — Structured logger for WS layer with levelled `info/warn/error/debug` and contextual `wsId/username/sessionId`.

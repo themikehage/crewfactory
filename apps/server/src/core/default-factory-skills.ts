@@ -27,6 +27,22 @@ Welcome to CrewFactory. As the Global Factory Director, you are responsible for 
      \`delegate_task(targetType: "channel", targetId: "<channelId>", task: "<prompt>")\`
    - **DO NOT use curl or dispatch messages via REST.** Always use \`delegate_task\`.
 
+4. **Teams:**
+   - Teams are structured multi-agent workflows. There are TWO types of teams, chosen at creation time (immutable):
+     
+     **Orchestration Teams** (\`teamType: "Orchestration"\`)
+     - One persistent leader agent orchestrates the team via a durable session.
+     - The leader can delegate tasks to specialist members via \`delegate_task\`.
+     - Interact with the team by prompting the leader session: \`delegate_task(targetType: "team", targetId: "<teamId>", task: "<prompt>")\`
+     - NEVER use the /send REST endpoint directly — always use \`delegate_task\` to the leader.
+     - Requires exactly ONE member with \`role: "lead"\`.
+     
+     **Negotiation Teams** (\`teamType: "Negotiation"\`)
+     - All members debate in parallel rounds, building consensus or escalating to an arbiter.
+     - Configured via \`negotiationProtocol\`: \`{ arbiterAgentId, mode: "debate"|"vote"|"consensus", quorumThreshold }\`.
+     - Interact by sending a message: \`manage_factory("teams", "send", teamId, { message: "..." })\`.
+     - DO NOT delegate to Negotiation teams via \`delegate_task\` — use \`manage_factory\` send action instead.
+
 ## Core Capabilities (Factory Skills)
 
 You have access to specialized factory skills located in \`.agents/skills/\`:
@@ -37,6 +53,7 @@ You have access to specialized factory skills located in \`.agents/skills/\`:
 - \`factory-projects\`: Create and clone Git repositories within the user workspace.
 - \`factory-agents\`: Register, monitor, and delegate tasks to autonomous secondary AI agents.
 - \`factory-channels\`: Create multi-agent collaboration rooms and manage member agents.
+- \`factory-teams\`: Create Orchestration and Negotiation teams, manage members, and trigger team workflows.
 - \`factory-pipelines\`: Create, run, and monitor deterministic linear execution pipelines (lint → test → build → deploy).
 - \`factory-observe\`: Inspect execution logs to analyze performance, bottlenecks, and errors.
 - \`factory-quick-actions\`: Compile optimized scripts and register them as reusable Quick Actions.
@@ -408,6 +425,75 @@ wget -qO- --header="Authorization: Bearer $TOKEN" \
 Always use the native \`delegate_task\` tool to prompt and delegate tasks to channels:
 \`delegate_task(targetType: "channel", targetId: "dev-team", task: "Review latest feature")\`
 DO NOT use curl or bash command scripts.
+`
+  },
+  "factory-teams": {
+    name: "factory-teams",
+    description: "Create and manage Orchestration and Negotiation teams of agents.",
+    content: `---
+name: factory-teams
+description: Create and manage Orchestration and Negotiation teams of agents.
+---
+
+# Teams Guide
+
+Teams are structured multi-agent workflows. The \`teamType\` is IMMUTABLE after creation.
+
+## Team Types
+
+### Orchestration Team
+- Leader agent holds a persistent session and delegates to specialists.
+- Requires exactly one \`role: "lead"\` member.
+- Interact via: \`manage_factory("teams", "send", teamId, { message: "..." })\`
+  or equivalently: \`delegate_task(targetType: "team", targetId: "<teamId>", task: "...")\`
+
+### Negotiation Team
+- Stateless debate: members run in parallel rounds.
+- Consensus evaluation with optional arbiter escalation.
+- Configure \`negotiationProtocol\`: \`{ arbiterAgentId, mode, quorumThreshold }\`.
+- Interact via: \`manage_factory("teams", "send", teamId, { message: "..." })\`
+
+## Operations via manage_factory
+
+### List all teams
+\`manage_factory("teams", "get")\`
+
+### Get a specific team
+\`manage_factory("teams", "get", "team-id")\`
+
+### Create an Orchestration Team
+\`manage_factory("teams", "upsert", "my-team", {
+  name: "Engineering Team",
+  teamType: "Orchestration",
+  members: [{ agentId: "lead-agent", role: "lead" }]
+})\`
+
+### Create a Negotiation Team
+\`manage_factory("teams", "upsert", "debate-team", {
+  name: "Architecture Review",
+  teamType: "Negotiation",
+  mode: "debate",
+  maxRounds: 5,
+  members: [
+    { agentId: "architect-a", role: "lead" },
+    { agentId: "architect-b", role: "member" },
+    { agentId: "arbiter-agent", role: "member" }
+  ],
+  negotiationProtocol: {
+    arbiterAgentId: "arbiter-agent",
+    mode: "debate",
+    quorumThreshold: 0.67
+  }
+})\`
+
+### Send a message to any team
+\`manage_factory("teams", "send", "team-id", { message: "Start the review" })\`
+
+### Add/update a member
+\`manage_factory("teams", "member", "team-id", { agentId: "new-agent", role: "member" })\`
+
+### Delete a team
+\`manage_factory("teams", "delete", "team-id")\`
 `
   },
   "factory-observe": {

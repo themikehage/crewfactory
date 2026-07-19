@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
 import { apiFetch } from "@/lib/api";
+import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
 import { useExperiments } from "@/hooks/useExperiments";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionSidebar.literals";
@@ -32,36 +33,32 @@ interface ChannelItem {
 }
 
 interface Props {
-  activeProjectName: string | null;
-  activeAgent: { id: string; name: string; avatarUrl?: string } | null;
-  activeChannel: { id: string; name: string } | null;
-  activeTeam?: { id: string; name: string } | null;
   currentPage?: string;
   onNavigate?: (path: string) => void;
-  onSelectProject?: (projectId: string | null, projectName: string | null) => void;
-  onSelectAgent?: (agent: { id: string; name: string; avatarUrl?: string } | null) => void;
-  onSelectChannel?: (channel: { id: string; name: string } | null) => void;
-  onSelectTeam?: (team: { id: string; name: string } | null) => void;
   selectedExpId?: string | null;
   isMobile?: boolean;
   onCloseSidebar?: () => void;
 }
 
 export function SessionSidebar({
-  activeProjectName,
-  activeAgent,
-  activeChannel,
-  activeTeam = null,
   currentPage = "chat",
   onNavigate,
-  onSelectProject,
-  onSelectAgent,
-  onSelectChannel,
-  onSelectTeam,
   selectedExpId = null,
   isMobile = false,
   onCloseSidebar,
 }: Props) {
+  const workspace = useWorkspaceContext();
+  const {
+    activeProjectId: activeProjectName,
+    activeAgent,
+    activeChannel,
+    activeTeam,
+    selectProject: onSelectProject,
+    selectAgent: onSelectAgent,
+    selectChannel: onSelectChannel,
+    selectTeam: onSelectTeam,
+  } = workspace;
+
   const l = useLiterals(u);
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);

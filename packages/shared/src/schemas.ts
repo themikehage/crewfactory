@@ -255,6 +255,7 @@ export const NegotiationProtocolSchema = z.object({
   rejectPattern: z.string().optional(),
   maxRounds: z.number().int().min(1).max(20).default(3),
   arbiterAgentId: z.string().optional(),
+  quorumThreshold: z.number().min(0).max(1).default(0.51),
 });
 export type NegotiationProtocol = z.infer<typeof NegotiationProtocolSchema>;
 
@@ -835,6 +836,7 @@ export const TeamMessageSchema = z.object({
   mentions: z.array(z.string()).optional(),
   tokensIn: z.number().optional(),
   tokensOut: z.number().optional(),
+  round: z.number().optional(),
   createdAt: z.string(),
 });
 export type TeamMessage = z.infer<typeof TeamMessageSchema>;

@@ -14,14 +14,55 @@ export interface ActionContract {
 export interface EntityContract {
   entity: string;
   description: string;
-  actions: {
-    get: ActionContract;
-    upsert: ActionContract;
-    delete: ActionContract;
-  };
+  actions: Record<string, ActionContract>;
 }
 
 export const FACTORY_CONTRACTS: Record<string, EntityContract> = {
+  teams: {
+    entity: "teams",
+    description: "Structured multi-agent workflows. Two immutable types: Orchestration (persistent leader) and Negotiation (debate rounds).",
+    actions: {
+      get: {
+        description: "List all teams or get one by id",
+        params: {
+          id: { type: "string", required: false, description: "Team ID. Omit to list all." },
+        },
+      },
+      upsert: {
+        description: "Create a new team (teamType is immutable after creation) or update an existing one",
+        params: {
+          id: { type: "string", required: true, description: "Unique team identifier" },
+          name: { type: "string", required: true, description: "Display name" },
+          teamType: { type: "string", required: false, enum: ["Orchestration", "Negotiation"], default: "Negotiation", description: "Immutable after creation" },
+          mode: { type: "string", required: false, enum: ["debate", "vote", "consensus"], description: "Debate mode (Negotiation teams only)" },
+          maxRounds: { type: "number", required: false, description: "Max debate rounds (default 5)" },
+          members: { type: "array", required: false, description: "Array of { agentId, role: lead|member|observer }" },
+          negotiationProtocol: { type: "object", required: false, description: "{ arbiterAgentId?, mode?, quorumThreshold? } — Negotiation teams only" },
+        },
+      },
+      delete: {
+        description: "Delete a team and all its sessions permanently",
+        params: {
+          id: { type: "string", required: true, description: "Team ID to delete" },
+        },
+      },
+      send: {
+        description: "Send a message to the team (triggers orchestration or debate round)",
+        params: {
+          id: { type: "string", required: true, description: "Team ID" },
+          message: { type: "string", required: true, description: "Message content to dispatch" },
+        },
+      },
+      member: {
+        description: "Add or update a member in the team",
+        params: {
+          id: { type: "string", required: true, description: "Team ID" },
+          agentId: { type: "string", required: true, description: "Agent ID to add/update" },
+          role: { type: "string", required: false, enum: ["lead", "member", "observer"], description: "Member role" },
+        },
+      },
+    },
+  },
   agents: {
     entity: "agents",
     description: "Autonomous programmatic agents with isolated workspaces",
