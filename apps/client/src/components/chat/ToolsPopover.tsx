@@ -76,7 +76,7 @@ export function ToolsPopover({
       ).map((t) => t.id);
       onChange(available, "autonomous");
     } else if (preset === "standard") {
-      onChange(["read", "write", "edit", "bash", "grep", "find", "ls", "request_approval", "ask_question"], "standard");
+      onChange(["read", "write", "edit", "bash", "grep", "find", "ls", "request_approval", "ask_question", "render_html"], "standard");
     } else {
       onChange(["read", "grep", "find", "ls"], "readonly");
     }

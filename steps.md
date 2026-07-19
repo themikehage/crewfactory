@@ -74,3 +74,11 @@
 - [x] 167.7 Migrar todas las llamadas del cliente de resolveImageUrl y resolveFileUrl a la nueva utilidad consolidada en ImageGrid.tsx, ToolResultInspector.tsx, MessageBlocks.tsx y MessageList.tsx
 - [x] 167.8 Verificar la compilación de producción de client y server
 
+## Phase 168: Migrate Lab to Negotiation Teams and Remove Channels
+- [x] 168.1 Removed Channels from Sidebar Accordion, mobile bottom bar, and general navigation views
+- [x] 168.2 Reduced Laboratory to two execution variants: Baseline (single) and Negociación (multiWithLeader)
+- [x] 168.3 Created LabNegotiationRunner implementing Team Negotiation Engine loop with virtual teams
+- [x] 168.4 Mapped stream event protocols dynamically to maintain full visual backward-compatibility in client chat viewers
+- [x] 168.5 Updated LabJudge.evaluateRuns to dynamically evaluate only the two active variants if the horizontal one is omitted
+- [x] 168.6 Verified all 110 server tests and client production build successfully
+

@@ -26,7 +26,7 @@ export class LabJudge {
     criteria: string[],
     outputs: {
       single: string;
-      multiNoLeader: string;
+      multiNoLeader?: string;
       multiWithLeader: string;
     },
     judgeModel?: string,
@@ -74,11 +74,18 @@ export class LabJudge {
       }
     }
 
+    const hasMultiNoLeader = !!outputs.multiNoLeader;
+
     // 1. Double-Blind Shuffling
-    const keys = ["single", "multiNoLeader", "multiWithLeader"] as const;
+    const keys = hasMultiNoLeader
+      ? (["single", "multiNoLeader", "multiWithLeader"] as const)
+      : (["single", "multiWithLeader"] as const);
     const shuffledKeys = [...keys].sort(() => Math.random() - 0.5);
 
-    const labels = ["Alpha", "Beta", "Gamma"] as const;
+    const labels = hasMultiNoLeader
+      ? (["Alpha", "Beta", "Gamma"] as const)
+      : (["Alpha", "Beta"] as const);
+
     const keyToLabelMap = new Map<"single" | "multiNoLeader" | "multiWithLeader", "Alpha" | "Beta" | "Gamma">();
     const labelToKeyMap = new Map<"Alpha" | "Beta" | "Gamma", "single" | "multiNoLeader" | "multiWithLeader">();
 
@@ -88,15 +95,21 @@ export class LabJudge {
       labelToKeyMap.set(label, key);
     });
 
+    // Provide default mappings for omitted multiNoLeader
+    if (!hasMultiNoLeader) {
+      keyToLabelMap.set("multiNoLeader", "Gamma");
+      labelToKeyMap.set("Gamma", "multiNoLeader");
+    }
+
     const outputAlpha = outputs[labelToKeyMap.get("Alpha")!];
     const outputBeta = outputs[labelToKeyMap.get("Beta")!];
-    const outputGamma = outputs[labelToKeyMap.get("Gamma")!];
+    const outputGamma = hasMultiNoLeader ? outputs[labelToKeyMap.get("Gamma")!] : "";
 
     console.log(`[LabJudge] Double-Blind Shuffling Map:`, 
       Array.from(keyToLabelMap.entries()).map(([k, l]) => `${k} -> ${l}`).join(", ")
     );
 
-    const judgePrompt = `
+    const judgePrompt = hasMultiNoLeader ? `
 You are an expert AI evaluator. Evaluate the following three different outputs produced for the same task.
 Your assessment must be completely objective, impartial, and unbiased.
 
@@ -172,6 +185,68 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
     "reasoning": "Overall summary..."
   }
 }
+` : `
+You are an expert AI evaluator. Evaluate the following two different outputs produced for the same task.
+Your assessment must be completely objective, impartial, and unbiased.
+
+The evaluation is DOUBLE-BLIND. The outputs are labeled anonymously as Output Alpha and Output Beta.
+Evaluate the outputs against the listed criteria, explaining your analysis step-by-step before assigning the scores.
+
+Task Prompt:
+"${taskPrompt}"
+
+Criteria to score (0-100 for each):
+${JSON.stringify(criteria)}
+
+SCORING RUBRIC GUIDE FOR EACH CRITERION:
+- 90-100: Exceptional quality. Fully satisfies the task prompt, demonstrates excellent structure, tone, clarity, and proactively handles edge cases or introduces high-value additions.
+- 70-89: Very good. Complete, well-structured, minor improvements in depth or tone are possible.
+- 50-69: Satisfactory but basic. Meets the requirements but lacks depth, has minor formatting issues, or limited scope.
+- 0-49: Incomplete or incorrect. Significant gaps, lacks clarity, or contains irrelevant material.
+
+ADDITIONAL EVALUATION RULES:
+- Conciseness & Redundancy: Penalize outputs that contain excessive repetitiveness, boilerplate code, loops of courtesy pings between agents (e.g. "¡Gracias!", "De nada", "¡Excelente aporte!"), or useless chatty filler.
+- Quality over Verbosity: High quality means exact, robust execution of the requested task. Do not award high scores to long outputs if they do not solve the task more correctly or efficiently than a concise one.
+- Impartiality: Focus strictly on technical completeness, correctness, structure, and correctness of the output content.
+
+---
+Output Alpha:
+${outputAlpha || "(No output produced)"}
+---
+Output Beta:
+${outputBeta || "(No output produced)"}
+---
+
+For each output (Alpha, Beta), perform a detailed evaluation:
+1. For each criterion, write a step-by-step critical analysis (Chain-of-Thought) and then assign a score (0 to 100).
+2. Provide a global quality analysis and a final global quality score (0 to 100).
+3. Provide a concise overall reasoning summary (max 2 sentences).
+
+You must respond ONLY with a valid JSON object matching this structure (no markdown boxes, code fences or conversational text outside the JSON):
+{
+  "Alpha": {
+    "criteria": {
+      "${criteria[0] || 'Quality'}": {
+        "analysis": "Analysis explanation...",
+        "score": 85
+      }
+    },
+    "globalAnalysis": "...",
+    "globalScore": 87,
+    "reasoning": "Overall summary..."
+  },
+  "Beta": {
+    "criteria": {
+      "${criteria[0] || 'Quality'}": {
+        "analysis": "Analysis explanation...",
+        "score": 90
+      }
+    },
+    "globalAnalysis": "...",
+    "globalScore": 92,
+    "reasoning": "Overall summary..."
+  }
+}
 `;
 
     let rawJson = "";
@@ -197,6 +272,20 @@ You must respond ONLY with a valid JSON object matching this structure (no markd
 
       // Safe JSON parsing
       const parsedRaw = JSON.parse(rawJson);
+
+      // Inject dummy Gamma if omitted
+      if (!hasMultiNoLeader) {
+        const dummyCriteria: Record<string, any> = {};
+        for (const crit of criteria) {
+          dummyCriteria[crit] = { analysis: "Not evaluated", score: 0 };
+        }
+        parsedRaw.Gamma = {
+          criteria: dummyCriteria,
+          globalAnalysis: "Not evaluated",
+          globalScore: 0,
+          reasoning: "Not evaluated"
+        };
+      }
 
       // Normalize case of Alpha, Beta, Gamma keys
       const normalizedRaw: any = {};

@@ -83,6 +83,7 @@ export function MainLayout({
   const { pathname } = useLocation();
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sessionPopoverOpen, setSessionPopoverOpen] = useState(false);
+  const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [wsState, setWsState] = useState<ConnectionState>(() => wsClient.getState());
   const [showAgentEdit, setShowAgentEdit] = useState(false);
   const { updateAgent, uploadAvatar, deleteAvatar } = useAgents();
@@ -93,6 +94,22 @@ export function MainLayout({
     });
     return unsub;
   }, []);
+
+  const sessionMatch = pathname.match(/\/session\/(.+?)(?:\/delegations)?$/);
+  const sessionId = sessionMatch?.[1] ?? null;
+
+  const handleExport = useCallback((format: "json" | "jsonl" | "markdown") => {
+    if (!sessionId) return;
+    setExportDropdownOpen(false);
+
+    const url = `/api/sessions/${sessionId}/export?format=${format}`;
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `session-${sessionId}.${format === "markdown" ? "md" : format}`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+  }, [sessionId]);
 
   // Hooks extraídos
   useWorkspaceNavigation(page, onNavigate);
@@ -134,12 +151,10 @@ export function MainLayout({
     if (page === "settings") return l.breadSettings || "Settings";
     if (page === "skills") return l.breadSkills || "Skills";
     if (page === "logs") return l.breadLogs || "Logs";
+    if (page === "sessions") return l.breadSessions || "Sessions";
     if (page === "plugins") return "Plugins";
     return "Factory";
   }, [activeProjectId, activeProjectName, activeAgent, activeChannel, page, l]);
-
-  const sessionMatch = pathname.match(/\/session\/(.+?)(?:\/delegations)?$/);
-  const sessionId = sessionMatch?.[1] ?? null;
 
   const { resolvedSessionId, resolving } = useSessionResolver({
     sessionId,
@@ -179,9 +194,8 @@ export function MainLayout({
 
   const contextTabs = useMemo(() => {
     let basePath = "";
-    if (activeChannel) basePath = `/channels/${activeChannel.id}`;
+    if (activeAgent) basePath = `/agents/${activeAgent.id}`;
     else if (activeTeam) basePath = `/teams/${activeTeam.id}`;
-    else if (activeAgent) basePath = `/agents/${activeAgent.id}`;
     else if (activeProjectId) basePath = `/projects/${activeProjectId}`;
 
     const list = [
@@ -233,7 +247,7 @@ export function MainLayout({
       });
     }
 
-    if (activeChannel || activeTeam) {
+    if (activeTeam) {
       list.push({
         id: "org",
         label: l.tabOrgChart,
@@ -244,22 +258,10 @@ export function MainLayout({
           </svg>
         ),
       });
-      if (activeChannel) {
-        list.push({
-          id: "benchmark",
-          label: l.tabBenchmark || "Benchmark",
-          path: `${basePath}/benchmarks`,
-          icon: (
-            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M12 7a1 1 0 110-2h5a1 1 0 011 1v5a1 1 0 11-2 0V8.414l-4.293 4.293a1 1 0 01-1.414 0L8 10.414l-4.293 4.293a1 1 0 01-1.414-1.414l5-5a1 1 0 011.414 0L11 10.586 14.586 7H12z" clipRule="evenodd" />
-            </svg>
-          ),
-        });
-      }
     }
 
     return list;
-  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeChannel, activeTeam, l]);
+  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeTeam, l]);
 
   const breadcrumbsElement = (
     <Breadcrumbs
@@ -267,7 +269,7 @@ export function MainLayout({
       activeProjectId={activeProjectId}
       activeProjectName={activeProjectName}
       activeAgent={activeAgent}
-      activeChannel={activeChannel}
+      activeChannel={null}
       selectedExpId={lab?.selectedExpId}
       experiments={lab?.experiments}
       onNavigate={onNavigate}
@@ -318,6 +320,45 @@ export function MainLayout({
               <Settings size={14} />
             </button>
           )}
+          {sessionId && (
+            <div className="relative flex items-center">
+              <button
+                onClick={() => setExportDropdownOpen(p => !p)}
+                className="flex items-center gap-1 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
+                title="Exportar conversación"
+              >
+                <svg className="w-3 h-3 text-muted-foreground" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M3 16.5v2.25A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75V16.5M16.5 12 12 16.5m0 0L7.5 12m4.5 4.5V3" />
+                </svg>
+
+              </button>
+              {exportDropdownOpen && (
+                <>
+                  <div className="fixed inset-0 z-40 bg-transparent" onClick={() => setExportDropdownOpen(false)} />
+                  <div className="absolute right-0 top-full mt-2 w-44 bg-card border border-input rounded-xl shadow-2xl flex flex-col z-50 animate-scale-in overflow-hidden p-1">
+                    <button
+                      onClick={() => handleExport("markdown")}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:bg-card-hover hover:text-foreground transition-all cursor-pointer font-sans"
+                    >
+                      Exportar Markdown (.md)
+                    </button>
+                    <button
+                      onClick={() => handleExport("jsonl")}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:bg-card-hover hover:text-foreground transition-all cursor-pointer font-sans"
+                    >
+                      Exportar JSONL (.jsonl)
+                    </button>
+                    <button
+                      onClick={() => handleExport("json")}
+                      className="w-full text-left px-3 py-1.5 rounded-lg text-[11px] font-medium text-muted-foreground hover:bg-card-hover hover:text-foreground transition-all cursor-pointer font-sans"
+                    >
+                      Exportar JSON (.json)
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          )}
           <button
             onClick={() => setSessionPopoverOpen((p) => !p)}
             className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-semibold border border-border hover:bg-card text-muted-foreground hover:text-foreground transition-all cursor-pointer bg-card/10"
@@ -335,7 +376,7 @@ export function MainLayout({
             activeProjectName={activeProjectId}
             activeProjectFriendlyName={activeProjectName}
             activeAgent={activeAgent}
-            activeChannel={activeChannel}
+            activeChannel={null}
             activeTeam={activeTeam}
             onSelectSession={handleSelectSession}
             onNewSession={handleNewSession}
@@ -406,9 +447,8 @@ export function MainLayout({
             </MobileSidebarOverlay>
 
             <main
-              className={`absolute inset-x-0 top-0 ${
-                sidebarOpen ? "bottom-14" : "bottom-0"
-              } z-30 flex flex-col bg-background`}
+              className={`absolute inset-x-0 top-0 ${sidebarOpen ? "bottom-14" : "bottom-0"
+                } z-30 flex flex-col bg-background`}
             >
               {isContextView && sharedTabBar}
               <div className="flex-1 min-h-0 relative">{contentElement}</div>

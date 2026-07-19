@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
-import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync } from "node:fs";
+import { existsSync, readFileSync, writeFileSync, mkdirSync, readdirSync, statSync } from "node:fs";
 import { join } from "node:path";
 import { streamSSE } from "hono/streaming";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
@@ -22,14 +22,231 @@ sessionsRouter.use("/*", authMiddleware);
 
 sessionsRouter.get("/", async (c) => {
   const { username } = getAuthPayload(c);
-  const sessions = await sessionManager.listSessions(username);
-  return c.json({ sessions });
+  
+  const search = c.req.query("search");
+  const agentId = c.req.query("agentId");
+  const channelId = c.req.query("channelId");
+  const projectName = c.req.query("projectName");
+  const status = c.req.query("status");
+  const from = c.req.query("from");
+  const to = c.req.query("to");
+  
+  const pageQuery = c.req.query("page");
+  const perPageQuery = c.req.query("perPage");
+  const page = pageQuery ? parseInt(pageQuery, 10) : undefined;
+  const perPage = perPageQuery ? parseInt(perPageQuery, 10) : undefined;
+  
+  const sortBy = c.req.query("sortBy") || "updatedAt";
+  const sortDir = c.req.query("sortDir") || "desc";
+  
+  const isExecutionQuery = c.req.query("isExecution");
+  const isExecution = isExecutionQuery !== undefined ? (isExecutionQuery === "true") : undefined;
+
+  const allFilteredSessions = await sessionManager.listSessions(username, {
+    search,
+    agentId,
+    channelId,
+    projectName,
+    status,
+    from,
+    to,
+    sortBy,
+    sortDir,
+    isExecution,
+  });
+
+  const total = allFilteredSessions.length;
+
+  if (page !== undefined || perPage !== undefined) {
+    const p = page || 1;
+    const pp = perPage || 50;
+    const startIndex = (p - 1) * pp;
+    const paginatedSessions = allFilteredSessions.slice(startIndex, startIndex + pp);
+    return c.json({
+      sessions: paginatedSessions,
+      total,
+      page: p,
+      perPage: pp
+    });
+  }
+
+  return c.json({ sessions: allFilteredSessions });
 });
 
 sessionsRouter.get("/statuses", async (c) => {
   const { username } = getAuthPayload(c);
   const statuses = sessionManager.getLiveStatuses(username);
   return c.json({ statuses });
+});
+
+sessionsRouter.get("/analytics", async (c) => {
+  const { username } = getAuthPayload(c);
+  const from = c.req.query("from");
+  const to = c.req.query("to");
+  const agentId = c.req.query("agentId");
+  const channelId = c.req.query("channelId");
+  const projectName = c.req.query("projectName");
+
+  const sessions = await sessionManager.listSessions(username, {
+    from,
+    to,
+    agentId,
+    channelId,
+    projectName,
+    archived: "false",
+  });
+
+  const archivedSessions = await sessionManager.listSessions(username, {
+    from,
+    to,
+    agentId,
+    channelId,
+    projectName,
+    archived: "true",
+  });
+
+  const allFiltered = [...sessions, ...archivedSessions];
+
+  let totalSessions = allFiltered.length;
+  let totalTokens = 0;
+  let totalToolCalls = 0;
+  let totalErrors = 0;
+  let totalDurationMs = 0;
+  let sessionsWithErrors = 0;
+
+  const sessionsByDay: Record<string, { count: number; tokens: number }> = {};
+  const toolCounts: Record<string, number> = {};
+  const modelCounts: Record<string, number> = {};
+  const toolErrors: Record<string, number> = {};
+
+  for (const s of allFiltered) {
+    const tokens = s.totalTokens || 0;
+    totalTokens += tokens;
+
+    const toolCalls = s.toolCallCount || 0;
+    totalToolCalls += toolCalls;
+
+    const errors = s.errorCount || 0;
+    totalErrors += errors;
+    if (errors > 0) {
+      sessionsWithErrors++;
+    }
+
+    const duration = s.durationMs || 0;
+    totalDurationMs += duration;
+
+    const dateStr = s.createdAt ? s.createdAt.substring(0, 10) : new Date(0).toISOString().substring(0, 10);
+    if (!sessionsByDay[dateStr]) {
+      sessionsByDay[dateStr] = { count: 0, tokens: 0 };
+    }
+    sessionsByDay[dateStr].count++;
+    sessionsByDay[dateStr].tokens += tokens;
+
+    if (s.modelId) {
+      modelCounts[s.modelId] = (modelCounts[s.modelId] || 0) + 1;
+    }
+
+    const meta = sessionManager.metadataStore.getSessionMetadata(username, s.id);
+    if (meta) {
+      if (meta.toolCallsByTool) {
+        for (const [tool, count] of Object.entries(meta.toolCallsByTool)) {
+          if (typeof count === "number") {
+            toolCounts[tool] = (toolCounts[tool] || 0) + count;
+          }
+        }
+      }
+      if (meta.errorsByTool) {
+        for (const [tool, count] of Object.entries(meta.errorsByTool)) {
+          if (typeof count === "number") {
+            toolErrors[tool] = (toolErrors[tool] || 0) + count;
+          }
+        }
+      }
+    }
+  }
+
+  const formattedSessionsByDay = Object.entries(sessionsByDay).map(([date, data]) => ({
+    date,
+    count: data.count,
+    tokens: data.tokens,
+  })).sort((a, b) => a.date.localeCompare(b.date));
+
+  const topTools = Object.entries(toolCounts).map(([tool, count]) => ({
+    tool,
+    count,
+  })).sort((a, b) => b.count - a.count);
+
+  const topModels = Object.entries(modelCounts).map(([model, count]) => ({
+    model,
+    count,
+  })).sort((a, b) => b.count - a.count);
+
+  const topErrors = Object.entries(toolErrors).map(([tool, count]) => ({
+    tool,
+    count,
+  })).sort((a, b) => b.count - a.count);
+
+  const avgDurationMs = totalSessions > 0 ? Math.round(totalDurationMs / totalSessions) : 0;
+  const avgTokensPerSession = totalSessions > 0 ? Math.round(totalTokens / totalSessions) : 0;
+  const errorRate = totalSessions > 0 ? parseFloat((sessionsWithErrors / totalSessions).toFixed(2)) : 0;
+
+  return c.json({
+    totalSessions,
+    totalTokens,
+    totalToolCalls,
+    totalErrors,
+    totalDurationMs,
+    avgDurationMs,
+    avgTokensPerSession,
+    sessionsByDay: formattedSessionsByDay,
+    topTools,
+    topModels,
+    errorRate,
+    topErrors,
+  });
+});
+
+sessionsRouter.post("/batch", zValidator("json", z.object({
+  action: z.enum(["archive", "unarchive", "delete"]),
+  sessionIds: z.array(z.string().min(1)),
+})), async (c) => {
+  const { action, sessionIds } = c.req.valid("json");
+  const { username } = getAuthPayload(c);
+
+  for (const sessionId of sessionIds) {
+    if (sessionId.startsWith(SessionPrefix.EXEC)) continue;
+    if (action === "archive") {
+      sessionManager.metadataStore.saveSessionMetadata(username, sessionId, { archived: true, updatedAt: new Date().toISOString() });
+    } else if (action === "unarchive") {
+      sessionManager.metadataStore.saveSessionMetadata(username, sessionId, { archived: false, updatedAt: new Date().toISOString() });
+    } else if (action === "delete") {
+      await sessionManager.destroySession(username, sessionId).catch((err) => {
+        console.error(`[Batch Delete] Failed for ${sessionId}:`, err);
+      });
+    }
+  }
+
+  return c.json({ success: true, count: sessionIds.length });
+});
+
+sessionsRouter.post("/:id/archive", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
+    return c.json({ error: "Cannot archive API executions" }, 400);
+  }
+  sessionManager.metadataStore.saveSessionMetadata(username, sessionId, { archived: true, updatedAt: new Date().toISOString() });
+  return c.json({ success: true, archived: true });
+});
+
+sessionsRouter.post("/:id/unarchive", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  if (sessionId.startsWith(SessionPrefix.EXEC)) {
+    return c.json({ error: "Cannot unarchive API executions" }, 400);
+  }
+  sessionManager.metadataStore.saveSessionMetadata(username, sessionId, { archived: false, updatedAt: new Date().toISOString() });
+  return c.json({ success: true, archived: false });
 });
 
 sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
@@ -61,6 +278,8 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     experimentId,
   };
 
+  const isNegotiation = team && team.teamType === "Negotiation";
+
   sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
     name,
     createdAt: now,
@@ -70,6 +289,10 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     channelId: channelId || null,
     teamId: teamId || null,
     experimentId: experimentId || null,
+    ...(isNegotiation ? {
+      executionMode: "readonly",
+      tools: ["read", "grep", "find", "ls"]
+    } : {})
   });
 
   if (!teamId || isOrchestration) {
@@ -625,7 +848,6 @@ sessionsRouter.post(
       "request_approval",
       "ask_question",
       "render_images",
-      "render_html",
       "render_chart",
       "share_file",
       "refresh_ui",
@@ -649,6 +871,7 @@ sessionsRouter.post(
       "ls",
       "exa_search",
       "web_fetch",
+      "render_html",
       ...ALWAYS_ON,
       "memory_store",
       "memory_recall",
@@ -726,6 +949,201 @@ sessionsRouter.get("/:id/tools", async (c) => {
   const executionMode = sessionManager.metadataStore.getExecutionMode(username, sessionId);
 
   return c.json({ tools, serialTools, toolStatus: getGatedToolStatus(username), executionMode });
+});
+
+sessionsRouter.get("/:id/export", async (c) => {
+  const sessionId = c.req.param("id");
+  const { username } = getAuthPayload(c);
+  const format = c.req.query("format") || "json";
+
+  if (format !== "json" && format !== "jsonl" && format !== "markdown") {
+    return c.json({ error: "Invalid export format. Supported formats: json, jsonl, markdown." }, 400);
+  }
+
+  // 1. Size Limit Check (10MB)
+  if (!sessionId.startsWith(SessionPrefix.EXEC)) {
+    const userDir = sessionManager.userConfig.ensureUserDir(username);
+    const sessionDir = join(userDir, "sessions", sessionId);
+    if (existsSync(sessionDir)) {
+      try {
+        const files = readdirSync(sessionDir);
+        const jsonlFiles = files.filter(f => f.endsWith(".jsonl"));
+        let totalSize = 0;
+        for (const file of jsonlFiles) {
+          const stats = statSync(join(sessionDir, file));
+          totalSize += stats.size;
+        }
+        if (totalSize > 10 * 1024 * 1024) {
+          return c.json({ error: "Session size exceeds 10MB limit. Export is not allowed." }, 422);
+        }
+      } catch {}
+    }
+  }
+
+  // 2. Retrieve session messages and metadata
+  let messages: any[] = [];
+  let metadata: Record<string, any> = {};
+
+  try {
+    if (sessionId.startsWith(SessionPrefix.EXEC)) {
+      const parts = sessionId.split("_");
+      const tipo = parts[1];
+      const entidad = parts[2];
+      const execId = parts.slice(3).join("_");
+
+      if (tipo === "agent") {
+        const messagesPath = getExecutionMessagesPath(username, "agents", entidad, execId);
+        if (existsSync(messagesPath)) {
+          const content = readFileSync(messagesPath, "utf-8");
+          messages = content.trim().split("\n").filter(Boolean).map(line => {
+            const parsed = JSON.parse(line);
+            if (parsed.message) {
+              return {
+                id: parsed.id || parsed.message.id || crypto.randomUUID(),
+                role: parsed.message.role,
+                content: parsed.message.content,
+                timestamp: parsed.timestamp || new Date().toISOString(),
+                usage: parsed.message.usage || parsed.usage,
+              };
+            }
+            return parsed;
+          });
+        }
+        try {
+          const summaryPath = join(sessionManager.userConfig.ensureUserDir(username), "agents", entidad, "executions", execId, "summary.json");
+          if (existsSync(summaryPath)) {
+            metadata = JSON.parse(readFileSync(summaryPath, "utf-8"));
+          }
+        } catch {}
+      } else if (tipo === "project") {
+        const messagesPath = getExecutionMessagesPath(username, "projects", entidad, execId);
+        if (existsSync(messagesPath)) {
+          const content = readFileSync(messagesPath, "utf-8");
+          messages = content.trim().split("\n").filter(Boolean).map(line => {
+            const parsed = JSON.parse(line);
+            if (parsed.message) {
+              return {
+                id: parsed.id || parsed.message.id || crypto.randomUUID(),
+                role: parsed.message.role,
+                content: parsed.message.content,
+                timestamp: parsed.timestamp || new Date().toISOString(),
+                usage: parsed.message.usage || parsed.usage,
+              };
+            }
+            return parsed;
+          });
+        }
+        try {
+          const summaryPath = join(sessionManager.userConfig.ensureUserDir(username), "projects", entidad, "executions", execId, "summary.json");
+          if (existsSync(summaryPath)) {
+            metadata = JSON.parse(readFileSync(summaryPath, "utf-8"));
+          }
+        } catch {}
+      } else if (tipo === "channel") {
+        try {
+          const { channelStore } = await import("../channels");
+          const rawMessages = channelStore.getMessages(username, entidad, 100, execId);
+          messages = rawMessages.map((m: any) => ({
+            id: m.id || crypto.randomUUID(),
+            role: m.role === "agent" ? "assistant" : m.role,
+            content: m.content,
+            agentName: m.agentName,
+            timestamp: m.timestamp,
+            isError: m.isError,
+          }));
+        } catch {}
+      }
+    } else {
+      const session = await sessionManager.getOrCreateSession(username, sessionId);
+      if (session) {
+        messages = session.messages;
+      }
+      metadata = sessionManager.metadataStore.getSessionMetadata(username, sessionId) || {};
+    }
+  } catch (err) {
+    return c.json({ error: "Failed to load session data: " + String(err) }, 500);
+  }
+
+  // 3. Format response
+  if (format === "json") {
+    c.header("Content-Disposition", `attachment; filename="session-${sessionId}.json"`);
+    c.header("Content-Type", "application/json");
+    return c.json({ metadata, messages });
+  }
+
+  if (format === "jsonl") {
+    const jsonlContent = messages.map(m => JSON.stringify(m)).join("\n");
+    c.header("Content-Disposition", `attachment; filename="session-${sessionId}.jsonl"`);
+    c.header("Content-Type", "application/x-jsonlines");
+    return c.text(jsonlContent);
+  }
+
+  if (format === "markdown") {
+    const title = metadata.name || `Session: ${sessionId}`;
+    const model = metadata.modelId || "unknown";
+    const totalTokensIn = metadata.totalTokensIn || 0;
+    const totalTokensOut = metadata.totalTokensOut || 0;
+    const totalTokens = metadata.totalTokens || (totalTokensIn + totalTokensOut);
+    const durationMsVal = metadata.durationMs;
+    const durationSec = durationMsVal ? Math.floor(durationMsVal / 1000) : 0;
+    const durMin = Math.floor(durationSec / 60);
+    const durSec = durationSec % 60;
+    const durationStr = durMin > 0 ? `${durMin}m ${durSec}s` : `${durSec}s`;
+    const toolCallCount = metadata.toolCallCount || 0;
+    const errors = metadata.errorCount || 0;
+
+    let markdown = `# ${title}\n`;
+    markdown += `**Model:** ${model}\n`;
+    markdown += `**Duration:** ${durationStr} | **Tokens:** ${totalTokensIn.toLocaleString()} in / ${totalTokensOut.toLocaleString()} out (Total: ${totalTokens.toLocaleString()})\n`;
+    markdown += `**Tool Calls:** ${toolCallCount} | **Errors:** ${errors}\n`;
+
+    if (metadata.toolCallsByTool && Object.keys(metadata.toolCallsByTool).length > 0) {
+      const toolList = Object.entries(metadata.toolCallsByTool)
+        .map(([t, count]) => `${t}: ${count}`)
+        .join(", ");
+      markdown += `**Tools Used:** ${toolList}\n`;
+    }
+
+    markdown += `\n---\n\n`;
+
+    for (const msg of messages) {
+      const timeStr = msg.timestamp ? new Date(msg.timestamp).toISOString().replace("T", " ").substring(0, 19) : "unknown time";
+      const roleLabel = msg.role === "user" ? "User" : msg.role === "assistant" ? (msg.agentName ? `Assistant (${msg.agentName})` : "Assistant") : msg.role;
+
+      markdown += `## ${roleLabel} (${timeStr})\n`;
+
+      if (typeof msg.content === "string") {
+        markdown += `${msg.content}\n\n`;
+      } else if (Array.isArray(msg.content)) {
+        for (const block of msg.content) {
+          if (block.type === "text" && block.text) {
+            markdown += `${block.text}\n\n`;
+          } else if (block.type === "thinking" && block.thinking) {
+            markdown += `<details>\n<summary>Thinking Process</summary>\n\n${block.thinking}\n\n</details>\n\n`;
+          } else if (block.type === "toolCall") {
+            markdown += `[Tool Call: ${block.name} (${block.id})]\n`;
+            if (block.arguments) {
+              markdown += "```json\n" + JSON.stringify(block.arguments, null, 2) + "\n```\n\n";
+            }
+          }
+        }
+      }
+
+      if (msg.role === "toolResult") {
+        markdown += `[Tool Result: ${msg.toolName} (${msg.toolCallId})]\n`;
+        if (msg.isError) {
+          markdown += `**Status:** ERROR\n`;
+        }
+        if (msg.content) {
+          markdown += "```\n" + (typeof msg.content === "string" ? msg.content : JSON.stringify(msg.content, null, 2)) + "\n```\n\n";
+        }
+      }
+    }
+
+    c.header("Content-Disposition", `attachment; filename="session-${sessionId}.md"`);
+    c.header("Content-Type", "text/markdown");
+    return c.text(markdown);
+  }
 });
 
 sessionsRouter.get("/:id/tasks", async (c) => {

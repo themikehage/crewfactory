@@ -24,6 +24,7 @@ export interface SessionItem {
   channelId?: string;
   experimentId?: string;
   isExecution?: boolean;
+  archived?: boolean;
 }
 
 export type KanbanColumn = "idle" | "working" | "done";

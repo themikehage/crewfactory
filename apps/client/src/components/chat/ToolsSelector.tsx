@@ -22,6 +22,7 @@ export const ALL_TOOLS: ToolDefinition[] = [
   { id: "ask_question", name: "Ask Question", desc: "Ask single/multi-choice or custom text questions" },
   { id: "render_images", name: "Render Images", desc: "Display a responsive grid of generated drawings/images" },
   { id: "render_chart", name: "Render Charts", desc: "Visualize metrics via line/bar/pie/area charts" },
+  { id: "render_html", name: "Render HTML", desc: "Render interactive HTML documents in the chat" },
   { id: "share_file", name: "Share File", desc: "Share downloadable files with the user (PDF, DOC, XLSX, ZIP, etc.)" },
   { id: "refresh_ui", name: "Refresh UI", desc: "Notify the interface to reload sidebars and lists after changes" },
   { id: "spawn_subagent", name: "Spawn Subagent", desc: "Delegate a task to a fresh subagent with isolated context" },
@@ -57,7 +58,7 @@ export function ToolsSelector({ activeTools, onChange, disabled = false, toolSta
       const available = ALL_TOOLS.filter((t) => !(t.gateKey && toolStatus?.[t.id] === "missing_key")).map((t) => t.id);
       onChange(available, "autonomous");
     } else if (preset === "standard") {
-      const standardTools = ["read", "write", "edit", "bash", "grep", "find", "ls", "request_approval", "ask_question"];
+      const standardTools = ["read", "write", "edit", "bash", "grep", "find", "ls", "request_approval", "ask_question", "render_html"];
       onChange(standardTools, "standard");
     } else {
       onChange(["read", "grep", "find", "ls"], "readonly");

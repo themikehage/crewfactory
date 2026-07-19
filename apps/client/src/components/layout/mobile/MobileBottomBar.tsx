@@ -14,12 +14,12 @@ export function MobileBottomBar({
   onNavigate,
   setSidebarOpen,
 }: MobileBottomBarProps) {
-  const { selectProject, selectAgent, selectChannel, selectTeam } = useWorkspaceContext();
+  const { selectProject, selectAgent, selectTeam } = useWorkspaceContext();
   const tabs = [
     { id: "home", label: "Home", icon: <Home size={20} /> },
     { id: "skills", label: "Skills", icon: <Library size={20} /> },
     { id: "settings", label: "Settings", icon: <Settings size={20} /> },
-    { id: "logs", label: "Logs", icon: <Terminal size={20} /> },
+    { id: "console", label: "Consola", icon: <Terminal size={20} /> },
     { id: "plugins", label: "Plugins", icon: <Cpu size={20} /> },
   ];
 
@@ -28,7 +28,6 @@ export function MobileBottomBar({
     if (tabId === "home") {
       selectProject(null, null);
       selectAgent(null);
-      selectChannel(null);
       selectTeam(null);
       onNavigate("/");
     } else if (tabId === "skills") {
@@ -36,8 +35,8 @@ export function MobileBottomBar({
     } else if (tabId === "settings") {
       localStorage.setItem("settings-active-tab", "providers");
       onNavigate("/settings");
-    } else if (tabId === "logs") {
-      onNavigate("/logs");
+    } else if (tabId === "console") {
+      onNavigate("/sessions?tab=console");
     } else if (tabId === "plugins") {
       onNavigate("/plugins");
     }

@@ -8,6 +8,7 @@ export interface SubscribeSessionEventsParams {
   metadataStore: {
     saveSessionMetadata: (username: string, sessionId: string, data: Record<string, unknown>) => void;
     getSessionMetadata: (username: string, sessionId: string) => Record<string, any> | null;
+    computeAndPersistMetrics?: (username: string, sessionId: string, session: any) => void;
   };
 }
 
@@ -58,6 +59,14 @@ export function subscribeSessionEvents({
         eventType: "agent_start",
       });
     } else if (evt.type === "agent_end") {
+      try {
+        if (typeof metadataStore.computeAndPersistMetrics === "function") {
+          metadataStore.computeAndPersistMetrics(username, sessionId, session);
+        }
+      } catch (err) {
+        console.error("[SessionEventPublisher] Failed to compute metrics on agent_end:", err);
+      }
+
       eventBroker.publishEvent(username, {
         sourceType: "session",
         sourceId: sessionId,

@@ -263,7 +263,7 @@ export function ExperimentConfigTab({ experiment, onUpdate }: Props) {
             </span>
           </button>
           {expandedSections["depth"] && (
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mt-2">
               <div>
                 <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">Single</label>
                 <input
@@ -276,18 +276,7 @@ export function ExperimentConfigTab({ experiment, onUpdate }: Props) {
                 />
               </div>
               <div>
-                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">Multi (sin líder)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={50}
-                  value={maxChainDepth.multiNoLeader}
-                  onChange={(e) => setMaxChainDepth((prev) => ({ ...prev, multiNoLeader: Number(e.target.value) }))}
-                  className="w-full text-sm bg-bg border border-border rounded-lg px-3 py-1.5 text-text-primary focus:outline-none focus:ring-2 focus:ring-accent"
-                />
-              </div>
-              <div>
-                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">Multi (con líder)</label>
+                <label className="text-[10px] uppercase font-bold text-text-secondary tracking-wider block mb-1">Negociación (Multi con líder)</label>
                 <input
                   type="number"
                   min={1}

@@ -1,9 +1,10 @@
 import { useLocation } from "react-router-dom";
 
-export type RoutePage = "chat" | "delegations" | "workspace" | "preview" | "projects" | "settings" | "skills" | "agents" | "channels" | "channel" | "org" | "benchmark" | "teams" | "team" | "logs" | "laboratory" | "plugins" | "sessions" | "pipelines" | "not-found";
+export type RoutePage = "chat" | "delegations" | "workspace" | "preview" | "projects" | "settings" | "skills" | "agents" | "channels" | "channel" | "org" | "benchmark" | "teams" | "team" | "logs" | "laboratory" | "plugins" | "sessions" | "pipelines" | "analytics" | "not-found";
 
 export function useRoutePage(): RoutePage {
   const { pathname } = useLocation();
+  if (pathname.includes("/analytics") || pathname === "/analytics") return "analytics";
   if (pathname.startsWith("/laboratory")) return "laboratory";
   if (pathname.startsWith("/pipelines")) return "pipelines";
   if (pathname.startsWith("/channel/")) return "channel";

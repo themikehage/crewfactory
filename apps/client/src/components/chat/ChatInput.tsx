@@ -10,7 +10,7 @@ import type { SkillInfo } from "./SkillsSelector";
 
 const DEFAULT_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
-  "request_approval", "ask_question", "render_images", "render_chart", "refresh_ui",
+  "request_approval", "ask_question", "render_images", "render_chart", "render_html", "refresh_ui",
   "spawn_subagent", "delegate_task"
 ];
 

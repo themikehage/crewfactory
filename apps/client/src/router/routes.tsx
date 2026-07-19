@@ -3,7 +3,7 @@ import { AppRouter } from "@/components/layout/AppRouter";
 import { LaboratoryRoute } from "@/router/routes/LaboratoryRoute";
 import { McpRedirectRoute } from "@/router/routes/McpRedirectRoute";
 import { NotFoundRoute } from "@/router/routes/NotFoundRoute";
-import { AgentsRoute, ChannelsRoute, LogsRoute, PipelineRoute, PipelinesRoute, PluginsRoute, ProjectsRoute, SessionsRoute, SettingsRoute, SkillsRoute, TeamsRoute } from "@/router/routes/AdministrativeLeaves";
+import { AgentsRoute, ChannelsRoute, LogsRoute, PipelineRoute, PipelinesRoute, PluginsRoute, ProjectsRoute, SessionsRoute, SettingsRoute, SkillsRoute, TeamsRoute, AnalyticsRoute } from "@/router/routes/AdministrativeLeaves";
 import { ChannelBenchmarkRoute, ChannelDetailRoute, ChannelOrgRoute, ChatRoute, DelegationsRoute, PreviewRoute, SessionRoute, TeamDetailRoute, TeamOrgRoute, WorkspaceRoute } from "@/router/routes/ContextLeaves";
 
 export function AppRoutes() {
@@ -12,6 +12,7 @@ export function AppRoutes() {
       <Route index element={<ChatRoute />} />
       <Route path="session/*" element={<SessionRoute />} />
       <Route path="delegations" element={<DelegationsRoute />} />
+      <Route path="analytics" element={<AnalyticsRoute />} />
       <Route path="dashboard" element={<ProjectsRoute />} />
       <Route path="projects" element={<ProjectsRoute />} />
       <Route path="projects/:projectId" element={<ChatRoute />} />
@@ -34,6 +35,7 @@ export function AppRoutes() {
       <Route path="channels/:channelId/workspace" element={<WorkspaceRoute />} />
       <Route path="channels/:channelId/org" element={<ChannelOrgRoute />} />
       <Route path="channels/:channelId/benchmarks" element={<ChannelBenchmarkRoute />} />
+      <Route path="channels/:channelId/analytics" element={<ChannelDetailRoute />} />
       <Route path="teams" element={<TeamsRoute />} />
       <Route path="teams/:teamId" element={<ChatRoute />} />
       <Route path="teams/:teamId/chat" element={<ChatRoute />} />

@@ -25,12 +25,7 @@ interface AgentItem {
   avatarUrl?: string;
 }
 
-interface ChannelItem {
-  id: string;
-  name: string;
-  description?: string;
-  maxChainDepth?: number;
-}
+
 
 interface Props {
   currentPage?: string;
@@ -51,30 +46,25 @@ export function SessionSidebar({
   const {
     activeProjectId: activeProjectName,
     activeAgent,
-    activeChannel,
     activeTeam,
     selectProject: onSelectProject,
     selectAgent: onSelectAgent,
-    selectChannel: onSelectChannel,
     selectTeam: onSelectTeam,
   } = workspace;
 
   const l = useLiterals(u);
   const [repos, setRepos] = useState<RepoItem[]>([]);
   const [agents, setAgents] = useState<AgentItem[]>([]);
-  const [channels, setChannels] = useState<ChannelItem[]>([]);
   const [teams, setTeams] = useState<any[]>([]);
   const { experiments, loading: loadingExperiments } = useExperiments();
 
   const [loadingRepos, setLoadingRepos] = useState(true);
   const [loadingAgents, setLoadingAgents] = useState(true);
-  const [loadingChannels, setLoadingChannels] = useState(true);
   const [loadingTeams, setLoadingTeams] = useState(true);
   const { getAgentKanbanStatus } = useSessions();
 
   const [isOpenRepos, setIsOpenRepos] = useState(true);
   const [isOpenAgents, setIsOpenAgents] = useState(true);
-  const [isOpenChannels, setIsOpenChannels] = useState(true);
   const [isOpenTeams, setIsOpenTeams] = useState(true);
   const [isOpenExperiments, setIsOpenExperiments] = useState(true);
 
@@ -106,20 +96,6 @@ export function SessionSidebar({
     }
   }, []);
 
-  const fetchChannels = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/channels");
-      if (res.ok) {
-        const data = await res.json();
-        setChannels(data.channels || []);
-      }
-    } catch (err) {
-      console.error("Failed to fetch channels:", err);
-    } finally {
-      setLoadingChannels(false);
-    }
-  }, []);
-
   const fetchTeams = useCallback(async () => {
     try {
       const res = await apiFetch("/api/teams");
@@ -134,7 +110,7 @@ export function SessionSidebar({
     }
   }, []);
 
-  const isGlobal = !activeChannel && !activeAgent && !activeProjectName && !activeTeam;
+  const isGlobal = !activeAgent && !activeProjectName && !activeTeam;
   const isSessionView = currentPage === "chat" || currentPage === "workspace" || currentPage === "preview";
 
   const itemClass = useCallback((isActive: boolean) => {
@@ -192,9 +168,8 @@ export function SessionSidebar({
   useEffect(() => {
     fetchRepos();
     fetchAgents();
-    fetchChannels();
     fetchTeams();
-  }, [fetchRepos, fetchAgents, fetchChannels, fetchTeams]);
+  }, [fetchRepos, fetchAgents, fetchTeams]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -204,20 +179,17 @@ export function SessionSidebar({
         fetchRepos();
       } else if (type === "agent") {
         fetchAgents();
-      } else if (type === "channel") {
-        fetchChannels();
       } else if (type === "team") {
         fetchTeams();
       } else if (type !== "experiment") {
         fetchRepos();
         fetchAgents();
-        fetchChannels();
         fetchTeams();
       }
     };
     window.addEventListener("entity-updated", handleUpdate);
     return () => window.removeEventListener("entity-updated", handleUpdate);
-  }, [fetchRepos, fetchAgents, fetchChannels, fetchTeams]);
+  }, [fetchRepos, fetchAgents, fetchTeams]);
 
   const handleSelectExperimentClick = useCallback(
     (expId: string) => {
@@ -230,11 +202,10 @@ export function SessionSidebar({
   const handleGoFactory = useCallback(() => {
     if (onSelectProject) onSelectProject(null, null);
     if (onSelectAgent) onSelectAgent(null);
-    if (onSelectChannel) onSelectChannel(null);
     if (onSelectTeam) onSelectTeam(null);
     if (onNavigate) onNavigate("/");
     onCloseSidebar?.();
-  }, [onSelectProject, onSelectAgent, onSelectChannel, onSelectTeam, onNavigate, onCloseSidebar]);
+  }, [onSelectProject, onSelectAgent, onSelectTeam, onNavigate, onCloseSidebar]);
 
   const handleSelectRepoClick = useCallback(
     (projectId: string, projectName: string) => {
@@ -250,14 +221,6 @@ export function SessionSidebar({
       onCloseSidebar?.();
     },
     [onSelectAgent, onCloseSidebar]
-  );
-
-  const handleSelectChannelClick = useCallback(
-    (channel: { id: string; name: string }) => {
-      if (onSelectChannel) onSelectChannel(channel);
-      onCloseSidebar?.();
-    },
-    [onSelectChannel, onCloseSidebar]
   );
 
   const handleSelectTeamClick = useCallback(
@@ -295,18 +258,6 @@ export function SessionSidebar({
         ),
       },
       {
-        id: "logs",
-        label: l.navLogs,
-        path: "/logs",
-        icon: (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <polyline points="4 17 10 11 4 5" />
-            <line x1="12" y1="19" x2="20" y2="19" />
-          </svg>
-        ),
-      },
-
-      {
         id: "plugins",
         label: l.navPlugins || "Plugins",
         path: "/plugins",
@@ -332,8 +283,9 @@ export function SessionSidebar({
           </svg>
         ),
       },
+
     ],
-    [l.navSkills, l.navSettings, l.navLogs, l.navPlugins, l.navPipelines]
+    [l.navSkills, l.navSettings, l.navPlugins, l.navPipelines]
   );
 
   return (
@@ -399,7 +351,7 @@ export function SessionSidebar({
                 <div className="text-xs text-muted-foreground px-3 py-1">{l.noProjects}</div>
               ) : (
                 repos.map((repo) => {
-                  const isActive = isSessionView && activeProjectName === repo.id && !activeAgent && !activeChannel;
+                  const isActive = isSessionView && activeProjectName === repo.id && !activeAgent;
                   return (
                     <button
                       key={repo.id || repo.name}
@@ -465,7 +417,7 @@ export function SessionSidebar({
                 <div className="text-xs text-muted-foreground px-3 py-1">{l.noAgents}</div>
               ) : (
                 agents.map((agent) => {
-                  const isActive = isSessionView && activeAgent?.id === agent.id && !activeChannel;
+                  const isActive = isSessionView && activeAgent?.id === agent.id;
                   const agentKanbanStatus = getAgentKanbanStatus(agent.id);
                   const statusDot =
                     agentKanbanStatus === "working"
@@ -484,64 +436,6 @@ export function SessionSidebar({
                         <span className={`absolute -bottom-0.5 -right-0.5 w-2 h-2 rounded-full border-2 border-background ${statusDot}`} />
                       </span>
                       <span className="truncate">{agent.name}</span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Channels Accordion */}
-        <div className="flex flex-col">
-          <div className={accordionHeaderClass}>
-            <button
-              onClick={() => setIsOpenChannels((prev) => !prev)}
-              className={accordionButtonClass}
-            >
-              <svg
-                width={chevronSize}
-                height={chevronSize}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className={`transform transition-transform ${isOpenChannels ? "rotate-90" : ""}`}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{l.sectionChannels} ({channels.length})</span>
-            </button>
-            <button
-              onClick={() => { onCloseSidebar?.(); onNavigate?.("/channels"); }}
-              className={actionButtonClass}
-              title={l.manageChannels}
-            >
-            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
-            </svg>
-            </button>
-          </div>
-
-          {isOpenChannels && (
-            <div className={isMobile ? "px-3 mt-1 space-y-1.5" : "px-2 mt-1 space-y-0.5"}>
-              {loadingChannels ? (
-                <div className="text-xs text-muted-foreground px-3 py-1 animate-pulse">{l.loading}</div>
-              ) : channels.length === 0 ? (
-                <div className="text-xs text-muted-foreground px-3 py-1">{l.noChannels}</div>
-              ) : (
-                channels.map((channel) => {
-                  const isActive = isSessionView && activeChannel?.id === channel.id;
-                  return (
-                    <button
-                      key={channel.id}
-                      onClick={() => handleSelectChannelClick({ id: channel.id, name: channel.name })}
-                      className={itemClass(isActive)}
-                    >
-                      <span className={isMobile ? "font-bold text-base text-muted-foreground flex-shrink-0 w-5 text-center" : "font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center"}>#</span>
-                      <span className="truncate">{channel.name}</span>
                     </button>
                   );
                 })

@@ -121,7 +121,7 @@ export function ExperimentDetailPage({
           setActiveVariantTab("compare");
         }
       } else {
-        const variantTabs = ["single", "multiNoLeader", "multiWithLeader"];
+        const variantTabs = ["single", "multiWithLeader"];
         if (variantTabs.includes(activeExp.activeVariant) && activeVariantTab !== activeExp.activeVariant) {
           setActiveVariantTab(activeExp.activeVariant as any);
         }

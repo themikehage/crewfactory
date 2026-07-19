@@ -94,19 +94,37 @@ app.get(
 
 await ensureAuthTables();
 
-// Cleanup orphan benchmark clones on startup
+// Cleanup orphan benchmark clones and run session auto-cleanup on startup
 try {
   const usersBase = join(CREWFACTORY_DATA_PATH(), "users");
   if (existsSync(usersBase)) {
     const userDirs = readdirSync(usersBase, { withFileTypes: true })
       .filter((ent) => ent.isDirectory())
       .map((ent) => ent.name);
+    const { sessionManager } = await import("./core/session-manager");
     for (const username of userDirs) {
       channelStore.cleanupOrphanBenchmarkClones(username);
+      sessionManager.autoCleanupSessions(username).catch((err) => {
+        console.error(`[Auto Cleanup] Failed for user ${username}:`, err);
+      });
     }
+
+    // Run periodic auto-cleanup every 12 hours
+    setInterval(() => {
+      try {
+        if (existsSync(usersBase)) {
+          const uDirs = readdirSync(usersBase, { withFileTypes: true })
+            .filter((ent) => ent.isDirectory())
+            .map((ent) => ent.name);
+          for (const u of uDirs) {
+            sessionManager.autoCleanupSessions(u).catch(() => {});
+          }
+        }
+      } catch {}
+    }, 12 * 60 * 60 * 1000);
   }
 } catch (err) {
-  console.error("Failed to clean up orphan benchmark clones on startup:", err);
+  console.error("Failed to run startup cleanup tasks:", err);
 }
 
 const STATIC_EXTENSIONS = /\.(webmanifest|js|json|png|ico|svg|css)$/;

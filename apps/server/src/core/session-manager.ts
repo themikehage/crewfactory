@@ -20,7 +20,7 @@ import { userConfigManager } from "./session/user-config";
 import { sessionMetadataStore } from "./session/metadata-store";
 import { sessionPromptBuilder } from "./session/prompt-builder";
 import { sessionToolFactory } from "./session/tool-factory";
-import { sessionLister, type SessionListItem } from "./session/session-lister";
+import { sessionLister, type SessionListItem, type SessionListQuery } from "./session/session-lister";
 
 import {
   getResolvedSkillPaths,
@@ -197,7 +197,7 @@ class SessionManager {
     }
   }
 
-  async listSessions(username: string): Promise<SessionListItem[]> {
+  async listSessions(username: string, query?: SessionListQuery): Promise<SessionListItem[]> {
     return sessionLister.listSessions(username, {
       ensureUserDir: (u) => userConfigManager.ensureUserDir(u),
       isSessionActive: (sId) => {
@@ -207,7 +207,7 @@ class SessionManager {
         }
         return "sleeping";
       },
-    });
+    }, query);
   }
 
   getLiveStatuses(username: string): Record<string, "streaming" | "active" | "sleeping"> {
@@ -515,6 +515,57 @@ class SessionManager {
 
     this.pendingSessions.set(key, initPromise);
     return initPromise;
+  }
+
+  async autoCleanupSessions(username: string): Promise<void> {
+    const retentionDaysStr = process.env.CREWFACTORY_SESSION_RETENTION_DAYS;
+    const maxCountStr = process.env.CREWFACTORY_SESSION_MAX_COUNT;
+    if (!retentionDaysStr && !maxCountStr) return;
+
+    try {
+      const sessions = await this.listSessions(username, { archived: "true" });
+      const activeSessions = await this.listSessions(username, { archived: "false" });
+      const allSessions = [...sessions, ...activeSessions];
+      
+      const regularSessions = allSessions.filter(s => !s.isExecution);
+
+      const toDelete = new Set<string>();
+
+      if (retentionDaysStr) {
+        const days = parseInt(retentionDaysStr, 10);
+        if (!isNaN(days) && days > 0) {
+          const cutOffTime = Date.now() - days * 24 * 60 * 60 * 1000;
+          for (const s of regularSessions) {
+            const updateTime = new Date(s.updatedAt).getTime();
+            if (updateTime < cutOffTime) {
+              toDelete.add(s.id);
+            }
+          }
+        }
+      }
+
+      if (maxCountStr) {
+        const maxCount = parseInt(maxCountStr, 10);
+        if (!isNaN(maxCount) && maxCount > 0) {
+          const sorted = [...regularSessions].sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+          if (sorted.length > maxCount) {
+            const extra = sorted.slice(maxCount);
+            for (const s of extra) {
+              toDelete.add(s.id);
+            }
+          }
+        }
+      }
+
+      for (const sessionId of toDelete) {
+        console.log(`[Auto Cleanup] Destroying session ${sessionId} for user ${username}`);
+        await this.destroySession(username, sessionId).catch((err) => {
+          console.error(`[Auto Cleanup] Failed to destroy session ${sessionId}:`, err);
+        });
+      }
+    } catch (e) {
+      console.error(`[Auto Cleanup] Failed for user ${username}:`, e);
+    }
   }
 }
 

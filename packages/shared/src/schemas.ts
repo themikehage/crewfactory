@@ -23,6 +23,16 @@ export const SessionSchema = z.object({
   channelId: z.string().optional(),
   teamId: z.string().optional(),
   experimentId: z.string().optional(),
+  isExecution: z.boolean().optional(),
+  totalTokens: z.number().optional(),
+  toolCallCount: z.number().optional(),
+  durationMs: z.number().optional(),
+  modelId: z.string().optional(),
+  errorCount: z.number().optional(),
+  executionId: z.string().optional(),
+  turnCount: z.number().optional(),
+  schedulingMode: z.string().optional(),
+  archived: z.boolean().optional(),
 });
 
 export const CreateSessionSchema = z.object({
@@ -42,7 +52,7 @@ export const ModelSettingsSchema = z.object({
 
 export const AVAILABLE_TOOLS = [
   "read", "write", "edit", "bash", "grep", "find", "ls",
-  "request_approval", "ask_question", "render_images", "render_chart", "share_file", "refresh_ui",
+  "request_approval", "ask_question", "render_images", "render_chart", "render_html", "share_file", "refresh_ui",
   "spawn_subagent", "delegate_task", "exa_search", "web_fetch", "decompose_tasks", "update_task_status", "complete_task_list",
   "memory_store", "memory_recall", "memory_forget", "create_experiment", "vision", "generate_image", "manage_factory", "manage_pipelines"
 ] as const;

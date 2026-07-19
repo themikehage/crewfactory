@@ -14,8 +14,8 @@ import { useNavigate } from "react-router-dom";
 import { WelcomeChatInput } from "./WelcomeChatInput";
 import { useToast } from "@/contexts/ToastContext";
 import { getSessionPath, getSessionName, buildCreateSessionBody, getSessionMeta } from "@/lib/session-utils";
-
 import { FloatingTasks } from "./FloatingTasks";
+import { SessionTimeline } from "./SessionTimeline";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
@@ -161,6 +161,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [sessionMetadata, setSessionMetadata] = useState<any>(null);
+  const [chatMode, setChatMode] = useState<"chat" | "timeline">("chat");
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
@@ -178,7 +179,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     send({ type: "compact", sessionId });
   }, [sessionId, send, compacting]);
 
-  const { isReadOnly: isReadOnlyExecution, isSubagent, isDelegation, isChannelExecution } = getSessionMeta(sessionId);
+  const { isReadOnly: isReadOnlyExecution, isChannelExecution } = getSessionMeta(sessionId);
 
   const {
     showScrollButton,
@@ -620,27 +621,53 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   return (
     <div className="h-full flex flex-row min-w-0 overflow-hidden">
       <div className="flex-1 flex flex-col min-w-0 h-full relative">
-        {(isSubagent || isDelegation) && (
-          <div className="px-4 py-2.5 bg-surface border-b border-border flex items-center gap-2 flex-shrink-0 z-10">
-            {sessionMetadata?.parentSessionId && (
-              <button
-                onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeChannel, activeAgent, activeProjectName, activeTeam }))}
-                className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
-                title="Volver a la sesión padre"
-              >
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-                </svg>
-              </button>
-            )}
-            {sessionMetadata?.task ? (
-              <span className="text-xs text-text-secondary truncate font-sans max-w-[200px] sm:max-w-[400px]" title={sessionMetadata.task}>
-                {sessionMetadata.task}
-              </span>
-            ) : (
-              <span className="text-xs text-text-secondary truncate font-sans">
-                {isSubagent ? "Subagent Session" : "Delegated Session"}
-              </span>
+        {sessionId && (
+          <div className="px-4 py-2 bg-surface border-b border-border flex items-center justify-between flex-shrink-0 z-10">
+            <div className="flex items-center gap-2 min-w-0">
+              {sessionMetadata?.parentSessionId && (
+                <button
+                  onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeChannel, activeAgent, activeProjectName, activeTeam }))}
+                  className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
+                  title="Volver a la sesión padre"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
+                  </svg>
+                </button>
+              )}
+              {sessionMetadata?.task ? (
+                <span className="text-xs text-text-secondary truncate font-sans max-w-[200px] sm:max-w-[400px]" title={sessionMetadata.task}>
+                  {sessionMetadata.task}
+                </span>
+              ) : (
+                <span className="text-xs text-text-secondary truncate font-sans font-semibold">
+                  {sessionMetadata?.name || "Active Session"}
+                </span>
+              )}
+            </div>
+            {messages.length > 0 && (
+              <div className="flex items-center bg-card border border-input rounded-xl p-0.5 select-none shrink-0 shadow-xs">
+                <button
+                  onClick={() => setChatMode("chat")}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                    chatMode === "chat"
+                      ? "bg-accent/15 text-accent font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Chat
+                </button>
+                <button
+                  onClick={() => setChatMode("timeline")}
+                  className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
+                    chatMode === "timeline"
+                      ? "bg-accent/15 text-accent font-bold"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  Timeline
+                </button>
+              </div>
             )}
           </div>
         )}
@@ -694,40 +721,47 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     tasksState={tasksState}
                     onToggleStatus={handleToggleTasksStatus}
                   />
-                  <MessageList
-                    messages={messages}
-                    onNavigate={handleNavigate}
-                    sessionId={sessionId}
-                    activeProjectName={activeProjectName}
-                    activeAgentId={activeAgent?.id}
-                    activeAgentName={activeAgent?.name}
-                    activeAgentAvatarUrl={activeAgent?.avatarUrl}
-                    activeChannelId={activeChannel?.id}
-                    activeTeamId={activeTeam?.id}
-                    serialTools={serialTools}
-                     onOpenSubagentConsole={(toolCallId: string, targetType?: string, targetId?: string) => {
-                       const prefix = targetType === "delegate" || targetType === "channel" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
-                       const subSessionId = `${prefix}_${toolCallId}`;
+                  {chatMode === "timeline" ? (
+                    <SessionTimeline
+                      messages={messages}
+                      sessionCreatedAt={sessionMetadata?.createdAt}
+                    />
+                  ) : (
+                    <MessageList
+                      messages={messages}
+                      onNavigate={handleNavigate}
+                      sessionId={sessionId}
+                      activeProjectName={activeProjectName}
+                      activeAgentId={activeAgent?.id}
+                      activeAgentName={activeAgent?.name}
+                      activeAgentAvatarUrl={activeAgent?.avatarUrl}
+                      activeChannelId={activeChannel?.id}
+                      activeTeamId={activeTeam?.id}
+                      serialTools={serialTools}
+                      onOpenSubagentConsole={(toolCallId: string, targetType?: string, targetId?: string) => {
+                        const prefix = targetType === "delegate" || targetType === "channel" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
+                        const subSessionId = `${prefix}_${toolCallId}`;
 
-                       let context: any = { activeChannel, activeAgent, activeProjectName, activeTeam };
+                        let context: any = { activeChannel, activeAgent, activeProjectName, activeTeam };
 
-                       if (targetType && targetId) {
-                         if (activeTeam) {
-                           context = { activeTeam };
-                         } else {
-                           context = {
-                             activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
-                             activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
-                             activeProjectName: targetType === "project" ? targetId : null,
-                           };
-                         }
-                       }
+                        if (targetType && targetId) {
+                          if (activeTeam) {
+                            context = { activeTeam };
+                          } else {
+                            context = {
+                              activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
+                              activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
+                              activeProjectName: targetType === "project" ? targetId : null,
+                            };
+                          }
+                        }
 
-                       navigate(getSessionPath(subSessionId, context));
-                     }}
-                    settledApprovals={settledApprovals}
-                    onResolveApproval={handleResolveApproval}
-                  />
+                        navigate(getSessionPath(subSessionId, context));
+                      }}
+                      settledApprovals={settledApprovals}
+                      onResolveApproval={handleResolveApproval}
+                    />
+                  )}
                   {!isReadOnlyExecution && <div className="h-[176px] flex-shrink-0" />}
                 </>
               )}

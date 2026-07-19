@@ -2,12 +2,13 @@ import { ExperimentStore } from "./experiment-store";
 import { calculateVariantScores } from "./scoring";
 import { LabJudge } from "./judge";
 import { type LabExperiment, type VariantRunResult, type LabAgent, type ChannelMember } from "shared";
-import { channelOrchestrator, channelStore } from "../channels";
+import { channelStore } from "../channels";
 import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";
 import { resolveModelWithFallback } from "../core/agent-utils";
 import { broadcastToUser } from "../ws/handler";
 import { type VariantConfig } from "./types";
+import { LabNegotiationRunner } from "./lab-negotiation-runner";
 
 
 export class ExperimentRunner {
@@ -25,16 +26,7 @@ export class ExperimentRunner {
       this.abortControllers.delete(experimentId);
     }
 
-    const channelIds = [
-      `lab_${experimentId}_single`,
-      `lab_${experimentId}_multiNoLeader`,
-      `lab_${experimentId}_multiWithLeader`
-    ];
-    for (const channelId of channelIds) {
-      try {
-        channelOrchestrator.abortDispatch(username, channelId);
-      } catch {}
-    }
+    // The abort controller signal will propagate to stop active runs.
 
     try {
       const { agentRegistry } = await import("../agents");
@@ -109,13 +101,26 @@ export class ExperimentRunner {
       const depth = exp.maxChainDepth;
       const VARIANT_CONFIGS: VariantConfig[] = [
         { variantKey: "single",         replyMode: "user-only",  maxChainDepth: depth?.single ?? 3,  hasNegotiationProtocol: false, minAgents: 1, sessionNameSuffix: "Baseline" },
-        { variantKey: "multiNoLeader",  replyMode: "broadcast",  maxChainDepth: depth?.multiNoLeader ?? 8,  hasNegotiationProtocol: false, minAgents: 2, sessionNameSuffix: "Horizontal" },
         { variantKey: "multiWithLeader",replyMode: "targeted",   maxChainDepth: depth?.multiWithLeader ?? 15, hasNegotiationProtocol: true,  minAgents: 3, sessionNameSuffix: "Jerárquico" },
       ];
 
       let baselineStats: { durationMs: number; totalTokens: number } | null = null;
       let singleResult: VariantRunResult | undefined;
-      let noLeaderResult: VariantRunResult | undefined;
+      let noLeaderResult: VariantRunResult | undefined = {
+        status: "completed",
+        durationMs: 0,
+        tokensIn: 0,
+        tokensOut: 0,
+        negotiationRounds: 0,
+        escalationsToLeader: 0,
+        agreementReached: false,
+        finalOutput: "Variante deshabilitada",
+        scores: {
+          taskQuality: 0,
+          efficiencyScore: 0,
+          globalScore: 0
+        }
+      };
       let withLeaderResult: VariantRunResult | undefined;
 
       for (const config of VARIANT_CONFIGS) {
@@ -148,15 +153,13 @@ export class ExperimentRunner {
         if (config.variantKey === "single") {
           singleResult = result;
           baselineStats = { durationMs: result.durationMs, totalTokens: result.tokensIn + result.tokensOut };
-        } else if (config.variantKey === "multiNoLeader") {
-          noLeaderResult = result;
         } else if (config.variantKey === "multiWithLeader") {
           withLeaderResult = result;
         }
       }
 
       // 4. Scoring & Judge Evaluation
-      if (exp.judge.autoEvaluate && !signal.aborted && singleResult && noLeaderResult && withLeaderResult) {
+      if (exp.judge.autoEvaluate && !signal.aborted && singleResult && withLeaderResult) {
         exp.activeVariant = "judging";
         await ExperimentStore.saveExperiment(username, exp);
 
@@ -164,7 +167,6 @@ export class ExperimentRunner {
         
         // Evaluar con el LLM Judge solo si todas las variantes se completaron exitosamente
         const canJudge = singleResult.status === "completed" &&
-                         noLeaderResult.status === "completed" &&
                          withLeaderResult.status === "completed";
 
         if (canJudge && baselineStats) {
@@ -198,7 +200,6 @@ export class ExperimentRunner {
 
           const judgeResults = await LabJudge.evaluateRuns(username, exp.taskPrompt, exp.judge.criteria, {
             single: singleResult.finalOutput,
-            multiNoLeader: noLeaderResult.finalOutput,
             multiWithLeader: withLeaderResult.finalOutput
           }, judgeModelToUse, exp.id);
 
@@ -216,23 +217,24 @@ export class ExperimentRunner {
             { reasoning: judgeResults.single.reasoning, criteriaScores: judgeResults.single.scores }
           );
 
-          exp.variants.multiNoLeader.result!.scores = calculateVariantScores(
+          exp.variants.multiNoLeader.result = noLeaderResult;
+          exp.variants.multiNoLeader.result.scores = calculateVariantScores(
             "multi_no_leader",
             judgeResults.multiNoLeader.globalScore,
-            noLeaderResult.durationMs,
-            noLeaderResult.tokensIn,
-            noLeaderResult.tokensOut,
+            0,
+            0,
+            0,
             baselineStats,
             exp.variants.multiNoLeader.agents.length || 1,
-            noLeaderResult.negotiationRounds || 0,
+            0,
             {
-              agreementReached: noLeaderResult.agreementReached,
-              rounds: noLeaderResult.negotiationRounds || 0,
+              agreementReached: false,
+              rounds: 0,
               maxRounds: 5,
               escalationsToLeader: 0,
-              divergenceEventsCount: noLeaderResult.divergenceEventsCount,
-              arbitrationRoundsCount: noLeaderResult.arbitrationRoundsCount,
-              protocolActivationRate: noLeaderResult.protocolActivationRate
+              divergenceEventsCount: 0,
+              arbitrationRoundsCount: 0,
+              protocolActivationRate: 0
             },
             { reasoning: judgeResults.multiNoLeader.reasoning, criteriaScores: judgeResults.multiNoLeader.scores }
           );
@@ -407,22 +409,18 @@ export class ExperimentRunner {
       // 3. Build members
       const members = this.buildMembers(run.agents, exp.id, variantKey, config);
 
-      // 4. Run to completion via ChannelOrchestrator
-      const result = await channelOrchestrator.runToCompletion(username, {
-        channelId,
-        channelName: `${exp.name} (${variantKey})`,
-        description: "Laboratory execution run",
-        members,
+      // 4. Run to completion via LabNegotiationRunner
+      const result = await LabNegotiationRunner.run({
+        username,
+        experimentId: exp.id,
+        variantKey,
+        agents: run.agents,
         maxChainDepth,
-        showThinking: false,
-        showTools: false,
         negotiationProtocol,
-        contextItems: variantKey !== "single" ? contextItems : undefined,
         taskPrompt: exp.taskPrompt,
         sessionId,
         sessionName: `${exp.name} - ${sessionNameSuffix}`,
-        signal,
-        preserveChannel: true
+        signal
       });
 
       // 5. Gather output

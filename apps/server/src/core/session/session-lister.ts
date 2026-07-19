@@ -24,7 +24,30 @@ export type SessionListItem = {
   teamId?: string;
   experimentId?: string;
   isExecution?: boolean;
+  totalTokens?: number;
+  toolCallCount?: number;
+  durationMs?: number;
+  modelId?: string;
+  errorCount?: number;
+  executionId?: string;
+  turnCount?: number;
+  schedulingMode?: string;
+  archived?: boolean;
 };
+
+export interface SessionListQuery {
+  search?: string;
+  agentId?: string;
+  channelId?: string;
+  projectName?: string;
+  status?: string;
+  from?: string;
+  to?: string;
+  sortBy?: string;
+  sortDir?: string;
+  isExecution?: boolean;
+  archived?: boolean | string;
+}
 
 export interface SessionListerDeps {
   isSessionActive: (sessionId: string) => "active" | "streaming" | "sleeping";
@@ -32,7 +55,7 @@ export interface SessionListerDeps {
 }
 
 export class SessionLister {
-  async listSessions(username: string, deps: SessionListerDeps): Promise<SessionListItem[]> {
+  async listSessions(username: string, deps: SessionListerDeps, query?: SessionListQuery): Promise<SessionListItem[]> {
     const userDir = deps.ensureUserDir(username);
     const sessionsDir = getSessionsDir(username);
     if (!existsSync(sessionsDir)) return [];
@@ -54,26 +77,29 @@ export class SessionLister {
             } catch { }
           }
 
-          let messageCount = 0;
-          try {
-            const files = await readdir(sessionSubdir);
-            const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
-            for (const file of jsonlFiles) {
-              try {
-                const content = await readFile(join(sessionSubdir, file), "utf-8");
-                const lines = content.trim().split("\n");
-                const limit = Math.min(lines.length, 500);
-                for (let i = 0; i < limit; i++) {
-                  const line = lines[i].trim();
-                  if (!line) continue;
-                  const parsed = JSON.parse(line);
-                  if (parsed.type === "message" && parsed.message?.role === "user") {
-                    messageCount++;
+          let messageCount = typeof metadata.messageCount === "number" ? metadata.messageCount : -1;
+          if (messageCount === -1) {
+            messageCount = 0;
+            try {
+              const files = await readdir(sessionSubdir);
+              const jsonlFiles = files.filter((f) => f.endsWith(".jsonl"));
+              for (const file of jsonlFiles) {
+                try {
+                  const content = await readFile(join(sessionSubdir, file), "utf-8");
+                  const lines = content.trim().split("\n");
+                  const limit = Math.min(lines.length, 500);
+                  for (let i = 0; i < limit; i++) {
+                    const line = lines[i].trim();
+                    if (!line) continue;
+                    const parsed = JSON.parse(line);
+                    if (parsed.type === "message" && parsed.message?.role === "user") {
+                      messageCount++;
+                    }
                   }
-                }
-              } catch { }
-            }
-          } catch { }
+                } catch { }
+              }
+            } catch { }
+          }
 
           const status = deps.isSessionActive(sessionId);
 
@@ -89,6 +115,15 @@ export class SessionLister {
             channelId: metadata.channelId as string | undefined,
             teamId: metadata.teamId as string | undefined,
             experimentId: metadata.experimentId as string | undefined,
+            totalTokens: typeof metadata.totalTokens === "number" ? metadata.totalTokens : undefined,
+            toolCallCount: typeof metadata.toolCallCount === "number" ? metadata.toolCallCount : undefined,
+            durationMs: typeof metadata.durationMs === "number" ? metadata.durationMs : undefined,
+            modelId: typeof metadata.modelId === "string" ? metadata.modelId : undefined,
+            errorCount: typeof metadata.errorCount === "number" ? metadata.errorCount : undefined,
+            executionId: typeof metadata.executionId === "string" ? metadata.executionId : undefined,
+            turnCount: typeof metadata.turnCount === "number" ? metadata.turnCount : undefined,
+            schedulingMode: typeof metadata.schedulingMode === "string" ? metadata.schedulingMode : undefined,
+            archived: metadata.archived === true,
           };
         });
 
@@ -117,6 +152,11 @@ export class SessionLister {
                     status: "sleeping",
                     agentId: agent.id,
                     isExecution: true,
+                    durationMs: typeof summary.durationMs === "number" ? summary.durationMs : undefined,
+                    errorCount: Array.isArray(summary.errors) ? summary.errors.length : 0,
+                    executionId: f,
+                    turnCount: 0,
+                    archived: false,
                   });
                 }
               } catch { }
@@ -151,6 +191,11 @@ export class SessionLister {
                         status: "sleeping",
                         projectName: entry.name,
                         isExecution: true,
+                        durationMs: typeof summary.durationMs === "number" ? summary.durationMs : undefined,
+                        errorCount: Array.isArray(summary.errors) ? summary.errors.length : 0,
+                        executionId: f,
+                        turnCount: 0,
+                        archived: false,
                       });
                     }
                   } catch { }
@@ -202,6 +247,17 @@ export class SessionLister {
             }
 
             for (const [sId, info] of channelSessions.entries()) {
+              const dur = new Date(info.lastMsgTime).getTime() - new Date(info.firstMsgTime).getTime();
+              let turnCount = 0;
+              try {
+                for (const line of lines) {
+                  if (!line.trim()) continue;
+                  const parsed = JSON.parse(line);
+                  if (parsed.sessionId === sId && (parsed.role === "user" || parsed.role === "agent")) {
+                    turnCount++;
+                  }
+                }
+              } catch {}
               virtualSessions.push({
                 id: `exec_channel_${channel.id}_${sId}`,
                 name: `CLI: ${info.firstPrompt ? info.firstPrompt.slice(0, 30) + (info.firstPrompt.length > 30 ? "..." : "") : sId}`,
@@ -211,6 +267,11 @@ export class SessionLister {
                 status: "sleeping",
                 channelId: channel.id,
                 isExecution: true,
+                durationMs: dur >= 0 ? dur : undefined,
+                executionId: sId,
+                turnCount,
+                schedulingMode: "debate",
+                archived: false,
               });
             }
           }
@@ -219,9 +280,78 @@ export class SessionLister {
         console.error("Failed to list virtual channel sessions:", e);
       }
 
-      const allSessions = [...userSessions, ...virtualSessions];
-      allSessions.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
-      return allSessions;
+      let filtered = [...userSessions, ...virtualSessions];
+
+      const showArchived = query?.archived === "true" || query?.archived === true;
+      filtered = filtered.filter((s) => {
+        const isArchived = s.archived === true;
+        return showArchived ? isArchived : !isArchived;
+      });
+
+      if (query) {
+        if (query.search) {
+          const term = query.search.toLowerCase();
+          filtered = filtered.filter((s) => s.name?.toLowerCase().includes(term));
+        }
+
+        if (query.agentId) {
+          filtered = filtered.filter((s) => s.agentId === query.agentId);
+        }
+
+        if (query.channelId) {
+          filtered = filtered.filter((s) => s.channelId === query.channelId);
+        }
+
+        if (query.projectName) {
+          filtered = filtered.filter((s) => s.projectName === query.projectName);
+        }
+
+        if (query.status) {
+          filtered = filtered.filter((s) => s.status === query.status);
+        }
+
+        if (query.from) {
+          const fromTime = new Date(query.from).getTime();
+          filtered = filtered.filter((s) => new Date(s.updatedAt).getTime() >= fromTime);
+        }
+
+        if (query.to) {
+          const toTime = new Date(query.to).getTime();
+          filtered = filtered.filter((s) => new Date(s.updatedAt).getTime() <= toTime);
+        }
+
+        if (query.isExecution !== undefined) {
+          filtered = filtered.filter((s) => !!s.isExecution === !!query.isExecution);
+        }
+
+        const sortBy = query.sortBy || "updatedAt";
+        const sortDir = query.sortDir === "asc" ? 1 : -1;
+
+        filtered.sort((a: any, b: any) => {
+          const valA = a[sortBy];
+          const valB = b[sortBy];
+
+          if (sortBy === "updatedAt" || sortBy === "createdAt") {
+            const timeA = valA ? new Date(valA).getTime() : 0;
+            const timeB = valB ? new Date(valB).getTime() : 0;
+            return (timeA - timeB) * sortDir;
+          }
+
+          if (typeof valA === "string" && typeof valB === "string") {
+            return valA.localeCompare(valB) * sortDir;
+          }
+
+          if (typeof valA === "number" && typeof valB === "number") {
+            return (valA - valB) * sortDir;
+          }
+
+          return 0;
+        });
+      } else {
+        filtered.sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime());
+      }
+
+      return filtered;
     } catch (e) {
       console.error(`Failed to list sessions for ${username}:`, e);
       return [];

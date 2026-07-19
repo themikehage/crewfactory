@@ -1,4 +1,4 @@
-import { useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
 import { AgentsPage } from "@/pages/AgentsPage";
 import { ChannelsPage } from "@/pages/ChannelsPage";
@@ -7,7 +7,7 @@ import { LogsConsolePage } from "@/pages/LogsConsolePage";
 import { PipelineDetailPage } from "@/pages/PipelineDetailPage";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PluginsPage } from "@/pages/PluginsPage";
-import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
+import { SessionsPage } from "@/pages/SessionsPage";
 import { SettingsPage } from "@/pages/SettingsPage";
 import { SkillsPage } from "@/pages/SkillsPage";
 import { TeamsPage } from "@/pages/TeamsPage";
@@ -20,6 +20,7 @@ export function ChannelsRoute() { const navigate = useNavigate(); const { select
 export function TeamsRoute() { return <TeamsPage />; }
 export function LogsRoute() { const navigate = useNavigate(); const { selectProject, selectAgent, selectChannel } = useWorkspaceContext(); return <LogsConsolePage onNavigate={navigate} onSelectProject={selectProject} onSelectAgent={selectAgent} onSelectChannel={selectChannel} />; }
 export function PluginsRoute() { return <PluginsPage />; }
-export function SessionsRoute() { const navigate = useNavigate(); return <SessionsKanbanPage onNavigate={navigate} />; }
+export function SessionsRoute() { const navigate = useNavigate(); return <SessionsPage onNavigate={navigate} />; }
 export function PipelinesRoute() { return <PipelinesPage />; }
 export function PipelineRoute() { const navigate = useNavigate(); const { pipelineId = "", runId } = useParams(); return <PipelineDetailPage pipelineId={pipelineId} runId={runId ?? null} onNavigate={navigate} />; }
+export function AnalyticsRoute() { return <Navigate to="/sessions?tab=analytics" replace />; }

@@ -5,7 +5,7 @@ import { literals as u } from "@/pages/LaboratoryPage.literals";
 
 interface VariantViewerProps {
   experimentId: string;
-  variantKey: "single" | "multiNoLeader" | "multiWithLeader";
+  variantKey: "single" | "multiWithLeader";
   activeSessionId: string | null;
   status: string;
   result: any;

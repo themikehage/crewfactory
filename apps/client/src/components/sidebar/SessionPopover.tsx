@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { Trash2 } from "lucide-react";
+import { Trash2, Archive, RotateCcw } from "lucide-react";
 import { useSessions, type SessionStatus } from "@/contexts/SessionsContext";
 import { apiFetch } from "@/lib/api";
 import { useLiterals } from "@/lib";
@@ -15,11 +15,13 @@ interface SessionItem {
   id: string;
   name: string;
   createdAt: string;
+  updatedAt: string;
   messageCount: number;
   status?: SessionStatus;
   projectName?: string;
   agentId?: string;
   channelId?: string;
+  archived?: boolean;
 }
 
 interface Props {
@@ -59,11 +61,12 @@ export function SessionPopover({
   const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [confirmDeleteId, setConfirmDeleteId] = useState<string | null>(null);
+  const [showArchived, setShowArchived] = useState(false);
   const { statuses: sessionStatuses } = useSessions();
 
   const fetchSessions = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/sessions");
+      const res = await apiFetch(`/api/sessions?archived=${showArchived}`);
       if (!res.ok) return;
       const data = await res.json();
       const mapped = (data.sessions ?? []).map((s: SessionItem) => ({
@@ -74,7 +77,27 @@ export function SessionPopover({
     } catch {
       // silently ignore fetch errors
     }
-  }, [sessionStatuses]);
+  }, [sessionStatuses, showArchived]);
+
+  const archiveSession = useCallback(
+    async (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      await apiFetch(`/api/sessions/${id}/archive`, { method: "POST" });
+      window.dispatchEvent(new CustomEvent("entity-updated"));
+      fetchSessions();
+    },
+    [fetchSessions]
+  );
+
+  const unarchiveSession = useCallback(
+    async (e: React.MouseEvent, id: string) => {
+      e.stopPropagation();
+      await apiFetch(`/api/sessions/${id}/unarchive`, { method: "POST" });
+      window.dispatchEvent(new CustomEvent("entity-updated"));
+      fetchSessions();
+    },
+    [fetchSessions]
+  );
 
   useEffect(() => {
     if (isOpen) {
@@ -250,6 +273,15 @@ export function SessionPopover({
               className="accent-accent w-3 h-3 rounded border-input bg-background cursor-pointer"
             />
           </label>
+          <label className="flex items-center justify-between px-1.5 py-0.5 text-xs text-muted-foreground hover:text-foreground transition-colors cursor-pointer select-none font-medium">
+            <span>Ver Archivadas</span>
+            <input
+              type="checkbox"
+              checked={showArchived}
+              onChange={(e) => setShowArchived(e.target.checked)}
+              className="accent-accent w-3 h-3 rounded border-input bg-background cursor-pointer"
+            />
+          </label>
         </div>
 
         {/* Lista */}
@@ -275,7 +307,7 @@ export function SessionPopover({
                       onSelectSession(s.id);
                       onClose();
                     }}
-                    className={`w-full text-left px-2.5 py-2 pr-8 rounded-lg text-xs transition-all cursor-pointer ${isActive
+                    className={`w-full text-left px-2.5 py-2 pr-14 rounded-lg text-xs transition-all cursor-pointer ${isActive
                         ? "bg-card-hover/80 text-foreground border border-input"
                         : "text-muted-foreground hover:bg-card-hover/40 hover:text-foreground border border-transparent"
                       }`}
@@ -302,14 +334,22 @@ export function SessionPopover({
                     </div>
                   </button>
                   {!isExec && (
-                    <button
-                      onClick={(e) => handleDeleteClick(e, s.id)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2
-                                 text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-card-hover cursor-pointer"
-                      title={l.deleteSession}
-                    >
-                      <Trash2 size={14} />
-                    </button>
+                    <div className="absolute right-2 top-1/2 -translate-y-1/2 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-10">
+                      <button
+                        onClick={(e) => s.archived ? unarchiveSession(e, s.id) : archiveSession(e, s.id)}
+                        className="text-muted-foreground hover:text-accent transition-colors p-1 rounded hover:bg-card-hover cursor-pointer"
+                        title={s.archived ? "Desarchivar sesión" : "Archivar sesión"}
+                      >
+                        {s.archived ? <RotateCcw size={13} /> : <Archive size={13} />}
+                      </button>
+                      <button
+                        onClick={(e) => handleDeleteClick(e, s.id)}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-1 rounded hover:bg-card-hover cursor-pointer"
+                        title={l.deleteSession}
+                      >
+                        <Trash2 size={13} />
+                      </button>
+                    </div>
                   )}
                 </div>
               );

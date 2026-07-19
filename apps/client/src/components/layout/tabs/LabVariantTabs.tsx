@@ -16,8 +16,7 @@ export function LabVariantTabs({
     { key: "chat" as const, label: "Chat" },
     { key: "config" as const, label: "Config" },
     { key: "single" as const, label: "Baseline" },
-    { key: "multiNoLeader" as const, label: "H. Horizontal" },
-    { key: "multiWithLeader" as const, label: "H. Jerárquico" },
+    { key: "multiWithLeader" as const, label: "Negociación" },
   ];
 
   return (

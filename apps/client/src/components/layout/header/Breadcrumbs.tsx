@@ -74,6 +74,10 @@ export function Breadcrumbs({
     }
   } else if (page === "org") {
     items.push({ label: l.tabOrgChart || "Org Chart" });
+  } else if (page === "sessions") {
+    items = [{ label: l.breadSessions || "Sessions" }];
+  } else if (page === "analytics") {
+    items = [{ label: l.breadAnalytics || "Analytics" }];
   } else if (page === "laboratory") {
     items = [{ label: "Laboratorio", path: "/laboratory" }];
     if (selectedExpId) {
