@@ -558,11 +558,11 @@ packages/shared/  Shared Zod schemas and types
 - `hooks/useChannel.ts` — Channel data + WS event hook. Uses `wsClient.subscribe("*")` and filters by channelId/sessionId locally.
 - `hooks/useTeam.ts` — Team data + WS event hook. Uses `wsClient.subscribe("*")` and filters by teamId/sessionId locally.
 - `hooks/useTeams.ts` — CRUD list manager hook for Teams.
-- `hooks/useRouter.ts` — Custom routing hook. Emits a global `popstate` event on pushState navigation to automatically sync independent hook states across SPA components.
+- `hooks/useRouter.ts` — Router manual actual basado en `history` y evento `popstate` sintético. Su sustitución por un router declarativo está planificada en `plans/app-router-refactor.md`, preservando las rutas jerárquicas y los IDs de sesión con splats.
 - `components/chat/ModelSelector.tsx` — Nested dropdown for provider/model selection. Features reactive validation to automatically resolve fallback models in both frontend (`localStorage`) and backend session states when a selected provider key is disconnected.
 - `pages/SettingsPage.tsx` — Shell page delegating to modular tab components under `components/settings/` (`GeneralTab`, `ProvidersTab`, `EnvVarsTab`, `IntegrationsTab`, `McpTab`).
 - `components/settings/ProvidersTab.tsx` — Tab view managing API credentials. Features an interactive **Sincronizar** action for dynamic model fetching and an **Info** action displaying a premium capability matrix modal.
-- `components/layout/AppRouter.tsx` — Context-aware router supporting Project, Agent, and Channel active modes.
+- `components/layout/AppRouter.tsx` — Router y composición actual de la aplicación; concentra autenticación, contexto activo, laboratorio y renderizado de rutas. El plan de desacoplamiento hacia `react-router-dom`, un contexto de workspace y un controlador de laboratorio está documentado en `plans/app-router-refactor.md`.
 - `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and popover actions.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
 - `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos, Agentes, and Canales, and administration links. Active highlight is suppressed when the current page is not a session view (Laboratory, Settings, Agents, Channels, etc.).
