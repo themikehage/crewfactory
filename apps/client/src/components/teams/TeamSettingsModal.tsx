@@ -15,7 +15,6 @@ interface Props {
     showThinking?: boolean;
     showTools?: boolean;
     negotiationProtocol?: any;
-    teamType?: "Orchestration" | "Negotiation";
   }) => Promise<void>;
 }
 
@@ -28,9 +27,8 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
   const [maxRounds, setMaxRounds] = useState(team.maxRounds ?? 5);
   const [showThinking, setShowThinking] = useState(team.showThinking ?? false);
   const [showTools, setShowTools] = useState(team.showTools ?? false);
-  const [teamType, setTeamType] = useState<"Orchestration" | "Negotiation">(
-    team.teamType || "Negotiation"
-  );
+  const teamType = team.teamType || "Negotiation";
+  const isNegotiation = teamType === "Negotiation";
 
   const [negotiationEnabled, setNegotiationEnabled] = useState(
     team.negotiationProtocol !== undefined
@@ -113,7 +111,6 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
         showThinking,
         showTools,
         negotiationProtocol,
-        teamType,
       });
       onClose();
     } catch (err: any) {
@@ -167,17 +164,19 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
           >
             {l.tabGeneral}
           </button>
-          <button
-            type="button"
-            onClick={() => setActiveTab("negotiation")}
-            className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
-              activeTab === "negotiation"
-                ? "border-primary text-primary"
-                : "border-transparent text-muted-foreground hover:text-foreground"
-            }`}
-          >
-            {l.tabNegotiation}
-          </button>
+          {isNegotiation && (
+            <button
+              type="button"
+              onClick={() => setActiveTab("negotiation")}
+              className={`flex-1 py-2.5 text-xs font-semibold border-b-2 transition-colors cursor-pointer ${
+                activeTab === "negotiation"
+                  ? "border-primary text-primary"
+                  : "border-transparent text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {l.tabNegotiation}
+            </button>
+          )}
         </div>
 
         <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
@@ -213,31 +212,12 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
 
                 <div>
                   <label className="block text-muted-foreground font-medium mb-2">{l.teamType}</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setTeamType("Negotiation")}
-                      className={`flex flex-col items-start text-left p-3 rounded-xl border transition-all cursor-pointer ${
-                        teamType === "Negotiation"
-                          ? "border-primary bg-primary/5 text-foreground"
-                          : "border-input bg-background text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <span className="font-semibold text-xs text-foreground mb-1">Negotiation</span>
-                      <span className="text-[10px] leading-tight text-muted-foreground">{l.negotiationDesc}</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setTeamType("Orchestration")}
-                      className={`flex flex-col items-start text-left p-3 rounded-xl border transition-all cursor-pointer ${
-                        teamType === "Orchestration"
-                          ? "border-primary bg-primary/5 text-foreground"
-                          : "border-input bg-background text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <span className="font-semibold text-xs text-foreground mb-1">Orchestration</span>
-                      <span className="text-[10px] leading-tight text-muted-foreground">{l.orchestrationDesc}</span>
-                    </button>
+                  <div className="p-3 rounded-xl border border-input bg-background">
+                    <span className="font-semibold text-xs text-foreground">{teamType}</span>
+                    <p className="text-[10px] leading-tight text-muted-foreground mt-1">
+                      {isNegotiation ? l.negotiationDesc : l.orchestrationDesc}
+                    </p>
+                    <p className="text-[10px] leading-tight text-muted-foreground mt-2">{l.teamTypeImmutable}</p>
                   </div>
                 </div>
 
@@ -265,7 +245,7 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
               </div>
             )}
 
-            {activeTab === "negotiation" && (
+            {isNegotiation && activeTab === "negotiation" && (
               <div className="space-y-4">
                 <div className="p-3 bg-surface border border-input rounded-lg flex items-center justify-between">
                   <div>

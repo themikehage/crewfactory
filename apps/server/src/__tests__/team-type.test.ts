@@ -9,6 +9,7 @@ import { expect, test, describe, beforeEach, afterEach } from "bun:test";
 import { teamStore } from "../teams/team-store";
 import { existsSync, mkdirSync, rmSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
+import { UpdateTeamSchema, type UpdateTeam } from "shared";
 
 const TMP_TEST_DIR = join(import.meta.dirname, "../../tmp-team-type-tests");
 
@@ -80,21 +81,24 @@ describe("Team Type - Schema and Store Tests", () => {
     expect(fetched!.teamType).toBe("Negotiation");
   });
 
-  test("updateTeam persists teamType change", () => {
+  test("teamType is rejected by the update schema and store", () => {
     const created = teamStore.createTeam(username, {
       name: "Swap Type Team",
       teamType: "Negotiation",
       members: [{ agentId: "agent1", role: "lead" }],
     });
 
-    expect(created.teamType).toBe("Negotiation");
+    const parsed = UpdateTeamSchema.safeParse({ teamType: "Orchestration" });
+    expect(parsed.success).toBe(false);
 
-    const updated = teamStore.updateTeam(username, created.id, { teamType: "Orchestration" });
-    expect(updated).not.toBeNull();
-    expect(updated!.teamType).toBe("Orchestration");
+    expect(() => teamStore.updateTeam(
+      username,
+      created.id,
+      { teamType: "Orchestration" } as unknown as UpdateTeam
+    )).toThrow("immutable");
 
     const fetched = teamStore.getTeam(username, created.id);
-    expect(fetched!.teamType).toBe("Orchestration");
+    expect(fetched!.teamType).toBe("Negotiation");
   });
 
   test("listTeams includes teamType in results", () => {

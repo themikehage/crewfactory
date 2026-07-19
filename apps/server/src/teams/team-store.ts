@@ -110,10 +110,13 @@ class TeamStore {
     const team = this.getTeam(username, id);
     if (!team) return null;
 
+    if ("teamType" in updates) {
+      throw new Error("A team's type is immutable after creation.");
+    }
+
     if (updates.name !== undefined) team.name = updates.name;
     if (updates.description !== undefined) team.description = updates.description;
     if (updates.mode !== undefined) team.mode = updates.mode;
-    if (updates.teamType !== undefined) team.teamType = updates.teamType;
     if (updates.members !== undefined) team.members = updates.members;
     if (updates.maxRounds !== undefined) team.maxRounds = updates.maxRounds;
     if (updates.showThinking !== undefined) team.showThinking = updates.showThinking;

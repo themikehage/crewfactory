@@ -812,7 +812,7 @@ export const CreateTeamSchema = z.object({
 });
 export type CreateTeam = z.infer<typeof CreateTeamSchema>;
 
-export const UpdateTeamSchema = CreateTeamSchema.partial();
+export const UpdateTeamSchema = CreateTeamSchema.omit({ teamType: true }).partial().strict();
 export type UpdateTeam = z.infer<typeof UpdateTeamSchema>;
 
 export const TeamMessageRoleSchema = z.enum(["user", "agent", "system"]);

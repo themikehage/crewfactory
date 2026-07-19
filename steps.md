@@ -777,3 +777,10 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 153.8 Show `teamType` badge next to team name in `TeamCard.tsx`
 - [x] 153.9 Add 5 new tests in `team-type.test.ts` covering store persistence, backward compatibility, and type switching (101 total pass / 0 fail)
 
+## Phase 154: Team Type Isolation & Persistent Orchestration
+- [x] 154.1 Make `teamType` creation-only across the shared update schema, API validation, persistence guard, settings UI, and regression tests
+- [ ] 154.2 Add Team-specific orchestration prompt composition with a permitted-delegate roster
+- [ ] 154.3 Create persistent owner sessions with a Team shared workspace and reuse the standard session UI
+- [ ] 154.4 Restrict and route owner delegations to Team members in the shared workspace
+- [ ] 154.5 Add orchestration integration coverage, complete builds, and update documentation
+
