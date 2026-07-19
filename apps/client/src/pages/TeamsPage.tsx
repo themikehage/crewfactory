@@ -7,8 +7,9 @@ import type { Team, TeamMember, CreateTeam } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./TeamsPage.literals";
 import { Button } from "@/components/ui/Button";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 import { useAgents } from "@/hooks/useAgents";
+import { buildContextPath } from "@/router/paths";
 
 function CreateTeamModal({
   onClose,
@@ -166,7 +167,7 @@ function CreateTeamModal({
 
 export function TeamsPage() {
   const l = useLiterals(u);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
   const { teams, loading, error, fetchTeams, createTeam, deleteTeam, updateTeam } = useTeams();
   const { agents: registeredAgents } = useAgents();
 
@@ -175,7 +176,7 @@ export function TeamsPage() {
 
   const handleOpenTeam = useCallback(
     (id: string) => {
-      navigate(`/teams/${id}/chat`);
+      navigate(buildContextPath({ type: "team", id }));
     },
     [navigate]
   );

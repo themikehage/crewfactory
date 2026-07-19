@@ -7,7 +7,7 @@ import { PipelineCard } from "@/components/pipelines/PipelineCard";
 import { Button } from "@/components/ui/Button";
 import { Layers, Plus, Trash, AlertCircle, X } from "lucide-react";
 import type { PipelineDefinition } from "shared";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 
 interface AgentListItem {
   id: string;
@@ -18,7 +18,7 @@ interface AgentListItem {
 export function PipelinesPage() {
   const l = useLiterals(u);
   const { addToast } = useToast();
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   const [pipelines, setPipelines] = useState<PipelineDefinition[]>([]);
   const [agents, setAgents] = useState<AgentListItem[]>([]);

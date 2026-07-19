@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
+import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import type { Route } from "@/hooks/useRouter";
+import { buildContextPath } from "@/router/paths";
 
 export interface ActiveAgent {
   id: string;
@@ -12,10 +13,24 @@ export interface ActiveNamedContext {
   name: string;
 }
 
-interface UseWorkspaceContextOptions {
+interface WorkspaceContextOptions {
   route: Route;
   navigate: (path: string) => void;
 }
+
+interface WorkspaceContextValue {
+  activeProjectId: string | null;
+  activeProjectFriendlyName: string | null;
+  activeAgent: ActiveAgent | null;
+  activeChannel: ActiveNamedContext | null;
+  activeTeam: ActiveNamedContext | null;
+  selectProject: (projectId: string | null, projectName: string | null) => void;
+  selectAgent: (agent: ActiveAgent | null) => void;
+  selectChannel: (channel: ActiveNamedContext | null) => void;
+  selectTeam: (team: ActiveNamedContext | null) => void;
+}
+
+const WorkspaceContext = createContext<WorkspaceContextValue | null>(null);
 
 function readStoredValue<T>(key: string): T | null {
   try {
@@ -26,7 +41,7 @@ function readStoredValue<T>(key: string): T | null {
   }
 }
 
-export function useWorkspaceContext({ route, navigate }: UseWorkspaceContextOptions) {
+function useWorkspaceContextState({ route, navigate }: WorkspaceContextOptions): WorkspaceContextValue {
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => localStorage.getItem("active-project-id"));
   const [activeProjectFriendlyName, setActiveProjectFriendlyName] = useState<string | null>(() => localStorage.getItem("active-project-name"));
   const [activeAgent, setActiveAgent] = useState<ActiveAgent | null>(() => readStoredValue<ActiveAgent>("active-agent"));
@@ -67,7 +82,7 @@ export function useWorkspaceContext({ route, navigate }: UseWorkspaceContextOpti
     setActiveAgent(null);
     setActiveChannel(null);
     setActiveTeam(null);
-    navigate(`/projects/${projectId}/chat`);
+    navigate(buildContextPath({ type: "project", id: projectId }));
   }, [clearPersistedContexts, clearState, navigate]);
 
   const selectAgent = useCallback((agent: ActiveAgent | null) => {
@@ -87,7 +102,7 @@ export function useWorkspaceContext({ route, navigate }: UseWorkspaceContextOpti
     setActiveAgent(agent);
     setActiveChannel(null);
     setActiveTeam(null);
-    navigate(`/agents/${agent.id}/chat`);
+    navigate(buildContextPath({ type: "agent", id: agent.id }));
   }, [clearPersistedContexts, clearState, navigate]);
 
   const selectChannel = useCallback((channel: ActiveNamedContext | null) => {
@@ -107,7 +122,7 @@ export function useWorkspaceContext({ route, navigate }: UseWorkspaceContextOpti
     setActiveAgent(null);
     setActiveChannel(channel);
     setActiveTeam(null);
-    navigate(`/channels/${channel.id}/chat`);
+    navigate(buildContextPath({ type: "channel", id: channel.id }));
   }, [clearPersistedContexts, clearState, navigate]);
 
   const selectTeam = useCallback((team: ActiveNamedContext | null) => {
@@ -127,7 +142,7 @@ export function useWorkspaceContext({ route, navigate }: UseWorkspaceContextOpti
     setActiveAgent(null);
     setActiveChannel(null);
     setActiveTeam(team);
-    navigate(`/teams/${team.id}/chat`);
+    navigate(buildContextPath({ type: "team", id: team.id }));
   }, [clearPersistedContexts, clearState, navigate]);
 
   useEffect(() => {
@@ -199,4 +214,21 @@ export function useWorkspaceContext({ route, navigate }: UseWorkspaceContextOpti
     selectChannel,
     selectTeam,
   };
+}
+
+interface WorkspaceContextProviderProps extends WorkspaceContextOptions {
+  children: ReactNode;
+}
+
+export function WorkspaceContextProvider({ children, route, navigate }: WorkspaceContextProviderProps) {
+  const value = useWorkspaceContextState({ route, navigate });
+  return createElement(WorkspaceContext.Provider, { value }, children);
+}
+
+export function useWorkspaceContext(): WorkspaceContextValue {
+  const context = useContext(WorkspaceContext);
+  if (!context) {
+    throw new Error("useWorkspaceContext must be used within WorkspaceContextProvider");
+  }
+  return context;
 }

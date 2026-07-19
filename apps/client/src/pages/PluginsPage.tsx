@@ -3,11 +3,11 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "./PluginsPage.literals";
 import { apiFetch } from "@/lib/api";
 import { motion } from "framer-motion";
-import { useRouter } from "@/hooks/useRouter";
+import { useNavigate } from "react-router-dom";
 
 export function PluginsPage() {
   const l = useLiterals(u);
-  const { navigate } = useRouter();
+  const navigate = useNavigate();
 
   const [memoryEnabled, setMemoryEnabled] = useState(false);
   const [memoryAutoStore, setMemoryAutoStore] = useState(false);

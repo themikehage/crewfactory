@@ -59,22 +59,23 @@ export function getSessionContextPredicate(
 
 export function getSessionPath(sessionId: string, context: SessionContext): string {
   const { activeChannel, activeTeam, activeAgent, activeProjectName } = context;
+  let routeContext: ContextPathInput | null = null;
   if (activeChannel) {
-    return `/channels/${activeChannel.id}/session/${sessionId}`;
+    routeContext = { type: "channel", id: activeChannel.id };
   }
-  if (activeTeam) {
-    return `/teams/${activeTeam.id}/session/${sessionId}`;
+  if (activeTeam && !routeContext) {
+    routeContext = { type: "team", id: activeTeam.id };
   }
-  if (activeAgent) {
+  if (activeAgent && !routeContext) {
     if (activeAgent.id === "lab-architect") {
       return `/laboratory/session/${sessionId}`;
     }
-    return `/agents/${activeAgent.id}/session/${sessionId}`;
+    routeContext = { type: "agent", id: activeAgent.id };
   }
-  if (activeProjectName) {
-    return `/projects/${activeProjectName}/session/${sessionId}`;
+  if (activeProjectName && !routeContext) {
+    routeContext = { type: "project", id: activeProjectName };
   }
-  return `/session/${sessionId}`;
+  return buildSessionPath(routeContext, sessionId);
 }
 
 export function getSessionName(context: SessionContext, count?: number): string {
@@ -139,3 +140,4 @@ export function getSessionMeta(sessionId: string | null): SessionMeta {
     isTeamExecution,
   };
 }
+import { buildSessionPath, type ContextPathInput } from "@/router/paths";

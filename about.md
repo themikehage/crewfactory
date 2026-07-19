@@ -6,6 +6,11 @@
 **Deployment Target:** Coolify (Docker)
 **Database Tier:** No database (localStorage client-side, filesystem sessions server-side at /tmp/crewfactory)
 
+## Client Routing
+
+- **React Router Compatibility Tree:** `AppRoutes` is the single declarative route entry point below `BrowserRouter`, covering global, contextual, laboratory, pipeline, administrative, and legacy-splat URLs while the remaining page elements are migrated incrementally.
+- **Typed Navigation Paths:** `router/paths.ts` centralizes contextual, session, delegation, and workspace URL construction. `WorkspaceContextProvider` owns active project, agent, channel, and team state plus its persisted convenience data, keeping the URL as the route authority.
+
 ## Features
 
 ### Authentication & First-Run Onboarding

@@ -26,7 +26,7 @@ import { TeamsPage } from "@/pages/TeamsPage";
 import { TeamDetailPage } from "@/pages/TeamDetailPage";
 import { SessionsKanbanPage } from "@/pages/SessionsKanbanPage";
 import { SessionsProvider } from "@/contexts/SessionsContext";
-import { useRouter } from "@/hooks/useRouter";
+import { useRouter, type Route } from "@/hooks/useRouter";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PipelineDetailPage } from "@/pages/PipelineDetailPage";
 import { MainLayout } from "./MainLayout";
@@ -36,15 +36,29 @@ import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentM
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 import { GlobalApprovalOverlay } from "@/components/approvals/GlobalApprovalOverlay";
 import { useLaboratoryController } from "@/hooks/useLaboratoryController";
-import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
+import { useWorkspaceContext, WorkspaceContextProvider } from "@/hooks/useWorkspaceContext";
 
 export function AppRouter() {
-  const { user, loading, needsSetup } = useAuth();
   const { route, navigate } = useRouter();
+
+  return (
+    <WorkspaceContextProvider route={route} navigate={navigate}>
+      <AppRouterContent route={route} navigate={navigate} />
+    </WorkspaceContextProvider>
+  );
+}
+
+interface AppRouterContentProps {
+  route: Route;
+  navigate: (path: string) => void;
+}
+
+function AppRouterContent({ route, navigate }: AppRouterContentProps) {
+  const { user, loading, needsSetup } = useAuth();
   const isMobileState = useIsMobile();
   const navigationStack = useNavigationStack();
 
-  const workspace = useWorkspaceContext({ route, navigate });
+  const workspace = useWorkspaceContext();
   const { activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam } = workspace;
 
   const currentExpId = route.page === "laboratory" && route.experimentId ? route.experimentId : null;

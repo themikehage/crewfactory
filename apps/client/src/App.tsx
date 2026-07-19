@@ -1,8 +1,8 @@
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ToastProvider } from "@/contexts/ToastContext";
-import { AppRouter } from "@/components/layout/AppRouter";
 import { LiteralsProvider } from "@/lib";
 import { BrowserRouter } from "react-router-dom";
+import { AppRoutes } from "@/router/routes";
 
 export function App() {
   return (
@@ -10,7 +10,7 @@ export function App() {
       <LiteralsProvider>
         <ToastProvider>
           <BrowserRouter>
-            <AppRouter />
+            <AppRoutes />
           </BrowserRouter>
         </ToastProvider>
       </LiteralsProvider>
