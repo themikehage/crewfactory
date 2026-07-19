@@ -766,3 +766,14 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 152.9 Adaptar test specs en `session-utils.test.ts` y verificar builds limpios de monorepo compilando exitosamente
 - [x] 152.10 Actualizar documentación de arquitectura en `about.md` y `steps.md`
 
+## Phase 153: Team Type — Orchestration vs Negotiation
+- [x] 153.1 Add `TeamTypeSchema = z.enum(["Orchestration", "Negotiation"])` and `teamType` field to `Team`, `CreateTeam`, and `UpdateTeam` in `packages/shared/src/schemas.ts`
+- [x] 153.2 Update `team-store.ts` to persist `teamType`, apply backward-compat fallback (`undefined → "Negotiation"`) in `getTeam`, and patch via `updateTeam`
+- [x] 153.3 Bifurcate `team-orchestrator.ts` `dispatchUserMessage` by `team.teamType`; implement `runOrchestrationLoop` stub (leader-only response, TODO Phase 154 shared workspace)
+- [x] 153.4 Add `validateTeamMembers` helper in `routes/teams.ts` enforcing single-leader on `POST /`, `PATCH /:id`, and member `POST`/`PATCH`/`DELETE` endpoints
+- [x] 153.5 Add `teamType` card selector and badge to `TeamSettingsModal.tsx` + en/es literals in `TeamSettingsModal.literals.ts`
+- [x] 153.6 Add required `teamType` toggle and `leader` dropdown (select from registered agents) to `CreateTeamModal` in `TeamsPage.tsx`
+- [x] 153.7 Disable role demotion and delete button for the sole leader in `TeamMembersModal.tsx`
+- [x] 153.8 Show `teamType` badge next to team name in `TeamCard.tsx`
+- [x] 153.9 Add 5 new tests in `team-type.test.ts` covering store persistence, backward compatibility, and type switching (101 total pass / 0 fail)
+
