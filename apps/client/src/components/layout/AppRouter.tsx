@@ -30,14 +30,12 @@ import { useRouter } from "@/hooks/useRouter";
 import { PipelinesPage } from "@/pages/PipelinesPage";
 import { PipelineDetailPage } from "@/pages/PipelineDetailPage";
 import { MainLayout } from "./MainLayout";
-import { apiFetch } from "@/lib/api";
-import type { Experiment } from "@/types/laboratory";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useNavigationStack, type NavigationStackItem } from "@/hooks/useNavigationStack";
 import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentModal";
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
-import { wsClient } from "@/lib/ws-client";
 import { GlobalApprovalOverlay } from "@/components/approvals/GlobalApprovalOverlay";
+import { useLaboratoryController } from "@/hooks/useLaboratoryController";
 
 export function AppRouter() {
   const { user, loading, needsSetup } = useAuth();
@@ -85,180 +83,8 @@ export function AppRouter() {
     return localStorage.getItem("has-context") === "true";
   });
 
-  // --- Estados de Laboratorio Elevados ---
-  const [experiments, setExperiments] = useState<Experiment[]>([]);
-  const [isLabEditorOpen, setIsLabEditorOpen] = useState(false);
-  const [editingLabExpId, setEditingLabExpId] = useState<string | null>(null);
-
-  // Nuevos estados para controlar la ejecución y variantes de laboratorio
-  const [isRunPromptModalOpen, setIsRunPromptModalOpen] = useState(false);
-  const [runPromptValue, setRunPromptValue] = useState("");
-  const [runningExpId, setRunningExpId] = useState<string | null>(null);
-  const [exportingExpId, setExportingExpId] = useState<string | null>(null);
-  const [activeVariantTab, setActiveVariantTab] = useState<"chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare">("chat");
-
-  const [showDeleteExpConfirm, setShowDeleteExpConfirm] = useState(false);
-  const [pendingDeleteExpId, setPendingDeleteExpId] = useState<string | null>(null);
-  const [deletingExp, setDeletingExp] = useState(false);
-
-  // --- Run selector state (shared between MainLayout clock icon and ExperimentDetailPage) ---
-  const [selectedRunId, setSelectedRunId] = useState<string>("latest");
-  const [selectedRunData, setSelectedRunData] = useState<Experiment | null>(null);
-  const [pastRuns, setPastRuns] = useState<any[]>([]);
-  const [runPopoverOpen, setRunPopoverOpen] = useState(false);
-
   const currentExpId = route.page === "laboratory" && route.experimentId ? route.experimentId : null;
-
-  const fetchPastRuns = useCallback(async (expId: string) => {
-    try {
-      const res = await apiFetch(`/api/experiments/${expId}/runs`);
-      if (res.ok) {
-        const data = await res.json();
-        setPastRuns(data.runs || []);
-      }
-    } catch (e) {
-      console.error("Failed to fetch runs:", e);
-    }
-  }, []);
-
-  const handleSelectRun = useCallback(async (runId: string) => {
-    setSelectedRunId(runId);
-    if (runId === "latest" || !currentExpId) {
-      setSelectedRunData(null);
-    } else {
-      try {
-        const res = await apiFetch(`/api/experiments/${currentExpId}/runs/${runId}`);
-        if (res.ok) {
-          const data = await res.json();
-          setSelectedRunData(data.experiment as Experiment);
-        }
-      } catch (e) {
-        console.error("Failed to load run details:", e);
-      }
-    }
-  }, [currentExpId]);
-
-  useEffect(() => {
-    if (currentExpId) {
-      setSelectedRunId("latest");
-      setSelectedRunData(null);
-      fetchPastRuns(currentExpId);
-    }
-  }, [currentExpId, fetchPastRuns]);
-
-  const fetchExperiments = useCallback(async () => {
-    try {
-      const res = await apiFetch("/api/experiments");
-      if (res.ok) {
-        const data = await res.json();
-        setExperiments(data.experiments || []);
-      }
-    } catch (e) {
-      console.error("Failed to load experiments:", e);
-    }
-  }, []);
-
-  const handleStopRun = useCallback(async (id?: string) => {
-    const targetId = id || runningExpId;
-    if (!targetId) return;
-    try {
-      await apiFetch(`/api/experiments/${targetId}/stop`, { method: "POST" });
-    } catch (e) {
-      console.error("Failed to stop experiment:", e);
-    } finally {
-      setRunningExpId(null);
-    }
-  }, [runningExpId]);
-
-  const handleJudgeExp = useCallback(async (id: string, judgeModel?: string) => {
-    try {
-      const res = await apiFetch(`/api/experiments/${id}/judge`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ judgeModel })
-      });
-      if (res.ok) {
-        const data = await res.json();
-        setExperiments((prev) => prev.map((e) => (e.id === id ? data.experiment : e)));
-      }
-    } catch (e) {
-      console.error("Failed to judge experiment:", e);
-    }
-  }, []);
-
-  const handleConfirmRun = useCallback(async () => {
-    if (!runningExpId) return;
-    setIsRunPromptModalOpen(false);
-
-    try {
-      // 1. Actualizar el prompt de la tarea específica en el experimento
-      const resPatch = await apiFetch(`/api/experiments/${runningExpId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ taskPrompt: runPromptValue })
-      });
-
-      if (!resPatch.ok) {
-        throw new Error("Failed to update prompt");
-      }
-
-      const dataPatch = await resPatch.json();
-      const updatedExp = dataPatch.experiment as Experiment;
-      setExperiments((prev) => prev.map((e) => (e.id === updatedExp.id ? updatedExp : e)));
-
-      // 2. Disparar ejecución
-      await apiFetch(`/api/experiments/${runningExpId}/run`, { method: "POST" });
-      fetchExperiments();
-    } catch (e) {
-      console.error("Failed to run experiment:", e);
-    } finally {
-      setRunningExpId(null);
-    }
-  }, [runningExpId, runPromptValue, fetchExperiments]);
-
-  useEffect(() => {
-    if (!user) return;
-    fetchExperiments();
-  }, [fetchExperiments, user]);
-
-  useEffect(() => {
-    const unsub = wsClient.subscribe("experiment_status", (rawData: unknown) => {
-      const data = rawData as {
-        experimentId: string;
-        status: "running" | "completed" | "failed";
-        activeVariant?: "single" | "multiNoLeader" | "multiWithLeader" | "judging";
-        experiment?: Experiment;
-        error?: string;
-      };
-
-      setExperiments((prev) => {
-        return prev.map((exp) => {
-          if (exp.id !== data.experimentId) return exp;
-
-          if (data.experiment) {
-            return data.experiment;
-          }
-
-          const updated = { ...exp, status: data.status };
-          if (data.activeVariant !== undefined) {
-            updated.activeVariant = data.activeVariant;
-          }
-          return updated;
-        });
-      });
-
-      // Refresh runs list if the experiment completed or failed
-      if (data.status === "completed" || data.status === "failed") {
-        if (currentExpId === data.experimentId) {
-          fetchPastRuns(data.experimentId);
-        }
-      }
-    });
-
-    return () => {
-      unsub();
-    };
-  }, [currentExpId, fetchPastRuns]);
+  const laboratory = useLaboratoryController({ experimentId: currentExpId, enabled: Boolean(user), navigate });
 
   const routeToStackItem = useCallback((r: typeof route): NavigationStackItem => {
     const isLab = r.page === "laboratory";
@@ -412,31 +238,6 @@ export function AppRouter() {
       navigate("/");
     }
   }, [navigationStack.canGoBack, navigationStack.stack, navigate]);
-
-  const executeDeleteExp = useCallback(async () => {
-    if (!pendingDeleteExpId) return;
-    setDeletingExp(true);
-    try {
-      const res = await apiFetch(`/api/experiments/${pendingDeleteExpId}`, { method: "DELETE" });
-      if (res.ok) {
-        setExperiments((prev) => prev.filter((e) => e.id !== pendingDeleteExpId));
-        if (route.page === "laboratory" && route.experimentId === pendingDeleteExpId) {
-          navigate("/laboratory");
-        }
-      }
-    } catch (e) {
-      console.error("Failed to delete experiment:", e);
-    } finally {
-      setDeletingExp(false);
-      setShowDeleteExpConfirm(false);
-      setPendingDeleteExpId(null);
-    }
-  }, [pendingDeleteExpId, route, navigate]);
-
-  const handleDeleteExp = useCallback((expId: string) => {
-    setPendingDeleteExpId(expId);
-    setShowDeleteExpConfirm(true);
-  }, []);
 
   // Sincronizar estado y localStorage con los parámetros de la URL
   useEffect(() => {
@@ -642,33 +443,20 @@ export function AppRouter() {
         onBack={handleBack}
         lab={{
           selectedExpId: route.page === "laboratory" && route.experimentId ? route.experimentId : null,
-          experiments: experiments,
-          onDeleteExperiment: handleDeleteExp,
-          activeVariantTab: activeVariantTab,
-          setActiveVariantTab: setActiveVariantTab,
-          onRunExperiment: (id) => {
-            const exp = experiments.find((e) => e.id === id);
-            if (exp) {
-              setRunningExpId(id);
-              setRunPromptValue(exp.taskPrompt);
-              setIsRunPromptModalOpen(true);
-            }
-          },
-          onStopExperiment: handleStopRun,
-          onEditExperiment: (id) => {
-            const exp = experiments.find((e) => e.id === id);
-            if (exp) {
-              setEditingLabExpId(id);
-              setIsLabEditorOpen(true);
-            }
-          },
-          onJudgeExperiment: handleJudgeExp,
-          onExportExperiment: (id) => setExportingExpId(id),
-          selectedRunId: selectedRunId,
-          pastRuns: pastRuns,
-          runPopoverOpen: runPopoverOpen,
-          setRunPopoverOpen: setRunPopoverOpen,
-          onSelectRun: handleSelectRun,
+          experiments: laboratory.experiments,
+          onDeleteExperiment: laboratory.requestDelete,
+          activeVariantTab: laboratory.activeVariantTab,
+          setActiveVariantTab: laboratory.setActiveVariantTab,
+          onRunExperiment: laboratory.requestRun,
+          onStopExperiment: laboratory.stopRun,
+          onEditExperiment: laboratory.requestEdit,
+          onJudgeExperiment: laboratory.judgeExperiment,
+          onExportExperiment: laboratory.requestExport,
+          selectedRunId: laboratory.selectedRunId,
+          pastRuns: laboratory.pastRuns,
+          runPopoverOpen: laboratory.runPopoverOpen,
+          setRunPopoverOpen: laboratory.setRunPopoverOpen,
+          onSelectRun: laboratory.selectRun,
         }}
       >
         {route.page === "projects" && (
@@ -697,25 +485,25 @@ export function AppRouter() {
         {route.page === "laboratory" && !route.experimentId && (
           <LaboratoryPage
             onNavigate={navigate}
-            experiments={experiments}
-            setExperiments={setExperiments}
-            isEditorOpen={isLabEditorOpen}
-            setIsEditorOpen={setIsLabEditorOpen}
-            editingExpId={editingLabExpId}
+            experiments={laboratory.experiments}
+            setExperiments={laboratory.setExperiments}
+            isEditorOpen={laboratory.isEditorOpen}
+            setIsEditorOpen={laboratory.setIsEditorOpen}
+            editingExpId={laboratory.editingExpId}
             sessionId={route.sessionId}
           />
         )}
         {route.page === "laboratory" && route.experimentId && (
           <ExperimentDetailPage
             experimentId={route.experimentId}
-            experiments={experiments}
-            setExperiments={setExperiments}
-            activeVariantTab={activeVariantTab}
-            setActiveVariantTab={setActiveVariantTab}
-            onJudgeExperiment={handleJudgeExp}
-            selectedRunId={selectedRunId}
-            selectedRunData={selectedRunData}
-            onRefreshRuns={() => currentExpId && fetchPastRuns(currentExpId)}
+            experiments={laboratory.experiments}
+            setExperiments={laboratory.setExperiments}
+            activeVariantTab={laboratory.activeVariantTab}
+            setActiveVariantTab={laboratory.setActiveVariantTab}
+            onJudgeExperiment={laboratory.judgeExperiment}
+            selectedRunId={laboratory.selectedRunId}
+            selectedRunData={laboratory.selectedRunData}
+            onRefreshRuns={() => currentExpId && laboratory.fetchPastRuns(currentExpId)}
           />
         )}
         {route.page === "mcps" && (
@@ -798,38 +586,28 @@ export function AppRouter() {
         )}
       </MainLayout>
       <ConfirmModal
-        open={showDeleteExpConfirm}
-        onClose={() => {
-          setShowDeleteExpConfirm(false);
-          setPendingDeleteExpId(null);
-        }}
-        onConfirm={executeDeleteExp}
+        open={laboratory.deleteModal.open}
+        onClose={laboratory.deleteModal.onClose}
+        onConfirm={laboratory.deleteModal.onConfirm}
         title="Delete Experiment"
         message="Are you sure you want to permanently delete this experiment?"
         confirmLabel="Delete"
         destructive
-        loading={deletingExp}
+        loading={laboratory.deleteModal.loading}
       />
-      {exportingExpId && (() => {
-        const exp = experiments.find((e) => e.id === exportingExpId);
-        if (!exp) return null;
-        return (
-          <ExportExperimentModal
-            experiment={exp}
-            onClose={() => setExportingExpId(null)}
-            onNavigate={navigate}
-          />
-        );
-      })()}
-      {isRunPromptModalOpen && (
+      {laboratory.exportExperiment && (
+        <ExportExperimentModal
+          experiment={laboratory.exportExperiment}
+          onClose={laboratory.closeExport}
+          onNavigate={navigate}
+        />
+      )}
+      {laboratory.runPromptModal.open && (
         <RunExperimentModal
-          runPromptValue={runPromptValue}
-          setRunPromptValue={setRunPromptValue}
-          onCancel={() => {
-            setIsRunPromptModalOpen(false);
-            setRunningExpId(null);
-          }}
-          onConfirm={handleConfirmRun}
+          runPromptValue={laboratory.runPromptModal.value}
+          setRunPromptValue={laboratory.runPromptModal.setValue}
+          onCancel={laboratory.runPromptModal.onCancel}
+          onConfirm={laboratory.runPromptModal.onConfirm}
         />
       )}
     </SessionsProvider>

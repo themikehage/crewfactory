@@ -38,3 +38,4 @@ Se mantendrán sin redirecciones destructivas las rutas actuales: `/`, `/session
 ## Avance
 
 - 2026-07-19: `react-router-dom` está instalado y `App.tsx` monta un `BrowserRouter`. `useRouter` conserva temporalmente su contrato `route`/`navigate`, pero ya deriva la ruta de `useLocation` y navega con `useNavigate`; se eliminó el evento `popstate` sintético. `bun run typecheck` y `bun run build` del cliente pasan correctamente.
+- 2026-07-19: se extrajo `useLaboratoryController`, que concentra el estado, operaciones HTTP y suscripción WebSocket del laboratorio. `AppRouter` solo adapta ese controlador a `MainLayout`, las páginas y los modales; el chequeo de tipos y build del cliente vuelven a pasar.

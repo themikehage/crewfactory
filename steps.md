@@ -788,6 +788,7 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 
 ## Phase 155: App Router Refactoring
 - [x] 155.1 Install `react-router-dom`, mount `BrowserRouter`, and migrate the legacy `useRouter` implementation to React Router while preserving its existing consumer API
+- [x] 155.2a Extract laboratory state, API actions, and WebSocket synchronization into `useLaboratoryController`
 - [ ] 155.2 Extract declarative route elements, workspace context state, and laboratory controller state from `AppRouter`
 - [ ] 155.3 Migrate consumers to native router APIs, remove the compatibility router, and verify the complete route matrix
 
