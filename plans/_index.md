@@ -52,6 +52,8 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 ### Features
 
+- [team-type-isolation-and-orchestration.md](./team-type-isolation-and-orchestration.md) — Separar de forma irreversible Teams de Negotiation y Orchestration; sustituir menciones `@` por delegación ejecutable del líder a los miembros registrados.
+
 - [better-auth-onboarding.md](./better-auth-onboarding.md) — **Better Auth + First-Run Onboarding**: Reemplazar JWT+bcrypt custom con Better Auth. Onboarding estilo Coolify: el usuario crea su cuenta admin en el primer acceso, sin manejar variables de entorno ni encriptacion. Sesiones httpOnly via cookies, SQLite como DB, multi-user ready, auto-migracion de credenciales legacy.
 - [layered-prompt-audit.md](./layered-prompt-audit.md) — **Auditoria del Sistema de Prompting por Capas**: Analisis exhaustivo de robustez y coherencia del sistema de 4 capas (identidad, rol, instancia, protocolo) en canales multi-agente. Evaluacion de 8 configuraciones canonicas, matriz de riesgo, gaps detectados (senior/observer sin efecto funcional, desacople rol↔replyMode, multiples lideres). 5 fases de accion propuestas para alcanzar robustez profesional.
 - [custom-tools.md](./custom-tools.md) — **Custom Tool System**: Motor de creacion de tools personalizadas por el agente LLM a demanda. Contrato Zod solido con 3 modos de ejecucion (pipeline, UI, subagent), CRUD engine con persistencia en filesystem, y motor de UI builder con 19 componentes estructurados en 3 tiers (cards, tables, media, metrics, diff, steps, etc.) + escape hatch HTML con design system inyectado.
