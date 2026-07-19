@@ -779,7 +779,7 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 
 ## Phase 154: Team Type Isolation & Persistent Orchestration
 - [x] 154.1 Make `teamType` creation-only across the shared update schema, API validation, persistence guard, settings UI, and regression tests
-- [ ] 154.2 Add Team-specific orchestration prompt composition with a permitted-delegate roster
+- [x] 154.2 Add Team-specific orchestration prompt composition with a permitted-delegate roster
 - [ ] 154.3 Create persistent owner sessions with a Team shared workspace and reuse the standard session UI
 - [ ] 154.4 Restrict and route owner delegations to Team members in the shared workspace
 - [ ] 154.5 Add orchestration integration coverage, complete builds, and update documentation

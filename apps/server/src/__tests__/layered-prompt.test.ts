@@ -104,6 +104,31 @@ describe("Layered Prompt System Tests", () => {
     expect(result.composed).toContain("- @Dev (id: dev, role: member, replyMode: mention-only)");
   });
 
+  test("PromptComposer - Orchestration Team Context", () => {
+    const agentDef = {
+      name: "Coordinator",
+      role: "Technical Lead",
+      systemPrompt: "Coordinate the delivery."
+    };
+    const deployment: DeploymentContext = {
+      mode: "orchestration",
+      agentRole: "lead",
+      members: [
+        { agentId: "researcher", agentName: "Researcher", role: "member", replyMode: "none", capability: "Research technical options" },
+        { agentId: "builder", agentName: "Builder", role: "member", replyMode: "none", capability: "Implement and verify changes" }
+      ]
+    };
+
+    const result = promptComposer.compose(agentDef, deployment);
+    expect(result.applied).toContain("identity.agent_core");
+    expect(result.applied).toContain("instance.team.orchestration");
+    expect(result.applied).not.toContain("role.leader.delegation");
+    expect(result.applied).not.toContain("instance.channel.roster");
+    expect(result.composed).toContain("delegate_task");
+    expect(result.composed).toContain("Researcher (id: researcher, role: member, capability: Research technical options)");
+    expect(result.composed).toContain("No uses menciones `@Nombre`");
+  });
+
   test("PromptComposer - Senior Role Context", () => {
     const agentDef = {
       name: "SeniorDev",

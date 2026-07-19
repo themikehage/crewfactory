@@ -12,6 +12,7 @@ import {
 export type PromptAssemblyMode =
   | "standard-session" // Global/project chat sessions
   | "channel-member"   // Channel orchestrator agent invocations
+  | "team-orchestration"
   | "agent-startup"    // Standalone agent server bootstrap
   | "subagent-spawn"  // Spawned subagent executor
   | "experiment-member"; // Laboratory experiment agent invocations
@@ -67,6 +68,7 @@ export function assemblePromptAppends(ctx: PromptAssemblyContext): string[] {
         ...STANDARD_APPEND_INSTRUCTIONS,
       ];
     case "channel-member":
+    case "team-orchestration":
     case "agent-startup": {
       const deployment = ctx.deployment || { mode: "solo" };
       const layered = promptComposer.compose(
