@@ -401,6 +401,7 @@ export function WorkspacePanel({ activeProjectName, activeAgentId = null, active
             activeProjectName={activeProjectName}
             activeAgentId={activeAgentId}
             activeChannelId={activeChannelId}
+            activeTeamId={activeTeamId}
             onSave={handleSaveFile}
           />
         </div>

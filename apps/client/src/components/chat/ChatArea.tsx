@@ -624,7 +624,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           <div className="px-4 py-2.5 bg-surface border-b border-border flex items-center gap-2 flex-shrink-0 z-10">
             {sessionMetadata?.parentSessionId && (
               <button
-                onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeChannel, activeAgent, activeProjectName }))}
+                onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeChannel, activeAgent, activeProjectName, activeTeam }))}
                 className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                 title="Volver a la sesión padre"
               >
@@ -633,9 +633,15 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 </svg>
               </button>
             )}
-            <span className="px-2 py-0.5 rounded bg-accent/15 border border-accent/30 text-accent font-medium text-[10px] font-mono uppercase tracking-wider">
-              {isSubagent ? "Subagent Session" : "Delegated Session"}
-            </span>
+            {sessionMetadata?.task ? (
+              <span className="text-xs text-text-secondary truncate font-sans max-w-[200px] sm:max-w-[400px]" title={sessionMetadata.task}>
+                {sessionMetadata.task}
+              </span>
+            ) : (
+              <span className="text-xs text-text-secondary truncate font-sans">
+                {isSubagent ? "Subagent Session" : "Delegated Session"}
+              </span>
+            )}
           </div>
         )}
 
@@ -697,19 +703,24 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     activeAgentName={activeAgent?.name}
                     activeAgentAvatarUrl={activeAgent?.avatarUrl}
                     activeChannelId={activeChannel?.id}
+                    activeTeamId={activeTeam?.id}
                     serialTools={serialTools}
                      onOpenSubagentConsole={(toolCallId: string, targetType?: string, targetId?: string) => {
                        const prefix = targetType === "delegate" || targetType === "channel" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
                        const subSessionId = `${prefix}_${toolCallId}`;
 
-                       let context: any = { activeChannel, activeAgent, activeProjectName };
+                       let context: any = { activeChannel, activeAgent, activeProjectName, activeTeam };
 
                        if (targetType && targetId) {
-                         context = {
-                           activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
-                           activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
-                           activeProjectName: targetType === "project" ? targetId : null,
-                         };
+                         if (activeTeam) {
+                           context = { activeTeam };
+                         } else {
+                           context = {
+                             activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
+                             activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
+                             activeProjectName: targetType === "project" ? targetId : null,
+                           };
+                         }
                        }
 
                        navigate(getSessionPath(subSessionId, context));

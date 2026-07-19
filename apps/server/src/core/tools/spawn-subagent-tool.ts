@@ -125,6 +125,7 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         status: "running",
         isSubagent: true,
         subagentDepth: currentDepth + 1,
+        teamId: parentMeta.teamId || null,
       };
       writeFileSync(join(subagentDir, "metadata.json"), JSON.stringify(metadata, null, 2), "utf-8");
 

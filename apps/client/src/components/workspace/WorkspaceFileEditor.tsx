@@ -9,6 +9,7 @@ interface Props {
   activeProjectName: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  activeTeamId?: string | null;
   onSave: (path: string, content: string) => Promise<void>;
 }
 
@@ -52,6 +53,7 @@ export function WorkspaceFileEditor({
   activeProjectName,
   activeAgentId = null,
   activeChannelId = null,
+  activeTeamId = null,
   onSave,
 }: Props) {
 const l = useLiterals(u);
@@ -152,6 +154,7 @@ const l = useLiterals(u);
         if (activeProjectName) params.append("project", activeProjectName);
         if (activeAgentId) params.append("agentId", activeAgentId);
         if (activeChannelId) params.append("channelId", activeChannelId);
+        if (activeTeamId) params.append("teamId", activeTeamId);
         const contextQuery = params.toString() ? `&${params.toString()}` : "";
         const res = await apiFetch(`/api/workspace/${file.path}?raw=true${contextQuery}`);
         if (!res.ok) return;
@@ -173,7 +176,7 @@ const l = useLiterals(u);
         URL.revokeObjectURL(url);
       }
     };
-  }, [file?.path, activeProjectName, activeAgentId, activeChannelId, isHtml, isImage, saveStatus]);
+  }, [file?.path, activeProjectName, activeAgentId, activeChannelId, activeTeamId, isHtml, isImage, saveStatus]);
 
   if (!file) {
     return (
@@ -202,6 +205,7 @@ const l = useLiterals(u);
         if (activeProjectName) params.append("project", activeProjectName);
         if (activeAgentId) params.append("agentId", activeAgentId);
         if (activeChannelId) params.append("channelId", activeChannelId);
+        if (activeTeamId) params.append("teamId", activeTeamId);
         const contextQuery = params.toString() ? `&${params.toString()}` : "";
         const res = await apiFetch(`/api/workspace/${file.path}?raw=true${contextQuery}`);
         if (!res.ok) throw new Error("Failed to load raw file");
@@ -221,6 +225,7 @@ const l = useLiterals(u);
       if (activeProjectName) params.append("project", activeProjectName);
       if (activeAgentId) params.append("agentId", activeAgentId);
       if (activeChannelId) params.append("channelId", activeChannelId);
+      if (activeTeamId) params.append("teamId", activeTeamId);
       const contextQuery = params.toString() ? `&${params.toString()}` : "";
       const res = await apiFetch(`/api/workspace/${file.path}?download=true${contextQuery}`);
       if (!res.ok) throw new Error("Failed to download");

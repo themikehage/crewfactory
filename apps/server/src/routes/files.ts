@@ -6,7 +6,7 @@ import { sessionMiddleware } from "../auth/middleware";
 import { sessionManager } from "../core/session-manager";
 import {
   getWorkspaceDir, getProjectsDir, getProjectWorkspaceDir,
-  getChannelWorkspaceDir, getAgentWorkspaceDir,
+  getChannelWorkspaceDir, getAgentWorkspaceDir, getTeamWorkspaceDir,
   getSessionDir, getUserDir
 } from "shared";
 import { scopeConfigManager } from "../core/scope";
@@ -15,11 +15,13 @@ export const filesRouter = new Hono();
 
 filesRouter.use("/*", sessionMiddleware);
 
-function validateWorkspacePath(username: string, relativePath: string, projectName?: string, agentId?: string, channelId?: string): string {
+function validateWorkspacePath(username: string, relativePath: string, projectName?: string, agentId?: string, channelId?: string, teamId?: string): string {
   const workspaceBase = getWorkspaceDir(username);
   let workspaceDir = workspaceBase;
 
-  if (channelId) {
+  if (teamId) {
+    workspaceDir = getTeamWorkspaceDir(username, teamId);
+  } else if (channelId) {
     workspaceDir = getChannelWorkspaceDir(username, channelId);
   } else if (agentId) {
     workspaceDir = getAgentWorkspaceDir(username, agentId);
@@ -121,7 +123,8 @@ const handleGetWorkspace = async (c: any) => {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
     const channelId = c.req.query("channelId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId);
+    const teamId = c.req.query("teamId");
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "Path does not exist" }, 404);
     }
@@ -452,7 +455,8 @@ const handlePutWorkspace = async (c: any) => {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
     const channelId = c.req.query("channelId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId);
+    const teamId = c.req.query("teamId");
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
     const body = await c.req.json().catch(() => ({}));
     const { type, content } = body;
 
@@ -501,7 +505,8 @@ const handlePostWorkspace = async (c: any) => {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
     const channelId = c.req.query("channelId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId);
+    const teamId = c.req.query("teamId");
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
     const body = await c.req.parseBody();
     const file = body.file as File | undefined;
     if (!file) {
@@ -521,7 +526,9 @@ const handlePostWorkspace = async (c: any) => {
     const resolvedSavePath = resolve(savePath);
     const workspaceBase = getWorkspaceDir(username);
     let workspaceDir = workspaceBase;
-    if (channelId) {
+    if (teamId) {
+      workspaceDir = getTeamWorkspaceDir(username, teamId);
+    } else if (channelId) {
       workspaceDir = getChannelWorkspaceDir(username, channelId);
     } else if (agentId) {
       workspaceDir = getAgentWorkspaceDir(username, agentId);
@@ -565,7 +572,8 @@ const handleDeleteWorkspace = async (c: any) => {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
     const channelId = c.req.query("channelId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId);
+    const teamId = c.req.query("teamId");
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "File not found" }, 404);
     }
@@ -600,7 +608,8 @@ const handlePatchWorkspace = async (c: any) => {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
     const channelId = c.req.query("channelId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId);
+    const teamId = c.req.query("teamId");
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "Source file not found" }, 404);
     }
@@ -611,7 +620,7 @@ const handlePatchWorkspace = async (c: any) => {
       return c.json({ error: "Invalid target path" }, 400);
     }
 
-    const targetFullPath = validateWorkspacePath(username, newPath, projectName, agentId, channelId);
+    const targetFullPath = validateWorkspacePath(username, newPath, projectName, agentId, channelId, teamId);
     mkdirSync(dirname(targetFullPath), { recursive: true });
     renameSync(fullPath, targetFullPath);
 

@@ -67,6 +67,7 @@ interface Props {
   activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  activeTeamId?: string | null;
   disabled?: boolean;
   serialTools?: string[];
   onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
@@ -452,6 +453,7 @@ function ToolBody({
   activeProjectName,
   activeAgentId,
   activeChannelId,
+  activeTeamId = null,
   onOpenSubagentConsole,
   l,
 }: {
@@ -463,6 +465,7 @@ function ToolBody({
   activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  activeTeamId?: string | null;
   onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
   l: Record<string, string>;
 }) {
@@ -531,26 +534,31 @@ function ToolBody({
         </div>
       );
     }
-    case "delegate_task":
+    case "delegate_task": {
+      const task = (args.task as string) || "";
       return (
-        <div className="flex items-center justify-between p-1.5 rounded-lg bg-surface border border-border">
-          <span className="text-xs font-semibold text-text-primary">
-            {l.bodyDelegationTo} {String(args.targetType)}: <span className="text-primary font-mono font-normal">{String(args.targetId)}</span>
-          </span>
-          {onOpenSubagentConsole && (
-            <button
-              onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""), String(args.targetType || ""), String(args.targetId || ""))}
-              className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-primary text-primary-foreground hover:opacity-90 font-semibold text-xs transition-opacity cursor-pointer shadow-xs select-none ring-2 ring-primary/30"
-            >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                <polyline points="4 17 10 11 4 5" />
-                <line x1="12" y1="19" x2="20" y2="19" />
-              </svg>
-              {l.bodyViewLiveConsole}
-            </button>
-          )}
+        <div className="p-1.5 rounded-lg bg-surface border border-border">
+          <div className="flex items-center justify-between gap-2">
+            <div className="flex flex-col gap-0.5 min-w-0">
+              <span className="text-[10px] font-semibold text-primary uppercase font-sans">
+                {l.bodyDelegationTo} {String(args.targetType)}: <span className="font-mono font-normal lowercase">{String(args.targetId)}</span>
+              </span>
+              <span className="text-xs text-text-primary truncate">
+                {task}
+              </span>
+            </div>
+            {onOpenSubagentConsole && (
+              <button
+                onClick={() => onOpenSubagentConsole(encodeURIComponent(toolCallId || ""), String(args.targetType || ""), String(args.targetId || ""))}
+                className="shrink-0 text-xs text-text-primary hover:text-accent transition-colors cursor-pointer underline underline-offset-2"
+              >
+                {l.bodyViewLiveConsole}
+              </button>
+            )}
+          </div>
         </div>
       );
+    }
     case "ls": return <LsResult text={text} />;
     case "find": return <FindResult text={text} />;
     case "write": return <WriteResult text={text} isError={result?.isError ?? false} />;
@@ -584,6 +592,7 @@ function ToolBody({
           activeProjectName={activeProjectName}
           activeAgentId={activeAgentId}
           activeChannelId={activeChannelId}
+          activeTeamId={activeTeamId}
         />
       );
     case "generate_image":
@@ -601,6 +610,7 @@ function ToolBody({
               activeProjectName={activeProjectName}
               activeAgentId={activeAgentId}
               activeChannelId={activeChannelId}
+              activeTeamId={activeTeamId}
             />
           )}
         </div>
@@ -681,6 +691,7 @@ export function ToolCallRow({
   activeProjectName: _activeProjectName,
   activeAgentId: _activeAgentId = null,
   activeChannelId: _activeChannelId = null,
+  activeTeamId = null,
   disabled = false,
   serialTools = ["request_approval", "ask_question"],
   onOpenSubagentConsole,
@@ -867,6 +878,7 @@ export function ToolCallRow({
             activeProjectName={_activeProjectName}
             activeAgentId={_activeAgentId}
             activeChannelId={_activeChannelId}
+            activeTeamId={activeTeamId}
             onOpenSubagentConsole={onOpenSubagentConsole}
             l={l}
           />

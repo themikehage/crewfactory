@@ -106,6 +106,7 @@ Allows keeping parent context clean by returning a structured summary instead of
         task: task.slice(0, 500),
         subagentDepth: effectiveDepth,
         executionMode: resolvedExecutionMode,
+        teamId: parentMeta.teamId || null,
       });
 
       const runPromise = async () => {

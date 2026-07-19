@@ -83,6 +83,7 @@ interface Props {
   activeAgentName?: string | null;
   activeAgentAvatarUrl?: string | null;
   activeChannelId?: string | null;
+  activeTeamId?: string | null;
   serialTools?: string[];
   onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
   settledApprovals?: Record<string, "confirm" | "deny">;
@@ -170,6 +171,7 @@ function AgentTurn({
   activeAgentName,
   activeAgentAvatarUrl,
   activeChannelId,
+  activeTeamId,
   serialTools = [],
   onOpenSubagentConsole }: {
     messages: Message[];
@@ -180,6 +182,7 @@ function AgentTurn({
     activeAgentName?: string | null;
     activeAgentAvatarUrl?: string | null;
     activeChannelId?: string | null;
+    activeTeamId?: string | null;
     serialTools?: string[];
     onOpenSubagentConsole?: (toolCallId: string, targetType?: string, targetId?: string) => void;
   }) {
@@ -298,6 +301,7 @@ function AgentTurn({
                       activeProjectName={activeProjectName}
                       activeAgentId={activeAgentId}
                       activeChannelId={activeChannelId}
+                      activeTeamId={activeTeamId}
                       disabled={disabled}
                       serialTools={serialTools}
                       onOpenSubagentConsole={onOpenSubagentConsole}
@@ -612,6 +616,7 @@ export const MessageList: FC<Props> = ({
   activeAgentName = null,
   activeAgentAvatarUrl = null,
   activeChannelId = null,
+  activeTeamId = null,
   serialTools,
   onOpenSubagentConsole,
   settledApprovals,
@@ -694,6 +699,7 @@ export const MessageList: FC<Props> = ({
                 activeAgentName={activeAgentName}
                 activeAgentAvatarUrl={activeAgentAvatarUrl}
                 activeChannelId={activeChannelId}
+                activeTeamId={activeTeamId}
                 serialTools={serialTools}
                 onOpenSubagentConsole={onOpenSubagentConsole}
               />

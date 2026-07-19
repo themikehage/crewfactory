@@ -12,6 +12,7 @@ interface Props {
   activeProjectName?: string | null;
   activeAgentId?: string | null;
   activeChannelId?: string | null;
+  activeTeamId?: string | null;
 }
 
 export function resolveImageUrl(
@@ -19,7 +20,8 @@ export function resolveImageUrl(
   sessionId: string | null,
   activeProjectName?: string | null,
   activeAgentId?: string | null,
-  activeChannelId?: string | null
+  activeChannelId?: string | null,
+  activeTeamId?: string | null
 ): string {
   if (!url) return "";
 
@@ -56,6 +58,7 @@ export function resolveImageUrl(
   if (activeProjectName) params.append("project", activeProjectName);
   if (activeAgentId) params.append("agentId", activeAgentId);
   if (activeChannelId) params.append("channelId", activeChannelId);
+  if (activeTeamId) params.append("teamId", activeTeamId);
   params.append("raw", "true");
   return `/api/workspace/${cleanPath}?${params.toString()}`;
 }
@@ -147,7 +150,9 @@ export function ImageGrid({
   sessionId,
   activeProjectName,
   activeAgentId = null,
-  activeChannelId = null}: Props) {
+  activeChannelId = null,
+  activeTeamId = null,
+}: Props) {
   const [downloading, setDownloading] = useState<string | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
 
@@ -215,10 +220,10 @@ export function ImageGrid({
 
   const downloadAll = useCallback(async () => {
     for (const img of images) {
-      const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+      const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId, activeTeamId);
       await downloadImage(resolved, img.title);
     }
-  }, [images, sessionId, activeProjectName, activeAgentId, activeChannelId, downloadImage]);
+  }, [images, sessionId, activeProjectName, activeAgentId, activeChannelId, activeTeamId, downloadImage]);
 
   if (images.length === 0) return null;
 
@@ -245,7 +250,7 @@ export function ImageGrid({
       )}
       {images.length === 1 ? (() => {
         const img = images[0];
-        const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+        const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId, activeTeamId);
         const isDownloading = downloading === resolved;
         return (
           <div
@@ -309,7 +314,7 @@ export function ImageGrid({
       })() : (
         <div className="grid grid-cols-2 sm:grid-cols-3 gap-2.5 max-w-full">
           {images.map((img, i) => {
-            const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId);
+            const resolved = resolveImageUrl(img.url, sessionId, activeProjectName, activeAgentId, activeChannelId, activeTeamId);
             const isDownloading = downloading === resolved;
             return (
               <div
