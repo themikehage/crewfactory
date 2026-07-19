@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { LoginPage } from "@/pages/LoginPage";
@@ -36,6 +36,7 @@ import { ExportExperimentModal } from "@/components/laboratory/ExportExperimentM
 import { RunExperimentModal } from "@/components/laboratory/RunExperimentModal";
 import { GlobalApprovalOverlay } from "@/components/approvals/GlobalApprovalOverlay";
 import { useLaboratoryController } from "@/hooks/useLaboratoryController";
+import { useWorkspaceContext } from "@/hooks/useWorkspaceContext";
 
 export function AppRouter() {
   const { user, loading, needsSetup } = useAuth();
@@ -43,45 +44,8 @@ export function AppRouter() {
   const isMobileState = useIsMobile();
   const navigationStack = useNavigationStack();
 
-  // Cargar el repo, agente o canal activo y el estado de contexto desde localStorage
-  const [activeProjectId, setActiveProjectId] = useState<string | null>(() => {
-    return localStorage.getItem("active-project-id") || null;
-  });
-
-  const [activeProjectFriendlyName, setActiveProjectFriendlyName] = useState<string | null>(() => {
-    return localStorage.getItem("active-project-name") || null;
-  });
-
-  const [activeAgent, setActiveAgent] = useState<{ id: string; name: string; avatarUrl?: string } | null>(() => {
-    try {
-      const stored = localStorage.getItem("active-agent");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const [activeChannel, setActiveChannel] = useState<{ id: string; name: string } | null>(() => {
-    try {
-      const stored = localStorage.getItem("active-channel");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const [activeTeam, setActiveTeam] = useState<{ id: string; name: string } | null>(() => {
-    try {
-      const stored = localStorage.getItem("active-team");
-      return stored ? JSON.parse(stored) : null;
-    } catch {
-      return null;
-    }
-  });
-
-  const [hasContext, setHasContext] = useState<boolean>(() => {
-    return localStorage.getItem("has-context") === "true";
-  });
+  const workspace = useWorkspaceContext({ route, navigate });
+  const { activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam } = workspace;
 
   const currentExpId = route.page === "laboratory" && route.experimentId ? route.experimentId : null;
   const laboratory = useLaboratoryController({ experimentId: currentExpId, enabled: Boolean(user), navigate });
@@ -239,168 +203,14 @@ export function AppRouter() {
     }
   }, [navigationStack.canGoBack, navigationStack.stack, navigate]);
 
-  // Sincronizar estado y localStorage con los parámetros de la URL
   useEffect(() => {
     if (route.page === "mcps") {
       localStorage.setItem("settings-active-tab", "mcp");
       navigate("/settings");
-      return;
     }
+  }, [navigate, route.page]);
 
-    const routeProject = "projectName" in route ? route.projectName : null;
-    const routeAgent = "agentId" in route ? route.agentId : null;
-    const routeChannel = "channelId" in route ? route.channelId : null;
-    const routeTeam = "teamId" in route ? route.teamId : null;
-
-    if (routeProject && routeProject !== activeProjectId) {
-      localStorage.setItem("active-project-id", routeProject);
-      localStorage.setItem("active-project-name", routeProject);
-      localStorage.removeItem("active-agent");
-      localStorage.removeItem("active-channel");
-      localStorage.removeItem("active-team");
-      localStorage.setItem("has-context", "true");
-      setActiveProjectId(routeProject);
-      setActiveProjectFriendlyName(routeProject);
-      setActiveAgent(null);
-      setActiveChannel(null);
-      setActiveTeam(null);
-      setHasContext(true);
-    } else if (routeAgent && (!activeAgent || activeAgent.id !== routeAgent)) {
-      const agentObj = { id: routeAgent, name: routeAgent };
-      localStorage.setItem("active-agent", JSON.stringify(agentObj));
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-channel");
-      localStorage.removeItem("active-team");
-      localStorage.setItem("has-context", "true");
-      setActiveAgent(agentObj);
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveChannel(null);
-      setActiveTeam(null);
-      setHasContext(true);
-    } else if (routeChannel && (!activeChannel || activeChannel.id !== routeChannel)) {
-      const channelObj = { id: routeChannel, name: routeChannel };
-      localStorage.setItem("active-channel", JSON.stringify(channelObj));
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-agent");
-      localStorage.removeItem("active-team");
-      localStorage.setItem("has-context", "true");
-      setActiveChannel(channelObj);
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveAgent(null);
-      setActiveTeam(null);
-      setHasContext(true);
-    } else if (routeTeam && (!activeTeam || activeTeam.id !== routeTeam)) {
-      const teamObj = { id: routeTeam, name: routeTeam };
-      localStorage.setItem("active-team", JSON.stringify(teamObj));
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-agent");
-      localStorage.removeItem("active-channel");
-      localStorage.setItem("has-context", "true");
-      setActiveTeam(teamObj);
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveAgent(null);
-      setActiveChannel(null);
-      setHasContext(true);
-    }
-  }, [route, activeProjectId, activeAgent, activeChannel, activeTeam]);
-
-  const handleSelectTeam = useCallback((team: { id: string; name: string } | null) => {
-    if (team === null) {
-      localStorage.removeItem("active-team");
-      setActiveTeam(null);
-      setHasContext(false);
-      navigate("/");
-    } else {
-      localStorage.setItem("active-team", JSON.stringify(team));
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-agent");
-      localStorage.removeItem("active-channel");
-      localStorage.setItem("has-context", "true");
-      setActiveTeam(team);
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveAgent(null);
-      setActiveChannel(null);
-      setHasContext(true);
-      navigate(`/teams/${team.id}/chat`);
-    }
-  }, [navigate]);
-
-  const handleSelectProject = useCallback((projectId: string | null, projectName: string | null) => {
-    if (projectId === null) {
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-agent");
-      localStorage.removeItem("active-channel");
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveAgent(null);
-      setActiveChannel(null);
-      setHasContext(false);
-      navigate("/");
-    } else {
-      localStorage.setItem("active-project-id", projectId);
-      localStorage.setItem("active-project-name", projectName || projectId);
-      localStorage.removeItem("active-agent");
-      localStorage.removeItem("active-channel");
-      localStorage.setItem("has-context", "true");
-      setActiveProjectId(projectId);
-      setActiveProjectFriendlyName(projectName || projectId);
-      setActiveAgent(null);
-      setActiveChannel(null);
-      setHasContext(true);
-      navigate(`/projects/${projectId}/chat`);
-    }
-  }, [navigate]);
-
-  const handleSelectAgent = useCallback((agent: { id: string; name: string; avatarUrl?: string } | null) => {
-    if (agent === null) {
-      localStorage.removeItem("active-agent");
-      setActiveAgent(null);
-      setHasContext(false);
-      navigate("/");
-    } else {
-      localStorage.setItem("active-agent", JSON.stringify(agent));
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-channel");
-      localStorage.setItem("has-context", "true");
-      setActiveAgent(agent);
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveChannel(null);
-      setHasContext(true);
-      navigate(`/agents/${agent.id}/chat`);
-    }
-  }, [navigate]);
-
-  const handleSelectChannel = useCallback((channel: { id: string; name: string } | null) => {
-    if (channel === null) {
-      localStorage.removeItem("active-channel");
-      setActiveChannel(null);
-      setHasContext(false);
-      navigate("/");
-    } else {
-      localStorage.setItem("active-channel", JSON.stringify(channel));
-      localStorage.removeItem("active-project-id");
-      localStorage.removeItem("active-project-name");
-      localStorage.removeItem("active-agent");
-      localStorage.setItem("has-context", "true");
-      setActiveChannel(channel);
-      setActiveProjectId(null);
-      setActiveProjectFriendlyName(null);
-      setActiveAgent(null);
-      setHasContext(true);
-      navigate(`/channels/${channel.id}/chat`);
-    }
-  }, [navigate]);
+  const { selectProject, selectAgent, selectChannel, selectTeam } = workspace;
 
   if (loading) {
     return (
@@ -418,11 +228,6 @@ export function AppRouter() {
     return <LoginPage />;
   }
 
-  // Si el usuario no tiene contexto, establecer modo global automáticamente
-  if (!hasContext) {
-    // handleSelectProject(null, null);
-  }
-
   return (
     <SessionsProvider>
       <GlobalApprovalOverlay />
@@ -434,10 +239,10 @@ export function AppRouter() {
         activeAgent={route.page === "laboratory" && !route.experimentId ? { id: "lab-architect", name: "Lab Architect" } : activeAgent}
         activeChannel={activeChannel}
         activeTeam={activeTeam}
-        onSelectProject={handleSelectProject}
-        onSelectAgent={handleSelectAgent}
-        onSelectChannel={handleSelectChannel}
-        onSelectTeam={handleSelectTeam}
+        onSelectProject={selectProject}
+        onSelectAgent={selectAgent}
+        onSelectChannel={selectChannel}
+        onSelectTeam={selectTeam}
         isMobile={isMobileState.isMobile}
         canGoBack={navigationStack.canGoBack}
         onBack={handleBack}
@@ -460,7 +265,7 @@ export function AppRouter() {
         }}
       >
         {route.page === "projects" && (
-          <DashboardPage onNavigate={navigate} onSelectProject={handleSelectProject} />
+          <DashboardPage onNavigate={navigate} onSelectProject={selectProject} />
         )}
         {route.page === "settings" && (
           <SettingsPage />
@@ -469,16 +274,16 @@ export function AppRouter() {
           <SkillsPage />
         )}
         {route.page === "agents" && (
-          <AgentsPage onSelectAgent={handleSelectAgent} />
+          <AgentsPage onSelectAgent={selectAgent} />
         )}
         {route.page === "channels" && (
-          <ChannelsPage onNavigate={navigate} onSelectChannel={handleSelectChannel} />
+          <ChannelsPage onNavigate={navigate} onSelectChannel={selectChannel} />
         )}
         {route.page === "logs" && (
           <LogsConsolePage
-            onSelectProject={handleSelectProject}
-            onSelectAgent={handleSelectAgent}
-            onSelectChannel={handleSelectChannel}
+            onSelectProject={selectProject}
+            onSelectAgent={selectAgent}
+            onSelectChannel={selectChannel}
             onNavigate={navigate}
           />
         )}
