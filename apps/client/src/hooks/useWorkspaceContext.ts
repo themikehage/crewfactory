@@ -1,5 +1,5 @@
 import { createContext, createElement, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useLocation, useNavigate, useParams } from "react-router-dom";
 import { buildContextPath } from "@/router/paths";
 
 export interface ActiveAgent {
@@ -38,6 +38,7 @@ function readStoredValue<T>(key: string): T | null {
 
 function useWorkspaceContextState(): WorkspaceContextValue {
   const navigate = useNavigate();
+  const { pathname } = useLocation();
   const { projectId, agentId, channelId, teamId } = useParams();
   const [activeProjectId, setActiveProjectId] = useState<string | null>(() => localStorage.getItem("active-project-id"));
   const [activeProjectFriendlyName, setActiveProjectFriendlyName] = useState<string | null>(() => localStorage.getItem("active-project-name"));
@@ -61,12 +62,16 @@ function useWorkspaceContextState(): WorkspaceContextValue {
     setActiveTeam(null);
   }, []);
 
+  const navigateIfNeeded = useCallback((path: string) => {
+    if (pathname !== path) navigate(path);
+  }, [navigate, pathname]);
+
   const selectProject = useCallback((projectId: string | null, projectName: string | null) => {
     if (!projectId) {
       clearPersistedContexts();
       clearState();
       localStorage.setItem("has-context", "false");
-      navigate("/");
+      navigateIfNeeded("/");
       return;
     }
 
@@ -74,73 +79,73 @@ function useWorkspaceContextState(): WorkspaceContextValue {
     localStorage.setItem("active-project-id", projectId);
     localStorage.setItem("active-project-name", projectName || projectId);
     localStorage.setItem("has-context", "true");
-    setActiveProjectId(projectId);
-    setActiveProjectFriendlyName(projectName || projectId);
-    setActiveAgent(null);
-    setActiveChannel(null);
-    setActiveTeam(null);
-    navigate(buildContextPath({ type: "project", id: projectId }));
-  }, [clearPersistedContexts, clearState, navigate]);
+    if (activeProjectId !== projectId) setActiveProjectId(projectId);
+    if (activeProjectFriendlyName !== (projectName || projectId)) setActiveProjectFriendlyName(projectName || projectId);
+    if (activeAgent) setActiveAgent(null);
+    if (activeChannel) setActiveChannel(null);
+    if (activeTeam) setActiveTeam(null);
+    navigateIfNeeded(buildContextPath({ type: "project", id: projectId }));
+  }, [activeAgent, activeChannel, activeProjectFriendlyName, activeProjectId, activeTeam, clearPersistedContexts, clearState, navigateIfNeeded]);
 
   const selectAgent = useCallback((agent: ActiveAgent | null) => {
     if (!agent) {
       clearPersistedContexts();
       clearState();
       localStorage.setItem("has-context", "false");
-      navigate("/");
+      navigateIfNeeded("/");
       return;
     }
 
     clearPersistedContexts();
     localStorage.setItem("active-agent", JSON.stringify(agent));
     localStorage.setItem("has-context", "true");
-    setActiveProjectId(null);
-    setActiveProjectFriendlyName(null);
-    setActiveAgent(agent);
-    setActiveChannel(null);
-    setActiveTeam(null);
-    navigate(buildContextPath({ type: "agent", id: agent.id }));
-  }, [clearPersistedContexts, clearState, navigate]);
+    if (activeProjectId) setActiveProjectId(null);
+    if (activeProjectFriendlyName) setActiveProjectFriendlyName(null);
+    if (activeAgent?.id !== agent.id || activeAgent.name !== agent.name || activeAgent.avatarUrl !== agent.avatarUrl) setActiveAgent(agent);
+    if (activeChannel) setActiveChannel(null);
+    if (activeTeam) setActiveTeam(null);
+    navigateIfNeeded(buildContextPath({ type: "agent", id: agent.id }));
+  }, [activeAgent, activeChannel, activeProjectFriendlyName, activeProjectId, activeTeam, clearPersistedContexts, clearState, navigateIfNeeded]);
 
   const selectChannel = useCallback((channel: ActiveNamedContext | null) => {
     if (!channel) {
       clearPersistedContexts();
       clearState();
       localStorage.setItem("has-context", "false");
-      navigate("/");
+      navigateIfNeeded("/");
       return;
     }
 
     clearPersistedContexts();
     localStorage.setItem("active-channel", JSON.stringify(channel));
     localStorage.setItem("has-context", "true");
-    setActiveProjectId(null);
-    setActiveProjectFriendlyName(null);
-    setActiveAgent(null);
-    setActiveChannel(channel);
-    setActiveTeam(null);
-    navigate(buildContextPath({ type: "channel", id: channel.id }));
-  }, [clearPersistedContexts, clearState, navigate]);
+    if (activeProjectId) setActiveProjectId(null);
+    if (activeProjectFriendlyName) setActiveProjectFriendlyName(null);
+    if (activeAgent) setActiveAgent(null);
+    if (activeChannel?.id !== channel.id || activeChannel.name !== channel.name) setActiveChannel(channel);
+    if (activeTeam) setActiveTeam(null);
+    navigateIfNeeded(buildContextPath({ type: "channel", id: channel.id }));
+  }, [activeAgent, activeChannel, activeProjectFriendlyName, activeProjectId, activeTeam, clearPersistedContexts, clearState, navigateIfNeeded]);
 
   const selectTeam = useCallback((team: ActiveNamedContext | null) => {
     if (!team) {
       clearPersistedContexts();
       clearState();
       localStorage.setItem("has-context", "false");
-      navigate("/");
+      navigateIfNeeded("/");
       return;
     }
 
     clearPersistedContexts();
     localStorage.setItem("active-team", JSON.stringify(team));
     localStorage.setItem("has-context", "true");
-    setActiveProjectId(null);
-    setActiveProjectFriendlyName(null);
-    setActiveAgent(null);
-    setActiveChannel(null);
-    setActiveTeam(team);
-    navigate(buildContextPath({ type: "team", id: team.id }));
-  }, [clearPersistedContexts, clearState, navigate]);
+    if (activeProjectId) setActiveProjectId(null);
+    if (activeProjectFriendlyName) setActiveProjectFriendlyName(null);
+    if (activeAgent) setActiveAgent(null);
+    if (activeChannel) setActiveChannel(null);
+    if (activeTeam?.id !== team.id || activeTeam.name !== team.name) setActiveTeam(team);
+    navigateIfNeeded(buildContextPath({ type: "team", id: team.id }));
+  }, [activeAgent, activeChannel, activeProjectFriendlyName, activeProjectId, activeTeam, clearPersistedContexts, clearState, navigateIfNeeded]);
 
   useEffect(() => {
     const routeProject = projectId ?? null;

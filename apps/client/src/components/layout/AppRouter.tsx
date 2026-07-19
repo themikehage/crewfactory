@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from "react";
+import { useCallback, useEffect, useRef } from "react";
 import { Outlet, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { LoginPage } from "@/pages/LoginPage";
@@ -34,21 +34,27 @@ function AppRouterContent({ locationPath, navigate }: AppRouterContentProps) {
   const { user, loading, needsSetup } = useAuth();
   const isMobileState = useIsMobile();
   const navigationStack = useNavigationStack();
+  const recordedPathRef = useRef<string | null>(null);
   const workspace = useWorkspaceContext();
   const { activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam, selectProject, selectAgent, selectChannel, selectTeam } = workspace;
   const currentExpId = page === "laboratory" ? experimentId ?? null : null;
   const laboratory = useLaboratoryController({ experimentId: currentExpId, enabled: Boolean(user), navigate });
 
   useEffect(() => {
+    if (recordedPathRef.current === locationPath) return;
+    recordedPathRef.current = locationPath;
     const item: NavigationStackItem = { type: page === "chat" ? "home" : "admin", page, path: locationPath };
-    const previous = navigationStack.stack[navigationStack.stack.length - 2];
-    if (previous?.path === item.path) navigationStack.pop();
-    else navigationStack.push(item);
-  }, [locationPath, navigationStack, page]);
+    navigationStack.push(item);
+  }, [locationPath, navigationStack.push, page]);
 
   const handleBack = useCallback(() => {
     const previous = navigationStack.stack[navigationStack.stack.length - 2];
-    navigate(navigationStack.canGoBack && previous?.path ? previous.path : "/");
+    if (navigationStack.canGoBack && previous?.path) {
+      navigationStack.pop();
+      navigate(previous.path);
+      return;
+    }
+    navigate("/");
   }, [navigate, navigationStack.canGoBack, navigationStack.stack]);
 
   if (loading) return <div className="h-dvh flex items-center justify-center bg-background"><div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" /></div>;

@@ -793,3 +793,8 @@ Created `plans/fix-subagent-delegation-report.md` — Fix for 3 critical subagen
 - [x] 155.2 Extract declarative route elements, workspace context state, and laboratory controller state from `AppRouter`
 - [x] 155.3 Migrate consumers to native router APIs, remove the compatibility router, and verify the complete route matrix
 
+## Phase 156: Router Render-Loop Regression
+- [x] 156.1 Make mobile navigation history URL-driven and prevent push/pop synchronization loops
+- [x] 156.2 Make workspace context selection idempotent for repeated context actions
+- [x] 156.3 Verify client typecheck and production build
+
