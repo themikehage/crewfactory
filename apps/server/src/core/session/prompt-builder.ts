@@ -150,6 +150,32 @@ export class SessionPromptBuilder {
       const meta = sessionManager.metadataStore.getSessionMetadata(username, sessionId);
       const channelId = meta?.channelId;
 
+      if (meta?.teamId) {
+        const { teamStore } = await import("../../teams/team-store");
+        const { agentRegistry } = await import("../../agents");
+        const team = teamStore.getTeam(username, meta.teamId);
+        const ownerId = params.resolvedAgentId || "";
+        if (team?.teamType === "Orchestration" && team.members.some((member) => member.agentId === ownerId && member.role === "lead")) {
+          return {
+            mode: "orchestration",
+            agentRole: "lead",
+            members: team.members
+              .filter((member) => member.agentId !== ownerId && member.role !== "observer")
+              .map((member) => {
+                const entry = agentRegistry.get(member.agentId, username);
+                const capability = entry?.server.definition.systemPrompt?.replace(/\s+/g, " ").slice(0, 180) || entry?.server.definition.role || member.role;
+                return {
+                  agentId: member.agentId,
+                  agentName: entry?.server.definition.name || member.agentId,
+                  role: member.role,
+                  replyMode: "delegate-only",
+                  capability,
+                };
+              }),
+          };
+        }
+      }
+
       if (channelId) {
         const { channelStore } = await import("../../channels/channel-store");
         const channel = channelStore.getChannel(username, channelId);

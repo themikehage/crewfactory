@@ -3,6 +3,7 @@ export const SessionPrefix = {
   DELEGATE: "del_",
   SUBAGENT: "sub_",
   LAB: "lab_",
+  TEAM: "team_",
   BENCHMARK: "bench_",
   BENCH_CLONE: "tmp_bench_",
   GENERATE: "generate_",

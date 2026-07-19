@@ -21,6 +21,7 @@ export const SessionSchema = z.object({
   projectName: z.string().optional(),
   agentId: z.string().optional(),
   channelId: z.string().optional(),
+  teamId: z.string().optional(),
   experimentId: z.string().optional(),
 });
 
@@ -29,6 +30,7 @@ export const CreateSessionSchema = z.object({
   projectName: z.string().optional(),
   agentId: z.string().optional(),
   channelId: z.string().optional(),
+  teamId: z.string().optional(),
   experimentId: z.string().optional(),
 });
 

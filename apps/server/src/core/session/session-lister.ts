@@ -21,6 +21,7 @@ export type SessionListItem = {
   projectName?: string;
   agentId?: string;
   channelId?: string;
+  teamId?: string;
   experimentId?: string;
   isExecution?: boolean;
 };
@@ -86,6 +87,7 @@ export class SessionLister {
             projectName: metadata.projectName as string | undefined,
             agentId: metadata.agentId as string | undefined,
             channelId: metadata.channelId as string | undefined,
+            teamId: metadata.teamId as string | undefined,
             experimentId: metadata.experimentId as string | undefined,
           };
         });

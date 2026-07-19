@@ -44,9 +44,10 @@ interface Props {
   activeProjectName: string | null;
   activeAgent?: { id: string; name: string; avatarUrl?: string } | null;
   activeChannel?: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
 }
 
-export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeChannel = null }: Props) {
+export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeChannel = null, activeTeam = null }: Props) {
   const l = useLiterals(u);
   const { navigate } = useRouter();
   const { addToast } = useToast();
@@ -62,7 +63,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
 
   const createSessionAndSend = async (messageText: string, attachments?: File[]) => {
-    const sessionName = getSessionName({ activeChannel, activeAgent, activeProjectName });
+    const sessionName = getSessionName({ activeChannel, activeTeam, activeAgent, activeProjectName });
 
     try {
       let finalText = messageText;
@@ -88,12 +89,13 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           "Content-Type": "application/json"},
         body: JSON.stringify(buildCreateSessionBody(sessionName, {
           activeChannel,
+          activeTeam,
           activeAgent,
           activeProjectName}))});
 
       if (createRes.ok) {
         const session = await createRes.json();
-        const path = getSessionPath(session.id, { activeChannel, activeAgent, activeProjectName });
+        const path = getSessionPath(session.id, { activeChannel, activeTeam, activeAgent, activeProjectName });
 
         const pendingData = {
           text: finalText,

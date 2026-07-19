@@ -10,6 +10,7 @@ import { join, resolve } from "node:path";
 import {
   getUserDir,
   getSessionDir,
+  getTeamWorkspaceDir,
   getMemoryDbPath,
   SessionPrefix,
 } from "shared";
@@ -277,6 +278,11 @@ class SessionManager {
           resolvedAgentId = existingMeta.agentId;
           resolvedChannelId = existingMeta.channelId;
           persistedTools = Array.isArray(existingMeta.tools) ? existingMeta.tools : undefined;
+        }
+
+        if (existingMeta.teamId) {
+          workspaceDir = getTeamWorkspaceDir(username, existingMeta.teamId);
+          ensureWorkspaceSubdirs(workspaceDir);
         }
 
         const { authStorage, modelRegistry } = userConfigManager.getUserContext(username);

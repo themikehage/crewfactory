@@ -8,6 +8,7 @@ import { TeamMembersModal } from "./TeamMembersModal";
 import { TeamSettingsModal } from "./TeamSettingsModal";
 import { useRouter } from "@/hooks/useRouter";
 import { getSessionPath } from "@/lib/session-utils";
+import { ChatArea } from "@/components/chat/ChatArea";
 import type { TeamMember, AgentInfo } from "shared";
 
 interface Props {
@@ -102,6 +103,17 @@ export function TeamChatArea({ activeTeam, sessionId }: Props) {
 
   const leadMember = teamMembers.find((m) => m.role === "lead");
   const leadAgent = leadMember ? registeredAgents.find((a) => a.id === leadMember.agentId) : null;
+
+  if (team?.teamType === "Orchestration") {
+    return (
+      <ChatArea
+        sessionId={sessionId}
+        activeProjectName={null}
+        activeAgent={leadAgent ? { id: leadAgent.id, name: leadAgent.name, avatarUrl: leadAgent.avatarUrl } : null}
+        activeTeam={activeTeam}
+      />
+    );
+  }
 
   const agentAvatarMap = registeredAgents.reduce((acc, agent) => {
     if (agent.id && agent.avatarUrl) {

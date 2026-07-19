@@ -11,6 +11,8 @@ import { CreateSessionSchema, PromptSchema, ModelSettingsSchema, ToolPermissions
 import { broadcastToSession } from "../ws/handler";
 import { agentRegistry } from "../agents";
 import { delegationRegistry } from "../core/delegation-registry";
+import { teamStore } from "../teams/team-store";
+import { getTeamWorkspaceDir } from "shared";
 
 const STORAGE_KEY = "crewfactory-sessions";
 
@@ -31,9 +33,17 @@ sessionsRouter.get("/statuses", async (c) => {
 });
 
 sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
-  const { name, projectName, agentId, channelId, experimentId } = c.req.valid("json");
+  const { name, projectName, agentId, channelId, teamId, experimentId } = c.req.valid("json");
   const { username } = getAuthPayload(c);
   const sessionId = crypto.randomUUID();
+
+  const team = teamId ? teamStore.getTeam(username, teamId) : null;
+  if (teamId && (!team || team.teamType !== "Orchestration")) {
+    return c.json({ error: "Team sessions require an Orchestration team" }, 400);
+  }
+  const leader = team?.members.find((member) => member.role === "lead");
+  if (teamId && !leader) return c.json({ error: "Orchestration team requires a leader" }, 400);
+  const ownerAgentId = leader?.agentId || agentId;
 
   const now = new Date().toISOString();
   const session = {
@@ -43,8 +53,9 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     updatedAt: now,
     messageCount: 0,
     projectName,
-    agentId,
+    agentId: ownerAgentId,
     channelId,
+    teamId,
     experimentId,
   };
 
@@ -53,12 +64,15 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     createdAt: now,
     updatedAt: now,
     projectName: projectName || null,
-    agentId: agentId || null,
+    agentId: ownerAgentId || null,
     channelId: channelId || null,
+    teamId: teamId || null,
     experimentId: experimentId || null,
   });
 
-  sessionManager.getOrCreateSession(username, sessionId, projectName, agentId, channelId).catch(err => {
+  sessionManager.getOrCreateSession(username, sessionId, projectName, ownerAgentId, channelId, teamId ? {
+    workspaceDir: getTeamWorkspaceDir(username, teamId),
+  } : undefined).catch(err => {
     console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
   });
 

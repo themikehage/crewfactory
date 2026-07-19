@@ -6,7 +6,7 @@ import { getUsername } from "../lib/auth-helpers";
 import { teamStore, teamOrchestrator } from "../teams";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
-import { CreateTeamSchema, UpdateTeamSchema, TeamMemberSchema } from "shared";
+import { CreateTeamSchema, UpdateTeamSchema, TeamMemberSchema, SessionPrefix, getTeamWorkspaceDir } from "shared";
 
 export const teamsRouter = new Hono();
 
@@ -59,6 +59,34 @@ teamsRouter.post("/", zValidator("json", CreateTeamSchema), (c) => {
   return c.json(team, 201);
 });
 
+teamsRouter.post("/:id/orchestration-session", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const team = teamStore.getTeam(username, c.req.param("id"));
+  if (!team) return c.json({ error: "Team not found" }, 404);
+  if (team.teamType !== "Orchestration") return c.json({ error: "Only Orchestration teams have an owner session" }, 400);
+
+  const leader = team.members.find((member) => member.role === "lead");
+  if (!leader || !agentRegistry.get(leader.agentId, username)) {
+    return c.json({ error: "The orchestration leader is not available" }, 400);
+  }
+
+  const sessionId = crypto.randomUUID();
+  const now = new Date().toISOString();
+  sessionManager.metadataStore.saveSessionMetadata(username, sessionId, {
+    name: `${team.name} — Orchestration`,
+    createdAt: now,
+    updatedAt: now,
+    agentId: leader.agentId,
+    teamId: team.id,
+  });
+  await sessionManager.getOrCreateSession(username, sessionId, undefined, leader.agentId, undefined, {
+    workspaceDir: getTeamWorkspaceDir(username, team.id),
+  });
+  return c.json({ sessionId, leaderAgentId: leader.agentId });
+});
+
 teamsRouter.get("/:id", (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
@@ -107,14 +135,9 @@ teamsRouter.delete("/:id", async (c) => {
   const team = teamStore.getTeam(username, id);
   if (!team) return c.json({ error: "Team not found" }, 404);
 
-  // Cascading delete: destroy all chat sessions associated with this team
   const sessions = await sessionManager.listSessions(username).catch(() => []);
-  for (const s of sessions) {
-    if (s.channelId === id) { // For simplicity, we bind team sessions using channelId internally in the session metadata
-      await sessionManager.destroySession(username, s.id).catch((err) =>
-        console.error(`[TeamsRoute] Failed to destroy session ${s.id}:`, err)
-      );
-    }
+  for (const session of sessions.filter((item) => item.teamId === id)) {
+    await sessionManager.destroySession(username, session.id).catch(() => {});
   }
 
   const deleted = teamStore.deleteTeam(username, id);
