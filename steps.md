@@ -155,3 +155,11 @@
 - [x] 180.2 Add custom listener for entity-updated to dynamically sync team state in TeamChatArea.tsx
 - [x] 180.3 Verify client build compiles successfully
 
+## Phase 181: Update Logo to New Branding
+- [x] 181.1 Update generate-icons.py to draw the new green 'C' logo
+- [x] 181.2 Regenerate favicon.png and PWA icons in client and server public directories
+- [x] 181.3 Sync favicon.svg to server public directory
+- [x] 181.4 Update Logo component and index.html files to load favicon.svg instead of PNG
+- [x] 181.5 Verify clean build check compilation
+
+

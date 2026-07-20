@@ -8,9 +8,10 @@ SIZES = {
     "icon-512.png": 512,
 }
 
-BG_COLOR = (18, 18, 18)       # #121212
-ACCENT_COLOR = (59, 130, 246)  # #3B82F6 (blue-500)
-TEXT_COLOR = (255, 255, 255)
+BG_COLOR = (17, 17, 17)        # #111111
+INNER_BG_COLOR = (10, 10, 10)  # #0a0a0a
+ACCENT_COLOR = (74, 222, 128)  # #4ade80 (green-400)
+TEXT_COLOR = (74, 222, 128)
 
 PUBLIC_DIRS = [
     "apps/client/public",
@@ -19,53 +20,53 @@ PUBLIC_DIRS = [
 
 
 def draw_icon(size: int) -> Image.Image:
-    """Draw a 'CF' icon with a modern look."""
+    """Draw the new CrewFactory icon with a green 'C' and border."""
     img = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     draw = ImageDraw.Draw(img)
 
-    # Rounded square background with padding
-    pad = int(size * 0.12)
-    r = int(size * 0.22)
+    # Outer rounded rectangle (radius 20% of size)
+    r_outer = int(size * 0.20)
     draw.rounded_rectangle(
-        [pad, pad, size - pad, size - pad],
-        radius=r,
+        [0, 0, size, size],
+        radius=r_outer,
         fill=BG_COLOR,
     )
 
-    # Try to load a bold font, fall back to default
-    font_size = int(size * 0.48)
+    # Inner rounded rectangle (padding 12% of size, radius 14% of size)
+    pad = int(size * 0.12)
+    r_inner = int(size * 0.14)
+    # Border width is 2% of size, at least 1px
+    border_width = max(1, int(size * 0.02))
+
+    draw.rounded_rectangle(
+        [pad, pad, size - pad, size - pad],
+        radius=r_inner,
+        fill=INNER_BG_COLOR,
+        outline=ACCENT_COLOR,
+        width=border_width,
+    )
+
+    # Load bold font
+    font_size = int(size * 0.52)
     try:
-        # Windows path for a bold sans
-        font = ImageFont.truetype(
-            "C:/Windows/Fonts/segoeuib.ttf", font_size
-        )
+        font = ImageFont.truetype("C:/Windows/Fonts/segoeuib.ttf", font_size)
     except (IOError, OSError):
         try:
-            font = ImageFont.truetype(
-                "C:/Windows/Fonts/arialbd.ttf", font_size
-            )
+            font = ImageFont.truetype("C:/Windows/Fonts/arialbd.ttf", font_size)
         except (IOError, OSError):
             font = ImageFont.load_default()
 
-    # Draw "CF" text
-    text = "CF"
+    # Draw "C" text (centered)
+    text = "C"
     bbox = draw.textbbox((0, 0), text, font=font)
     tw = bbox[2] - bbox[0]
     th = bbox[3] - bbox[1]
+
     x = (size - tw) / 2
-    y = (size - th) / 2 - int(size * 0.02)
+    # Adjust vertical alignment to match the visual offset in SVG
+    y = (size - th) / 2 - int(size * 0.08)
 
-    # Draw C in accent, F in white
     draw.text((x, y), text, font=font, fill=TEXT_COLOR)
-
-    # Accent dot/bar
-    dot_size = int(size * 0.06)
-    dot_x = x + tw + int(size * 0.04)
-    dot_y = y + int(size * 0.08)
-    draw.ellipse(
-        [dot_x, dot_y, dot_x + dot_size, dot_y + dot_size],
-        fill=ACCENT_COLOR,
-    )
 
     return img
 

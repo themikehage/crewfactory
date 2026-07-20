@@ -603,7 +603,7 @@ packages/shared/  Shared Zod schemas and types
 - `components/chat/tools/DecomposeResult.tsx` — Premium inline card displaying structured planned objectives and DAG task dependencies inside the chat stream.
 - `components/chat/FloatingTasks.tsx` — Floating interactive accordion card rendered as a chat overlay, featuring play/pause controls and list indicators.
 - `components/preview/PreviewPanel.tsx` — Full-page iframe preview with build status, toolbar, and responsive mode toggle
-- `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based, responsive sizing).
+- `components/ui/Logo.tsx` — CrewFactory logo component (favicon-based SVG, responsive sizing).
 - `components/workspace/WorkspacePanel.tsx` — File explorer scoped to active workspace.
 - `pages/LaboratoryPage.tsx` — Multi-variant benchmarking laboratory orchestration view.
 - `components/laboratory/` — Dashboard panels including comparative metrics charts, live execution logs, historical sidebar, and step-by-step experiment wizard.

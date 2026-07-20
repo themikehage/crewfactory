@@ -6,7 +6,7 @@ interface LogoProps {
 export function Logo({ className = "", size = 26 }: LogoProps) {
   return (
     <img
-      src="/favicon.png"
+      src="/favicon.svg"
       alt="CrewFactory"
       width={size}
       height={size}
