@@ -1,193 +1,173 @@
 # CrewFactory Architecture
 
-## System Overview
-
-CrewFactory is a self-hosted multi-agent platform powered by Qwen Cloud. Agents run in isolated workspaces, communicate through configurable group channels with algorithmic negotiation, and are benchmarked in a built-in laboratory.
+## Qwen Cloud Integration
 
 ```mermaid
-graph TB
-    subgraph "Qwen Cloud"
-        DS[DashScope API<br/>dashscope-intl.aliyuncs.com]
+flowchart LR
+  subgraph USER["User"]
+    U["Browser / CLI"]
+  end
+
+  subgraph CF["CrewFactory Platform"]
+    SPA["React SPA (5173)"]
+
+    subgraph BE["API Server (3000)"]
+      REG["registerQwenProvider<br/>apps/server/src/core/providers/qwen-provider.ts"]
+      LLM["ModelRegistry → Agent Class<br/>ReAct Loop · Tool Calls"]
+      IMG["runImageGenModel<br/>apps/server/src/core/tools/image-gen-tool.ts"]
+      CFG["user-config.ts<br/>Qwen model sync on API key save"]
     end
 
-    subgraph "Backend (Bun + Hono)"
-        direction TB
-
-        subgraph "AI Layer"
-            QP[qwen-provider.ts<br/>8 Qwen 3.x models]
-            MR[ModelRegistry<br/>35+ providers]
-            AS[AgentSession<br/>ReAct loop + streaming]
-            QP --> MR --> AS
-            DS --> QP
-        end
-
-        subgraph "Channel Orchestration"
-            CO[ChannelOrchestrator]
-            NSM[NegotiationStateMachine<br/>round counter + pattern matching]
-            AP[ArbitrationProtocol<br/>leader escalation]
-            APR[AgentPromptRunner<br/>streaming dispatch]
-            CO --> NSM
-            CO --> AP
-            CO --> APR
-        end
-
-        subgraph "Laboratory"
-            ER[Experiment Runner<br/>A/B/C variants]
-            SC[Scoring Engine<br/>compound scores]
-            LJ[LLM-Judge<br/>criteria evaluation]
-            ER --> SC
-            ER --> LJ
-            ER --> CO
-        end
-
-        subgraph "MCP"
-            MCPC[MCP Client<br/>stdio + HTTP]
-            MCPR[MCP Registry<br/>10 catalog servers]
-            MCPC --> MCPR
-        end
-
-        subgraph "Infrastructure"
-            WS[WebSocket<br/>factory + registry pattern]
-            AUTH[Better Auth<br/>SQLite sessions]
-            FS[File System<br/>workspaces + state]
-        end
+    subgraph DEPLOY["Alibaba Cloud Deployment"]
+      ECS["ECS<br/>docker-compose up -d"]
+      ACK["Container Service (ACK)<br/>ghcr.io/themikehage/crewfactory"]
+      FC["Function Compute + OSS<br/>Serverless"]
     end
 
-    subgraph "Frontend (React 19 + Tailwind v4)"
-        CC[ChannelChatArea<br/>live multi-agent chat]
-        OC[OrgFlowCanvas<br/>@xyflow/react hierarchy]
-        LP[LaboratoryPage<br/>variant comparison]
-        MCPS[McpTab<br/>server management]
-        PVD[Provider Management<br/>API keys + models]
-    end
+    OSS["OSS Upload Utility<br/>apps/server/src/alibaba-cloud/log-upload.ts<br/>Benchmark reports · HMAC-SHA1"]
+  end
 
-    AS --> CO
-    AS --> MCPC
-    AS --> WS
-    CO --> WS
-    ER --> WS
+  subgraph ALIBABA["Alibaba Cloud Services"]
+    DS_LLM["DashScope LLM API<br/>dashscope-intl.aliyuncs.com<br/>/compatible-mode/v1"]
+    DS_AIGC["DashScope AIGC API<br/>dashscope-intl.aliyuncs.com<br/>/api/v1/services/aigc/"]
+    OSS_SVC["Object Storage Service<br/>oss-cn-hangzhou.aliyuncs.com"]
+  end
 
-    WS --> CC
-    WS --> OC
-    WS --> LP
-    WS --> MCPS
+  U --> SPA
+  SPA <-->|REST + WS| BE
 
-    AUTH --> WS
-    FS --> AS
-    FS --> CO
-    FS --> ER
+  REG -->|"8 Qwen models<br/>qwen3.7-max, qwen3.7-plus<br/>qwen3.6-*, qwen3.5-*"| DS_LLM
+  LLM -->|"OpenAI-compatible<br/>chat completions"| DS_LLM
+
+  IMG -->|"Wan-Image, Qwen-Image<br/>Z-Image Turbo"| DS_AIGC
+
+  CFG -.->|"auto-sync on key save"| REG
+
+  BE -->|"benchmark reports<br/>experiment results"| OSS
+  OSS -->|"PUT with HMAC-SHA1"| OSS_SVC
+
+  DEPLOY -.->|"DASHSCOPE_API_KEY"| DS_LLM
+  DEPLOY -.->|"DASHSCOPE_API_KEY"| DS_AIGC
+  DEPLOY -.->|"ALIBABA_ACCESS_KEY_ID/SECRET"| OSS_SVC
 ```
 
-## Key Components
+## Server Internals
 
-### 1. Qwen Cloud Integration (`core/providers/qwen-provider.ts`)
-- Direct DashScope API calls via `dashscope-intl.aliyuncs.com/compatible-mode/v1`
-- 8 Qwen 3.x models with native thinking format support
-- Image generation via Qwen Wan-Image 2.0 and Z-Image Turbo
+```mermaid
+flowchart TB
+  subgraph WS["WebSocket Layer"]
+    direction TB
+    W1["factory.ts<br/>Contextos · Cookie Auth"]
+    W2["registry.ts<br/>Socket Maps · Cleanup"]
+    W3["handler.ts<br/>Broadcast Facade"]
+    W4["logger.ts<br/>Structured Logger"]
+  end
 
-### 2. Negotiation Engine (`channels/negotiation-state.ts`)
-- Deterministic state machine tracking per-pair negotiation state
-- Regex-driven agreement/counter/rejection detection
-- Automatic escalation to arbiter after `maxRounds`
-- Persistent state via `negotiation-state.json` per channel
+  subgraph AUTH["Auth Layer"]
+    A1["Better Auth (SQLite)<br/>Sesiones Cookie"]
+    A2["middleware/auth.ts<br/>Session Validation"]
+    A3["onboarding.ts<br/>Admin Setup"]
+  end
 
-### 3. Channel Orchestrator (`channels/channel-orchestrator.ts`)
-- Actor-model dispatch: parallel between agents, FIFO within
-- @mention parsing with autocomplete for task delegation
-- Configurable `maxChainDepth` (1-50)
-- Equilibrium detection — stops chain when agents go silent for 2+ rounds
-- Abort dispatch with cascading agent cleanup
+  subgraph CORE["Core Services"]
+    C1["SessionManager<br/>Lifecycle · Metadata · Prompts"]
+    C2["TaskStateManager<br/>Cache · DAG · Atomic Writes"]
+    C3["DecomposeTool<br/>DAG Plan Construction"]
+    C4["EventBroker<br/>Log Buffer · Broadcast"]
+    C5["AgentUtils<br/>Spawn · Delegate · Envelopes"]
+  end
 
-### 4. Laboratory (`laboratory/`)
-- **experiment-runner.ts**: Runs 3 variants sequentially — single-agent baseline (A), multi-agent horizontal (B), multi-agent hierarchical with leader (C)
-- **scoring.ts**: Compound scoring — task quality (50%), efficiency (30% with time/token penalty), negotiation (20% with agreement rounds and escalation penalty)
-- **judge.ts**: LLM-Judge with per-criteria scores and structured reasoning
-- **experiment-store.ts**: CRUD with blueprint loading, historical runs, variant export to workspace
+  subgraph ENTITIES["Entity Managers"]
+    E1["AgentRegistry<br/>Programmatic Agents"]
+    E2["ChannelStore + Orchestrator<br/>Multi-agent Dispatch"]
+    E3["Team Managers<br/>Negotiation · Arbiter · Consensus"]
+    E4["MCP Registry + Client<br/>Stdio/HTTP JSON-RPC"]
+    E5["Preview System<br/>Build · Watch · Serve"]
+  end
 
-### 5. MCP Integration (`core/mcp-client.ts`, `core/mcp-registry.ts`)
-- Dual transport: stdio (subprocess) and HTTP (SSE streaming)
-- 10 catalog servers: GitHub, SQLite, Brave Search, Tavily, Fetch, Linear, Jira, Slack, GDrive, Gmail
-- Dynamic tool loading — MCP tools become native agent tools at session creation
-- Configurable per session via Settings UI
+  subgraph AI["AI Runtime (Vendored)"]
+    I1["ModelRegistry"]
+    I2["Agent Class<br/>ReAct Loop · beforeToolCall"]
+    I3["DefaultResourceLoader<br/>Skills · System Prompts"]
+    I4["BashTool · Permission Engine"]
+  end
 
-### 6. WebSocket Layer (`ws/`)
-- **factory.ts**: Cookie-based auth via `auth.api.getSession`, closure-captured `wsId`, transactional auto-subscribe on prompt
-- **registry.ts**: Explicit cleanup, no global counter, no socket mutation
-- **logger.ts**: Structured logging
-- Server-initiated 30s ping-pong with dead socket pruning
+  subgraph REST["API Routes"]
+    R1["sessions.ts"]
+    R2["providers.ts"]
+    R3["files.ts"]
+    R4["preview.ts"]
+    R5["channels.ts"]
+    R6["teams.ts"]
+    R7["agents.ts"]
+    R8["mcp.ts"]
+    R9["backup.ts"]
+    R10["experiments.ts"]
+  end
 
-### 7. Agent Session (`ai/agent-session.ts`)
-- Vendored agent runtime with ReAct loop
-- Tool execution: bash, read, write, edit, grep, find, ls, vision, generate_image, spawn_subagent, delegate_task, manage_factory, web_fetch
-- Permission engine: deny-first, then-ask, then-allow
-- Streaming responses with progressive tool output logs
-- Context compaction with branch summarization
-
-### 8. Frontend (`apps/client/`)
-- React 19 with TypeScript strict mode
-- Tailwind CSS v4 with design tokens (no raw hex values)
-- Mobile-first responsive: 375px, 768px, 1280px breakpoints
-- Framer Motion for hardware-accelerated transitions
-- Full i18n (English/Spanish) via per-component `.literals.ts` files
-
-## Data Flow
-
-```
-User types "@TechLead scope proposal for ecommerce"
-    │
-    ▼
-Orchestrator parses @mention → resolves recipient
-    │
-    ▼
-AgentPromptRunner sends prompt to TechLead agent
-    │
-    ▼
-AgentSession runs ReAct loop (thinking → tool calls → response)
-    │
-    ▼
-Response broadcast via WebSocket to all channel subscribers
-    │
-    ▼
-NegotiationStateMachine.ingest() checks for agreement/counter/reject patterns
-    │
-    ├── matched "agreed" → emit channel_negotiation_agreement, stop chain
-    ├── matched "counter" → increment rounds, continue chain
-    ├── rounds >= maxRounds → escalate to arbiter agent
-    └── none matched → continue to next agent in round
+  C1 --> I2
+  E2 --> I2
+  E3 --> I2
+  R1 --> C1
+  R2 --> I1
+  R5 --> E2
+  R6 --> E3
+  R7 --> E1
+  R8 --> E4
+  R10 --> E3
+  R4 --> E5
+  C4 --> W3
+  C5 --> E1
+  C5 --> E2
 ```
 
-## File System Layout
+## Key Qwen Cloud Models
 
-```
-/tmp/crewfactory/{username}/
-├── workspace/                    # Global user workspace
-│   ├── .agents/skills/           # Factory skills
-│   ├── assets/
-│   │   ├── uploads/              # User-uploaded files
-│   │   └── generated/            # Agent-generated outputs
-│   └── memories/                 # Agent notes and context
-├── projects/{id}/
-│   ├── project.json              # Metadata (name, clone URL)
-│   └── workspace/                # Isolated project workspace
-├── agents/{id}/
-│   ├── definition.json           # Agent config + system prompt
-│   ├── avatar.*                  # Agent profile photo
-│   └── sessions/                 # Agent chat history
-├── channels/{id}/
-│   ├── channel.json              # Members, roles, protocol config
-│   ├── messages.jsonl            # Append-only message log
-│   └── negotiation-state.json    # Per-pair negotiation state
-├── experiments/{id}/
-│   ├── experiment.json           # Blueprint + variant config
-│   └── runs/{runId}.json         # Per-run results + scores
-└── sessions/                     # User chat sessions
-```
+| Model | Context | Thinking | Vision | Use Case |
+|-------|---------|----------|--------|----------|
+| qwen3.7-max | 128k | Yes | Yes | Complex reasoning, orchestration agents |
+| qwen3.7-plus | 128k | Yes | No | Balanced performance/cost |
+| qwen3.6-max-preview | 128k | Yes | Yes | Preview cutting-edge |
+| qwen3.6-plus | 128k | Yes | No | Standard agent tasks |
+| qwen3.6-flash | 128k | Yes | No | High-throughput, low-latency |
+| qwen3.5-plus | 128k | Yes | No | Legacy stable |
+| qwen3.5-flash | 128k | Yes | No | Fast inference |
+| wan2.7-image-pro | — | — | — | Image generation (AIGC) |
+| qwen-image-2.0-pro | — | — | — | Image generation (AIGC) |
+| z-image-turbo | — | — | — | Fast image generation (AIGC) |
 
-## Security
+## Key Architectural Decisions
 
-- **Encryption at rest**: AES-256-GCM for `env.json` and `auth.json`, key derived from `JWT_SECRET`
-- **Cookie-based auth**: httpOnly cookies, no JS-accessible tokens, automatic CSRF protection
-- **Bash output filter**: Masks user secrets from stdout/stderr with `***hidden***`
-- **Permission engine**: Blocks destructive commands (fork bombs, recursive deletion, pipe-to-bash)
-- **Process protection**: Prevents killing critical server processes (ports 3000, 3001, 4104, 5173)
-- **Audit logging**: Tracks environment variable access at `/tmp/crewfactory/_audit/`
+| Decision | Choice | Rationale |
+|----------|--------|-----------|
+| LLM Provider | Qwen Cloud DashScope API (OpenAI-compatible) | Direct integration, no proxy, full Qwen model family |
+| Image Gen | DashScope AIGC API with multi-endpoint fallback | Wan-Image, Qwen-Image, Z-Image Turbo; retries intl + cn endpoints |
+| API Key Mgmt | Dynamic provider config via web UI | No env vars needed; auto-syncs models on key save |
+| State Management | URL as source of truth + localStorage convenience | No cache invalidation, idempotent transitions, survives refresh |
+| Real-Time | Singleton WebSocket + exponential backoff + offline queue | Prevents 3x connection overhead, handles network flakiness |
+| Auth | httpOnly cookie-based (Better Auth) | No JS-accessible tokens, sync DB fallback for programmatic tokens |
+| AI Runtime | Vendored Agent class in-process | Zero network overhead for agent loops, direct beforeToolCall hooks |
+| Persistence | Filesystem-first + SQLite only for auth | Simple backup (zip), no DB migrations, easy inspection |
+| Preview | Isolated port 3001 Bun.serve | No SPA/auth in preview URLs, framework-agnostic |
+| MCP | Stdio/HTTP subprocess lifecycle | Workspace sandboxing via $WORKSPACE_DIR replacement |
+| Multi-Agent | 4 composeable primitives (Spawn, Delegate, Negotiate, Arbitrate) | Replaces 7 legacy pathways with uniform protocol |
+
+## Layer Responsibilities
+
+| Layer | Key Modules | Responsibility |
+|-------|-------------|----------------|
+| WebSocket | factory.ts, registry.ts, handler.ts | Real-time bidirectional streaming with cookie auth, session/channel subscriptions |
+| Auth | Better Auth, middleware/auth.ts | Cookie-based session management, first-run onboarding, programmatic tokens |
+| Core | SessionManager, TaskStateManager, EventBroker | Agent lifecycle orchestration, task DAGs, log broadcasting |
+| Entities | AgentRegistry, ChannelOrchestrator, Team managers, MCP | Entity-specific lifecycle, multi-agent dispatch, tool integration |
+| AI Runtime | Vendored Agent class, ModelRegistry | ReAct loops, prompt composition, skill injection, permission hooks |
+| Client | React Context, wsClient singleton, AG-UI components | State derived from URL, singleton WS connection, generative UI pipeline |
+
+## Deployment on Alibaba Cloud
+
+| Service | Method | Details |
+|---------|--------|---------|
+| ECS | `docker compose up -d` | Full control, persistent storage bind-mounts |
+| ACK (K8s) | `ghcr.io/themikehage/crewfactory:latest` | Auto-scaling, service mesh |
+| Function Compute | Serverless + OSS for state | Pay-per-invocation, stateless |
+| OSS | `log-upload.ts` | HMAC-SHA1 signed PUTs, no SDK deps |
