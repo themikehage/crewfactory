@@ -184,4 +184,61 @@ describe("delegate_task Tool Team Integration Tests", () => {
     sessionManager.getOrCreateSession = originalGetOrCreate;
     sessionManager.getSession = originalGetSession;
   });
+
+  test("Should inherit model from parent session retrieved via sessionManager if parentModel option is not provided", async () => {
+    const originalGetOrCreate = sessionManager.getOrCreateSession;
+    const originalGetSession = sessionManager.getSession;
+    let setModelCalledWith: any = null;
+
+    const mockModel = { id: "parent-session-model", provider: "openai" };
+
+    sessionManager.getOrCreateSession = async () => {
+      return {
+        id: "del_specialist",
+        messages: [{ role: "assistant", content: [{ type: "text", text: "---\nstatus: success\nexecutive_summary: Done\nartifacts: none\nrisks: None\n---" }] }],
+        setModel: async (m: any) => {
+          setModelCalledWith = m;
+        },
+        prompt: async () => {},
+        abort: async () => {},
+        subscribe: () => () => {},
+      } as any;
+    };
+
+    sessionManager.getSession = (user: string, sId: string) => {
+      if (sId === parentSessionId) {
+        return {
+          id: parentSessionId,
+          model: mockModel,
+          isStreaming: false,
+          addDelegationResult: () => {},
+          continue: async () => {},
+        } as any;
+      }
+      return null;
+    };
+
+    const tool = createDelegateTaskTool({
+      workspaceDir: "/tmp/dummy",
+      username,
+      parentSessionId,
+      modelRegistry: {} as any,
+      authStorage: {} as any,
+      resourceLoader: {} as any,
+      inheritedWorkspaceDir: teamWorkspace,
+      permittedAgentIds: new Set([specialistId]),
+    });
+
+    await tool.execute("call_4", {
+      targetType: "agent",
+      targetId: specialistId,
+      task: "Analyze tests under parent session",
+    });
+
+    expect(setModelCalledWith).toBe(mockModel);
+
+    // Restore
+    sessionManager.getOrCreateSession = originalGetOrCreate;
+    sessionManager.getSession = originalGetSession;
+  });
 });

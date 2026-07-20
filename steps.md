@@ -127,4 +127,14 @@
 ## Phase 175: Fix Negotiation Team Chat Scroll
 - [x] 175.1 Integrated useChatScroll hook in TeamMessageList to unify scroll behavior across standard and negotiation views
 
+## Phase 176: Orchestration Team Context Fixes
+- [x] 176.1 Render TeamContextModal in the Orchestration branch of TeamChatArea.tsx
+- [x] 176.2 Inject team.context variables in SessionPromptBuilder.buildSystemPrompts for Orchestration agent prompts
+- [x] 176.3 Confirmed client builds cleanly
+- [x] 176.4 Verified server typechecks pass successfully
 
+## Phase 177: Fix Model Inheritance in Orchestrator and Delegated Agents
+- [x] 177.1 Synchronize the model on cached sessions when it is null inside getOrCreateSession (session-manager.ts)
+- [x] 177.2 Resolve and synchronize context model from restored session state inside getOrCreateSession (session-manager.ts) with fallbacks
+- [x] 177.3 Add unit test case in delegate-tool-team.test.ts to verify model inheritance from restored parent session
+- [x] 177.4 Verify all 108 server tests build and pass successfully

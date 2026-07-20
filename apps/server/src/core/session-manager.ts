@@ -24,7 +24,6 @@ import { sessionLister, type SessionListItem, type SessionListQuery } from "./se
 
 import {
   getResolvedSkillPaths,
-  ensureWorkspaceSubdirs,
   ensureWorkspaceStructure,
   resolveSessionWorkspace,
 } from "./session/workspace-resolver";
@@ -37,7 +36,6 @@ import { buildSubagentRules, evaluateSubagentRules } from "./sandbox";
 
 export {
   getResolvedSkillPaths,
-  ensureWorkspaceSubdirs,
   ensureWorkspaceStructure,
 };
 
@@ -231,7 +229,19 @@ class SessionManager {
   ): Promise<AgentSession> {
     const key = this.getSessionKey(username, sessionId);
     const existing = this.sessions.get(key);
-    if (existing) return existing.session;
+    if (existing) {
+      if (!existing.session.model) {
+        const context = existing.session.sessionManager.buildSessionContext();
+        if (context.model) {
+          const { modelRegistry } = this.userConfig.getUserContext(username);
+          const found = modelRegistry.find(context.model.provider, context.model.modelId);
+          if (found) {
+            existing.session.model = found;
+          }
+        }
+      }
+      return existing.session;
+    }
 
     const pending = this.pendingSessions.get(key);
     if (pending) return pending;
@@ -282,7 +292,9 @@ class SessionManager {
 
         if (existingMeta.teamId) {
           workspaceDir = getTeamWorkspaceDir(username, existingMeta.teamId);
-          ensureWorkspaceSubdirs(workspaceDir);
+          if (!existsSync(workspaceDir)) {
+            mkdirSync(workspaceDir, { recursive: true });
+          }
         }
 
         const { authStorage, modelRegistry } = userConfigManager.getUserContext(username);
@@ -436,6 +448,31 @@ class SessionManager {
               console.log(`[SessionManager:${sessionId}] Initialized session model: ${resolvedModel.provider}/${resolvedModel.id}`);
             } catch (e) {
               console.error(`[SessionManager:${sessionId}] Failed to set initial model:`, e);
+            }
+          }
+        } else {
+          const found = modelRegistry.find(context.model.provider, context.model.modelId);
+          if (found) {
+            session.model = found;
+          } else {
+            let resolvedModel: any = undefined;
+            if (agentDef?.model) {
+              const available = modelRegistry.getAvailable();
+              resolvedModel = available.find(
+                (m) => m.id === agentDef.model || `${m.provider}/${m.id}` === agentDef.model
+              );
+            }
+            if (!resolvedModel) {
+              const defaultModelId = userConfigManager.getUserDefaultModel(username);
+              if (defaultModelId) {
+                const available = modelRegistry.getAvailable();
+                resolvedModel = available.find(
+                  (m) => m.id === defaultModelId || `${m.provider}/${m.id}` === defaultModelId
+                );
+              }
+            }
+            if (resolvedModel) {
+              session.model = resolvedModel;
             }
           }
         }
