@@ -150,3 +150,8 @@
 - [x] 179.2 Persist steering and follow-up prefixes on the server to keep styles across session reload
 - [x] 179.3 Verify client and server compilation build checks successfully
 
+## Phase 180: Remove Duplicate Settings Button
+- [x] 180.1 Remove duplicate settings gear button and local modal from TeamChatArea.tsx
+- [x] 180.2 Add custom listener for entity-updated to dynamically sync team state in TeamChatArea.tsx
+- [x] 180.3 Verify client build compiles successfully
+

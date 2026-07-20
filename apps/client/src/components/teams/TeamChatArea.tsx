@@ -5,7 +5,6 @@ import { TeamMessageList } from "./TeamMessageList";
 import { ChatInput } from "@/components/chat/ChatInput";
 import type { MentionTarget } from "@/components/chat/ChatInput";
 import { TeamMembersModal } from "./TeamMembersModal";
-import { TeamSettingsModal } from "./TeamSettingsModal";
 import { useNavigate } from "react-router-dom";
 import { getSessionPath } from "@/lib/session-utils";
 import { ChatArea } from "@/components/chat/ChatArea";
@@ -20,12 +19,11 @@ interface Props {
 }
 
 export function TeamChatArea({ activeTeam, sessionId, variantMode = false }: Props) {
-  const { team, messages, streamingAgents, sendMessage, abortDispatch, updateTeam, fetchTeam } = useTeam(activeTeam.id, sessionId);
+  const { team, messages, streamingAgents, sendMessage, abortDispatch, fetchTeam } = useTeam(activeTeam.id, sessionId);
   const navigate = useNavigate();
 
   const isStreaming = Object.keys(streamingAgents).length > 0;
   const [showMembersModal, setShowMembersModal] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
   const [showContextModal, setShowContextModal] = useState(false);
   const [teamMembers, setTeamMembers] = useState<TeamMember[]>([]);
   const [registeredAgents, setRegisteredAgents] = useState<AgentInfo[]>([]);
@@ -65,7 +63,18 @@ export function TeamChatArea({ activeTeam, sessionId, variantMode = false }: Pro
 
   useEffect(() => {
     loadTeamDetails();
-  }, [loadTeamDetails]);
+
+    const handleEntityUpdate = (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      if (detail?.type === "team") {
+        loadTeamDetails();
+        fetchTeam();
+      }
+    };
+
+    window.addEventListener("entity-updated", handleEntityUpdate);
+    return () => window.removeEventListener("entity-updated", handleEntityUpdate);
+  }, [loadTeamDetails, fetchTeam]);
 
   const handleAddMember = async (data: TeamMember) => {
     await apiFetch(`/api/teams/${activeTeam.id}/members`, {
@@ -182,16 +191,6 @@ export function TeamChatArea({ activeTeam, sessionId, variantMode = false }: Pro
                   </span>
                 )}
               </button>
-
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors"
-                title={`Ajustes del equipo (MAX_ROUNDS: ${team?.maxRounds ?? 5})`}
-              >
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-                </svg>
-              </button>
             </div>
           </div>
         )}
@@ -217,15 +216,7 @@ export function TeamChatArea({ activeTeam, sessionId, variantMode = false }: Pro
           />
         )}
 
-        {showSettingsModal && team && (
-          <TeamSettingsModal
-            team={team}
-            onClose={() => setShowSettingsModal(false)}
-            onSave={async (updates) => {
-              await updateTeam(updates);
-            }}
-          />
-        )}
+
 
         {showContextModal && (
           <TeamContextModal
@@ -307,15 +298,7 @@ export function TeamChatArea({ activeTeam, sessionId, variantMode = false }: Pro
               )}
             </button>
 
-            <button
-              onClick={() => setShowSettingsModal(true)}
-              className="p-1.5 rounded-lg text-muted-foreground hover:text-foreground hover:bg-card-hover transition-colors"
-              title={`Ajustes del equipo (MAX_ROUNDS: ${team?.maxRounds ?? 5})`}
-            >
-              <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z" clipRule="evenodd" />
-              </svg>
-            </button>
+
           </div>
         </div>
       )}
@@ -356,15 +339,7 @@ export function TeamChatArea({ activeTeam, sessionId, variantMode = false }: Pro
         />
       )}
 
-      {showSettingsModal && team && (
-        <TeamSettingsModal
-          team={team}
-          onClose={() => setShowSettingsModal(false)}
-          onSave={async (updates) => {
-            await updateTeam(updates);
-          }}
-        />
-      )}
+
 
       {showContextModal && (
         <TeamContextModal
