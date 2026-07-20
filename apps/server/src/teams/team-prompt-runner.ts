@@ -5,9 +5,9 @@ import { resolveModelWithFallback } from "../core/agent-utils";
 import { type Team, type TeamMember, type TeamMessage, getTeamMemoryDbPath } from "shared";
 import { memoryRegistry } from "../core/memory/registry";
 import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
-import { parseAgentResponse, enforceDiffFormat } from "../channels/response-parser";
-import { parseMentions } from "../channels/mention-parser";
-import { buildAgentPrompt, buildAgentNameMap } from "../channels/agent-prompt-runner";
+import { parseAgentResponse, enforceDiffFormat } from "../core/multi-agent/response-parser";
+import { parseMentions } from "../core/multi-agent/mention-parser";
+import { buildAgentPrompt, buildAgentNameMap } from "../core/multi-agent/agent-prompt-runner";
 import { streamSimple } from "../ai/vendor/ai/src/compat.ts";
 
 const _promptCache = new Map<string, string[]>();
@@ -28,7 +28,7 @@ export interface ActiveTeamStream {
   >;
 }
 
-function isSubstantiveMessage(content: string): boolean {
+export function isSubstantiveMessage(content: string): boolean {
   if (content.trim().length <= 10) return false;
   const trivial = /^(hola|para|ok|si|no|gracias|dale|listo|stop|hey|hi|hello|\.\.\.)$/i;
   return !trivial.test(content.trim());
@@ -198,7 +198,7 @@ export class TeamPromptRunner {
     // Build Deployment Context
     const deployment = buildTeamDeploymentContext(team, member.agentId, agentNameMap);
     const workspaceDir = agentEntry.server.session.cwd;
-    const cacheKey = `team:${member.agentId}:${teamId}`;
+    const cacheKey = `team:${member.agentId}:${teamId}:${deployment.isArbiter}:${deployment.outputMode}`;
 
     let appendSystemPrompts = _promptCache.get(cacheKey);
     if (!appendSystemPrompts) {

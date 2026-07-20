@@ -1,10 +1,10 @@
 import { teamStore } from "./team-store";
 import { agentRegistry } from "../agents";
 import { type Team, type TeamMember, type TeamMessage, SessionPrefix, getTeamWorkspaceDir } from "shared";
-import { TeamPromptRunner, type ActiveTeamStream } from "./team-prompt-runner";
+import { TeamPromptRunner, type ActiveTeamStream, isSubstantiveMessage } from "./team-prompt-runner";
 import { handleTeamNegotiation } from "./team-negotiation";
-import { buildAgentNameMap } from "../channels/agent-prompt-runner";
-import { parseMentions } from "../channels/mention-parser";
+import { buildAgentNameMap } from "../core/multi-agent/agent-prompt-runner";
+import { parseMentions } from "../core/multi-agent/mention-parser";
 import { sessionManager } from "../core/session-manager";
 
 type TeamBroadcastFn = (teamId: string, data: any) => void;
@@ -159,6 +159,26 @@ export class TeamOrchestrator {
 
     teamStore.resetNegotiationState(username, teamId);
 
+    if (team.teamType === "Negotiation" && !isSubstantiveMessage(userContent)) {
+      const guidanceMsg: TeamMessage = {
+        id: crypto.randomUUID(),
+        teamId,
+        sessionId,
+        role: "system",
+        content: "Para iniciar un debate de negociación, por favor especifica el tema o la propuesta a analizar.",
+        createdAt: new Date().toISOString(),
+      };
+      teamStore.appendMessage(username, teamId, guidanceMsg);
+      broadcast(teamId, {
+        type: "team_message",
+        teamId,
+        sessionId,
+        message: guidanceMsg,
+        eventType: "agent_message",
+      });
+      return;
+    }
+
     const controller = new AbortController();
     this.teamAbortControllers.set(key, controller);
 
@@ -245,6 +265,13 @@ export class TeamOrchestrator {
     let round = 1;
     let currentIncomingMsg = initialMsg;
 
+    if (team.teamType === "Negotiation" && team.negotiationProtocol) {
+      currentIncomingMsg = {
+        ...initialMsg,
+        content: `[INICIO DE DEBATE - RONDA 1]\nPropuesta/Tema a debatir:\n"""\n${initialMsg.content}\n"""\n\nPor favor, evalúa esta propuesta de acuerdo con tu especialidad y las reglas del protocolo de negociación (SCORE/DIVERGENCE/OBJECTION/VETO/ACUERDO).`,
+      };
+    }
+
     while (round <= maxRounds && !signal.aborted && !this.abortedDispatches.has(key)) {
       console.log(`[TeamOrchestrator] Stateless Team Debate Round ${round} starting...`);
 
@@ -255,12 +282,7 @@ export class TeamOrchestrator {
 
       if (activeMembers.length === 0) return;
 
-      const agentNameMap = buildAgentNameMap(
-        team.members.map((m) => ({
-          agentId: m.agentId,
-          replyMode: "broadcast",
-        }))
-      );
+      const agentNameMap = buildAgentNameMap(team.members);
 
       const activeResults: { agentMsg: TeamMessage }[] = [];
       for (const member of activeMembers) {
