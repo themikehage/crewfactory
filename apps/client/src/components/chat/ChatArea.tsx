@@ -15,7 +15,7 @@ import { WelcomeChatInput } from "./WelcomeChatInput";
 import { useToast } from "@/contexts/ToastContext";
 import { getSessionPath, getSessionName, buildCreateSessionBody, getSessionMeta } from "@/lib/session-utils";
 import { FloatingTasks } from "./FloatingTasks";
-import { SessionTimeline } from "./SessionTimeline";
+import { ChatSkeleton } from "@/components/skeletons/ChatSkeleton";
 
 const ALL_TOOL_NAMES = ["read", "write", "edit", "bash", "grep", "find", "ls"];
 
@@ -43,11 +43,10 @@ interface Props {
   sessionId: string | null;
   activeProjectName: string | null;
   activeAgent?: { id: string; name: string; avatarUrl?: string } | null;
-  activeChannel?: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
 }
 
-export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeChannel = null, activeTeam = null }: Props) {
+export function ChatArea({ sessionId, activeProjectName, activeAgent = null, activeTeam = null }: Props) {
   const l = useLiterals(u);
   const navigate = useNavigate();
   const { addToast } = useToast();
@@ -63,7 +62,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
 
 
   const createSessionAndSend = async (messageText: string, attachments?: File[]) => {
-    const sessionName = getSessionName({ activeChannel, activeTeam, activeAgent, activeProjectName });
+    const sessionName = getSessionName({ activeTeam, activeAgent, activeProjectName });
 
     try {
       let finalText = messageText;
@@ -73,8 +72,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         try {
           const result = await processAttachments(attachments, {
             activeProjectName,
-            activeAgentId: activeAgent?.id,
-            activeChannelId: activeChannel?.id});
+            activeAgentId: activeAgent?.id});
           finalText = messageText + result.extraText;
           imagesToSave = result.images;
         } catch (attachErr) {
@@ -88,14 +86,13 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         headers: {
           "Content-Type": "application/json"},
         body: JSON.stringify(buildCreateSessionBody(sessionName, {
-          activeChannel,
           activeTeam,
           activeAgent,
           activeProjectName}))});
 
       if (createRes.ok) {
         const session = await createRes.json();
-        const path = getSessionPath(session.id, { activeChannel, activeTeam, activeAgent, activeProjectName });
+        const path = getSessionPath(session.id, { activeTeam, activeAgent, activeProjectName });
 
         const pendingData = {
           text: finalText,
@@ -123,7 +120,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   };
 
   const getSuggestions = () => {
-    if (activeChannel) {
+    if (activeTeam) {
       return [
         {
           label: l.pillListAgents || "List Agents",
@@ -161,7 +158,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
   const [sessionMetadata, setSessionMetadata] = useState<any>(null);
-  const [chatMode, setChatMode] = useState<"chat" | "timeline">("chat");
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
@@ -479,7 +475,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       unsubToolUpdate();
       unsubToolApproval();
     };
-  }, [sessionId, subscribe, loadMessages, navigate, activeChannel, activeAgent, activeProjectName]);
+  }, [sessionId, subscribe, loadMessages, navigate, activeTeam, activeAgent, activeProjectName]);
 
   useEffect(() => {
     if (connected && !wasConnected && sessionId) {
@@ -521,17 +517,10 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       } else {
         const userMsg: Message = { role: "user", content: message };
         setMessages((prev) => [...prev, userMsg]);
-        if (activeChannel) {
-          apiFetch(`/api/channels/${activeChannel.id}/send`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json"},
-            body: JSON.stringify({ message })}).catch(() => {});
-        } else {
-          send({ type: "prompt", message, sessionId, tools, images });
-        }
+        send({ type: "prompt", message, sessionId, tools, images });
       }
     },
-    [sessionId, send, activeChannel, scrollToBottom]
+    [sessionId, send, activeTeam, scrollToBottom]
   );
 
   useEffect(() => {
@@ -604,12 +593,12 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
     return (
       <div className="h-full flex flex-col items-center justify-center bg-bg relative">
         <WelcomeChatInput
-          title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
+          title={activeTeam ? `#${activeTeam.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
           sessionId={null}
           onSend={(msg, attachments) => createSessionAndSend(msg, attachments)}
           suggestions={getSuggestions()}
           showModelSelector={true}
-          allowAttachments={!activeChannel}
+          allowAttachments={!activeTeam}
           disabled={streaming || !connected}
           loading={streaming}
           textareaRef={chatInputRef}
@@ -626,7 +615,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
             <div className="flex items-center gap-2 min-w-0">
               {sessionMetadata?.parentSessionId && (
                 <button
-                  onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeChannel, activeAgent, activeProjectName, activeTeam }))}
+                  onClick={() => navigate(getSessionPath(sessionMetadata.parentSessionId, { activeAgent, activeProjectName, activeTeam }))}
                   className="p-1 rounded-md hover:bg-card-hover text-muted-foreground hover:text-foreground transition-colors cursor-pointer shrink-0"
                   title="Volver a la sesión padre"
                 >
@@ -645,30 +634,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 </span>
               )}
             </div>
-            {messages.length > 0 && (
-              <div className="flex items-center bg-card border border-input rounded-xl p-0.5 select-none shrink-0 shadow-xs">
-                <button
-                  onClick={() => setChatMode("chat")}
-                  className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                    chatMode === "chat"
-                      ? "bg-accent/15 text-accent font-bold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Chat
-                </button>
-                <button
-                  onClick={() => setChatMode("timeline")}
-                  className={`px-2.5 py-1 text-[10px] font-bold rounded-lg transition-all cursor-pointer ${
-                    chatMode === "timeline"
-                      ? "bg-accent/15 text-accent font-bold"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Timeline
-                </button>
-              </div>
-            )}
           </div>
         )}
 
@@ -690,19 +655,16 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           className={`flex-1 overflow-y-auto min-h-0 ${loadingMessages || messages.length === 0 ? "flex flex-col justify-center animate-fade-in" : ""}`}
         >
           {loadingMessages ? (
-            <div className="flex flex-col items-center justify-center gap-3 py-12 text-text-secondary select-none">
-              <div className="w-8 h-8 border-3 border-accent border-t-transparent rounded-full animate-spin" />
-              <span className="text-xs font-mono tracking-wider animate-pulse opacity-85">Cargando mensajes...</span>
-            </div>
+            <ChatSkeleton />
           ) : (
             <div className={`max-w-3xl mx-auto px-3 sm:px-4 py-3 sm:py-4 w-full`}>
               {messages.length === 0 ? (
                 <WelcomeChatInput
-                  title={activeChannel ? `#${activeChannel.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
+                  title={activeTeam ? `#${activeTeam.name}` : activeAgent ? `${activeAgent.name}` : activeProjectName ? `${activeProjectName}` : undefined}
                   sessionId={sessionId}
                   onSend={async (msg, attachments) => {
                     if (attachments && attachments.length > 0) {
-                      const result = await processAttachments(attachments, { activeProjectName, activeAgentId: activeAgent?.id, activeChannelId: activeChannel?.id });
+                      const result = await processAttachments(attachments, { activeProjectName, activeAgentId: activeAgent?.id });
                       handleSend(msg + result.extraText, undefined, undefined, result.images.length > 0 ? result.images : undefined);
                     } else {
                       handleSend(msg);
@@ -710,7 +672,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                   }}
                   suggestions={getSuggestions()}
                   showModelSelector={true}
-                  allowAttachments={!activeChannel}
+                  allowAttachments={!activeTeam}
                   disabled={streaming || !connected}
                   loading={streaming}
                   textareaRef={chatInputRef}
@@ -721,47 +683,38 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                     tasksState={tasksState}
                     onToggleStatus={handleToggleTasksStatus}
                   />
-                  {chatMode === "timeline" ? (
-                    <SessionTimeline
-                      messages={messages}
-                      sessionCreatedAt={sessionMetadata?.createdAt}
-                    />
-                  ) : (
-                    <MessageList
-                      messages={messages}
-                      onNavigate={handleNavigate}
-                      sessionId={sessionId}
-                      activeProjectName={activeProjectName}
-                      activeAgentId={activeAgent?.id}
-                      activeAgentName={activeAgent?.name}
-                      activeAgentAvatarUrl={activeAgent?.avatarUrl}
-                      activeChannelId={activeChannel?.id}
-                      activeTeamId={activeTeam?.id}
-                      serialTools={serialTools}
-                      onOpenSubagentConsole={(toolCallId: string, targetType?: string, targetId?: string) => {
-                        const prefix = targetType === "delegate" || targetType === "channel" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
-                        const subSessionId = `${prefix}_${toolCallId}`;
+                  <MessageList
+                    messages={messages}
+                    onNavigate={handleNavigate}
+                    sessionId={sessionId}
+                    activeProjectName={activeProjectName}
+                    activeAgentId={activeAgent?.id}
+                    activeAgentName={activeAgent?.name}
+                    activeAgentAvatarUrl={activeAgent?.avatarUrl}
+                    activeTeamId={activeTeam?.id}
+                    serialTools={serialTools}
+                    onOpenSubagentConsole={(toolCallId: string, targetType?: string, targetId?: string) => {
+                      const prefix = targetType === "delegate" || targetType === "agent" || targetType === "project" || targetType === "session" ? "del" : "sub";
+                      const subSessionId = `${prefix}_${toolCallId}`;
 
-                        let context: any = { activeChannel, activeAgent, activeProjectName, activeTeam };
+                      let context: any = { activeAgent, activeProjectName, activeTeam };
 
-                        if (targetType && targetId) {
-                          if (activeTeam) {
-                            context = { activeTeam };
-                          } else {
-                            context = {
-                              activeChannel: targetType === "channel" ? { id: targetId, name: "" } : null,
-                              activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
-                              activeProjectName: targetType === "project" ? targetId : null,
-                            };
-                          }
+                      if (targetType && targetId) {
+                        if (activeTeam) {
+                          context = { activeTeam };
+                        } else {
+                          context = {
+                            activeAgent: targetType === "agent" ? { id: targetId, name: "" } : null,
+                            activeProjectName: targetType === "project" ? targetId : null,
+                          };
                         }
+                      }
 
-                        navigate(getSessionPath(subSessionId, context));
-                      }}
-                      settledApprovals={settledApprovals}
-                      onResolveApproval={handleResolveApproval}
-                    />
-                  )}
+                      navigate(getSessionPath(subSessionId, context));
+                    }}
+                    settledApprovals={settledApprovals}
+                    onResolveApproval={handleResolveApproval}
+                  />
                   {!isReadOnlyExecution && <div className="h-[176px] flex-shrink-0" />}
                 </>
               )}
@@ -804,7 +757,6 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
                 runnerActive={tasksState.status === "running" || tasksState.status === "decomposing"}
                 activeProjectName={activeProjectName}
                 activeAgentId={activeAgent?.id}
-                activeChannelId={activeChannel?.id}
                 contextUsage={contextUsage}
                 onCompact={handleCompact}
                 compacting={compacting}

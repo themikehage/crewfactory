@@ -11,7 +11,6 @@ interface UseSessionResolverParams {
   activeProjectName: string | null;
   activeProjectFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
-  activeChannel: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
   currentPage: string;
 }
@@ -26,7 +25,6 @@ export function useSessionResolver({
   activeProjectName,
   activeProjectFriendlyName = null,
   activeAgent,
-  activeChannel,
   activeTeam = null,
   currentPage,
 }: UseSessionResolverParams): UseSessionResolverReturn {
@@ -39,7 +37,6 @@ export function useSessionResolver({
     sessionId,
     activeProjectName,
     activeAgent?.id,
-    activeChannel?.id,
     activeTeam?.id,
   ].join(":");
 
@@ -62,24 +59,7 @@ export function useSessionResolver({
 
     const resolve = async () => {
       try {
-        if (activeTeam) {
-          const teamRes = await apiFetch(`/api/teams/${activeTeam.id}`);
-          if (teamRes.ok) {
-            const team = await teamRes.json();
-            if (team && team.teamType === "Orchestration") {
-              const sessionRes = await apiFetch(`/api/teams/${activeTeam.id}/orchestration-session`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" }
-              });
-              if (sessionRes.ok && isCurrentResolution()) {
-                const sessionData = await sessionRes.json();
-                setResolvedSessionId(sessionData.sessionId);
-                setResolving(false);
-                return;
-              }
-            }
-          }
-        }
+
 
         const res = await apiFetch("/api/sessions");
         if (!res.ok || !isCurrentResolution()) return;
@@ -89,7 +69,6 @@ export function useSessionResolver({
         const all = data.sessions ?? [];
 
         const context = {
-          activeChannel,
           activeTeam,
           activeAgent,
           activeProjectName,

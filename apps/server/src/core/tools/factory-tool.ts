@@ -1,7 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync, rmSync, readFileSync, readdirSync } from "node:fs";
 import { join } from "node:path";
 import { agentRegistry } from "../../agents";
-import { channelStore } from "../../channels";
 import { sessionManager } from "../session-manager";
 import { ExperimentStore } from "../../laboratory/experiment-store";
 import { loadSkills } from "../../ai";
@@ -16,7 +15,6 @@ export interface FactoryToolOptions {
 const ENTITY_REFRESH_MAP: Record<string, string> = {
   agents: "agent",
   projects: "project",
-  channels: "channel",
   skills: "skill",
   experiments: "experiment",
   teams: "team",
@@ -239,54 +237,6 @@ async function handleProjects(action: string, id: string | undefined, params: an
     rmSync(projPath, { recursive: true, force: true });
     const projectName = (proj as any)?.name ?? id;
     return ok(`Project "${projectName}" deleted`, { entity: "projects", id, status: "deleted" });
-  }
-
-  return err(`Unknown action: ${action}`);
-}
-
-async function handleChannels(action: string, id: string | undefined, params: any, username: string) {
-  if (action === "get") {
-    if (id) {
-      const channel = channelStore.getChannel(username, id);
-      if (!channel) return err(`Channel "${id}" not found`);
-      return ok(JSON.stringify(channel, null, 2), { entity: "channels", id, data: channel });
-    }
-    const list = channelStore.listChannels(username);
-    return ok(JSON.stringify(list, null, 2), { entity: "channels", data: list });
-  }
-
-  if (action === "upsert") {
-    if (!id) return err("id is required for upsert");
-    const existing = channelStore.getChannel(username, id);
-    if (existing) {
-      const updated = channelStore.updateChannel(username, id, {
-        name: params.name,
-        description: params.description,
-      });
-      if (params.members) {
-        channelStore.updateMembers(username, id, params.members);
-      }
-      if (params.negotiationProtocol !== undefined) {
-        channelStore.updateChannel(username, id, { negotiationProtocol: params.negotiationProtocol });
-      }
-      return ok(`Channel "${id}" updated`, { entity: "channels", id, status: "updated", data: updated });
-    }
-    const channel = channelStore.createChannel(username, {
-      id,
-      name: params.name,
-      description: params.description ?? "",
-      members: params.members ?? [],
-      negotiationProtocol: params.negotiationProtocol ?? false,
-    } as any);
-    return ok(`Channel "${id}" created`, { entity: "channels", id, status: "created", data: channel });
-  }
-
-  if (action === "delete") {
-    if (!id) return err("id is required for delete");
-    const existing = channelStore.getChannel(username, id);
-    if (!existing) return err(`Channel "${id}" not found`);
-    channelStore.deleteChannel(username, id);
-    return ok(`Channel "${id}" deleted`, { entity: "channels", id, status: "deleted" });
   }
 
   return err(`Unknown action: ${action}`);
@@ -568,7 +518,7 @@ async function handleTeams(action: string, id: string | undefined, params: any, 
         return err("The orchestration leader is not available");
       }
       const { SessionPrefix, getTeamWorkspaceDir } = await import("shared");
-      const ownerSessionId = `${SessionPrefix.TEAM}${team.id}`;
+      const ownerSessionId = params.sessionId || `${SessionPrefix.TEAM}${team.id}`;
       const session = await sessionManager.getOrCreateSession(username, ownerSessionId, undefined, leader.agentId, undefined, {
         workspaceDir: getTeamWorkspaceDir(username, team.id),
       });
@@ -617,9 +567,9 @@ export function createFactoryTool(opts: FactoryToolOptions) {
 
   return {
     name: "manage_factory",
-    description: `Manage CrewFactory entities directly. Operations on agents, projects, channels, sessions, environment variables, LLM providers, custom skills, teams, and laboratory experiments.
+    description: `Manage CrewFactory entities directly. Operations on agents, projects, sessions, environment variables, LLM providers, custom skills, teams, and laboratory experiments.
 
-Available entities: agents, projects, channels, sessions, env, providers, skills, teams, experiments.
+Available entities: agents, projects, sessions, env, providers, skills, teams, experiments.
 Actions: get (list or read), upsert (create or update), delete (permanently remove), send (message dispatch to a team), member (add/update member of a team).
 
 Entity-specific notes:
@@ -638,7 +588,7 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
       properties: {
         entity: {
           type: "string",
-          enum: ["agents", "projects", "channels", "sessions", "env", "providers", "skills", "teams", "experiments"],
+          enum: ["agents", "projects", "sessions", "env", "providers", "skills", "teams", "experiments"],
           description: "The factory entity type to operate on.",
         },
         action: {
@@ -648,7 +598,7 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
         },
         id: {
           type: "string",
-          description: "Entity identifier. Required for delete, send, and member. For get, omit to list all entities. For upsert on agents/channels/skills/teams/experiments, use as the unique ID. For env, use 'key' in params instead.",
+          description: "Entity identifier. Required for delete, send, and member. For get, omit to list all entities. For upsert on agents/skills/teams/experiments, use as the unique ID. For env, use 'key' in params instead.",
         },
         params: {
           type: "object",
@@ -673,9 +623,6 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
           break;
         case "projects":
           result = await handleProjects(action, id, params, username);
-          break;
-        case "channels":
-          result = await handleChannels(action, id, params, username);
           break;
         case "sessions":
           result = await handleSessions(action, id, params, username);
