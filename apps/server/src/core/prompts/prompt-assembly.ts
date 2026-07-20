@@ -6,6 +6,7 @@ import {
   PERSISTENT_MEMORY_INSTRUCTIONS,
   SUBAGENT_DELEGATION_INSTRUCTIONS,
   TASK_DELEGATION_INSTRUCTIONS,
+  ENVIRONMENT_INSTRUCTIONS,
   LAB_APPEND_INSTRUCTIONS,
 } from "./system-instructions";
 
@@ -14,6 +15,7 @@ export type PromptAssemblyMode =
   | "channel-member"   // Channel orchestrator agent invocations
   | "team-orchestration"
   | "orchestration-team"
+  | "debate-stateless"  // Negotiation team debate — no memory, no tools
   | "agent-startup"    // Standalone agent server bootstrap
   | "subagent-spawn"  // Spawned subagent executor
   | "experiment-member"; // Laboratory experiment agent invocations
@@ -28,6 +30,7 @@ export interface PromptAssemblyContext {
 }
 
 export const STANDARD_APPEND_INSTRUCTIONS = [
+  ENVIRONMENT_INSTRUCTIONS,
   HTML_PREVIEW_INSTRUCTIONS,
   AG_UI_INSTRUCTIONS,
   PERSISTENT_MEMORY_INSTRUCTIONS,
@@ -95,6 +98,20 @@ export function assemblePromptAppends(ctx: PromptAssemblyContext): string[] {
         formatEnvironmentContext(ctx.workspaceDir),
         layered.composed,
         ...LAB_APPEND_INSTRUCTIONS,
+      ];
+    }
+    case "debate-stateless": {
+      // Deliberately minimal: identity + role + negotiation protocol only.
+      // No memory tools, no subagent delegation, no AG-UI, no task delegation.
+      // Agents must stay focused on the debate topic.
+      const deployment = ctx.deployment || { mode: "negotiation-team" };
+      const layered = promptComposer.compose(
+        ctx.agentDef || { name: "", role: "", systemPrompt: "" },
+        deployment,
+        ctx.workspaceDir
+      );
+      return [
+        layered.composed,
       ];
     }
     case "subagent-spawn": {

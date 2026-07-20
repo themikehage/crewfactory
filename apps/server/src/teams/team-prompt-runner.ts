@@ -2,15 +2,13 @@ import { teamStore } from "./team-store";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
 import { resolveModelWithFallback } from "../core/agent-utils";
-import { type Team, type TeamMember, type TeamMessage, getTeamMemoryDbPath } from "shared";
-import { memoryRegistry } from "../core/memory/registry";
+import { type Team, type TeamMember, type TeamMessage } from "shared";
+
 import { assemblePromptAppends } from "../core/prompts/prompt-assembly";
 import { parseAgentResponse, enforceDiffFormat } from "../core/multi-agent/response-parser";
 import { parseMentions } from "../core/multi-agent/mention-parser";
 import { buildAgentPrompt, buildAgentNameMap } from "../core/multi-agent/agent-prompt-runner";
 import { streamSimple } from "../ai/vendor/ai/src/compat.ts";
-
-const _promptCache = new Map<string, string[]>();
 
 export interface ActiveTeamStream {
   agentId: string;
@@ -169,47 +167,16 @@ export class TeamPromptRunner {
       agentName,
     });
 
-    // Resolve memory contexts
-    const userSettings = sessionManager.userConfig.getUserSettings(username);
-    const memoryEnabled = userSettings.memoryEnabled ?? true;
-    const teamDbPath = getTeamMemoryDbPath(username, teamId);
-    const teamMemory = await memoryRegistry.get(`team:${teamId}`, teamDbPath, memoryEnabled);
-
-    const substantive = isSubstantiveMessage(incomingMsg.content);
-    const [agentMemCtx, teamMemCtx] = substantive
-      ? await Promise.all([
-          agentEntry.server.memory.buildContext(incomingMsg.content, { sessionId: incomingMsg.sessionId }),
-          teamMemory.buildContext(incomingMsg.content, { sessionId: incomingMsg.sessionId }),
-        ])
-      : ["", ""];
-
-    let memoryPrefix = "";
-    if (agentMemCtx) {
-      memoryPrefix += `${agentMemCtx}\n\n`;
-    }
-    if (teamMemCtx) {
-      const teamFormatted = teamMemCtx.replace(
-        "--- Memories from previous sessions (historical context only — do not resume or re-execute past tasks unless explicitly asked) ---",
-        "--- Team Memories from previous sessions (historical context only — do not resume or re-execute past tasks unless explicitly asked) ---"
-      );
-      memoryPrefix += `${teamFormatted}\n\n`;
-    }
-
     // Build Deployment Context
     const deployment = buildTeamDeploymentContext(team, member.agentId, agentNameMap);
     const workspaceDir = agentEntry.server.session.cwd;
-    const cacheKey = `team:${member.agentId}:${teamId}:${deployment.isArbiter}:${deployment.outputMode}`;
 
-    let appendSystemPrompts = _promptCache.get(cacheKey);
-    if (!appendSystemPrompts) {
-      appendSystemPrompts = assemblePromptAppends({
-        mode: "orchestration-team", // We use "orchestration-team" mode which resolves the team layered prompts
-        workspaceDir,
-        agentDef: agentEntry.server.definition,
-        deployment: deployment as any,
-      });
-      _promptCache.set(cacheKey, appendSystemPrompts);
-    }
+    const appendSystemPrompts = assemblePromptAppends({
+      mode: "debate-stateless",
+      workspaceDir,
+      agentDef: agentEntry.server.definition,
+      deployment: deployment as any,
+    });
 
     const resourceLoader = agentEntry.server.session.resourceLoader;
     const baseSystemPrompt = resourceLoader.getSystemPrompt() || "";
@@ -218,8 +185,8 @@ export class TeamPromptRunner {
       ...(appendSystemPrompts || []),
     ].filter(Boolean).join("\n\n");
 
-    const promptText =
-      memoryPrefix + buildAgentPrompt(incomingMsg as any, recentHistory as any, ((team as any).context || []) as any);
+    const promptText = buildAgentPrompt(incomingMsg as any, recentHistory as any, ((team as any).context || []) as any);
+
 
     const context = {
       systemPrompt: fullSystemPrompt,
@@ -299,21 +266,6 @@ export class TeamPromptRunner {
       );
 
       parseResult.content = enforceDiffFormat(parseResult.content, deployment.outputMode || "normal");
-
-      if (
-        memoryEnabled &&
-        userSettings.memoryAutoStore !== false &&
-        parseResult.content &&
-        !parseResult.isSilent
-      ) {
-        await agentEntry.server.memory.store(
-          parseResult.content.slice(0, 500),
-          "episodic",
-          0.5,
-          ["interaction", `team:${teamId}`],
-          incomingMsg.sessionId
-        );
-      }
 
       this.broadcastFn(teamId, {
         type: "team_agent_end",

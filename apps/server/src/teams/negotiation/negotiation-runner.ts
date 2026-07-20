@@ -1,11 +1,10 @@
 import { teamStore } from "../team-store";
 import { type TeamMessage, type TeamMember } from "shared";
 import { TeamPromptRunner } from "../team-prompt-runner";
-import { handleTeamNegotiation } from "../team-negotiation";
 import { buildAgentNameMap } from "../../core/multi-agent/agent-prompt-runner";
-import { parseMentions } from "../../core/multi-agent/mention-parser";
 import { isSubstantiveMessage } from "../team-prompt-runner";
 import type { ActiveTeamStream } from "../team-prompt-runner";
+
 
 type BroadcastFn = (teamId: string, data: any) => void;
 
@@ -118,15 +117,15 @@ export class NegotiationRunner {
     const maxRounds = team.maxRounds ?? 5;
     let round = 1;
 
-    let currentIncomingMsg: TeamMessage =
-      team.negotiationProtocol
-        ? {
-            ...initialMsg,
-            content: `[INICIO DE DEBATE - RONDA 1]\nPropuesta/Tema a debatir:\n"""\n${initialMsg.content}\n"""\n\nPor favor, evalúa esta propuesta de acuerdo con tu especialidad y las reglas del protocolo de negociación (SCORE/DIVERGENCE/OBJECTION/VETO/ACUERDO).`,
-          }
-        : initialMsg;
+    let currentIncomingMsg: TeamMessage = team.negotiationProtocol
+      ? {
+          ...initialMsg,
+          content: `[DEBATE - RONDA 1]\nPropuesta/Tema a debatir:\n"""\n${initialMsg.content}\n"""\n\nEvalúa esta propuesta según tu especialidad y el protocolo de negociación (SCORE/DIVERGENCE/OBJECTION/VETO/ACUERDO).`,
+        }
+      : initialMsg;
 
     const agentNameMap = buildAgentNameMap(team.members as any);
+    const { TeamNegotiationEvaluator } = await import("../team-negotiation-evaluator");
 
     while (round <= maxRounds && !signal.aborted && !this.abortedDispatches.has(key)) {
       console.log(`[NegotiationRunner] Round ${round} starting...`);
@@ -153,7 +152,6 @@ export class NegotiationRunner {
         if (res.agentMsg) {
           res.agentMsg.round = round;
           activeResults.push(res as { agentMsg: TeamMessage });
-          currentIncomingMsg = res.agentMsg;
           teamStore.appendMessage(username, teamId, res.agentMsg);
           this.broadcastFn(teamId, {
             type: "team_message",
@@ -172,34 +170,94 @@ export class NegotiationRunner {
       let escalationMsg: TeamMessage | null = null;
       let arbiterMember: TeamMember | null = null;
 
-      for (const res of activeResults) {
-        const negResult = handleTeamNegotiation(
-          username,
-          teamId,
-          team,
-          res.agentMsg.agentId!,
-          initialMsg,
-          res.agentMsg,
-          agentNameMap,
-          this.broadcastFn
-        );
-        if (negResult.action === "stop-agreed" || negResult.action === "stop-rejected") {
-          stopLoop = true;
-          break;
+      if (team.negotiationProtocol) {
+        const protocol = team.negotiationProtocol;
+        const quorumThreshold = protocol.quorumThreshold ?? 0.51;
+        const roundVotes: Record<string, import("../team-negotiation-evaluator").AgentVote> = {};
+
+        for (const res of activeResults) {
+          roundVotes[res.agentMsg.agentId!] = TeamNegotiationEvaluator.classifyVote(
+            res.agentMsg.content,
+            protocol
+          );
         }
-        if (negResult.action === "escalate" && negResult.escalationMessage && negResult.arbiterMember) {
-          escalationMsg = negResult.escalationMessage;
-          arbiterMember = negResult.arbiterMember;
-          break;
+
+        const outcome = TeamNegotiationEvaluator.evaluateRound(
+          roundVotes,
+          quorumThreshold,
+          activeMembers.length,
+          round,
+          team.maxRounds ?? 5
+        );
+
+        this.broadcastFn(teamId, {
+          type: "team_negotiation_round",
+          teamId,
+          sessionId: initialMsg.sessionId,
+          rounds: round,
+          status: outcome.result,
+          votes: roundVotes,
+        });
+
+        if (outcome.result === "consensus") {
+          this.broadcastFn(teamId, {
+            type: "team_negotiation_agreement",
+            teamId,
+            sessionId: initialMsg.sessionId,
+            content: activeResults[activeResults.length - 1].agentMsg.content,
+          });
+          return;
+        }
+
+        if (outcome.result === "conflict" || outcome.result === "escalate") {
+          const triggerAgentId = outcome.result === "conflict"
+            ? (outcome as any).triggerAgentId
+            : undefined;
+
+          if (triggerAgentId) {
+            this.broadcastFn(teamId, {
+              type: "team_negotiation_rejected",
+              teamId,
+              sessionId: initialMsg.sessionId,
+              agentId: triggerAgentId,
+            });
+          }
+
+          if (arbiterId) {
+            const arbiterName = agentNameMap.get(arbiterId) || arbiterId;
+            this.broadcastFn(teamId, {
+              type: "team_negotiation_escalation",
+              teamId,
+              sessionId: initialMsg.sessionId,
+              arbiterId,
+              arbiterName,
+              rounds: round,
+            });
+
+            const { ArbitrationProtocol } = await import("../../core/negotiation/arbitration-protocol");
+            const arbiterProtocol = new ArbitrationProtocol({ arbiterAgentId: arbiterId });
+            escalationMsg = {
+              ...arbiterProtocol.buildEscalationMessage({
+                senderId: triggerAgentId || "system",
+                senderName: agentNameMap.get(triggerAgentId) || "system",
+                receiverId: "user",
+                receiverName: "user",
+                rounds: round,
+                teamId,
+                sessionId: initialMsg.sessionId,
+              }) as unknown as TeamMessage,
+              round,
+            };
+            arbiterMember = team.members.find((m) => m.agentId === arbiterId) ?? null;
+          } else {
+            stopLoop = true;
+          }
         }
       }
 
       if (stopLoop) return;
 
       if (escalationMsg && arbiterMember) {
-        const negotiationState = teamStore.getNegotiationState(username, teamId);
-        if ((negotiationState._arbitrations || 0) >= 3) return;
-
         teamStore.appendMessage(username, teamId, escalationMsg);
         this.broadcastFn(teamId, {
           type: "team_message",
@@ -229,9 +287,21 @@ export class NegotiationRunner {
             message: arbiterResult.agentMsg,
             eventType: "agent_message",
           });
-          currentIncomingMsg = arbiterResult.agentMsg;
+          const negState = teamStore.getNegotiationState(username, teamId);
+          negState._arbitrations = (negState._arbitrations || 0) + 1;
+          teamStore.saveNegotiationState(username, teamId, negState);
         }
+        return;
       }
+
+      const roundSummary = activeResults
+        .map((r) => `[${r.agentMsg.agentName || r.agentMsg.agentId}]: ${r.agentMsg.content}`)
+        .join("\n\n---\n\n");
+
+      currentIncomingMsg = {
+        ...initialMsg,
+        content: `[DEBATE - RONDA ${round + 1}]\nPropuesta original:\n"""\n${initialMsg.content}\n"""\n\nPosturas de ronda ${round}:\n"""\n${roundSummary}\n"""\n\nConsidera las posiciones anteriores y emite tu evaluación actualizada según el protocolo de negociación.`,
+      };
 
       round++;
     }
