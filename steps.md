@@ -94,4 +94,26 @@
 - [x] 170.5 Add avatarUrl configuration inputs in TeamsPage create dialog and TeamSettingsModal settings dialog
 - [x] 170.6 Update main layout breadcrumbs structure and verify client and server compilation build checks
 
+## Phase 171: Complete Channels Elimination and Full Teams Migration
+- [x] 171.1 Removed channel references from all backend routes, storage mechanisms, and WebSocket loops
+- [x] 171.2 Migrated laboratory export mechanism to output exclusively to Team entities
+- [x] 171.3 Swapped all client routers, hooks, and pages (Analytics, Kanban, Dashboard, Delegations) from channels to teams
+- [x] 171.4 Removed legacy senior/channel references in flow layout components (Canvas, Mobile, Node, Panel)
+- [x] 171.5 Confirmed 0 errors on production builds of apps/client and verified existing server tests pass successfully
 
+## Phase 172: Modal Alignment and Settings Standardization
+- [x] 172.1 Create unified AvatarUploadField component supporting default and custom avatar uploads
+- [x] 172.2 Implement server endpoints for project and settings avatar management and settings prompts
+- [x] 172.3 Extract ProjectCreateModal, TeamCreateModal, and GlobalAgentSettingsModal components
+- [x] 172.4 Standardize ProjectSettingsModal and TeamSettingsModal with AvatarUploadField and deletion Danger Zones
+- [x] 172.5 Redesign ProjectsPage and TeamsPage layouts, removing inline edit forms and card gear configurations
+- [x] 172.6 Clean up AgentsPage cards, removing direct edit buttons and simplifying page states
+- [x] 172.7 Wire settings gears, custom Factory names and custom Factory avatars to MainLayout, Sidebar and Breadcrumbs
+- [x] 172.8 Verify client builds successfully and all flows align to the new unified design system
+
+## Phase 173: Orchestration Team Domain Separation and Bug Fixes
+- [x] 173.1 Create OrchestrationRunner (teams/orchestration/orchestration-runner.ts) with session event bridge to teamSockets — fixes no streaming bug
+- [x] 173.2 Create NegotiationRunner (teams/negotiation/negotiation-runner.ts) encapsulating stateless debate loop
+- [x] 173.3 Refactor TeamOrchestrator to pure router delegating to OrchestrationRunner or NegotiationRunner by teamType
+- [x] 173.4 Fix sessionId isolation: user messages and agent responses tagged with conversationSessionId in teamStore — fixes cross-session message mixing bug
+- [x] 173.5 Verify bun build compiles cleanly with 0 errors in teams modules
