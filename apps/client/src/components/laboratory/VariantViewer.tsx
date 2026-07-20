@@ -94,12 +94,18 @@ export function VariantViewer({
       {/* Visores */}
       <div className="flex-1 min-h-0 relative">
         {activeSubTab === "chat" ? (
-          <div className="absolute inset-0 flex flex-col bg-card/5 rounded-xl border border-input/40 overflow-hidden">
-            <TeamChatArea
-              activeTeam={{ id: teamId, name: expName || "Visor" }}
-              sessionId={activeSessionId}
-              variantMode={true}
-            />
+        <div className="absolute inset-0 flex flex-col bg-card/5 rounded-xl border border-input/40 overflow-hidden">
+            {activeSessionId ? (
+              <TeamChatArea
+                activeTeam={{ id: teamId, name: expName || "Visor" }}
+                sessionId={activeSessionId}
+                variantMode={true}
+              />
+            ) : (
+              <div className="flex-1 flex flex-col items-center justify-center h-full text-xs text-muted-foreground italic">
+                {status === "running" ? "Inicializando sesión..." : "Esperando inicio de la corrida..."}
+              </div>
+            )}
           </div>
         ) : (
           <div className="absolute inset-0 overflow-y-auto space-y-6 text-left p-2">

@@ -84,6 +84,9 @@ export class LabNegotiationRunner {
       updatedAt: new Date().toISOString()
     };
 
+    // Clean up any previous run's team state before creating the new one
+    try { teamStore.deleteTeam(username, teamId); } catch {}
+
     // Save temporary team definitions to teamStore
     const teamJsonPath = (teamStore as any).getTeamJsonPath(username, teamId);
     (teamStore as any).getTeamDirectory(username, teamId);
@@ -292,11 +295,9 @@ export class LabNegotiationRunner {
       status = "failed";
     } finally {
       if (signal.aborted) status = "aborted";
-
-      // Clean up temporary team definition from teamStore
-      try {
-        teamStore.deleteTeam(username, teamId);
-      } catch {}
+      // Team is intentionally NOT deleted here.
+      // It persists so the client can read historical messages after the run.
+      // Cleanup happens when the experiment is deleted (DELETE /api/experiments/:id).
     }
 
     // 5. Collect final execution results
