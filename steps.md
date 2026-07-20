@@ -124,3 +124,7 @@
 - [x] 174.4 Cast BunFile to any in files.ts and settings.ts body response functions to resolve TypeScript compilation check errors
 - [x] 174.5 Verify server tests and strict typecheck checks pass cleanly
 
+## Phase 175: Fix Negotiation Team Chat Scroll
+- [x] 175.1 Integrated useChatScroll hook in TeamMessageList to unify scroll behavior across standard and negotiation views
+
+
