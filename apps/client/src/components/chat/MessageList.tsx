@@ -474,12 +474,42 @@ function UserBubble({
 
   const { token } = useAuth();
 
+  const isSteer = cleanText.startsWith("[Steer] ");
+  const isFollowUp = cleanText.startsWith("[Follow-up] ");
+  const displayText = isSteer 
+    ? cleanText.substring("[Steer] ".length) 
+    : isFollowUp 
+      ? cleanText.substring("[Follow-up] ".length) 
+      : cleanText;
+
   return (
     <div className="flex gap-3 justify-end my-1">
       <div className="max-w-[80%] sm:max-w-[75%] space-y-2 flex flex-col items-end">
         {cleanText && (
-          <div className="bg-card border border-border rounded-2xl rounded-tr-md px-4 py-2.5 shadow-sm text-right max-w-full overflow-hidden">
-            <p className="text-base md:text-sm leading-relaxed whitespace-pre-wrap break-words break-word font-sans text-left">{cleanText}</p>
+          <div className={clsx(
+            "border rounded-2xl rounded-tr-md px-4 py-2.5 shadow-xs text-right max-w-full overflow-hidden transition-all duration-200",
+            isSteer 
+              ? "bg-accent/5 border-accent/30 shadow-[0_0_12px_rgba(74,222,128,0.08)]" 
+              : isFollowUp 
+                ? "bg-warning/5 border-warning/30 shadow-[0_0_12px_rgba(251,191,36,0.08)]" 
+                : "bg-card border-border"
+          )}>
+            {(isSteer || isFollowUp) && (
+              <div className="flex items-center gap-1.5 mb-1.5 text-[10px] font-mono font-bold tracking-wider select-none justify-start text-left">
+                {isSteer ? (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-accent animate-pulse" />
+                    <span className="text-accent">STEERING COMMAND</span>
+                  </>
+                ) : (
+                  <>
+                    <span className="w-1.5 h-1.5 rounded-full bg-warning animate-pulse" />
+                    <span className="text-warning">FOLLOW-UP PROMPT</span>
+                  </>
+                )}
+              </div>
+            )}
+            <p className="text-base md:text-sm leading-relaxed whitespace-pre-wrap break-words break-word font-sans text-left">{displayText}</p>
             {msg.isError && (
               <div className="mt-1.5 text-xs text-error">Error sending message</div>
             )}

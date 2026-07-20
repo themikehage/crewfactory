@@ -494,7 +494,10 @@ export function createWsContext(): WsConnectionContext {
         const sessionId = data.sessionId as string;
         const message = data.message as string;
         const session = sessionManager.getSession(user.username, sessionId);
-        if (session) session.steer(message);
+        if (session) {
+          const steerMsg = message.startsWith("[Steer] ") ? message : `[Steer] ${message}`;
+          session.steer(steerMsg);
+        }
         return;
       }
 
@@ -502,7 +505,10 @@ export function createWsContext(): WsConnectionContext {
         const sessionId = data.sessionId as string;
         const message = data.message as string;
         const session = sessionManager.getSession(user.username, sessionId);
-        if (session) session.followUp(message);
+        if (session) {
+          const followUpMsg = message.startsWith("[Follow-up] ") ? message : `[Follow-up] ${message}`;
+          session.followUp(followUpMsg);
+        }
         return;
       }
 

@@ -72,7 +72,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         try {
           const result = await processAttachments(attachments, {
             activeProjectName,
-            activeAgentId: activeAgent?.id});
+            activeAgentId: activeAgent?.id
+          });
           finalText = messageText + result.extraText;
           imagesToSave = result.images;
         } catch (attachErr) {
@@ -84,11 +85,14 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const createRes = await apiFetch("/api/sessions", {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"},
+          "Content-Type": "application/json"
+        },
         body: JSON.stringify(buildCreateSessionBody(sessionName, {
           activeTeam,
           activeAgent,
-          activeProjectName}))});
+          activeProjectName
+        }))
+      });
 
       if (createRes.ok) {
         const session = await createRes.json();
@@ -124,36 +128,43 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       return [
         {
           label: l.pillListAgents || "List Agents",
-          promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles."},
+          promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles."
+        },
         {
           label: l.pillStartLab || "Start Experiment",
-          promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory."}
+          promptText: l.pillStartLabPrompt || "Explain how to configure and run a debate experiment in the Laboratory."
+        }
       ];
     }
     if (activeAgent) {
       return [
         {
           label: l.pillAgentRole || "Describe Role",
-          promptText: l.pillAgentRolePrompt || "Explain your system prompt, context, and capabilities."}
+          promptText: l.pillAgentRolePrompt || "Explain your system prompt, context, and capabilities."
+        }
       ];
     }
     if (activeProjectName) {
       return [
         {
           label: l.pillAnalyzeCode || "Analyze Workspace",
-          promptText: l.pillAnalyzeCodePrompt || "Analyze the current repository structure and describe its architecture."},
+          promptText: l.pillAnalyzeCodePrompt || "Analyze the current repository structure and describe its architecture."
+        },
         {
           label: l.pillRunTests || "Run Tests",
-          promptText: l.pillRunTestsPrompt || "Run the project's test suite and report if any checks fail."}
+          promptText: l.pillRunTestsPrompt || "Run the project's test suite and report if any checks fail."
+        }
       ];
     }
     return [
       {
         label: l.pillCreateRepo || "Create Repo",
-        promptText: l.pillCreateRepoPrompt || "Help me create a new code repository."},
+        promptText: l.pillCreateRepoPrompt || "Help me create a new code repository."
+      },
       {
         label: l.pillListAgents || "List Agents",
-        promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles."},
+        promptText: l.pillListAgentsPrompt || "List all active programmatic agents and their roles."
+      },
     ];
   };
   const [rightDrawerOpen, setRightDrawerOpen] = useState(false);
@@ -161,7 +172,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const [tasksState, setTasksState] = useState<TaskRunnerState>({
     tasks: [],
     currentTaskId: null,
-    status: "idle"});
+    status: "idle"
+  });
   const [compacting, setCompacting] = useState(false);
   const { connected, send, subscribe } = useWebSocket(sessionId);
   const [wasConnected, setWasConnected] = useState(connected);
@@ -189,13 +201,15 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
   const chatInputRef = useChatInputFocus({
     sessionId,
     loadingMessages,
-    streaming});
+    streaming
+  });
 
   const handleResolveApproval = useCallback((toolCallId: string, action: "confirm" | "deny") => {
     send({
       type: "ui_action",
       componentId: toolCallId,
-      action});
+      action
+    });
     setSettledApprovals((prev) => ({ ...prev, [toolCallId]: action }));
   }, [send]);
 
@@ -205,8 +219,10 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const res = await apiFetch(`/api/sessions/${sessionId}/tasks/status`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"},
-        body: JSON.stringify({ status: newStatus })});
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ status: newStatus })
+      });
       if (res.ok) {
         const data = await res.json();
         setTasksState(data);
@@ -273,7 +289,7 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           setSandboxTools(data.tools ?? ALL_TOOL_NAMES);
           setSerialTools(data.serialTools ?? ["request_approval", "ask_question"]);
         }
-      } catch {}
+      } catch { }
     };
     fetchTools();
 
@@ -284,13 +300,13 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           const data = await res.json();
           setTasksState(data);
         }
-      } catch {}
+      } catch { }
     };
     fetchTasks();
 
     const findMsgIndex = (prev: Message[], msg: Message) => {
-      return prev.findIndex(m => 
-        (m.id && msg.id && m.id === msg.id) || 
+      return prev.findIndex(m =>
+        (m.id && msg.id && m.id === msg.id) ||
         (m.responseId && msg.responseId && m.responseId === msg.responseId)
       );
     };
@@ -408,7 +424,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
             ? result.content
             : [{ type: "text", text: typeof result === "string" ? result : JSON.stringify(result || "") }],
           isError: !!isError,
-          details: result?.details};
+          details: result?.details
+        };
         return [...prev, toolResultMsg];
       });
     });
@@ -456,7 +473,8 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
           toolName: data.toolName,
           content: data.reason || "Action requires approval",
           args: data.args,
-          timestamp: Date.now()} as any;
+          timestamp: Date.now()
+        } as any;
         return [...prev, approvalMsg];
       });
     });
@@ -502,8 +520,10 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
         apiFetch(`/api/sessions/${sessionId}`, {
           method: "PATCH",
           headers: {
-            "Content-Type": "application/json"},
-          body: JSON.stringify({ name })}).catch(() => {});
+            "Content-Type": "application/json"
+          },
+          body: JSON.stringify({ name })
+        }).catch(() => { });
       }
 
       if (option === "steer") {
@@ -576,8 +596,10 @@ export function ChatArea({ sessionId, activeProjectName, activeAgent = null, act
       const res = await apiFetch(`/api/sessions/${sessionId}/navigate`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json"},
-        body: JSON.stringify({ targetId })});
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ targetId })
+      });
       if (res.ok) {
         await loadMessages();
       } else {

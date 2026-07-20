@@ -138,3 +138,15 @@
 - [x] 177.2 Resolve and synchronize context model from restored session state inside getOrCreateSession (session-manager.ts) with fallbacks
 - [x] 177.3 Add unit test case in delegate-tool-team.test.ts to verify model inheritance from restored parent session
 - [x] 177.4 Verify all 108 server tests build and pass successfully
+
+## Phase 178: Subagent & Delegation Context Enrichment
+- [x] 178.1 Re-enable skills loading and forward parent AGENTS.md content to assemblePromptAppends inside spawn-subagent-tool.ts
+- [x] 178.2 Update prompt-assembly.ts to accept and inject agentsMd, availableSkillsPrompt, and ENVIRONMENT_INSTRUCTIONS for subagent-spawn mode
+- [x] 178.3 Create wrapDelegationTask helper inside prompt-assembly.ts and wrap delegate tasks for agent, project, and session targets in delegate-tool.ts
+- [x] 178.4 Verify server compilation build checks successfully
+
+## Phase 179: Style Steering Messages
+- [x] 179.1 Style user steering and follow-up messages with custom badges and highlights in MessageList.tsx
+- [x] 179.2 Persist steering and follow-up prefixes on the server to keep styles across session reload
+- [x] 179.3 Verify client and server compilation build checks successfully
+

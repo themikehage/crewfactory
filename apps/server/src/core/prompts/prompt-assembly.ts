@@ -27,6 +27,8 @@ export interface PromptAssemblyContext {
   deployment?: DeploymentContext;
   subagentTask?: string;
   subagentRole?: string;
+  agentsMd?: string;
+  availableSkillsPrompt?: string;
 }
 
 export const STANDARD_APPEND_INSTRUCTIONS = [
@@ -62,6 +64,22 @@ export function buildSubagentInstructions(task: string, role?: string): string {
     `risks: <any risks found, or "None">`,
     `---`
   ].filter(Boolean).join("\n");
+}
+
+export function wrapDelegationTask(task: string, targetType: string): string {
+  return [
+    task,
+    "",
+    "## Delegation Contract",
+    "You are being invoked as a delegated executor by an orchestrator agent.",
+    "After completing the task above, your FINAL message MUST contain this result envelope:",
+    "---",
+    "status: success | partial | blocked",
+    "executive_summary: <1-3 sentences summarizing what was accomplished>",
+    "artifacts: <comma-separated list of files created/modified, or \"none\">",
+    "risks: <any risks found, or \"None\">",
+    "---",
+  ].join("\n");
 }
 
 export function assemblePromptAppends(ctx: PromptAssemblyContext): string[] {
@@ -120,9 +138,12 @@ export function assemblePromptAppends(ctx: PromptAssemblyContext): string[] {
         ctx.subagentRole
       );
       return [
+        ctx.agentsMd || "",
         instructions,
+        ctx.availableSkillsPrompt || "",
         formatEnvironmentContext(ctx.workspaceDir),
-      ];
+        ENVIRONMENT_INSTRUCTIONS,
+      ].filter(Boolean);
     }
   }
 }

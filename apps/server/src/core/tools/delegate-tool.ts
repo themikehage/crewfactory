@@ -7,6 +7,7 @@ import { delegationRegistry } from "../delegation-registry";
 import { AbortToken } from "../abort-token";
 import { getAppConfig } from "../../config/app-config";
 import { getSubagentDepth } from "../session/session-depth";
+import { wrapDelegationTask } from "../prompts/prompt-assembly";
 
 export interface DelegateTaskOptions {
   workspaceDir: string;
@@ -171,7 +172,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
             try {
-              await session.prompt(task);
+              await session.prompt(wrapDelegationTask(task, targetType));
             } finally {
               unsub?.();
             }
@@ -234,7 +235,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             const unsub = forwardSubagentEvents(session, parentSessionId, delegateSessionId, toolCallId);
 
             try {
-              await session.prompt(task);
+              await session.prompt(wrapDelegationTask(task, targetType));
             } finally {
               unsub?.();
             }
@@ -293,7 +294,7 @@ Allows keeping parent context clean by returning a structured summary instead of
             const unsub = forwardSubagentEvents(session, parentSessionId, targetId, toolCallId);
 
             try {
-              await session.prompt(task);
+              await session.prompt(wrapDelegationTask(task, targetType));
             } finally {
               unsub?.();
             }

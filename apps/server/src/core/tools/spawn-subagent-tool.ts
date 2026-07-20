@@ -157,13 +157,14 @@ Do NOT use for quick single-line reads or trivial edits you can do inline.`,
         cwd: workspaceDir,
         agentDir: userDir,
         additionalSkillPaths: resourceLoader.getSkills().skills.map(s => s.baseDir),
-        loadSkills: false,
+        loadSkills: true,
         loadAgentsFiles: false,
         appendSystemPrompt: assemblePromptAppends({
           mode: "subagent-spawn",
           workspaceDir,
           subagentTask: args.task,
           subagentRole: args.subagentRole,
+          agentsMd: resourceLoader.getSystemPrompt(),
         }),
       });
       await subResourceLoader.reload();
