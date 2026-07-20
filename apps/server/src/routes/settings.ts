@@ -3,10 +3,42 @@ import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { sessionManager } from "../core/session-manager";
 import { runVisionModel } from "../core/tools/vision-tool";
 import { runImageGenModel } from "../core/tools/image-gen-tool";
-import { getWorkspaceDir } from "shared";
+import { getWorkspaceDir, getUserDir } from "shared";
 import { getAppConfig } from "../config/app-config";
+import { getUsername } from "../lib/auth-helpers";
+import { join } from "node:path";
+import { existsSync, readdirSync, unlinkSync, writeFileSync, mkdirSync } from "node:fs";
+import { applyCacheHeaders } from "../core/cache-headers";
 
 export const settingsRouter = new Hono();
+
+settingsRouter.get("/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const userDir = getUserDir(username);
+  if (!existsSync(userDir)) return c.notFound();
+
+  const files = readdirSync(userDir);
+  const avatarFile = files.find((f) => f.startsWith("factory-avatar."));
+  if (!avatarFile) return c.notFound();
+
+  const avatarPath = join(userDir, avatarFile);
+  const cacheResponse = applyCacheHeaders(c, avatarPath);
+  if (cacheResponse) {
+    return cacheResponse;
+  }
+
+  const file = Bun.file(avatarPath);
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": file.type || "application/octet-stream",
+  };
+  c.res.headers.forEach((val, key) => {
+    responseHeaders[key] = val;
+  });
+
+  return c.body(file as any, 200, responseHeaders);
+});
 
 settingsRouter.use("/*", authMiddleware);
 
@@ -24,6 +56,9 @@ settingsRouter.get("/", (c) => {
     subagentMaxDepth: settings.subagentMaxDepth !== undefined
       ? Number(settings.subagentMaxDepth)
       : appConfig.subagent.maxDepth,
+    factoryName: settings.factoryName ?? "Factory",
+    factoryAvatarUrl: settings.factoryAvatarUrl ?? null,
+    factorySystemPrompt: settings.factorySystemPrompt ?? "",
   });
 });
 
@@ -37,6 +72,9 @@ settingsRouter.patch("/", async (c) => {
       visionModel?: string;
       imageGenModel?: string;
       subagentMaxDepth?: number;
+      factoryName?: string;
+      factoryAvatarUrl?: string | null;
+      factorySystemPrompt?: string;
     }>();
 
     const updates: Record<string, any> = {};
@@ -62,6 +100,15 @@ settingsRouter.patch("/", async (c) => {
         updates.subagentMaxDepth = depthVal;
       }
     }
+    if (body.factoryName !== undefined) {
+      updates.factoryName = String(body.factoryName);
+    }
+    if (body.factoryAvatarUrl !== undefined) {
+      updates.factoryAvatarUrl = body.factoryAvatarUrl ? String(body.factoryAvatarUrl) : null;
+    }
+    if (body.factorySystemPrompt !== undefined) {
+      updates.factorySystemPrompt = String(body.factorySystemPrompt);
+    }
 
     sessionManager.userConfig.saveUserSettings(username, updates);
 
@@ -69,6 +116,60 @@ settingsRouter.patch("/", async (c) => {
   } catch (e) {
     return c.json({ error: "Invalid request body" }, 400);
   }
+});
+
+settingsRouter.post("/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const body = await c.req.parseBody();
+  const file = body.file as File | undefined;
+  if (!file) return c.json({ error: "No file provided" }, 400);
+
+  const userDir = getUserDir(username);
+  if (!existsSync(userDir)) {
+    mkdirSync(userDir, { recursive: true });
+  }
+
+  try {
+    const files = readdirSync(userDir);
+    for (const f of files) {
+      if (f.startsWith("factory-avatar.")) {
+        unlinkSync(join(userDir, f));
+      }
+    }
+  } catch {}
+
+  const ext = file.name.split(".").pop() || "png";
+  const avatarPath = join(userDir, `factory-avatar.${ext}`);
+  const buffer = await file.arrayBuffer();
+  writeFileSync(avatarPath, Buffer.from(buffer));
+
+  const avatarUrl = `/api/settings/avatar`;
+  sessionManager.userConfig.saveUserSettings(username, { factoryAvatarUrl: avatarUrl });
+
+  return c.json({ avatarUrl });
+});
+
+settingsRouter.delete("/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const userDir = getUserDir(username);
+  if (existsSync(userDir)) {
+    try {
+      const files = readdirSync(userDir);
+      for (const f of files) {
+        if (f.startsWith("factory-avatar.")) {
+          unlinkSync(join(userDir, f));
+        }
+      }
+    } catch {}
+  }
+
+  sessionManager.userConfig.saveUserSettings(username, { factoryAvatarUrl: null });
+
+  return c.json({ ok: true });
 });
 
 settingsRouter.post("/test-vision", async (c) => {

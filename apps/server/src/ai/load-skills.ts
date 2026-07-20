@@ -4,6 +4,7 @@ import { join, basename } from "node:path";
 export interface Skill {
   name: string;
   description: string;
+  content: string;
   filePath: string;
   baseDir: string;
   sourceInfo: {
@@ -90,6 +91,7 @@ export function loadSkills(options: LoadSkillsOptions): { skills: Skill[]; diagn
             skills.push({
               name,
               description,
+              content: rawContent,
               filePath: skillFilePath,
               baseDir: subDir,
               sourceInfo: {

@@ -6,7 +6,7 @@ import { sessionMiddleware } from "../auth/middleware";
 import { sessionManager } from "../core/session-manager";
 import {
   getWorkspaceDir, getProjectsDir, getProjectWorkspaceDir,
-  getChannelWorkspaceDir, getAgentWorkspaceDir, getTeamWorkspaceDir,
+  getAgentWorkspaceDir, getTeamWorkspaceDir,
   getSessionDir, getUserDir
 } from "shared";
 import { scopeConfigManager } from "../core/scope";
@@ -14,16 +14,44 @@ import { applyCacheHeaders } from "../core/cache-headers";
 
 export const filesRouter = new Hono();
 
+filesRouter.get("/workspace-projects/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+
+  const projectsDir = getProjectsDir(username);
+  const projectPath = join(projectsDir, id);
+  if (!existsSync(projectPath)) return c.notFound();
+
+  const files = readdirSync(projectPath);
+  const avatarFile = files.find((f) => f.startsWith("avatar."));
+  if (!avatarFile) return c.notFound();
+
+  const avatarPath = join(projectPath, avatarFile);
+  const cacheResponse = applyCacheHeaders(c, avatarPath);
+  if (cacheResponse) {
+    return cacheResponse;
+  }
+
+  const file = Bun.file(avatarPath);
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": file.type || "application/octet-stream",
+  };
+  c.res.headers.forEach((val, key) => {
+    responseHeaders[key] = val;
+  });
+
+  return c.body(file as any, 200, responseHeaders);
+});
+
 filesRouter.use("/*", sessionMiddleware);
 
-function validateWorkspacePath(username: string, relativePath: string, projectName?: string, agentId?: string, channelId?: string, teamId?: string): string {
+function validateWorkspacePath(username: string, relativePath: string, projectName?: string, agentId?: string, teamId?: string): string {
   const workspaceBase = getWorkspaceDir(username);
   let workspaceDir = workspaceBase;
 
   if (teamId) {
     workspaceDir = getTeamWorkspaceDir(username, teamId);
-  } else if (channelId) {
-    workspaceDir = getChannelWorkspaceDir(username, channelId);
   } else if (agentId) {
     workspaceDir = getAgentWorkspaceDir(username, agentId);
   } else if (projectName) {
@@ -137,9 +165,8 @@ const handleGetWorkspace = async (c: any) => {
   try {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
-    const channelId = c.req.query("channelId");
     const teamId = c.req.query("teamId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, teamId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "Path does not exist" }, 404);
     }
@@ -454,6 +481,75 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
   }
 });
 
+filesRouter.post("/workspace-projects/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+
+  const projectsDir = getProjectsDir(username);
+  const projectPath = join(projectsDir, id);
+  const jsonPath = join(projectPath, "project.json");
+  if (!existsSync(projectPath) || !existsSync(jsonPath)) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  const body = await c.req.parseBody();
+  const file = body.file as File | undefined;
+  if (!file) return c.json({ error: "No file provided" }, 400);
+
+  try {
+    const files = readdirSync(projectPath);
+    for (const f of files) {
+      if (f.startsWith("avatar.")) {
+        unlinkSync(join(projectPath, f));
+      }
+    }
+  } catch {}
+
+  const ext = file.name.split(".").pop() || "png";
+  const avatarPath = join(projectPath, `avatar.${ext}`);
+  const buffer = await file.arrayBuffer();
+  writeFileSync(avatarPath, Buffer.from(buffer));
+
+  const avatarUrl = `/api/workspace-projects/${id}/avatar`;
+
+  // Update project.json
+  const projectJson = JSON.parse(readFileSync(jsonPath, "utf-8"));
+  projectJson.avatarUrl = avatarUrl;
+  writeFileSync(jsonPath, JSON.stringify(projectJson, null, 2), "utf-8");
+
+  return c.json({ avatarUrl });
+});
+
+filesRouter.delete("/workspace-projects/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+
+  const projectsDir = getProjectsDir(username);
+  const projectPath = join(projectsDir, id);
+  const jsonPath = join(projectPath, "project.json");
+  if (!existsSync(projectPath) || !existsSync(jsonPath)) {
+    return c.json({ error: "Project not found" }, 404);
+  }
+
+  try {
+    const files = readdirSync(projectPath);
+    for (const f of files) {
+      if (f.startsWith("avatar.")) {
+        unlinkSync(join(projectPath, f));
+      }
+    }
+  } catch {}
+
+  // Update project.json
+  const projectJson = JSON.parse(readFileSync(jsonPath, "utf-8"));
+  projectJson.avatarUrl = null;
+  writeFileSync(jsonPath, JSON.stringify(projectJson, null, 2), "utf-8");
+
+  return c.json({ ok: true });
+});
+
 filesRouter.post("/workspace/refresh", async (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
@@ -491,9 +587,8 @@ const handlePutWorkspace = async (c: any) => {
   try {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
-    const channelId = c.req.query("channelId");
     const teamId = c.req.query("teamId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, teamId);
     const body = await c.req.json().catch(() => ({}));
     const { type, content } = body;
 
@@ -541,9 +636,8 @@ const handlePostWorkspace = async (c: any) => {
   try {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
-    const channelId = c.req.query("channelId");
     const teamId = c.req.query("teamId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, teamId);
     const body = await c.req.parseBody();
     const file = body.file as File | undefined;
     if (!file) {
@@ -565,8 +659,6 @@ const handlePostWorkspace = async (c: any) => {
     let workspaceDir = workspaceBase;
     if (teamId) {
       workspaceDir = getTeamWorkspaceDir(username, teamId);
-    } else if (channelId) {
-      workspaceDir = getChannelWorkspaceDir(username, channelId);
     } else if (agentId) {
       workspaceDir = getAgentWorkspaceDir(username, agentId);
     } else if (projectName) {
@@ -608,9 +700,8 @@ const handleDeleteWorkspace = async (c: any) => {
   try {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
-    const channelId = c.req.query("channelId");
     const teamId = c.req.query("teamId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, teamId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "File not found" }, 404);
     }
@@ -644,9 +735,8 @@ const handlePatchWorkspace = async (c: any) => {
   try {
     const projectName = c.req.query("project");
     const agentId = c.req.query("agentId");
-    const channelId = c.req.query("channelId");
     const teamId = c.req.query("teamId");
-    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, channelId, teamId);
+    const fullPath = validateWorkspacePath(username, relativePath, projectName, agentId, teamId);
     if (!existsSync(fullPath)) {
       return c.json({ error: "Source file not found" }, 404);
     }
@@ -657,7 +747,7 @@ const handlePatchWorkspace = async (c: any) => {
       return c.json({ error: "Invalid target path" }, 400);
     }
 
-    const targetFullPath = validateWorkspacePath(username, newPath, projectName, agentId, channelId, teamId);
+    const targetFullPath = validateWorkspacePath(username, newPath, projectName, agentId, teamId);
     mkdirSync(dirname(targetFullPath), { recursive: true });
     renameSync(fullPath, targetFullPath);
 

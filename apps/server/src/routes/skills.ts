@@ -1,6 +1,6 @@
 import { Hono } from "hono";
 import { loadSkills } from "../ai/load-skills";
-import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { existsSync, writeFileSync, mkdirSync } from "node:fs";
 import { authMiddleware, getAuthPayload } from "../middleware/auth";
 import { getResolvedSkillPaths } from "../core/session-manager";
 import { join } from "node:path";
@@ -24,21 +24,13 @@ skillsRouter.get("/", async (c) => {
     });
 
     const skillsWithContent = result.skills.map((skill) => {
-      let content = "";
-      if (existsSync(skill.filePath)) {
-        try {
-          content = readFileSync(skill.filePath, "utf-8");
-        } catch (e) {
-          console.error(`Failed to read skill file ${skill.filePath}:`, e);
-        }
-      }
       return {
         name: skill.name,
         description: skill.description,
         filePath: skill.filePath,
         disableModelInvocation: skill.disableModelInvocation,
         scope: skill.sourceInfo?.scope || "project",
-        content,
+        content: skill.content,
       };
     });
 

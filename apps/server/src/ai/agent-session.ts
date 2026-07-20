@@ -8,7 +8,7 @@ import type { DefaultResourceLoader } from "./resource-loader";
 import { convertToLlm } from "./messages";
 import { estimateContextTokens } from "./vendor/ai/src/utils/estimate.ts";
 import type { AuthStorage } from "./auth-storage.ts";
-import { existsSync, readFileSync } from "node:fs";
+import { formatSkillsForSystemPrompt } from "./vendor/agent/src/harness/system-prompt.ts";
 
 export interface CreateAgentSessionOptions {
   cwd: string;
@@ -168,9 +168,13 @@ export class AgentSession {
   }
 
   private initializeAgent() {
+    const skills = this.resourceLoader.getSkills().skills;
+    const availableSkillsPrompt = formatSkillsForSystemPrompt(skills as any);
+
     const systemPrompt = [
       this.resourceLoader.getSystemPrompt() || "",
       ...(this.resourceLoader.getAppendSystemPrompt() || []),
+      availableSkillsPrompt,
       ...this.activeSkillPrompts,
     ].filter(Boolean).join("\n\n");
 
@@ -226,9 +230,12 @@ export class AgentSession {
       beforeToolCall: this.beforeToolCall,
       prepareNextTurn: async () => {
         try {
+          const skills = this.resourceLoader.getSkills().skills;
+          const availableSkillsPrompt = formatSkillsForSystemPrompt(skills as any);
           const freshSystemPrompt = [
             this.resourceLoader.getSystemPrompt() || "",
             ...(this.resourceLoader.getAppendSystemPrompt() || []),
+            availableSkillsPrompt,
             ...this.activeSkillPrompts,
           ].filter(Boolean).join("\n\n");
           const freshMessages = this.sessionManager.buildSessionContext().messages;
@@ -425,15 +432,8 @@ export class AgentSession {
 
       const skillPrompts: string[] = [];
       for (const skill of matchedSkills) {
-        if (existsSync(skill.filePath)) {
-          try {
-            const content = readFileSync(skill.filePath, "utf-8");
-            if (content) {
-              skillPrompts.push(`=== Active Skill Instructions: ${skill.name} ===\n${content}`);
-            }
-          } catch (err) {
-            console.error(`Failed to read skill content for ${skill.name} at ${skill.filePath}:`, err);
-          }
+        if (skill.content) {
+          skillPrompts.push(`=== Active Skill Instructions: ${skill.name} ===\n${skill.content}`);
         }
       }
       this.activeSkillPrompts = skillPrompts;
@@ -480,9 +480,12 @@ export class AgentSession {
         (this.agent.state as any).model = modelObj;
       }
 
+      const skills = this.resourceLoader.getSkills().skills;
+      const availableSkillsPrompt = formatSkillsForSystemPrompt(skills as any);
       const systemPrompt = [
         this.resourceLoader.getSystemPrompt() || "",
         ...(this.resourceLoader.getAppendSystemPrompt() || []),
+        availableSkillsPrompt,
         ...this.activeSkillPrompts,
       ].filter(Boolean).join("\n\n");
       (this.agent.state as any).systemPrompt = systemPrompt;
@@ -530,9 +533,12 @@ export class AgentSession {
         (this.agent.state as any).model = modelObj;
       }
 
+      const skills = this.resourceLoader.getSkills().skills;
+      const availableSkillsPrompt = formatSkillsForSystemPrompt(skills as any);
       const systemPrompt = [
         this.resourceLoader.getSystemPrompt() || "",
         ...(this.resourceLoader.getAppendSystemPrompt() || []),
+        availableSkillsPrompt,
         ...this.activeSkillPrompts,
       ].filter(Boolean).join("\n\n");
       (this.agent.state as any).systemPrompt = systemPrompt;

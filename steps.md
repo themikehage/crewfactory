@@ -117,3 +117,10 @@
 - [x] 173.3 Add params.sessionId support to the team send action in factory-tool.ts to avoid defaulting to a single global session.
 - [x] 173.4 Confirm client build runs clean with 0 compilation errors.
 
+## Phase 174: Fix Agent Skill System Prompt Injection
+- [x] 174.1 Add content field to server Skill interface and load it in load-skills.ts
+- [x] 174.2 Simplify skills router mapping to use skill.content directly in routes/skills.ts
+- [x] 174.3 Import formatSkillsForSystemPrompt and inject it in agent-session.ts system prompt assemblies
+- [x] 174.4 Cast BunFile to any in files.ts and settings.ts body response functions to resolve TypeScript compilation check errors
+- [x] 174.5 Verify server tests and strict typecheck checks pass cleanly
+
