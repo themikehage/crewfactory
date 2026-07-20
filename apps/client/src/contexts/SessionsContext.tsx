@@ -21,7 +21,7 @@ export interface SessionItem {
   status?: SessionStatus;
   projectName?: string;
   agentId?: string;
-  channelId?: string;
+  teamId?: string;
   experimentId?: string;
   isExecution?: boolean;
   archived?: boolean;

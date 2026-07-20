@@ -28,10 +28,17 @@ export class SessionPromptBuilder {
       experimentId,
     } = params;
 
+    const { sessionManager } = await import("../session-manager");
+    const settings = sessionManager.userConfig.getUserSettings(username);
+
     const appendPrompts = assemblePromptAppends({
       mode: "standard-session",
       workspaceDir,
     });
+
+    if (!agentDef && settings.factorySystemPrompt) {
+      appendPrompts.push(`\n\n## Custom Factory Instructions:\n${settings.factorySystemPrompt}`);
+    }
 
     if (sessionId.startsWith(SessionPrefix.DELEGATE)) {
       appendPrompts.push(
@@ -69,6 +76,27 @@ export class SessionPromptBuilder {
       }
     } catch (e) {
       console.error("[PromptBuilder] Failed to load custom tools for prompt:", e);
+    }
+
+    try {
+      const meta = sessionManager.metadataStore.getSessionMetadata(username, sessionId);
+      let teamId = meta?.teamId;
+      if (!teamId && sessionId.startsWith(SessionPrefix.TEAM)) {
+        teamId = sessionId.slice(SessionPrefix.TEAM.length);
+      }
+      if (teamId) {
+        const { teamStore } = await import("../../teams/team-store");
+        const team = teamStore.getTeam(username, teamId);
+        if (team && team.context && team.context.length > 0) {
+          const contextSnippet =
+            `\n\n## Team Context Variables\n` +
+            `The following project-level key-value context has been configured for this team:\n` +
+            team.context.map((it: any) => `- ${it.key}: ${it.value}`).join("\n");
+          appendPrompts.push(contextSnippet);
+        }
+      }
+    } catch (e) {
+      console.error("[PromptBuilder] Failed to inject team context:", e);
     }
 
     if (agentDef?.systemPrompt) {
@@ -148,7 +176,6 @@ export class SessionPromptBuilder {
     try {
       const { sessionManager } = await import("../session-manager");
       const meta = sessionManager.metadataStore.getSessionMetadata(username, sessionId);
-      const channelId = meta?.channelId;
 
       if (meta?.teamId) {
         const { teamStore } = await import("../../teams/team-store");
@@ -173,24 +200,6 @@ export class SessionPromptBuilder {
                 };
               }),
           };
-        }
-      }
-
-      if (channelId) {
-        const { channelStore } = await import("../../channels/channel-store");
-        const channel = channelStore.getChannel(username, channelId);
-        if (channel) {
-          const { agentRegistry } = await import("../../agents");
-          const agentNameMap = new Map<string, string>();
-          for (const m of channel.members) {
-            const entry = agentRegistry.get(m.agentId);
-            if (entry) {
-              agentNameMap.set(m.agentId, entry.server.definition.name);
-            }
-          }
-          const agentId = params.resolvedAgentId || "";
-          const { buildDeploymentContext } = await import("../channel/deployment-context");
-          return buildDeploymentContext(channel, agentId, agentNameMap);
         }
       }
     } catch (e) {

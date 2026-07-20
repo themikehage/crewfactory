@@ -1,6 +1,6 @@
 import { apiFetch } from "@/lib/api";
 import { useState, useEffect, useCallback, useMemo } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { AnimatePresence } from "framer-motion";
 import { useToast } from "@/contexts/ToastContext";
 import { useLiterals } from "@/lib";
 import { literals as dashboardLiterals } from "./DashboardPage.literals";
@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/Button";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { useSessions, type SessionItem } from "@/contexts/SessionsContext";
 import { useAuth } from "@/contexts/AuthContext";
+import { ProjectSettingsModal } from "@/components/projects/ProjectSettingsModal";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
 interface RepoItem {
   id?: string;
@@ -35,6 +37,7 @@ interface TeamItem {
   description?: string;
   teamType?: string;
   members: any[];
+  avatarUrl?: string | null;
 }
 
 interface Props {
@@ -69,12 +72,6 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
   const [deleting, setDeleting] = useState(false);
 
   const [infoProject, setInfoProject] = useState<RepoItem | null>(null);
-  const [infoName, setInfoName] = useState("");
-  const [infoCloneUrl, setInfoCloneUrl] = useState("");
-  const [infoAvatarUrl, setInfoAvatarUrl] = useState("");
-  const [infoSaving, setInfoSaving] = useState(false);
-  const [infoError, setInfoError] = useState<string | null>(null);
-  const [copiedId, setCopiedId] = useState(false);
 
   const fetchData = useCallback(async () => {
     try {
@@ -176,52 +173,56 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
 
   const handleStartInfo = (repo: RepoItem) => {
     setInfoProject(repo);
-    setInfoName(repo.name);
-    setInfoCloneUrl(repo.cloneUrl || "");
-    setInfoAvatarUrl(repo.avatarUrl || "");
-    setInfoSaving(false);
-    setInfoError(null);
-    setCopiedId(false);
   };
 
-  const handleUpdateInfo = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleUpdateInfo = async (updates: {
+    name: string;
+    cloneUrl: string | null;
+    avatarUrl: string | null;
+  }) => {
     if (!infoProject) return;
-
-    setInfoSaving(true);
-    setInfoError(null);
     const id = infoProject.id || infoProject.name;
-    try {
-      const res = await apiFetch(`/api/workspace-projects/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          name: infoName.trim(),
-          cloneUrl: infoCloneUrl.trim() || null,
-          avatarUrl: infoAvatarUrl.trim() || null,
-        }),
-      });
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: "Failed to update project" }));
-        throw new Error(err.error || "Failed to update project");
-      }
-      await fetchData();
-      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
-      setInfoProject(null);
-    } catch (err: any) {
-      setInfoError(err.message);
-    } finally {
-      setInfoSaving(false);
+    const res = await apiFetch(`/api/workspace-projects/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Failed to update project" }));
+      throw new Error(err.error || "Failed to update project");
     }
+    await fetchData();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
   };
 
-  const handleCopyId = () => {
-    if (!infoProject) return;
-    const id = infoProject.id || infoProject.name;
-    navigator.clipboard.writeText(id);
-    setCopiedId(true);
-    setTimeout(() => setCopiedId(false), 2000);
-  };
+  const handleUploadProjectAvatar = useCallback(async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiFetch(`/api/workspace-projects/${id}/avatar`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to upload avatar");
+    }
+    const data = await res.json();
+    await fetchData();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+    return data.avatarUrl;
+  }, []);
+
+  const handleDeleteProjectAvatar = useCallback(async (id: string) => {
+    const res = await apiFetch(`/api/workspace-projects/${id}/avatar`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to delete avatar");
+    }
+    await fetchData();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+  }, []);
 
   const handleCreateRepo = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -268,8 +269,8 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
   const handleOpenSession = (session: SessionItem) => {
     if (!onNavigate) return;
     let path: string;
-    if (session.channelId) {
-      path = `/channels/${session.channelId}/session/${session.id}`;
+    if (session.teamId) {
+      path = `/teams/${session.teamId}/session/${session.id}`;
     } else if (session.agentId) {
       if (session.agentId === "lab-architect") {
         path = `/laboratory/session/${session.id}`;
@@ -283,6 +284,35 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
     }
     onNavigate(path);
   };
+
+  const avatarLookup = useMemo(() => {
+    const map = new Map<string, string | null | undefined>();
+    for (const repo of repos) {
+      if (repo.name) map.set(`project:${repo.name}`, repo.avatarUrl);
+      if (repo.id) map.set(`project:${repo.id}`, repo.avatarUrl);
+    }
+    for (const agent of agents) {
+      map.set(`agent:${agent.id}`, agent.avatarUrl);
+    }
+    for (const team of teams) {
+      map.set(`team:${team.id}`, team.avatarUrl);
+    }
+    return (session: SessionItem) => {
+      if (session.projectName) {
+        const url = map.get(`project:${session.projectName}`);
+        if (url) return url;
+      }
+      if (session.agentId) {
+        const url = map.get(`agent:${session.agentId}`);
+        if (url) return url;
+      }
+      if (session.teamId) {
+        const url = map.get(`team:${session.teamId}`);
+        if (url) return url;
+      }
+      return null;
+    };
+  }, [repos, agents, teams]);
 
   const formatTime = (updatedAt: string) => {
     const diff = Date.now() - new Date(updatedAt).getTime();
@@ -370,10 +400,7 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
         )}
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20">
-            <div className="w-8 h-8 border-2 border-accent border-t-transparent rounded-full animate-spin" />
-            <p className="text-xs text-text-secondary mt-4 font-semibold">{l.loading}</p>
-          </div>
+          <DashboardSkeleton />
         ) : (
           <>
             {/* Seccion 1: Agentes — scroll horizontal */}
@@ -452,9 +479,9 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                       <div className="w-[58px] h-[58px] bg-surface-hover flex-shrink-0 flex items-center justify-center relative border-r border-input/10">
                         <EntityAvatar
                           name={session.projectName || session.name}
-                          avatarUrl={null}
+                          avatarUrl={avatarLookup(session)}
                           size="full"
-                          type={session.channelId ? "channel" : session.agentId ? "agent" : "project"}
+                          type={session.teamId ? "team" : session.agentId ? "agent" : "project"}
                           className="rounded-none w-full h-full"
                         />
                         <div className="absolute top-1 left-1 w-1.5 h-1.5 rounded-full z-10 shadow-xs" />
@@ -465,7 +492,7 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                           {session.name}
                         </h3>
                         <p className="text-[9px] text-text-secondary truncate mt-0.5 font-semibold uppercase tracking-wider">
-                          {session.projectName ? `Project: ${session.projectName}` : session.channelId ? "Channel" : "Agent"}
+                          {session.projectName ? `Project: ${session.projectName}` : session.teamId ? "Team" : "Agent"}
                         </p>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className={`w-1.5 h-1.5 rounded-full ${statusColor}`} />
@@ -601,9 +628,9 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                       <div className="w-full aspect-square relative rounded-xl overflow-hidden bg-surface-hover shadow-sm group">
                         <EntityAvatar
                           name={team.name}
-                          avatarUrl={null}
+                          avatarUrl={team.avatarUrl}
                           size="full"
-                          type="channel"
+                          type="team"
                           className="rounded-none w-full h-full object-cover"
                         />
                         <div className="absolute top-2 left-2 px-1.5 py-0.5 bg-black/50 text-[8px] text-text-primary font-bold rounded-md uppercase tracking-wider">
@@ -793,136 +820,20 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
 
       <AnimatePresence>
         {infoProject && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 8 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 8 }}
-              transition={{ duration: 0.18 }}
-              className="bg-surface border border-input rounded-2xl w-full max-w-md p-6 shadow-2xl relative"
-            >
-              <button
-                type="button"
-                onClick={() => setInfoProject(null)}
-                className="absolute top-4 right-4 p-1.5 rounded-lg text-text-secondary hover:text-foreground hover:bg-surface-hover transition-colors cursor-pointer"
-              >
-                <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-                  <path fillRule="evenodd" d="M4.293 4.293a1 1 0 011.414 0L10 8.586l4.293-4.293a1 1 0 111.414 1.414L11.414 10l4.293 4.293a1 1 0 01-1.414 1.414L10 11.414l-4.293 4.293a1 1 0 01-1.414-1.414L8.586 10 4.293 5.707a1 1 0 010-1.414z" clipRule="evenodd" />
-                </svg>
-              </button>
-
-              <h2 className="text-base font-bold text-foreground mb-4">{l.infoModalTitle}</h2>
-
-              <form onSubmit={handleUpdateInfo} className="space-y-4">
-                <div className="flex items-center gap-4 mb-2">
-                  <EntityAvatar
-                    name={infoName}
-                    avatarUrl={infoAvatarUrl}
-                    size="xl"
-                    type="project"
-                  />
-                  <div className="flex-1">
-                    <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                      {l.projectNameLabel}
-                    </label>
-                    <input
-                      type="text"
-                      required
-                      value={infoName}
-                      onChange={(e) => setInfoName(e.target.value)}
-                      className="w-full px-3 py-1.5 bg-bg border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-accent"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    {l.cloneUrlLabelEditable}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={l.cloneUrlPlaceholder}
-                    value={infoCloneUrl}
-                    onChange={(e) => setInfoCloneUrl(e.target.value)}
-                    className="w-full px-3 py-2 bg-bg border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-accent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    {l.avatarUrlLabel}
-                  </label>
-                  <input
-                    type="text"
-                    placeholder={l.avatarUrlPlaceholder}
-                    value={infoAvatarUrl}
-                    onChange={(e) => setInfoAvatarUrl(e.target.value)}
-                    className="w-full px-3 py-2 bg-bg border border-input rounded-xl text-sm text-foreground focus:outline-none focus:border-accent"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    ID
-                  </label>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      readOnly
-                      value={infoProject.id || infoProject.name}
-                      className="flex-1 px-3 py-2 bg-bg/55 border border-input/70 rounded-xl text-sm text-text-secondary font-mono focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleCopyId}
-                      className="px-3 py-2 bg-bg hover:bg-surface-hover text-xs rounded-xl font-semibold transition-colors border border-input/30 cursor-pointer"
-                    >
-                      {copiedId ? l.copied : l.copyId}
-                    </button>
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    {l.createdAtLabel}
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={infoProject.createdAt ? new Date(infoProject.createdAt).toLocaleString() : l.noValue}
-                    className="w-full px-3 py-2 bg-bg/55 border border-input/70 rounded-xl text-sm text-text-secondary focus:outline-none font-body"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-semibold text-text-secondary uppercase tracking-wider mb-1">
-                    {l.diskPathLabel}
-                  </label>
-                  <input
-                    type="text"
-                    readOnly
-                    value={infoProject.diskPath || l.noValue}
-                    className="w-full px-3 py-2 bg-bg/55 border border-input/70 rounded-xl text-[10px] text-text-secondary font-mono focus:outline-none overflow-x-auto"
-                  />
-                </div>
-
-                {infoError && (
-                  <div className="p-3 bg-error/10 border border-error/20 text-error rounded-xl text-xs font-semibold">
-                    {infoError}
-                  </div>
-                )}
-
-                <div className="flex justify-end gap-3 mt-6">
-                  <Button variant="outline" type="button" onClick={() => setInfoProject(null)}>
-                    {l.cancel}
-                  </Button>
-                  <Button type="submit" disabled={infoSaving}>
-                    {infoSaving ? l.saving : l.saveChanges}
-                  </Button>
-                </div>
-              </form>
-            </motion.div>
-          </div>
+          <ProjectSettingsModal
+            project={{
+              id: infoProject.id || infoProject.name,
+              name: infoProject.name,
+              cloneUrl: infoProject.cloneUrl,
+              avatarUrl: infoProject.avatarUrl,
+              createdAt: infoProject.createdAt,
+              diskPath: infoProject.diskPath,
+            }}
+            onClose={() => setInfoProject(null)}
+            onSave={handleUpdateInfo}
+            onUploadAvatar={handleUploadProjectAvatar}
+            onDeleteAvatar={handleDeleteProjectAvatar}
+          />
         )}
       </AnimatePresence>
     </div>

@@ -39,7 +39,7 @@ export interface VariantRunResult {
 
 export interface Variant {
   type: "single" | "multi_no_leader" | "multi_with_leader";
-  channelId?: string;
+  teamId?: string;
   activeSessionId?: string | null;
   agents: Agent[];
   result?: VariantRunResult;
@@ -89,12 +89,12 @@ export interface Blueprint {
 
 export interface ExportPayload {
   variantKey: "single" | "multiNoLeader" | "multiWithLeader";
-  channelName?: string;
+  teamName?: string;
 }
 
 export interface ExportResult {
   variantKey: "single" | "multiNoLeader" | "multiWithLeader";
-  channel?: { id: string; name: string };
+  team?: { id: string; name: string };
   agents: { id: string; name: string; created: boolean }[];
 }
 

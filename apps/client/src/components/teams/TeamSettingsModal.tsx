@@ -4,7 +4,9 @@ import type { Team } from "shared";
 import { useLiterals } from "@/lib";
 import { apiFetch } from "@/lib/api";
 import { literals as u } from "./TeamSettingsModal.literals";
-import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { AvatarUploadField } from "@/components/shared/AvatarUploadField";
+import { DEFAULT_AVATAR_PREFIX, isDefaultAvatar } from "@/lib/defaultAvatars";
+import { Button } from "@/components/ui/Button";
 
 interface Props {
   team: Team;
@@ -19,15 +21,24 @@ interface Props {
     streamingEnabled?: boolean;
     negotiationProtocol?: any;
   }) => Promise<void>;
+  onUploadAvatar?: (id: string, file: File) => Promise<string>;
+  onDeleteAvatar?: (id: string) => Promise<void>;
+  onDeleteTeam?: (id: string) => Promise<void>;
 }
 
-export function TeamSettingsModal({ team, onClose, onSave }: Props) {
+export function TeamSettingsModal({
+  team,
+  onClose,
+  onSave,
+  onUploadAvatar,
+  onDeleteAvatar,
+  onDeleteTeam,
+}: Props) {
   const l = useLiterals(u);
   const [activeTab, setActiveTab] = useState<"general" | "negotiation">("general");
 
   const [name, setName] = useState(team.name);
   const [description, setDescription] = useState(team.description || "");
-  const [avatarUrl, setAvatarUrl] = useState(team.avatarUrl || "");
   const [maxRounds, setMaxRounds] = useState(team.maxRounds ?? 5);
   const [showThinking, setShowThinking] = useState(team.showThinking ?? false);
   const [showTools, setShowTools] = useState(team.showTools ?? false);
@@ -49,8 +60,22 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
   );
 
   const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [negState, setNegState] = useState<any>(null);
+
+  // Danger zone state
+  const [confirmDeleteName, setConfirmDeleteName] = useState("");
+
+  // Avatar state
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(team.avatarUrl || null);
+  const [selectedDefaultAvatar, setSelectedDefaultAvatar] = useState<string | null>(() => {
+    if (team.avatarUrl && isDefaultAvatar(team.avatarUrl)) {
+      return team.avatarUrl.slice(DEFAULT_AVATAR_PREFIX.length);
+    }
+    return null;
+  });
 
   useEffect(() => {
     const fetchNegState = async () => {
@@ -66,6 +91,35 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
     };
     fetchNegState();
   }, [team.id]);
+
+  useEffect(() => {
+    setName(team.name);
+    setDescription(team.description || "");
+    setAvatarPreview(team.avatarUrl || null);
+    if (team.avatarUrl && isDefaultAvatar(team.avatarUrl)) {
+      setSelectedDefaultAvatar(team.avatarUrl.slice(DEFAULT_AVATAR_PREFIX.length));
+    } else {
+      setSelectedDefaultAvatar(null);
+    }
+  }, [team]);
+
+  const handleAvatarChange = (file: File | null, preview: string | null) => {
+    setAvatarFile(file);
+    setSelectedDefaultAvatar(null);
+    setAvatarPreview(preview);
+  };
+
+  const handleSelectDefaultAvatar = (avatarId: string) => {
+    setSelectedDefaultAvatar(avatarId);
+    setAvatarFile(null);
+    setAvatarPreview(DEFAULT_AVATAR_PREFIX + avatarId);
+  };
+
+  const handleClearAvatar = () => {
+    setSelectedDefaultAvatar(null);
+    setAvatarFile(null);
+    setAvatarPreview(null);
+  };
 
   const negStats = useMemo(() => {
     if (!negState) return null;
@@ -109,21 +163,52 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
     }
 
     try {
+      const resolvedAvatarUrl = selectedDefaultAvatar
+        ? DEFAULT_AVATAR_PREFIX + selectedDefaultAvatar
+        : avatarPreview && !avatarPreview.startsWith("blob:") && !isDefaultAvatar(avatarPreview)
+          ? avatarPreview
+          : "";
+
       await onSave({
         name: name.trim(),
         description: description.trim() || undefined,
-        avatarUrl: avatarUrl.trim() || undefined,
+        avatarUrl: resolvedAvatarUrl,
         maxRounds: Number(maxRounds),
         showThinking,
         showTools,
         streamingEnabled,
         negotiationProtocol,
       });
+
+      if (avatarFile && onUploadAvatar) {
+        await onUploadAvatar(team.id, avatarFile);
+      }
+
+      if (!avatarFile && !selectedDefaultAvatar && avatarPreview === null && onDeleteAvatar) {
+        await onDeleteAvatar(team.id);
+      }
+
       onClose();
     } catch (err: any) {
       setError(err.message || l.updateError);
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleDelete = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (confirmDeleteName !== team.name || !onDeleteTeam) return;
+    setError(null);
+    setDeleting(true);
+
+    try {
+      await onDeleteTeam(team.id);
+      onClose();
+    } catch (err: any) {
+      setError(err.message || "Failed to delete team");
+    } finally {
+      setDeleting(false);
     }
   };
 
@@ -135,7 +220,7 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 8 }}
         transition={{ duration: 0.18 }}
-        className="relative w-full max-w-lg bg-card border border-input rounded-2xl shadow-2xl flex flex-col overflow-hidden"
+        className="relative w-full max-w-lg bg-card border border-input rounded-2xl shadow-2xl flex flex-col overflow-hidden max-h-[85vh]"
       >
         <div className="flex items-center justify-between px-5 py-4 border-b border-input flex-shrink-0">
           <div className="flex items-center gap-2">
@@ -186,219 +271,255 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
           )}
         </div>
 
-        <form onSubmit={handleSubmit} className="flex flex-col overflow-hidden">
-          <div className="flex-1 overflow-y-auto p-5 space-y-4 text-xs">
-            {error && (
-              <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg">
-                {error}
+        <div className="flex-1 overflow-y-auto p-5 space-y-5 text-xs">
+          {error && (
+            <div className="p-3 bg-destructive/10 border border-error/20 text-destructive rounded-lg">
+              {error}
+            </div>
+          )}
+
+          {activeTab === "general" && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <AvatarUploadField
+                preview={avatarPreview}
+                selectedDefault={selectedDefaultAvatar}
+                onFileChange={handleAvatarChange}
+                onSelectDefault={handleSelectDefaultAvatar}
+                onClear={handleClearAvatar}
+                entityName={name}
+                avatarType="entity"
+                entityAvatarEntityType="team"
+              />
+
+              <div>
+                <label className="block text-muted-foreground font-medium mb-1">{l.name}</label>
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary"
+                />
               </div>
-            )}
 
-            {activeTab === "general" && (
-              <div className="space-y-4">
-                <div className="flex items-center gap-4 mb-2">
-                  <EntityAvatar
-                    name={name}
-                    avatarUrl={avatarUrl}
-                    size="xl"
-                    type="team"
-                  />
-                  <div className="flex-1">
-                    <label className="block text-muted-foreground font-medium mb-1">{l.name}</label>
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                      className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary"
-                    />
-                  </div>
-                </div>
+              <div>
+                <label className="block text-muted-foreground font-medium mb-1">{l.description}</label>
+                <textarea
+                  value={description}
+                  onChange={(e) => setDescription(e.target.value)}
+                  rows={3}
+                  className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary resize-none"
+                />
+              </div>
 
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">{l.avatarUrlLabel}</label>
-                  <input
-                    type="text"
-                    value={avatarUrl}
-                    onChange={(e) => setAvatarUrl(e.target.value)}
-                    placeholder={l.avatarUrlPlaceholder}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">{l.description}</label>
-                  <textarea
-                    value={description}
-                    onChange={(e) => setDescription(e.target.value)}
-                    rows={3}
-                    className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary resize-none"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-2">{l.teamType}</label>
-                  <div className="p-3 rounded-xl border border-input bg-background">
-                    <span className="font-semibold text-xs text-foreground">{teamType}</span>
-                    <p className="text-[10px] leading-tight text-muted-foreground mt-1">
-                      {isNegotiation ? l.negotiationDesc : l.orchestrationDesc}
-                    </p>
-                    <p className="text-[10px] leading-tight text-muted-foreground mt-2">{l.teamTypeImmutable}</p>
-                  </div>
-                </div>
-
-                <div className="flex flex-col gap-2.5 pt-2 border-t border-input/40">
-                  <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={showThinking}
-                      onChange={(e) => setShowThinking(e.target.checked)}
-                      className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
-                    />
-                    <span>{l.showThinking}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={showTools}
-                      onChange={(e) => setShowTools(e.target.checked)}
-                      className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
-                    />
-                    <span>{l.showTools}</span>
-                  </label>
-
-                  <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
-                    <input
-                      type="checkbox"
-                      checked={streamingEnabled}
-                      onChange={(e) => setStreamingEnabled(e.target.checked)}
-                      className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
-                    />
-                    <span>{l.streamingEnabled}</span>
-                  </label>
+              <div>
+                <label className="block text-muted-foreground font-medium mb-2">{l.teamType}</label>
+                <div className="p-3 rounded-xl border border-input bg-background">
+                  <span className="font-semibold text-xs text-foreground">{teamType}</span>
+                  <p className="text-[10px] leading-tight text-muted-foreground mt-1">
+                    {isNegotiation ? l.negotiationDesc : l.orchestrationDesc}
+                  </p>
+                  <p className="text-[10px] leading-tight text-muted-foreground mt-2">{l.teamTypeImmutable}</p>
                 </div>
               </div>
-            )}
 
-            {isNegotiation && activeTab === "negotiation" && (
-              <div className="space-y-4">
-                <div className="p-3 bg-surface border border-input rounded-lg flex items-center justify-between">
-                  <div>
-                    <span className="font-semibold text-foreground">{l.negotiationEnabled}</span>
-                    <p className="text-[10px] text-muted-foreground mt-0.5">
-                      Debating agents will seek consensus automatically and escalate to an arbiter if deadlocked.
-                    </p>
-                  </div>
+              <div className="flex flex-col gap-2.5 pt-2 border-t border-input/40">
+                <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
                   <input
                     type="checkbox"
-                    checked={negotiationEnabled}
-                    onChange={(e) => setNegotiationEnabled(e.target.checked)}
+                    checked={showThinking}
+                    onChange={(e) => setShowThinking(e.target.checked)}
                     className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
                   />
-                </div>
+                  <span>{l.showThinking}</span>
+                </label>
 
-                {negotiationEnabled && (
-                  <div className="space-y-3 p-3 bg-background/50 border border-input/60 rounded-xl animate-fadeIn">
-                    <div>
-                      <label className="block text-muted-foreground font-medium mb-1">{l.agreementPattern}</label>
-                      <input
-                        type="text"
-                        value={agreementPattern}
-                        onChange={(e) => setAgreementPattern(e.target.value)}
-                        placeholder="(ACUERDO ALCANZADO:|ACEPTO)"
-                        className="w-full px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none font-mono text-xs focus:border-primary"
-                      />
-                    </div>
+                <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={showTools}
+                    onChange={(e) => setShowTools(e.target.checked)}
+                    className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
+                  />
+                  <span>{l.showTools}</span>
+                </label>
 
-                    <div>
-                      <label className="block text-muted-foreground font-medium mb-1">{l.rejectPattern}</label>
-                      <input
-                        type="text"
-                        value={rejectPattern}
-                        onChange={(e) => setRejectPattern(e.target.value)}
-                        placeholder="Rechazo opcional (regex)"
-                        className="w-full px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none font-mono text-xs focus:border-primary"
-                      />
-                    </div>
-
-                    <div>
-                      <div className="flex items-center justify-between mb-1">
-                        <label className="text-muted-foreground font-medium">{l.maxRounds}</label>
-                        <span className="font-mono font-bold text-primary">{maxRounds} rounds</span>
-                      </div>
-                      <input
-                        type="range"
-                        min={1}
-                        max={10}
-                        value={maxRounds}
-                        onChange={(e) => setMaxRounds(Number(e.target.value))}
-                        className="w-full accent-accent cursor-pointer"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-muted-foreground font-medium mb-1">{l.arbiterAgentId}</label>
-                      <select
-                        value={arbiterAgentId}
-                        onChange={(e) => setArbiterAgentId(e.target.value)}
-                        className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary cursor-pointer"
-                      >
-                        <option value="__none__">{l.none}</option>
-                        {team.members.map((member) => (
-                          <option key={member.agentId} value={member.agentId}>
-                            {member.agentId}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  </div>
-                )}
-
-                {negStats && (
-                  <div className="pt-3 border-t border-input/40">
-                    <h4 className="font-semibold text-foreground mb-2 text-xs">Live Negotiation Statistics</h4>
-                    <div className="grid grid-cols-2 gap-2 bg-surface/50 p-2.5 border border-input/40 rounded-xl">
-                      <div className="flex justify-between border-b border-input/20 pb-1.5">
-                        <span className="text-muted-foreground">Active Pairs:</span>
-                        <span className="font-mono font-bold text-foreground">{negStats.activePairs}</span>
-                      </div>
-                      <div className="flex justify-between border-b border-input/20 pb-1.5">
-                        <span className="text-muted-foreground">Agreements:</span>
-                        <span className="font-mono font-bold text-accent">{negStats.agreements}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Divergences:</span>
-                        <span className="font-mono font-bold text-amber-500">{negStats.divergences}</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Arbitrations:</span>
-                        <span className="font-mono font-bold text-primary">{negStats.arbitrations}</span>
-                      </div>
-                    </div>
-                  </div>
-                )}
+                <label className="flex items-center gap-2.5 text-muted-foreground font-medium cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={streamingEnabled}
+                    onChange={(e) => setStreamingEnabled(e.target.checked)}
+                    className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
+                  />
+                  <span>{l.streamingEnabled}</span>
+                </label>
               </div>
-            )}
-          </div>
 
-          <div className="flex justify-end gap-2 px-5 py-4 border-t border-input bg-card flex-shrink-0">
-            <button
-              type="button"
-              onClick={onClose}
-              className="px-4 py-2 bg-card border border-input text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
-            >
-              {l.cancel}
-            </button>
-            <button
-              type="submit"
-              disabled={saving}
-              className="px-4 py-2 bg-primary text-background font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
-            >
-              {saving ? l.saving : l.save}
-            </button>
-          </div>
-        </form>
+              <div className="flex justify-end gap-2 pt-4 border-t border-input bg-card flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-card border border-input text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
+                >
+                  {l.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-primary text-background font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+                >
+                  {saving ? l.saving : l.save}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {isNegotiation && activeTab === "negotiation" && (
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="p-3 bg-surface border border-input rounded-lg flex items-center justify-between">
+                <div>
+                  <span className="font-semibold text-foreground">{l.negotiationEnabled}</span>
+                  <p className="text-[10px] text-muted-foreground mt-0.5">
+                    Debating agents will seek consensus automatically and escalate to an arbiter if deadlocked.
+                  </p>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={negotiationEnabled}
+                  onChange={(e) => setNegotiationEnabled(e.target.checked)}
+                  className="w-4 h-4 accent-accent rounded border-input bg-background cursor-pointer"
+                />
+              </div>
+
+              {negotiationEnabled && (
+                <div className="space-y-3 p-3 bg-background/50 border border-input/60 rounded-xl animate-fadeIn">
+                  <div>
+                    <label className="block text-muted-foreground font-medium mb-1">{l.agreementPattern}</label>
+                    <input
+                      type="text"
+                      value={agreementPattern}
+                      onChange={(e) => setAgreementPattern(e.target.value)}
+                      placeholder="(ACUERDO ALCANZADO:|ACEPTO)"
+                      className="w-full px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none font-mono text-xs focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-muted-foreground font-medium mb-1">{l.rejectPattern}</label>
+                    <input
+                      type="text"
+                      value={rejectPattern}
+                      onChange={(e) => setRejectPattern(e.target.value)}
+                      placeholder="Rechazo opcional (regex)"
+                      className="w-full px-3 py-1.5 bg-background border border-input rounded-lg text-foreground outline-none font-mono text-xs focus:border-primary"
+                    />
+                  </div>
+
+                  <div>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="text-muted-foreground font-medium">{l.maxRounds}</label>
+                      <span className="font-mono font-bold text-primary">{maxRounds} rounds</span>
+                    </div>
+                    <input
+                      type="range"
+                      min={1}
+                      max={10}
+                      value={maxRounds}
+                      onChange={(e) => setMaxRounds(Number(e.target.value))}
+                      className="w-full accent-accent cursor-pointer"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-muted-foreground font-medium mb-1">{l.arbiterAgentId}</label>
+                    <select
+                      value={arbiterAgentId}
+                      onChange={(e) => setArbiterAgentId(e.target.value)}
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary cursor-pointer"
+                    >
+                      <option value="__none__">{l.none}</option>
+                      {team.members.map((member) => (
+                        <option key={member.agentId} value={member.agentId}>
+                          {member.agentId}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              )}
+
+              {negStats && (
+                <div className="pt-3 border-t border-input/40">
+                  <h4 className="font-semibold text-foreground mb-2 text-xs">Live Negotiation Statistics</h4>
+                  <div className="grid grid-cols-2 gap-2 bg-surface/50 p-2.5 border border-input/40 rounded-xl">
+                    <div className="flex justify-between border-b border-input/20 pb-1.5">
+                      <span className="text-muted-foreground">Active Pairs:</span>
+                      <span className="font-mono font-bold text-foreground">{negStats.activePairs}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-input/20 pb-1.5">
+                      <span className="text-muted-foreground">Agreements:</span>
+                      <span className="font-mono font-bold text-accent">{negStats.agreements}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Divergences:</span>
+                      <span className="font-mono font-bold text-amber-500">{negStats.divergences}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-muted-foreground">Arbitrations:</span>
+                      <span className="font-mono font-bold text-primary">{negStats.arbitrations}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex justify-end gap-2 pt-4 border-t border-input bg-card flex-shrink-0">
+                <button
+                  type="button"
+                  onClick={onClose}
+                  className="px-4 py-2 bg-card border border-input text-muted-foreground hover:text-foreground rounded-lg transition-colors cursor-pointer"
+                >
+                  {l.cancel}
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-4 py-2 bg-primary text-background font-semibold rounded-lg hover:opacity-90 disabled:opacity-50 transition-opacity cursor-pointer"
+                >
+                  {saving ? l.saving : l.save}
+                </button>
+              </div>
+            </form>
+          )}
+
+          {onDeleteTeam && activeTab === "general" && (
+            <div className="pt-4 border-t border-error/20 space-y-3">
+              <h4 className="text-xs font-bold text-error uppercase tracking-wider">{l.deleteTeam}</h4>
+              <p className="text-[11px] text-text-secondary leading-relaxed font-body">{l.deleteTeamDescription}</p>
+              <form onSubmit={handleDelete} className="space-y-3">
+                <div>
+                  <label className="block text-[10px] font-semibold text-text-secondary uppercase tracking-wider mb-1">
+                    {l.deleteConfirmLabel.replace("{name}", team.name)}
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    value={confirmDeleteName}
+                    onChange={(e) => setConfirmDeleteName(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-bg border border-error/30 rounded-xl text-sm text-foreground focus:outline-none focus:border-error"
+                  />
+                </div>
+                <Button
+                  variant="destructive"
+                  type="submit"
+                  className="w-full"
+                  disabled={confirmDeleteName !== team.name || deleting}
+                >
+                  {deleting ? l.deleting : l.deleteButton}
+                </Button>
+              </form>
+            </div>
+          )}
+        </div>
       </motion.div>
     </div>
   );

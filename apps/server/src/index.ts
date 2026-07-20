@@ -14,7 +14,6 @@ import { skillsRouter } from "./routes/skills";
 import { envRouter } from "./routes/env";
 import { integrationsRouter } from "./routes/integrations";
 import { agentsRouter } from "./routes/agents";
-import { channelsRouter } from "./routes/channels";
 import { teamsRouter } from "./routes/teams";
 import { previewRouter } from "./routes/preview";
 import { backupRouter } from "./routes/backup";
@@ -25,9 +24,7 @@ import { settingsRouter } from "./routes/settings";
 import { galleryRouter } from "./routes/gallery";
 import { factoryRouter } from "./routes/factory";
 import { pipelinesRouter } from "./routes/pipelines";
-import { channelBenchmarksRouter } from "./routes/channel-benchmarks";
 import { approvalsRouter } from "./routes/approvals";
-import { channelStore } from "./channels";
 import { CREWFACTORY_DATA_PATH } from "shared";
 import { memoryRegistry } from "./core/memory/registry";
 import { createWsContext } from "./ws/factory";
@@ -66,9 +63,7 @@ app.route("/api/env", envRouter);
 app.route("/api/integrations", integrationsRouter);
 app.route("/api/preview", previewRouter);
 app.route("/api/agents", agentsRouter);
-app.route("/api/channels", channelsRouter);
 app.route("/api/teams", teamsRouter);
-app.route("/api/channels", channelBenchmarksRouter);
 app.route("/api/backup", backupRouter);
 app.route("/api/logs", logsRouter);
 app.route("/api/mcp", mcpRouter);
@@ -94,7 +89,7 @@ app.get(
 
 await ensureAuthTables();
 
-// Cleanup orphan benchmark clones and run session auto-cleanup on startup
+// Run session auto-cleanup on startup
 try {
   const usersBase = join(CREWFACTORY_DATA_PATH(), "users");
   if (existsSync(usersBase)) {
@@ -103,7 +98,6 @@ try {
       .map((ent) => ent.name);
     const { sessionManager } = await import("./core/session-manager");
     for (const username of userDirs) {
-      channelStore.cleanupOrphanBenchmarkClones(username);
       sessionManager.autoCleanupSessions(username).catch((err) => {
         console.error(`[Auto Cleanup] Failed for user ${username}:`, err);
       });

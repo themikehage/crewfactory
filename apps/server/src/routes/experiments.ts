@@ -8,7 +8,6 @@ import { calculateVariantScores } from "../laboratory/scoring";
 import { sessionManager } from "../core/session-manager";
 import { type LabStance, type LabAgent, type LabExperiment, SessionPrefix } from "shared";
 import { agentRegistry } from "../agents";
-import { channelStore } from "../channels";
 import { broadcastToUser } from "../ws/handler";
 
 export const experimentsRouter = new Hono();
@@ -411,23 +410,24 @@ experimentsRouter.delete("/:id", async (c) => {
     return c.json({ error: "Cannot delete a running experiment" }, 409);
   }
 
-  // Clean up associated temporary channel directories
-  const channelIds = [
+  // Clean up associated temporary team directories
+  const { teamStore } = await import("../teams/team-store");
+  const teamIds = [
     `lab_${id}_single`,
     `lab_${id}_multiNoLeader`,
     `lab_${id}_multiWithLeader`
   ];
-  for (const channelId of channelIds) {
+  for (const teamId of teamIds) {
     try {
-      channelStore.deleteChannel(username, channelId);
+      teamStore.deleteTeam(username, teamId);
     } catch {}
   }
 
-  // Cascading delete: destroy all saved sessions associated with these channels
+  // Cascading delete: destroy all saved sessions associated with these teams
   try {
     const sessions = await sessionManager.listSessions(username);
     for (const s of sessions) {
-      if (s.channelId && s.channelId.startsWith(`lab_${id}_`)) {
+      if (s.teamId && s.teamId.startsWith(`lab_${id}_`)) {
         await sessionManager.destroySession(username, s.id);
       }
     }

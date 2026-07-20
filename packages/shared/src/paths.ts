@@ -14,7 +14,6 @@ export const AUDIT_DIR = "_audit";
 export const WORKSPACE_DIR = "workspace";
 export const PROJECTS_DIR = "projects";
 export const AGENTS_DIR = "agents";
-export const CHANNELS_DIR = "channels";
 export const TEAMS_DIR = "teams";
 export const SESSIONS_DIR = "sessions";
 export const EXPERIMENTS_DIR = "experiments";
@@ -68,22 +67,6 @@ export function getAgentWorkspaceDir(username: string, agentId: string): string 
 
 export function getAgentExecutionsDir(username: string, agentId: string): string {
   return join(getAgentDir(username, agentId), EXECUTIONS_DIR);
-}
-
-export function getChannelsDir(username: string): string {
-  return join(getUserDir(username), CHANNELS_DIR);
-}
-
-export function getChannelDir(username: string, channelId: string): string {
-  return join(getChannelsDir(username), channelId);
-}
-
-export function getChannelWorkspaceDir(username: string, channelId: string): string {
-  return join(getChannelDir(username, channelId), WORKSPACE_DIR);
-}
-
-export function getChannelMemoriesDir(username: string, channelId: string): string {
-  return join(getChannelDir(username, channelId), MEMORIES_DIR);
 }
 
 export function getTeamsDir(username: string): string {
@@ -196,14 +179,6 @@ export function getExecutionSummaryPath(
   return join(CREWFACTORY_DATA_PATH(), USERS_DIR, username, entityType, entityId, EXECUTIONS_DIR, execId, "summary.json");
 }
 
-export function getChannelMessagesPath(username: string, channelId: string): string {
-  return join(getChannelDir(username, channelId), "messages.jsonl");
-}
-
-export function getChannelMemoryDbPath(username: string, channelId: string): string {
-  return join(getChannelMemoriesDir(username, channelId), "memory.db");
-}
-
 export function getTeamMessagesPath(username: string, teamId: string): string {
   return join(getTeamDir(username, teamId), "messages.jsonl");
 }
@@ -241,10 +216,8 @@ export function ensureAllDirs(username: string): void {
     CREWFACTORY_DATA_PATH(),
     getAuditDir(),
     getUserDir(username),
-    getWorkspaceDir(username),
     getProjectsDir(username),
     getSessionsDir(username),
-    getChannelsDir(username),
     getTeamsDir(username),
     getExperimentsDir(username),
     getPipelinesDir(username),

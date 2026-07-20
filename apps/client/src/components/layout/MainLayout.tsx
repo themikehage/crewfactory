@@ -1,6 +1,7 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 import type { ReactNode } from "react";
+import { apiFetch } from "@/lib/api";
 import { Plus, Settings } from "lucide-react";
 import { AnimatePresence } from "framer-motion";
 import type { RoutePage } from "@/router/useRoutePage";
@@ -25,6 +26,9 @@ import { SessionPopover } from "@/components/sidebar/SessionPopover";
 import { RegisterModal } from "@/components/agents/RegisterModal";
 import { useAgents } from "@/hooks/useAgents";
 import type { AgentDefinition, AgentInfo } from "shared";
+import { ProjectSettingsModal } from "@/components/projects/ProjectSettingsModal";
+import { TeamSettingsModal } from "@/components/teams/TeamSettingsModal";
+import { GlobalAgentSettingsModal } from "@/components/agents/GlobalAgentSettingsModal";
 
 type VariantTab = "chat" | "config" | "single" | "multiNoLeader" | "multiWithLeader" | "compare";
 
@@ -70,9 +74,9 @@ export function MainLayout({
     activeProjectId,
     activeProjectFriendlyName: activeProjectName,
     activeAgent: rawActiveAgent,
-    activeChannel,
     activeTeam,
     selectProject: onSelectProject,
+    selectTeam: onSelectTeam,
   } = workspace;
 
   const activeAgent = (page === "laboratory" && !lab?.selectedExpId)
@@ -86,6 +90,12 @@ export function MainLayout({
   const [exportDropdownOpen, setExportDropdownOpen] = useState(false);
   const [wsState, setWsState] = useState<ConnectionState>(() => wsClient.getState());
   const [showAgentEdit, setShowAgentEdit] = useState(false);
+  const [showProjectEdit, setShowProjectEdit] = useState(false);
+  const [showTeamEdit, setShowTeamEdit] = useState(false);
+  const [showGlobalEdit, setShowGlobalEdit] = useState(false);
+  const [activeProjectData, setActiveProjectData] = useState<any>(null);
+  const [activeTeamData, setActiveTeamData] = useState<any>(null);
+  const [globalSettings, setGlobalSettings] = useState<{ factoryName?: string; factoryAvatarUrl?: string | null } | null>(null);
   const { updateAgent, uploadAvatar, deleteAvatar } = useAgents();
 
   useEffect(() => {
@@ -95,7 +105,7 @@ export function MainLayout({
     return unsub;
   }, []);
 
-  const sessionMatch = pathname.match(/\/session\/(.+?)(?:\/delegations)?$/);
+  const sessionMatch = pathname.match(/\/session\/(.+?)(?:\/(?:delegations|timeline))?$/);
   const sessionId = sessionMatch?.[1] ?? null;
 
   const handleExport = useCallback((format: "json" | "jsonl" | "markdown") => {
@@ -123,7 +133,6 @@ export function MainLayout({
     activeProjectId,
     activeProjectFriendlyName: activeProjectName,
     activeAgent,
-    activeChannel,
     activeTeam,
     onNavigate,
     setSidebarOpen,
@@ -141,12 +150,225 @@ export function MainLayout({
     await updateAgent(activeAgent.id, updates);
   }, [activeAgent, updateAgent]);
 
-  const isHome = isMobile && !activeProjectId && !activeAgent && !activeChannel && page === "chat";
+  const handleUpdateProject = useCallback(async (updates: { name: string; cloneUrl: string | null; avatarUrl: string | null }) => {
+    if (!activeProjectId) return;
+    const res = await apiFetch(`/api/workspace-projects/${activeProjectId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Failed to update project" }));
+      throw new Error(err.error || "Failed to update project");
+    }
+    localStorage.setItem("active-project-name", updates.name);
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+  }, [activeProjectId]);
+
+  const handleUploadProjectAvatar = useCallback(async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiFetch(`/api/workspace-projects/${id}/avatar`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to upload avatar");
+    }
+    const data = await res.json();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+    return data.avatarUrl;
+  }, []);
+
+  const handleDeleteProjectAvatar = useCallback(async (id: string) => {
+    const res = await apiFetch(`/api/workspace-projects/${id}/avatar`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to delete avatar");
+    }
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+  }, []);
+
+  const handleDeleteProject = useCallback(async (id: string) => {
+    const res = await apiFetch(`/api/workspace-projects/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to delete project");
+    }
+    onSelectProject(null, null);
+    onNavigate("/projects");
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "project" } }));
+  }, [onSelectProject, onNavigate]);
+
+  const handleUpdateTeam = useCallback(async (updates: any) => {
+    if (!activeTeam?.id) return;
+    const res = await apiFetch(`/api/teams/${activeTeam.id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(updates),
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Failed to update team" }));
+      throw new Error(err.error || "Failed to update team");
+    }
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "team" } }));
+  }, [activeTeam?.id]);
+
+  const handleUploadTeamAvatar = useCallback(async (id: string, file: File) => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiFetch(`/api/teams/${id}/avatar`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to upload team avatar");
+    }
+    const data = await res.json();
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "team" } }));
+    return data.avatarUrl;
+  }, []);
+
+  const handleDeleteTeamAvatar = useCallback(async (id: string) => {
+    const res = await apiFetch(`/api/teams/${id}/avatar`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to delete team avatar");
+    }
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "team" } }));
+  }, []);
+
+  const handleDeleteTeam = useCallback(async (id: string) => {
+    const res = await apiFetch(`/api/teams/${id}`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({}));
+      throw new Error(err.error || "Failed to delete team");
+    }
+    onSelectTeam(null);
+    onNavigate("/teams");
+    window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "team" } }));
+  }, [onSelectTeam, onNavigate]);
+
+  const fetchGlobalSettings = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setGlobalSettings(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch global settings:", err);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchGlobalSettings();
+  }, [fetchGlobalSettings]);
+
+  useEffect(() => {
+    if (!activeProjectId) {
+      setActiveProjectData(null);
+      return;
+    }
+    const fetchProjectData = async () => {
+      try {
+        const res = await apiFetch(`/api/workspace-projects`);
+        if (res.ok) {
+          const data = await res.json();
+          const proj = data.projects?.find((p: any) => p.id === activeProjectId);
+          if (proj) {
+            setActiveProjectData(proj);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch project details:", err);
+      }
+    };
+    fetchProjectData();
+  }, [activeProjectId]);
+
+  useEffect(() => {
+    if (!activeTeam?.id) {
+      setActiveTeamData(null);
+      return;
+    }
+    const fetchTeamData = async () => {
+      try {
+        const res = await apiFetch(`/api/teams`);
+        if (res.ok) {
+          const data = await res.json();
+          const team = data.teams?.find((t: any) => t.id === activeTeam.id);
+          if (team) {
+            setActiveTeamData(team);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch team details:", err);
+      }
+    };
+    fetchTeamData();
+  }, [activeTeam?.id]);
+
+  useEffect(() => {
+    const handleUpdate = async (e: Event) => {
+      const detail = (e as CustomEvent)?.detail;
+      const type = detail?.type;
+
+      if (type === "project" && activeProjectId) {
+        try {
+          const res = await apiFetch(`/api/workspace-projects`);
+          if (res.ok) {
+            const data: any = await res.json();
+            const proj = data.projects?.find((p: any) => p.id === activeProjectId);
+            if (proj) {
+              setActiveProjectData(proj);
+              localStorage.setItem("active-project-name", proj.name);
+            }
+          }
+        } catch (err) {
+          console.error("Error refreshing active project data:", err);
+        }
+      }
+
+      if (type === "team" && activeTeam?.id) {
+        try {
+          const res = await apiFetch(`/api/teams`);
+          if (res.ok) {
+            const data: any = await res.json();
+            const team = data.teams?.find((t: any) => t.id === activeTeam.id);
+            if (team) {
+              setActiveTeamData(team);
+            }
+          }
+        } catch (err) {
+          console.error("Error refreshing active team data:", err);
+        }
+      }
+
+      if (type === "settings") {
+        fetchGlobalSettings();
+      }
+    };
+    window.addEventListener("entity-updated", handleUpdate);
+    return () => window.removeEventListener("entity-updated", handleUpdate);
+  }, [activeProjectId, activeTeam?.id, fetchGlobalSettings]);
+
+  const isHome = isMobile && !activeProjectId && !activeAgent && !activeTeam && page === "chat";
 
   const mobileTitle = useMemo(() => {
     if (activeProjectId) return activeProjectName || activeProjectId;
     if (activeAgent) return activeAgent.name;
-    if (activeChannel) return `#${activeChannel.name}`;
+    if (activeTeam) return `#${activeTeam.name}`;
     if (page === "laboratory") return "Laboratorio";
     if (page === "settings") return l.breadSettings || "Settings";
     if (page === "skills") return l.breadSkills || "Skills";
@@ -154,14 +376,13 @@ export function MainLayout({
     if (page === "sessions") return l.breadSessions || "Sessions";
     if (page === "plugins") return "Plugins";
     return "Factory";
-  }, [activeProjectId, activeProjectName, activeAgent, activeChannel, page, l]);
+  }, [activeProjectId, activeProjectName, activeAgent, activeTeam, page, l]);
 
   const { resolvedSessionId, resolving } = useSessionResolver({
     sessionId,
     activeProjectName: activeProjectId,
     activeProjectFriendlyName: activeProjectName,
     activeAgent,
-    activeChannel,
     activeTeam,
     currentPage: page,
   });
@@ -169,7 +390,6 @@ export function MainLayout({
   useEffect(() => {
     if (resolvedSessionId && !sessionId) {
       const context = {
-        activeChannel,
         activeTeam,
         activeAgent,
         activeProjectName: activeProjectId,
@@ -177,7 +397,7 @@ export function MainLayout({
       };
       onNavigate(getSessionPath(resolvedSessionId, context));
     }
-  }, [resolvedSessionId, sessionId, activeChannel, activeTeam, activeAgent, activeProjectId, activeProjectName, onNavigate]);
+  }, [resolvedSessionId, sessionId, activeTeam, activeAgent, activeProjectId, activeProjectName, onNavigate]);
 
   const resolvingSession = !sessionId && page === "chat" && resolving;
 
@@ -189,8 +409,10 @@ export function MainLayout({
     children
   );
 
-  const isContextView = page === "chat" || page === "workspace" || page === "preview" || page === "laboratory" || page === "org" || page === "delegations";
+  const isContextView = page === "chat" || page === "workspace" || page === "preview" || page === "laboratory" || page === "org" || page === "delegations" || page === "timeline";
   const showNewSessionButton = !isHome && isContextView && page !== "laboratory";
+
+  const isNegotiationTeam = activeTeamData?.teamType === "Negotiation";
 
   const contextTabs = useMemo(() => {
     let basePath = "";
@@ -209,30 +431,46 @@ export function MainLayout({
           </svg>
         ),
       },
-      {
-        id: "delegations",
-        label: l.tabDelegations || "Delegations",
-        path: sessionId ? `${basePath}/session/${sessionId}/delegations` : (basePath ? `${basePath}/delegations` : "/delegations"),
-        icon: (
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-            <circle cx="9" cy="7" r="4" />
-            <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-            <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-          </svg>
-        ),
-      },
-      {
-        id: "workspace",
-        label: l.tabFiles,
-        path: basePath ? `${basePath}/workspace` : "/workspace",
-        icon: (
-          <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
-            <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-          </svg>
-        ),
-      }
     ];
+
+    if (!isNegotiationTeam) {
+      list.push(
+        {
+          id: "delegations",
+          label: l.tabDelegations || "Delegations",
+          path: sessionId ? `${basePath}/session/${sessionId}/delegations` : (basePath ? `${basePath}/delegations` : "/delegations"),
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
+              <circle cx="9" cy="7" r="4" />
+              <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
+              <path d="M16 3.13a4 4 0 0 1 0 7.75" />
+            </svg>
+          ),
+        },
+        {
+          id: "workspace",
+          label: l.tabFiles,
+          path: basePath ? `${basePath}/workspace` : "/workspace",
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 20 20" fill="currentColor">
+              <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
+            </svg>
+          ),
+        },
+        {
+          id: "timeline",
+          label: l.tabTimeline || "Timeline",
+          path: sessionId ? `${basePath}/session/${sessionId}/timeline` : (basePath ? `${basePath}/timeline` : "/timeline"),
+          icon: (
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <polyline points="12 6 12 12 16 14" />
+            </svg>
+          ),
+        }
+      );
+    }
 
     if (activeProjectName || activeProjectId) {
       list.push({
@@ -261,7 +499,7 @@ export function MainLayout({
     }
 
     return list;
-  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeTeam, l]);
+  }, [sessionId, activeProjectId, activeProjectName, activeAgent, activeTeam, activeTeamData, l]);
 
   const breadcrumbsElement = (
     <Breadcrumbs
@@ -269,12 +507,12 @@ export function MainLayout({
       activeProjectId={activeProjectId}
       activeProjectName={activeProjectName}
       activeAgent={activeAgent}
-      activeChannel={null}
       activeTeam={activeTeam}
       selectedExpId={lab?.selectedExpId}
       experiments={lab?.experiments}
       onNavigate={onNavigate}
       l={l}
+      factoryName={globalSettings?.factoryName}
     />
   );
 
@@ -312,15 +550,7 @@ export function MainLayout({
               )}
             </button>
           )}
-          {activeAgent && activeAgent.id !== "lab-architect" && (
-            <button
-              onClick={() => setShowAgentEdit(true)}
-              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
-              title="Configurar agente"
-            >
-              <Settings size={14} />
-            </button>
-          )}
+
           {sessionId && (
             <div className="relative flex items-center">
               <button
@@ -377,11 +607,46 @@ export function MainLayout({
             activeProjectName={activeProjectId}
             activeProjectFriendlyName={activeProjectName}
             activeAgent={activeAgent}
-            activeChannel={null}
             activeTeam={activeTeam}
             onSelectSession={handleSelectSession}
             onNewSession={handleNewSession}
           />
+          {activeAgent && activeAgent.id !== "lab-architect" && (
+            <button
+              onClick={() => setShowAgentEdit(true)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
+              title="Configurar agente"
+            >
+              <Settings size={14} />
+            </button>
+          )}
+          {activeProjectId && (
+            <button
+              onClick={() => setShowProjectEdit(true)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
+              title="Configurar proyecto"
+            >
+              <Settings size={14} />
+            </button>
+          )}
+          {activeTeam && (
+            <button
+              onClick={() => setShowTeamEdit(true)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
+              title="Configurar equipo"
+            >
+              <Settings size={14} />
+            </button>
+          )}
+          {!rawActiveAgent && !activeProjectId && !activeTeam && page === "chat" && (
+            <button
+              onClick={() => setShowGlobalEdit(true)}
+              className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-card transition-all cursor-pointer"
+              title="Configurar Factory"
+            >
+              <Settings size={14} />
+            </button>
+          )}
         </>
       )}
     </>
@@ -486,6 +751,38 @@ export function MainLayout({
             onSubmit={handleUpdateAgent}
             onUploadAvatar={uploadAvatar}
             onDeleteAvatar={deleteAvatar}
+          />
+        )}
+        {showProjectEdit && activeProjectData && (
+          <ProjectSettingsModal
+            project={{
+              id: activeProjectId!,
+              name: activeProjectData.name,
+              cloneUrl: activeProjectData.cloneUrl,
+              avatarUrl: activeProjectData.avatarUrl,
+              createdAt: activeProjectData.createdAt,
+              diskPath: activeProjectData.diskPath,
+            }}
+            onClose={() => setShowProjectEdit(false)}
+            onSave={handleUpdateProject}
+            onUploadAvatar={handleUploadProjectAvatar}
+            onDeleteAvatar={handleDeleteProjectAvatar}
+            onDeleteProject={handleDeleteProject}
+          />
+        )}
+        {showTeamEdit && activeTeamData && (
+          <TeamSettingsModal
+            team={activeTeamData}
+            onClose={() => setShowTeamEdit(false)}
+            onSave={handleUpdateTeam}
+            onUploadAvatar={handleUploadTeamAvatar}
+            onDeleteAvatar={handleDeleteTeamAvatar}
+            onDeleteTeam={handleDeleteTeam}
+          />
+        )}
+        {showGlobalEdit && (
+          <GlobalAgentSettingsModal
+            onClose={() => setShowGlobalEdit(false)}
           />
         )}
       </AnimatePresence>

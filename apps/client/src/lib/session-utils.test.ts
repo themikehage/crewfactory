@@ -15,7 +15,7 @@ describe("session-utils", () => {
         name: "My Session",
         projectName: undefined,
         agentId: undefined,
-        channelId: undefined,
+        teamId: undefined,
       });
     });
 
@@ -27,7 +27,7 @@ describe("session-utils", () => {
         name: "My Session",
         projectName: "my-project",
         agentId: undefined,
-        channelId: undefined,
+        teamId: undefined,
       });
     });
 
@@ -40,13 +40,13 @@ describe("session-utils", () => {
         name: "My Session",
         projectName: undefined,
         agentId: "my-agent",
-        channelId: undefined,
+        teamId: undefined,
       });
     });
 
-    it("handles channel context", () => {
+    it("handles team context", () => {
       const body = buildCreateSessionBody("My Session", {
-        activeChannel: { id: "my-channel", name: "Channel" },
+        activeTeam: { id: "my-team", name: "Team" },
         activeAgent: { id: "my-agent", name: "Agent" },
         activeProjectName: "my-project",
       });
@@ -54,7 +54,7 @@ describe("session-utils", () => {
         name: "My Session",
         projectName: undefined,
         agentId: undefined,
-        channelId: "my-channel",
+        teamId: "my-team",
       });
     });
   });
@@ -62,32 +62,32 @@ describe("session-utils", () => {
   describe("getSessionContextPredicate", () => {
     it("filters for global context", () => {
       const predicate = getSessionContextPredicate({});
-      expect(predicate({ projectName: undefined, agentId: undefined, channelId: undefined })).toBe(true);
-      expect(predicate({ projectName: "proj", agentId: undefined, channelId: undefined })).toBe(false);
+      expect(predicate({ projectName: undefined, agentId: undefined, teamId: undefined })).toBe(true);
+      expect(predicate({ projectName: "proj", agentId: undefined, teamId: undefined })).toBe(false);
     });
 
     it("filters for project context", () => {
       const predicate = getSessionContextPredicate({ activeProjectName: "proj" });
-      expect(predicate({ projectName: "proj", agentId: undefined, channelId: undefined })).toBe(true);
-      expect(predicate({ projectName: "other", agentId: undefined, channelId: undefined })).toBe(false);
-      expect(predicate({ projectName: "proj", agentId: "agent", channelId: undefined })).toBe(false);
+      expect(predicate({ projectName: "proj", agentId: undefined, teamId: undefined })).toBe(true);
+      expect(predicate({ projectName: "other", agentId: undefined, teamId: undefined })).toBe(false);
+      expect(predicate({ projectName: "proj", agentId: "agent", teamId: undefined })).toBe(false);
     });
 
     it("filters for agent context", () => {
       const predicate = getSessionContextPredicate({
         activeAgent: { id: "agent", name: "Agent" },
       });
-      expect(predicate({ projectName: "proj", agentId: "agent", channelId: undefined })).toBe(true);
-      expect(predicate({ projectName: "proj", agentId: "other", channelId: undefined })).toBe(false);
-      expect(predicate({ projectName: "proj", agentId: "agent", channelId: "channel" })).toBe(false);
+      expect(predicate({ projectName: "proj", agentId: "agent", teamId: undefined })).toBe(true);
+      expect(predicate({ projectName: "proj", agentId: "other", teamId: undefined })).toBe(false);
+      expect(predicate({ projectName: "proj", agentId: "agent", teamId: "team" })).toBe(false);
     });
 
-    it("filters for channel context", () => {
+    it("filters for team context", () => {
       const predicate = getSessionContextPredicate({
-        activeChannel: { id: "channel", name: "Channel" },
+        activeTeam: { id: "team", name: "Team" },
       });
-      expect(predicate({ projectName: "proj", agentId: "agent", channelId: "channel" })).toBe(true);
-      expect(predicate({ projectName: "proj", agentId: "agent", channelId: "other" })).toBe(false);
+      expect(predicate({ projectName: "proj", agentId: "agent", teamId: "team" })).toBe(true);
+      expect(predicate({ projectName: "proj", agentId: "agent", teamId: "other" })).toBe(false);
     });
   });
 
@@ -96,7 +96,7 @@ describe("session-utils", () => {
       expect(getSessionPath("123", {})).toBe("/session/123");
       expect(getSessionPath("123", { activeProjectName: "p" })).toBe("/projects/p/session/123");
       expect(getSessionPath("123", { activeAgent: { id: "a", name: "" } })).toBe("/agents/a/session/123");
-      expect(getSessionPath("123", { activeChannel: { id: "c", name: "" } })).toBe("/channels/c/session/123");
+      expect(getSessionPath("123", { activeTeam: { id: "t", name: "" } })).toBe("/teams/t/session/123");
     });
   });
 
@@ -106,7 +106,7 @@ describe("session-utils", () => {
       expect(getSessionName({ activeProjectName: "proj" })).toBe("proj - Session");
       expect(getSessionName({ activeProjectFriendlyName: "Project Friendly", activeProjectName: "proj" })).toBe("Project Friendly - Session");
       expect(getSessionName({ activeAgent: { id: "a", name: "Agent" } })).toBe("Agent - Session");
-      expect(getSessionName({ activeChannel: { id: "c", name: "Channel" } })).toBe("#Channel - Session");
+      expect(getSessionName({ activeTeam: { id: "t", name: "Team" } })).toBe("#Team - Session");
     });
 
     it("returns correct names with count", () => {
@@ -114,7 +114,7 @@ describe("session-utils", () => {
       expect(getSessionName({ activeProjectName: "proj" }, 0)).toBe("proj - Session 1");
       expect(getSessionName({ activeProjectFriendlyName: "Project Friendly", activeProjectName: "proj" }, 1)).toBe("Project Friendly - Session 2");
       expect(getSessionName({ activeAgent: { id: "a", name: "Agent" } }, 4)).toBe("Agent - Session 5");
-      expect(getSessionName({ activeChannel: { id: "c", name: "Channel" } }, 9)).toBe("#Channel - Session 10");
+      expect(getSessionName({ activeTeam: { id: "t", name: "Team" } }, 4)).toBe("#Team - Session 5");
     });
   });
 

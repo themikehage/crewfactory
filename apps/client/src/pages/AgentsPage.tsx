@@ -39,12 +39,10 @@ function roleColor(role: string) {
 function AgentCard({
   agent,
   onDelete,
-  onEdit,
   onChat,
   onExecutions}: {
   agent: AgentInfo;
   onDelete: (id: string) => void;
-  onEdit: (agent: AgentInfo) => void;
   onChat: (agent: { id: string; name: string; avatarUrl?: string }) => void;
   onExecutions: (agent: { id: string; name: string }) => void;
 }) {
@@ -123,12 +121,7 @@ function AgentCard({
         >
           Historial
         </button>
-        <button
-          onClick={() => onEdit(agent)}
-          className="py-1.5 px-2 text-[11px] font-medium text-blue-400 border border-blue-400/20 rounded-lg hover:bg-blue-400/10 transition-colors"
-        >
-          Editar
-        </button>
+
         <button
           onClick={handleDelete}
           disabled={deleting}
@@ -395,9 +388,8 @@ interface AgentsPageProps {
 export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
   const l = useLiterals(u);
   const { addToast } = useToast();
-  const { agents, loading, error, fetchAgents, registerAgent, stopAgent, updateAgent, uploadAvatar, deleteAvatar } = useAgents();
+  const { agents, loading, error, fetchAgents, registerAgent, stopAgent, uploadAvatar, deleteAvatar } = useAgents();
   const [showRegister, setShowRegister] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<AgentInfo | null>(null);
   const [selectedAgentForExecutions, setSelectedAgentForExecutions] = useState<{ id: string; name: string } | null>(null);
 
   // Gallery-specific state
@@ -405,8 +397,8 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
   const [blueprints, setBlueprints] = useState<any[]>([]);
   const [loadingBlueprints, setLoadingBlueprints] = useState(false);
   const [blueprintsError, setBlueprintsError] = useState<string | null>(null);
-  const [channels, setChannels] = useState<any[]>([]);
-  const [galleryFilter, setGalleryFilter] = useState<"all" | "agent" | "channel">("all");
+  const [teams, setTeams] = useState<any[]>([]);
+  const [galleryFilter, setGalleryFilter] = useState<"all" | "agent" | "team">("all");
   const [gallerySearch, setGallerySearch] = useState("");
   const [selectedBlueprint, setSelectedBlueprint] = useState<any | null>(null);
   const [installingId, setInstallingId] = useState<string | null>(null);
@@ -426,24 +418,24 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
     }
   }, []);
 
-  const fetchChannels = useCallback(async () => {
+  const fetchTeams = useCallback(async () => {
     try {
-      const res = await apiFetch("/api/channels");
+      const res = await apiFetch("/api/teams");
       if (res.ok) {
         const data = await res.json();
-        setChannels(data.channels || []);
+        setTeams(data.teams || []);
       }
     } catch (e) {
-      console.error("Failed to fetch channels:", e);
+      console.error("Failed to fetch teams:", e);
     }
   }, []);
 
   useEffect(() => {
     if (activeTab === "gallery") {
       fetchBlueprints();
-      fetchChannels();
+      fetchTeams();
     }
-  }, [activeTab, fetchBlueprints, fetchChannels]);
+  }, [activeTab, fetchBlueprints, fetchTeams]);
 
   const handleInstall = useCallback(async (bpId: string) => {
     setInstallingId(bpId);
@@ -456,7 +448,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
       addToast("success", data.type === "agent" ? l.installSuccessAgent : l.installSuccessChannel);
       
       await fetchAgents();
-      await fetchChannels();
+      await fetchTeams();
       window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: data.type } }));
     } catch (err: any) {
       console.error(err);
@@ -464,20 +456,10 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
     } finally {
       setInstallingId(null);
     }
-  }, [fetchAgents, fetchChannels, addToast, l]);
-
-  const handleEditClick = (agent: AgentInfo) => {
-    setEditingAgent(agent);
-    setShowRegister(true);
-  };
+  }, [fetchAgents, fetchTeams, addToast, l]);
 
   const handleRegisterOrUpdate = async (def: AgentDefinition) => {
-    if (editingAgent) {
-      const { id, ...updates } = def;
-      await updateAgent(editingAgent.id, updates);
-    } else {
-      await registerAgent(def);
-    }
+    await registerAgent(def);
   };
 
   const filteredBlueprints = useMemo(() => {
@@ -490,7 +472,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
       const matchesType =
         galleryFilter === "all" ||
         (galleryFilter === "agent" && bp.type === "agent") ||
-        (galleryFilter === "channel" && bp.type === "channel");
+        (galleryFilter === "team" && bp.type === "team");
       
       return matchesSearch && matchesType;
     });
@@ -519,7 +501,6 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
               </button>
               <button
                 onClick={() => {
-                  setEditingAgent(null);
                   setShowRegister(true);
                 }}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium bg-primary text-background rounded-lg hover:bg-primary/90 transition-colors"
@@ -598,7 +579,6 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
                 </div>
                 <button
                   onClick={() => {
-                    setEditingAgent(null);
                     setShowRegister(true);
                   }}
                   className="px-4 py-2 text-xs font-medium bg-primary/10 text-primary border border-primary/20 rounded-lg hover:bg-primary/20 transition-colors"
@@ -616,7 +596,6 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
                       key={agent.id}
                       agent={agent}
                       onDelete={stopAgent}
-                      onEdit={handleEditClick}
                       onChat={(agentObj) => onSelectAgent?.(agentObj)}
                       onExecutions={(agentObj) => setSelectedAgentForExecutions(agentObj)}
                     />
@@ -671,9 +650,9 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
                   {l.filterAgents}
                 </button>
                 <button
-                  onClick={() => setGalleryFilter("channel")}
+                  onClick={() => setGalleryFilter("team")}
                   className={`px-3 py-1 rounded-lg text-[10px] font-medium transition-all cursor-pointer ${
-                    galleryFilter === "channel"
+                    galleryFilter === "team"
                       ? "bg-primary text-background"
                       : "text-muted-foreground hover:text-foreground"
                   }`}
@@ -701,7 +680,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
                   const isInstalled =
                     item.type === "agent"
                       ? agents.some((a) => a.blueprintId === item.id || a.id === item.id)
-                      : channels.some((c) => c.blueprintId === item.id || c.id === item.id);
+                      : teams.some((c) => c.blueprintId === item.id || c.id === item.id);
 
                   return (
                     <div
@@ -794,10 +773,8 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
       <AnimatePresence>
         {showRegister && (
           <RegisterModal
-            agent={editingAgent}
             onClose={() => {
               setShowRegister(false);
-              setEditingAgent(null);
             }}
             onSubmit={handleRegisterOrUpdate}
             onUploadAvatar={uploadAvatar}
@@ -824,7 +801,7 @@ export function AgentsPage({ onSelectAgent }: AgentsPageProps) {
             isInstalled={
               selectedBlueprint.type === "agent"
                 ? agents.some((a) => a.blueprintId === selectedBlueprint.id || a.id === selectedBlueprint.id)
-                : channels.some((c) => c.blueprintId === selectedBlueprint.id || c.id === selectedBlueprint.id)
+                : teams.some((c) => c.blueprintId === selectedBlueprint.id || c.id === selectedBlueprint.id)
             }
             installing={installingId === selectedBlueprint.id}
           />

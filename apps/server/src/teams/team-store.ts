@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync, appendFileSync, statSync, openSync, fstatSync, readSync, closeSync, renameSync } from "node:fs";
 import { join } from "node:path";
-import type { Team, TeamMember, TeamMessage, CreateTeam, UpdateTeam } from "shared";
+import type { Team, TeamMember, TeamMessage, CreateTeam, UpdateTeam, TeamContextItem } from "shared";
 import { getTeamsDir, getTeamDir, getTeamMessagesPath } from "shared";
 
 export interface NegotiationRound {
@@ -127,6 +127,17 @@ class TeamStore {
     if (updates.negotiationProtocol !== undefined) team.negotiationProtocol = updates.negotiationProtocol;
     if (updates.avatarUrl !== undefined) team.avatarUrl = updates.avatarUrl;
     if (updates.blueprintId !== undefined) team.blueprintId = updates.blueprintId;
+    team.updatedAt = new Date().toISOString();
+
+    writeFileSync(this.getTeamJsonPath(username, id), JSON.stringify(team, null, 2), "utf-8");
+    return team;
+  }
+
+  updateTeamContext(username: string, id: string, context: TeamContextItem[]): Team | null {
+    const team = this.getTeam(username, id);
+    if (!team) return null;
+
+    team.context = context;
     team.updatedAt = new Date().toISOString();
 
     writeFileSync(this.getTeamJsonPath(username, id), JSON.stringify(team, null, 2), "utf-8");

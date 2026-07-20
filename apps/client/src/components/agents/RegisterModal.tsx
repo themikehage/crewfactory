@@ -1,8 +1,8 @@
 import { apiFetch } from "@/lib/api";
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { AgentAvatar } from "@/components/shared/AgentAvatar";
-import { DEFAULT_AVATARS, DEFAULT_AVATAR_PREFIX, isDefaultAvatar } from "@/lib/defaultAvatars";
+import { DEFAULT_AVATAR_PREFIX, isDefaultAvatar } from "@/lib/defaultAvatars";
+import { AvatarUploadField } from "@/components/shared/AvatarUploadField";
 import type { AgentDefinition, AgentInfo } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./RegisterModal.literals";
@@ -79,30 +79,7 @@ export function RegisterModal({
     }
   }, [agent]);
 
-  const handleAvatarChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0] || null;
-    setAvatarFile(file);
-    setSelectedDefaultAvatar(null);
-    if (file) {
-      setAvatarPreview(URL.createObjectURL(file));
-    } else if (agent?.avatarUrl) {
-      setAvatarPreview(agent.avatarUrl);
-    } else {
-      setAvatarPreview(null);
-    }
-  };
 
-  const handleSelectDefaultAvatar = (avatarId: string) => {
-    setSelectedDefaultAvatar(avatarId);
-    setAvatarFile(null);
-    setAvatarPreview(DEFAULT_AVATAR_PREFIX + avatarId);
-  };
-
-  const handleClearAvatar = () => {
-    setSelectedDefaultAvatar(null);
-    setAvatarFile(null);
-    setAvatarPreview(null);
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -184,58 +161,27 @@ export function RegisterModal({
         </div>
 
         <form onSubmit={handleSubmit} className="px-5 py-4 space-y-3 max-h-[70vh] overflow-y-auto">
-          <div className="flex items-center gap-3">
-            <AgentAvatar
-              name={form.name || agent?.name || "Agent"}
-              avatarUrl={avatarPreview}
-              size="lg"
-            />
-            <div className="flex-1">
-              <label className="text-xs font-medium text-muted-foreground block mb-1">Avatar</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleAvatarChange}
-                  className="text-xs text-muted-foreground file:mr-2 file:py-1 file:px-2 file:rounded file:border-0 file:text-xs file:bg-card-hover file:text-foreground hover:file:bg-card-hover/80 file:cursor-pointer"
-                />
-                {avatarPreview && (
-                  <button
-                    type="button"
-                    onClick={handleClearAvatar}
-                    className="text-xs text-destructive hover:underline"
-                  >
-                    Remove
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <label className="text-xs font-medium text-muted-foreground block mb-2">Default Avatars</label>
-            <div className="grid grid-cols-8 gap-1.5">
-              {DEFAULT_AVATARS.map((av) => {
-                const AvComp = av.component;
-                const isSelected = selectedDefaultAvatar === av.id;
-                return (
-                  <button
-                    key={av.id}
-                    type="button"
-                    onClick={() => handleSelectDefaultAvatar(av.id)}
-                    className={`w-8 h-8 rounded-full overflow-hidden border-2 transition-all cursor-pointer ${
-                      isSelected
-                        ? "border-primary scale-110"
-                        : "border-transparent hover:border-primary/40"
-                    }`}
-                    title={av.label}
-                  >
-                    <AvComp width={32} height={32} viewBox="0 0 40 40" />
-                  </button>
-                );
-              })}
-            </div>
-          </div>
+          <AvatarUploadField
+            preview={avatarPreview}
+            selectedDefault={selectedDefaultAvatar}
+            onFileChange={(file, preview) => {
+              setAvatarFile(file);
+              setSelectedDefaultAvatar(null);
+              setAvatarPreview(preview);
+            }}
+            onSelectDefault={(avatarId) => {
+              setSelectedDefaultAvatar(avatarId);
+              setAvatarFile(null);
+              setAvatarPreview(DEFAULT_AVATAR_PREFIX + avatarId);
+            }}
+            onClear={() => {
+              setSelectedDefaultAvatar(null);
+              setAvatarFile(null);
+              setAvatarPreview(null);
+            }}
+            entityName={form.name}
+            avatarType="agent"
+          />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-medium text-muted-foreground block mb-1">{l.idField}</label>

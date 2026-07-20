@@ -1,7 +1,5 @@
 import { sessionManager } from "../session-manager";
 import { agentRegistry } from "../../agents";
-import { channelStore } from "../../channels/channel-store";
-import { channelOrchestrator } from "../../channels/channel-orchestrator";
 import type { ModelRegistry, AuthStorage, DefaultResourceLoader } from "../../ai";
 import { SessionPrefix } from "shared";
 import { parseEnvelope, forwardSubagentEvents, forwardChannelEvents, getLastAssistantText, formatDelegationResultMessage } from "../agent-utils";
@@ -27,19 +25,19 @@ export function createDelegateTaskTool(opts: DelegateTaskOptions) {
 
   return {
     name: "delegate_task",
-    description: `Delegate a task or instruction to another agent, project, channel, or session.
+    description: `Delegate a task or instruction to another agent, project, team, or session.
 Allows keeping parent context clean by returning a structured summary instead of the full conversation log.`,
     parameters: {
       type: "object",
       properties: {
         targetType: {
           type: "string",
-          enum: ["agent", "project", "channel", "session"],
+          enum: ["agent", "project", "team", "session"],
           description: "The type of target to delegate the task to.",
         },
         targetId: {
           type: "string",
-          description: "The identifier of the target (agent ID, project UUID or name, channel ID, or session ID).",
+          description: "The identifier of the target (agent ID, project UUID or name, team ID, or session ID).",
         },
         task: {
           type: "string",
@@ -78,7 +76,7 @@ Allows keeping parent context clean by returning a structured summary instead of
         : appConfig.subagent.maxDepth;
 
       const currentDepth = getSubagentDepth(username, parentSessionId);
-      const effectiveDepth = targetType === "channel" ? currentDepth : currentDepth + 1;
+      const effectiveDepth = targetType === "team" ? currentDepth : currentDepth + 1;
 
       if (effectiveDepth > maxDepth) {
         throw new Error(
@@ -194,6 +192,40 @@ Allows keeping parent context clean by returning a structured summary instead of
               targetId
             );
 
+            // Resolve and set model (explicit customModel parameter or inherited parentModel / parent session model)
+            let resolvedModel = opts.parentModel || null;
+            if (!resolvedModel) {
+              try {
+                const parentSession = sessionManager.getSession(username, parentSessionId);
+                if (parentSession?.model) {
+                  resolvedModel = parentSession.model;
+                }
+              } catch {}
+            }
+
+            if (customModel) {
+              try {
+                const { modelRegistry } = sessionManager.userConfig.getUserContext(username);
+                modelRegistry.refresh();
+                const found = modelRegistry
+                  .getAvailable()
+                  .find((m: any) => m.id === customModel || `${m.provider}/${m.id}` === customModel || m.name === customModel);
+                if (found) {
+                  resolvedModel = found;
+                }
+              } catch (e) {
+                console.error("[Delegate Tool] Failed to resolve custom model:", e);
+              }
+            }
+
+            if (resolvedModel) {
+              try {
+                await session.setModel(resolvedModel);
+              } catch (e) {
+                console.error(`[Delegate Tool] Failed to set model on delegate session ${delegateSessionId}:`, e);
+              }
+            }
+
             childToken.register(() => {
               session.abort();
               delegationRegistry.abortAllRecursive(delegateSessionId);
@@ -216,32 +248,35 @@ Allows keeping parent context clean by returning a structured summary instead of
                 .slice(0, 4000);
             }
 
-          } else if (targetType === "channel") {
-            const channel = channelStore.getChannel(username, targetId);
-            if (!channel) {
-              throw new Error(`Channel "${targetId}" not found for user "${username}"`);
+          } else if (targetType === "team") {
+            const { teamStore } = await import("../../teams/team-store");
+            const { teamOrchestrator } = await import("../../teams/team-orchestrator");
+
+            const team = teamStore.getTeam(username, targetId);
+            if (!team) {
+              throw new Error(`Team "${targetId}" not found for user "${username}"`);
             }
 
             childToken.register(() => {
-              channelOrchestrator.abortDispatch(username, targetId, delegateSessionId);
+              teamOrchestrator.abortDispatch(username, targetId, delegateSessionId);
               delegationRegistry.abortAllRecursive(delegateSessionId);
-            }, `channel:${targetId}`);
+            }, `team:${targetId}`);
 
             const unsub = forwardChannelEvents(targetId, parentSessionId, delegateSessionId, toolCallId);
 
             try {
-              await channelOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
+              await teamOrchestrator.dispatchUserMessage(username, targetId, task, delegateSessionId);
             } finally {
               unsub();
             }
 
-            const channelMessages = channelStore.getMessages(username, targetId, 100, delegateSessionId);
-            const lastAgentMsg = [...channelMessages].reverse().find(m => m.role === "agent");
+            const teamMessages = teamStore.getMessages(username, targetId, 100, delegateSessionId);
+            const lastAgentMsg = [...teamMessages].reverse().find(m => m.role === "agent");
             lastText = lastAgentMsg?.content || "";
 
             parsedEnvelope = parseEnvelope(lastText);
             if (includeFullHistory) {
-              executionResultText = channelMessages
+              executionResultText = teamMessages
                 .map(m => `[${m.role === "agent" ? m.agentName || "Agent" : "User"}]: ${m.content}`)
                 .join("\n\n")
                 .slice(0, 4000);

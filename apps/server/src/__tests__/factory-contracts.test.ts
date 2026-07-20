@@ -6,12 +6,13 @@ describe("Factory Contracts Tests", () => {
     const expectedEntities = [
       "agents",
       "projects",
-      "channels",
+      "teams",
       "sessions",
       "env",
       "providers",
       "skills",
       "experiments",
+      "settings",
     ];
 
     for (const entity of expectedEntities) {
@@ -26,15 +27,21 @@ describe("Factory Contracts Tests", () => {
     for (const contract of Object.values(FACTORY_CONTRACTS)) {
       expect(contract.actions.get).toBeTypeOf("object");
       expect(contract.actions.upsert).toBeTypeOf("object");
-      expect(contract.actions.delete).toBeTypeOf("object");
+      if (contract.entity !== "settings") {
+        expect(contract.actions.delete).toBeTypeOf("object");
+      }
 
       expect(contract.actions.get.description).toBeTypeOf("string");
       expect(contract.actions.upsert.description).toBeTypeOf("string");
-      expect(contract.actions.delete.description).toBeTypeOf("string");
+      if (contract.entity !== "settings") {
+        expect(contract.actions.delete.description).toBeTypeOf("string");
+      }
 
       expect(contract.actions.get.params).toBeTypeOf("object");
       expect(contract.actions.upsert.params).toBeTypeOf("object");
-      expect(contract.actions.delete.params).toBeTypeOf("object");
+      if (contract.entity !== "settings") {
+        expect(contract.actions.delete.params).toBeTypeOf("object");
+      }
     }
   });
 
@@ -54,5 +61,19 @@ describe("Factory Contracts Tests", () => {
     const providersUpsert = FACTORY_CONTRACTS.providers.actions.upsert.params;
     expect(providersUpsert.id.required).toBe(true);
     expect(providersUpsert.apiKey.required).toBe(true);
+
+    // Teams avatarUrl
+    const teamsUpsert = FACTORY_CONTRACTS.teams.actions.upsert.params;
+    expect(teamsUpsert.avatarUrl.required).toBe(false);
+
+    // Projects avatarUrl
+    const projectsUpsert = FACTORY_CONTRACTS.projects.actions.upsert.params;
+    expect(projectsUpsert.avatarUrl.required).toBe(false);
+
+    // Settings upsert
+    const settingsUpsert = FACTORY_CONTRACTS.settings.actions.upsert.params;
+    expect(settingsUpsert.factoryName).toBeDefined();
+    expect(settingsUpsert.factoryAvatarUrl).toBeDefined();
+    expect(settingsUpsert.factorySystemPrompt).toBeDefined();
   });
 });

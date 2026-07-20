@@ -6,7 +6,7 @@ export interface EscalationContext {
   receiverId: string;
   receiverName: string;
   rounds: number;
-  channelId: string;
+  teamId: string;
   sessionId?: string;
 }
 
@@ -24,7 +24,7 @@ export class ArbitrationProtocol {
   buildEscalationMessage(context: EscalationContext) {
     return {
       id: crypto.randomUUID(),
-      channelId: context.channelId,
+      teamId: context.teamId,
       sessionId: context.sessionId,
       role: "user" as const,
       content: `Bloqueo detectado tras ${context.rounds} rondas entre @${context.senderName} y @${context.receiverName}. Emite veredicto vinculante.`,

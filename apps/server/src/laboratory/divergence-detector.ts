@@ -1,4 +1,4 @@
-import type { ChannelMessage } from "shared";
+import type { TeamMessage } from "shared";
 
 export type DivergenceEvent = {
   agents: [string, string];
@@ -10,7 +10,7 @@ export type DivergenceEvent = {
 };
 
 export class DivergenceDetector {
-  static detect(messages: ChannelMessage[], threshold = 2): DivergenceEvent | null {
+  static detect(messages: TeamMessage[], threshold = 2): DivergenceEvent | null {
     // 1. Check for explicit keywords in the very last message
     const lastMsg = messages[messages.length - 1];
     if (!lastMsg || lastMsg.role !== "agent") return null;

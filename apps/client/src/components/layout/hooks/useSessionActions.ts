@@ -6,7 +6,6 @@ interface UseSessionActionsProps {
   activeProjectId?: string | null;
   activeProjectFriendlyName?: string | null;
   activeAgent: { id: string; name: string } | null;
-  activeChannel: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
   onNavigate: (path: string) => void;
   setSidebarOpen?: (open: boolean) => void;
@@ -16,7 +15,6 @@ export function useSessionActions({
   activeProjectId,
   activeProjectFriendlyName = null,
   activeAgent,
-  activeChannel,
   activeTeam = null,
   onNavigate,
   setSidebarOpen,
@@ -26,14 +24,13 @@ export function useSessionActions({
   const getSessionPath = useCallback(
     (id: string) => {
       return resolveSessionPath(id, {
-        activeChannel,
         activeTeam,
         activeAgent,
         activeProjectName: activeProjectId,
         activeProjectFriendlyName,
       });
     },
-    [activeChannel, activeTeam, activeAgent, activeProjectId, activeProjectFriendlyName]
+    [activeTeam, activeAgent, activeProjectId, activeProjectFriendlyName]
   );
 
   const handleSelectSession = useCallback(
@@ -42,8 +39,7 @@ export function useSessionActions({
         onNavigate(getSessionPath(id));
       } else {
         let basePath = "";
-        if (activeChannel) basePath = `/channels/${activeChannel.id}/chat`;
-        else if (activeTeam) basePath = `/teams/${activeTeam.id}/chat`;
+        if (activeTeam) basePath = `/teams/${activeTeam.id}/chat`;
         else if (activeAgent) {
           if (activeAgent.id === "lab-architect") {
             basePath = "/laboratory";
@@ -56,7 +52,7 @@ export function useSessionActions({
       }
       setSidebarOpen?.(false);
     },
-    [onNavigate, getSessionPath, activeChannel?.id, activeTeam?.id, activeAgent?.id, activeProjectId, setSidebarOpen]
+    [onNavigate, getSessionPath, activeTeam?.id, activeAgent?.id, activeProjectId, setSidebarOpen]
   );
 
   const handleNewSession = useCallback(
@@ -77,7 +73,6 @@ export function useSessionActions({
           name: "Nueva sesion",
           projectName: activeProjectId || undefined,
           agentId: activeAgent?.id || undefined,
-          channelId: activeChannel?.id || undefined,
           teamId: activeTeam?.id || undefined,
         }),
       });
@@ -90,7 +85,7 @@ export function useSessionActions({
     } finally {
       setQuickCreating(false);
     }
-  }, [onNavigate, getSessionPath, activeProjectId, activeAgent, activeChannel, activeTeam, setSidebarOpen]);
+  }, [onNavigate, getSessionPath, activeProjectId, activeAgent, activeTeam, setSidebarOpen]);
 
   return {
     quickCreating,
@@ -100,4 +95,3 @@ export function useSessionActions({
     handleQuickCreate,
   };
 }
-

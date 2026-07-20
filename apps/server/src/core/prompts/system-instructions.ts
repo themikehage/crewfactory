@@ -46,6 +46,11 @@ export const SUBAGENT_DELEGATION_INSTRUCTIONS =
   `Do NOT delegate simple one-line changes, git status reads, or trivial file lookups.\n` +
   `Every subagent is a pure EXECUTOR and must be given all context (relative file paths, code snippets, requirements) in the "task" argument. It has no memory of this parent conversation.\n`;
 
+export const ENVIRONMENT_INSTRUCTIONS = 
+  `\n\nConstraint — No long-running processes:\n` +
+  `Do NOT start servers, dev watchers, or daemons (e.g. \`npm run dev\`, \`bun run dev\`, \`docker compose up\`, ngrok, live-reload, etc.).\n` +
+  `Run builds, linting, type-checking, tests, and git operations instead. The app is already deployed and running.\n`;
+
 export const TASK_DELEGATION_INSTRUCTIONS = 
   `\n\nTask Delegation (delegate_task tool):\n` +
   `You have a delegate_task tool to prompt and execute tasks on programmatic agents, channels, projects, or existing sessions.\n` +

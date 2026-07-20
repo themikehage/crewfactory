@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { useTeam } from "@/hooks/useTeam";
 import { useAgents } from "@/hooks/useAgents";
 import { TeamMessages } from "@/components/teams/TeamMessages";
@@ -8,11 +8,33 @@ import { AddTeamMemberModal } from "@/components/teams/TeamMembersModal";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./TeamDetailPage.literals";
 import { EntityAvatar } from "@/components/shared/EntityAvatar";
+import { apiFetch } from "@/lib/api";
+import {
+  PieChart,
+  Pie,
+  Cell,
+  ResponsiveContainer,
+  Tooltip as ChartTooltip,
+  Legend,
+} from "recharts";
+import { MessageSquare, BarChart, RefreshCw } from "lucide-react";
 
 interface Props {
   teamId: string;
   onNavigate: (path: string) => void;
 }
+
+interface TeamAnalytics {
+  turnsPerAgent: { agentId: string; agentName: string; count: number }[];
+  vetoRate: number;
+  vetoCount: number;
+  arbitrationRounds: number;
+  divergenceCount: number;
+  avgResponseTimeMs: number;
+  totalSessions: number;
+}
+
+const COLORS = ["#4ade80", "#3b82f6", "#a855f7", "#fbbf24", "#f43f5e", "#06b6d4"];
 
 export function TeamDetailPage({ teamId, onNavigate }: Props) {
   const l = useLiterals(u);
@@ -25,13 +47,39 @@ export function TeamDetailPage({ teamId, onNavigate }: Props) {
     sendMessage,
     addMember,
     updateMember,
-    removeMember,
+    removeMember
   } = useTeam(teamId);
 
   const { agents: registeredAgents } = useAgents();
 
+  const [activeSubTab, setActiveSubTab] = useState<"chat" | "analytics">("chat");
   const [showMembersSidebar, setShowMembersSidebar] = useState(true);
   const [showAddMemberModal, setShowAddMemberModal] = useState(false);
+
+  // Analytics states
+  const [analytics, setAnalytics] = useState<TeamAnalytics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+
+  const fetchAnalytics = useCallback(async () => {
+    setLoadingAnalytics(true);
+    try {
+      const res = await apiFetch(`/api/teams/${teamId}/analytics`);
+      if (res.ok) {
+        const d = await res.json();
+        setAnalytics(d);
+      }
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoadingAnalytics(false);
+    }
+  }, [teamId]);
+
+  useEffect(() => {
+    if (activeSubTab === "analytics") {
+      fetchAnalytics();
+    }
+  }, [activeSubTab, fetchAnalytics]);
 
   const agentAvatarMap = useMemo(() => {
     const map: Record<string, string | undefined> = {};
@@ -52,7 +100,7 @@ export function TeamDetailPage({ teamId, onNavigate }: Props) {
   if (error || !team) {
     return (
       <div className="h-full flex flex-col items-center justify-center bg-background text-destructive gap-3">
-        <p className="text-sm font-medium">{error || "Team not found"}</p>
+        <p className="text-sm font-medium">{error || l.teamNotFound}</p>
         <button
           onClick={() => onNavigate("/teams")}
           className="px-4 py-2 text-xs bg-card border border-input text-foreground rounded-lg hover:bg-card-hover transition-colors cursor-pointer"
@@ -63,41 +111,63 @@ export function TeamDetailPage({ teamId, onNavigate }: Props) {
     );
   }
 
+  const tabClass = (tab: typeof activeSubTab) =>
+    `px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition-all cursor-pointer ${
+      activeSubTab === tab
+        ? "bg-accent/15 text-accent border border-accent/20"
+        : "text-muted-foreground hover:text-foreground border border-transparent"
+    }`;
+
   return (
     <div className="h-full flex flex-col bg-background overflow-hidden relative font-sans">
       {/* Header */}
       <div className="h-12 px-4 border-b border-border flex items-center justify-between flex-shrink-0 bg-card/50 backdrop-blur-sm z-10">
-        <div className="flex items-center gap-2 min-w-0">
-          <button
-            onClick={() => onNavigate("/teams")}
-            className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors cursor-pointer"
-            title={l.backToTeams}
-          >
-            <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
-            </svg>
-          </button>
-          <div className="flex items-center gap-1.5 min-w-0">
-            <EntityAvatar
-              name={team.name}
-              avatarUrl={team.avatarUrl}
-              size="xs"
-              type="team"
-            />
-            <h2 className="text-sm font-semibold text-foreground truncate">{team.name}</h2>
+        <div className="flex items-center gap-4 min-w-0">
+          <div className="flex items-center gap-2 min-w-0">
+            <button
+              onClick={() => onNavigate("/teams")}
+              className="p-1 text-muted-foreground hover:text-foreground rounded transition-colors cursor-pointer"
+              title={l.backToTeams}
+            >
+              <svg width="16" height="16" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+            <div className="flex items-center gap-1.5 min-w-0">
+              <EntityAvatar
+                name={team.name}
+                avatarUrl={team.avatarUrl}
+                size="xs"
+                type="team"
+              />
+              <h2 className="text-sm font-semibold text-foreground truncate">{team.name}</h2>
+            </div>
+            {team.description && (
+              <>
+                <span className="text-muted-foreground select-none hidden sm:inline">|</span>
+                <span className="text-xs text-muted-foreground truncate hidden sm:inline max-w-xs">{team.description}</span>
+              </>
+            )}
           </div>
-          {team.description && (
-            <>
-              <span className="text-muted-foreground select-none hidden sm:inline">|</span>
-              <span className="text-xs text-muted-foreground truncate hidden sm:inline max-w-xs">{team.description}</span>
-            </>
-          )}
+
+          {/* Sub-tab Selection */}
+          <div className="flex items-center bg-card/85 p-0.5 border border-input rounded-xl gap-0.5 shadow-xs">
+            <button onClick={() => setActiveSubTab("chat")} className={tabClass("chat")}>
+              <MessageSquare className="w-3.5 h-3.5" />
+              <span>{l.tabChat}</span>
+            </button>
+            <button onClick={() => setActiveSubTab("analytics")} className={tabClass("analytics")}>
+              <BarChart className="w-3.5 h-3.5" />
+              <span>{l.tabAnalytics}</span>
+            </button>
+          </div>
         </div>
 
         <div className="flex items-center gap-2">
-          <button
-            onClick={() => setShowMembersSidebar((prev) => !prev)}
-            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
+          {activeSubTab === "chat" && (
+            <button
+              onClick={() => setShowMembersSidebar((prev) => !prev)}
+              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium border transition-colors cursor-pointer ${
                 showMembersSidebar
                   ? "bg-primary/10 border-primary/30 text-primary"
                   : "bg-card border-input text-muted-foreground hover:text-foreground"
@@ -108,23 +178,136 @@ export function TeamDetailPage({ teamId, onNavigate }: Props) {
               </svg>
               <span>Agents ({team.members?.length || 0})</span>
             </button>
+          )}
         </div>
       </div>
 
       <div className="flex-1 flex min-h-0 relative overflow-hidden">
-        <div className="flex-1 flex flex-col min-w-0 h-full">
-          <TeamMessages messages={messages} streamingAgents={streamingAgents} agentAvatarMap={agentAvatarMap} />
-          <TeamInput onSend={sendMessage} />
-        </div>
+        {activeSubTab === "chat" ? (
+          <div className="flex-1 flex min-h-0 relative overflow-hidden w-full">
+            <div className="flex-1 flex flex-col min-w-0 h-full">
+              <TeamMessages messages={messages} streamingAgents={streamingAgents} agentAvatarMap={agentAvatarMap} />
+              <TeamInput onSend={sendMessage} />
+            </div>
 
-        {showMembersSidebar && (
-          <TeamMembersPanel
-            members={team.members || []}
-            registeredAgents={registeredAgents}
-            onAddClick={() => setShowAddMemberModal(true)}
-            onUpdateMember={updateMember}
-            onRemoveMember={removeMember}
-          />
+            {showMembersSidebar && (
+              <TeamMembersPanel
+                members={team.members || []}
+                registeredAgents={registeredAgents}
+                onAddClick={() => setShowAddMemberModal(true)}
+                onUpdateMember={updateMember}
+                onRemoveMember={removeMember}
+              />
+            )}
+          </div>
+        ) : (
+          <div className="flex-1 overflow-y-auto p-4 md:p-6 space-y-6 bg-background">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-foreground">Team Performance Metrics</h3>
+              <button
+                onClick={fetchAnalytics}
+                disabled={loadingAnalytics}
+                className="p-1.5 hover:bg-card-hover border border-input rounded-lg text-muted-foreground hover:text-foreground disabled:opacity-50 transition-all cursor-pointer"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${loadingAnalytics ? "animate-spin" : ""}`} />
+              </button>
+            </div>
+
+            {loadingAnalytics ? (
+              <div className="flex flex-col items-center justify-center py-20 gap-2">
+                <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+                <span className="text-xs text-muted-foreground">{l.loadingAnalytics}</span>
+              </div>
+            ) : !analytics ? (
+              <div className="text-center py-12 border border-dashed border-input rounded-2xl text-muted-foreground text-xs font-semibold">
+                {l.noAnalytics}
+              </div>
+            ) : (
+              <div className="space-y-6">
+                {/* KPI Cards Grid */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                  <div className="border border-input/60 rounded-xl p-4 bg-card/20 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                      {l.kpiTotalSessions}
+                    </span>
+                    <span className="text-xl font-bold text-foreground">{analytics.totalSessions}</span>
+                  </div>
+                  <div className="border border-input/60 rounded-xl p-4 bg-card/20 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                      {l.kpiVetoRate}
+                    </span>
+                    <span className="text-xl font-bold text-foreground flex items-baseline gap-1.5">
+                      {Math.round(analytics.vetoRate * 100)}%
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        ({analytics.vetoCount} vetos)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="border border-input/60 rounded-xl p-4 bg-card/20 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                      {l.kpiArbitrations}
+                    </span>
+                    <span className="text-xl font-bold text-foreground flex items-baseline gap-1.5">
+                      {analytics.arbitrationRounds}
+                      <span className="text-[10px] text-muted-foreground font-normal">
+                        ({analytics.divergenceCount} divergences)
+                      </span>
+                    </span>
+                  </div>
+                  <div className="border border-input/60 rounded-xl p-4 bg-card/20 shadow-xs">
+                    <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider block mb-1">
+                      {l.kpiAvgResponse}
+                    </span>
+                    <span className="text-xl font-bold text-foreground">
+                      {analytics.avgResponseTimeMs > 0
+                        ? `${(analytics.avgResponseTimeMs / 1000).toFixed(1)}s`
+                        : "0s"}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Agent turns distribution */}
+                <div className="bg-card border border-input rounded-2xl p-4 md:p-6 shadow-xs max-w-xl">
+                  <h4 className="text-xs font-bold uppercase tracking-wider text-foreground mb-4">
+                    {l.chartTurnsTitle}
+                  </h4>
+                  <div className="h-64 flex items-center justify-center">
+                    {analytics.turnsPerAgent.length === 0 ? (
+                      <span className="text-xs text-muted-foreground">No turns logged yet</span>
+                    ) : (
+                      <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                          <Pie
+                            data={analytics.turnsPerAgent}
+                            dataKey="count"
+                            nameKey="agentName"
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={50}
+                            outerRadius={75}
+                            paddingAngle={3}
+                          >
+                            {analytics.turnsPerAgent.map((_, index) => (
+                              <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            ))}
+                          </Pie>
+                          <ChartTooltip
+                            contentStyle={{
+                              backgroundColor: "#171717",
+                              borderColor: "#262626",
+                              borderRadius: "8px",
+                              fontSize: "11px",
+                            }}
+                          />
+                          <Legend verticalAlign="bottom" height={36} iconSize={8} wrapperStyle={{ fontSize: "10px" }} />
+                        </PieChart>
+                      </ResponsiveContainer>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         )}
       </div>
 

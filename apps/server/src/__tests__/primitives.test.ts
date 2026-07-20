@@ -1,8 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { parseEnvelope, getLastAssistantText, resolveModelWithFallback } from "../core/agent-utils";
-import { NegotiationProtocol } from "../core/negotiation/negotiation-protocol";
 import { ArbitrationProtocol } from "../core/negotiation/arbitration-protocol";
-import type { NegotiationProtocol as NegotiationProtocolConfig } from "shared";
 
 describe("Agent Utilities - Envelope Parser", () => {
   it("should parse a valid envelope with custom keys", () => {
@@ -55,43 +53,7 @@ describe("Agent Utilities - Last Assistant Text Extractions", () => {
   });
 });
 
-describe("Negotiation Protocol Primitives", () => {
-  const config: NegotiationProtocolConfig = {
-    agreementPattern: "ACUERDO ALCANZADO|ACEPTO",
-    counterPattern: "CONTRAPROPUESTA",
-    rejectPattern: "RECHAZO",
-    maxRounds: 3,
-    quorumThreshold: 0.5,
-  };
 
-  it("should ingest text and detect agreement", () => {
-    const protocol = new NegotiationProtocol(config);
-    let agreementCalled = false;
-    protocol.onAgreement((pairKey) => {
-      agreementCalled = true;
-      expect(pairKey).toBe("agentA:agentB");
-    });
-
-    const result = protocol.ingest("agentA", "agentB", "ACUERDO ALCANZADO: Aceptamos los términos.");
-    expect(result.matched).toBe("agreed");
-    expect(agreementCalled).toBe(true);
-  });
-
-  it("should trigger escalation when max rounds are reached", () => {
-    const protocol = new NegotiationProtocol(config);
-    let escalationCalled = false;
-    protocol.onEscalation((context) => {
-      escalationCalled = true;
-      expect(context.rounds).toBe(3);
-    });
-
-    protocol.ingest("agentA", "agentB", "Primera propuesta");
-    protocol.ingest("agentB", "agentA", "Contrapropuesta a");
-    const result = protocol.ingest("agentA", "agentB", "Sigue discusión sin acuerdo");
-    expect(result.shouldEscalate).toBe(true);
-    expect(escalationCalled).toBe(true);
-  });
-});
 
 describe("Arbitration Protocol Primitives", () => {
   it("should build binding arbitration message", () => {
@@ -104,7 +66,7 @@ describe("Arbitration Protocol Primitives", () => {
       receiverId: "pm",
       receiverName: "Project Manager Agent",
       rounds: 5,
-      channelId: "channel-1",
+      teamId: "team-1",
       sessionId: "session-abc",
     });
 

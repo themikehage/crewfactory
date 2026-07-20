@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FC } from "react";
 import { getAvatarComponent, isDefaultAvatar } from "@/lib/defaultAvatars";
+import { useAuth } from "@/contexts/AuthContext";
 
 
 
@@ -30,14 +31,14 @@ export const AgentAvatar: FC<AgentAvatarProps> = ({
   className = ""}) => {
   const [imgError, setImgError] = useState(false);
   const px = SIZE_MAP[size];
+  const { token } = useAuth();
 
   const authedUrl = useMemo(() => {
     if (!avatarUrl) return "";
     if (isDefaultAvatar(avatarUrl)) return avatarUrl;
-    const token = "";
     if (!token || !avatarUrl.startsWith("/api/")) return avatarUrl;
-    return `${avatarUrl}?token=${encodeURIComponent(token)}`;
-  }, [avatarUrl]);
+    return `${avatarUrl}${avatarUrl.includes("?") ? "&" : "?"}token=${encodeURIComponent(token)}`;
+  }, [avatarUrl, token]);
 
   if (avatarUrl && !isDefaultAvatar(avatarUrl) && !imgError) {
     return (

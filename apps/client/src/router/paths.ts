@@ -1,4 +1,4 @@
-export type ContextType = "project" | "agent" | "channel" | "team";
+export type ContextType = "project" | "agent" | "team";
 
 export interface ContextPathInput {
   type: ContextType;

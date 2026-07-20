@@ -1,65 +1,35 @@
 import type { WSContext } from "hono/ws";
 import { wsRegistry, startHeartbeat } from "./registry";
 import { setAgentStopCallback } from "../agents/agent-stop-callback";
-import { channelOrchestrator, setChannelBroadcastHandler } from "../channels";
 import { teamOrchestrator, setTeamBroadcastHandler } from "../teams";
 import { setEventBroadcaster } from "../lib/event-broker";
 
-setAgentStopCallback((agentId) => {
-  channelOrchestrator.removeAgentQueue(agentId);
-});
+setAgentStopCallback((_agentId) => {});
 
 startHeartbeat();
 
 export const sessionSockets = wsRegistry.sessionSockets;
 export const userSockets = wsRegistry.userSockets;
-export const channelSockets = wsRegistry.channelSockets;
 export const teamSockets = wsRegistry.teamSockets;
 
-interface ChannelInterceptor {
-  channelId: string;
+interface TeamInterceptor {
+  teamId: string;
   sessionId: string;
   callback: (data: any) => void;
 }
 
-const channelInterceptors = new Set<ChannelInterceptor>();
+const teamInterceptors = new Set<TeamInterceptor>();
 
-export function registerChannelInterceptor(
-  channelId: string,
+export function registerTeamInterceptor(
+  teamId: string,
   sessionId: string,
   callback: (data: any) => void
 ): () => void {
-  const interceptor = { channelId, sessionId, callback };
-  channelInterceptors.add(interceptor);
+  const interceptor = { teamId, sessionId, callback };
+  teamInterceptors.add(interceptor);
   return () => {
-    channelInterceptors.delete(interceptor);
+    teamInterceptors.delete(interceptor);
   };
-}
-
-export function broadcastToChannel(channelId: string, data: any): void {
-  if (data && data.sessionId) {
-    for (const interceptor of channelInterceptors) {
-      if (interceptor.channelId === channelId && interceptor.sessionId === data.sessionId) {
-        try {
-          interceptor.callback(data);
-        } catch (err) {
-          console.error("[WS] channelInterceptor callback failed:", err);
-        }
-      }
-    }
-  }
-
-  const sockets = wsRegistry.channelSockets.get(channelId);
-  if (sockets) {
-    const payload = JSON.stringify(data);
-    for (const ws of sockets) {
-      try {
-        ws.send(payload);
-      } catch (err) {
-        console.error("[WS] broadcastToChannel ws.send failed:", err);
-      }
-    }
-  }
 }
 
 export function broadcastToUser(username: string, data: any): void {
@@ -91,6 +61,18 @@ export function broadcastToSession(sessionId: string, data: any): void {
 }
 
 export function broadcastToTeam(teamId: string, data: any): void {
+  if (data && data.sessionId) {
+    for (const interceptor of teamInterceptors) {
+      if (interceptor.teamId === teamId && interceptor.sessionId === data.sessionId) {
+        try {
+          interceptor.callback(data);
+        } catch (err) {
+          console.error("[WS] teamInterceptor callback failed:", err);
+        }
+      }
+    }
+  }
+
   const sockets = wsRegistry.teamSockets.get(teamId);
   if (sockets) {
     const payload = JSON.stringify(data);
@@ -104,12 +86,11 @@ export function broadcastToTeam(teamId: string, data: any): void {
   }
 }
 
-setChannelBroadcastHandler(broadcastToChannel);
 setTeamBroadcastHandler(broadcastToTeam);
 setEventBroadcaster(broadcastToUser);
 
 import { setWsHandlerBridge } from "../core/agent-utils";
-setWsHandlerBridge(registerChannelInterceptor, broadcastToSession);
+setWsHandlerBridge(registerTeamInterceptor, broadcastToSession);
 
 // Legacy compatibility shims - these are now handled by factory
 // but we keep exported functions for any direct imports.

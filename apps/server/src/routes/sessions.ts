@@ -598,21 +598,6 @@ sessionsRouter.get("/:id/messages", async (c) => {
       } catch (err) {
         return c.json({ messages: [] });
       }
-    } else if (tipo === "channel") {
-      try {
-        const { channelStore } = await import("../channels");
-        const messages = channelStore.getMessages(username, entidad, 100, execId);
-        const mapped = messages.map((m: any) => ({
-          id: m.id || crypto.randomUUID(),
-          role: m.role === "agent" ? "assistant" : m.role,
-          content: m.content,
-          agentName: m.agentName,
-          timestamp: m.timestamp,
-        }));
-        return c.json({ messages: mapped });
-      } catch (err) {
-        return c.json({ messages: [] });
-      }
     }
 
     return c.json({ messages: [] });
@@ -1038,19 +1023,6 @@ sessionsRouter.get("/:id/export", async (c) => {
           if (existsSync(summaryPath)) {
             metadata = JSON.parse(readFileSync(summaryPath, "utf-8"));
           }
-        } catch {}
-      } else if (tipo === "channel") {
-        try {
-          const { channelStore } = await import("../channels");
-          const rawMessages = channelStore.getMessages(username, entidad, 100, execId);
-          messages = rawMessages.map((m: any) => ({
-            id: m.id || crypto.randomUUID(),
-            role: m.role === "agent" ? "assistant" : m.role,
-            content: m.content,
-            agentName: m.agentName,
-            timestamp: m.timestamp,
-            isError: m.isError,
-          }));
         } catch {}
       }
     } else {

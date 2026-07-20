@@ -1,0 +1,38 @@
+import type { SupportedLocale } from "@/lib/types";
+
+export const literals = {
+  en: {
+    createTitle: "Create Team",
+    createSubtitle: "Start a new multi-agent debate team",
+    teamNameLabel: "Team Name *",
+    teamNamePlaceholder: "e.g. tech-lead-debate",
+    descriptionLabel: "Description (optional)",
+    descriptionPlaceholder: "Stateless negotiation with arbitrage",
+    cancel: "Cancel",
+    creating: "Creating...",
+    createTeam: "Create Team",
+    createError: "Failed to create team",
+    teamTypeLabel: "Team Type",
+    leaderLabel: "Team Leader *",
+    selectLeaderPlaceholder: "Select a leader agent...",
+    noAgentsError: "No registered agents found. Please register an agent first.",
+    membersLabel: "Team Members (optional)",
+  },
+  es: {
+    createTitle: "Crear Equipo",
+    createSubtitle: "Inicia un nuevo equipo de debate multi-agente",
+    teamNameLabel: "Nombre del Equipo *",
+    teamNamePlaceholder: "ej. debate-lideres-tecnicos",
+    descriptionLabel: "Descripción (opcional)",
+    descriptionPlaceholder: "Negociación stateless con arbitraje",
+    cancel: "Cancelar",
+    creating: "Creando...",
+    createTeam: "Crear Equipo",
+    createError: "Error al crear el equipo",
+    teamTypeLabel: "Tipo de Equipo",
+    leaderLabel: "Líder del Equipo *",
+    selectLeaderPlaceholder: "Selecciona un agente líder...",
+    noAgentsError: "No hay agentes registrados. Por favor registra un agente primero.",
+    membersLabel: "Miembros del Equipo (opcional)",
+  },
+} satisfies Record<SupportedLocale, Record<string, string>>;

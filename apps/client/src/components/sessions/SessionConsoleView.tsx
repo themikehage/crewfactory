@@ -272,7 +272,7 @@ export function SessionConsoleView() {
             <span className="text-xs">Cargando trazas...</span>
           </div>
         ) : filteredLogs.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs font-mono select-none">
+          <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground text-xs p-4 font-mono select-none">
             &gt;_ Esperando trazas de logs del sistema...
           </div>
         ) : (

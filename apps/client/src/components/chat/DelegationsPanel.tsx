@@ -11,11 +11,10 @@ interface Props {
   sessionId: string | null;
   activeProjectName?: string | null;
   activeAgent?: { id: string; name: string } | null;
-  activeChannel?: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
 }
 
-export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = null, activeChannel = null, activeTeam = null }: Props) {
+export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = null, activeTeam = null }: Props) {
   const l = useLiterals(u);
   const navigate = useNavigate();
   const [delegations, setDelegations] = useState<PendingDelegation[]>([]);
@@ -26,12 +25,11 @@ export function DelegationsPanel({ sessionId, activeProjectName, activeAgent = n
 
   const getSessionPath = useCallback((id: string) => {
     let basePath = "";
-    if (activeChannel) basePath = `/channels/${activeChannel.id}`;
-    else if (activeTeam) basePath = `/teams/${activeTeam.id}`;
+    if (activeTeam) basePath = `/teams/${activeTeam.id}`;
     else if (activeAgent) basePath = `/agents/${activeAgent.id}`;
     else if (activeProjectName) basePath = `/projects/${activeProjectName}`;
     return id ? `${basePath}/session/${id}` : (basePath ? `${basePath}/chat` : "/");
-  }, [activeChannel, activeTeam, activeAgent, activeProjectName]);
+  }, [activeTeam, activeAgent, activeProjectName]);
 
   const fetchDelegations = useCallback(async () => {
     if (!sessionId) return;

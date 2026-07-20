@@ -19,6 +19,7 @@ import { DecomposeResult } from "./DecomposeResult";
 import { useLiterals } from "@/lib";
 import { literals } from "./ToolCallRow.literals";
 import { CustomToolBody } from "./custom";
+import { ArrowRight } from "lucide-react";
 
 export interface ToolContentBlock {
   type: string;
@@ -335,11 +336,8 @@ function getArgSummary(toolName: string, args: Record<string, unknown>, l: Recor
       return role ? `[${role}] ${cleanTask}` : cleanTask;
     }
     case "delegate_task": {
-      const type = (args.targetType as string) || "";
-      const target = (args.targetId as string) || "";
-      const task = (args.task as string) || "";
-      const cleanTask = task.length > 35 ? task.slice(0, 35) + "…" : task;
-      return `[${type}: ${target}] ${cleanTask}`;
+
+      return ``;
     }
     case "exa_search": {
       const q = (args.query as string) || "";
@@ -517,7 +515,7 @@ function ToolBody({
     case "spawn_subagent": {
       const task = (args.task as string) || "";
       return (
-        <div className="p-1.5 rounded-lg bg-surface border border-border">
+        <div className="">
           <div className="flex items-center justify-between gap-2">
             <span className="text-xs text-text-primary truncate">
               {task}
@@ -537,12 +535,9 @@ function ToolBody({
     case "delegate_task": {
       const task = (args.task as string) || "";
       return (
-        <div className="p-1.5 rounded-lg bg-surface border border-border">
+        <div className="">
           <div className="flex items-center justify-between gap-2">
             <div className="flex flex-col gap-0.5 min-w-0">
-              <span className="text-[10px] font-semibold text-primary uppercase font-sans">
-                {l.bodyDelegationTo} {String(args.targetType)}: <span className="font-mono font-normal lowercase">{String(args.targetId)}</span>
-              </span>
               <span className="text-xs text-text-primary truncate">
                 {task}
               </span>
@@ -804,7 +799,7 @@ export function ToolCallRow({
 
   return (
     <div className={`my-1.5 rounded-lg border overflow-hidden transition-all ${disabled ? "border-input/30 bg-card/25 opacity-60 select-none pointer-events-none" :
-        hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
+      hasError ? "border-error/40 bg-destructive/5" : "border-input bg-card/50"
       }`}>
       <button
         onClick={() => !disabled && setExpanded(!expanded)}
@@ -821,6 +816,18 @@ export function ToolCallRow({
           <span className="text-[10px] font-mono uppercase tracking-wider text-text-secondary bg-surface-hover px-1.5 py-0.5 rounded flex-shrink-0">
             {(args.subagentType as string) || "builder"}
           </span>
+        )}
+
+        {toolName === "delegate_task" && (
+          <>
+            <span className="text-[10px]">
+              <ArrowRight className="w-2 h-2" />
+            </span>
+            <span className="text-[10px] font-bold tracking-wider text-primary bg-surface-hover px-1.5 py-0.5 rounded flex-shrink-0">
+              {String(args.targetId)}
+            </span>
+
+          </>
         )}
 
         <span className="font-mono text-[11px] text-muted-foreground truncate min-w-0 flex-1">

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "bun:test";
 import { DivergenceDetector } from "../laboratory/divergence-detector";
-import type { ChannelMessage } from "shared";
+import type { TeamMessage } from "shared";
 
 describe("Divergence Detector Primitives", () => {
   it("should return null for empty messages", () => {
@@ -9,10 +9,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should return null if last message is not an agent", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "user",
         content: "VETO: This is not secure.",
         createdAt: new Date().toISOString()
@@ -23,10 +23,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should detect VETO keyword in last message", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "sec",
         agentName: "SecurityAgent",
@@ -44,10 +44,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should detect DEADLOCK keyword in last message", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "dev",
         agentName: "DevAgent",
@@ -63,10 +63,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should detect OBJECTION keyword in last message", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "arch",
         agentName: "ArchitectAgent",
@@ -82,10 +82,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should detect score delta divergence when diff >= threshold", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "arch",
         agentName: "ArchitectAgent",
@@ -94,7 +94,7 @@ describe("Divergence Detector Primitives", () => {
       },
       {
         id: "2",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "sec",
         agentName: "SecurityAgent",
@@ -112,10 +112,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should return null for score delta divergence when diff < threshold", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "arch",
         agentName: "ArchitectAgent",
@@ -124,7 +124,7 @@ describe("Divergence Detector Primitives", () => {
       },
       {
         id: "2",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "sec",
         agentName: "SecurityAgent",
@@ -138,10 +138,10 @@ describe("Divergence Detector Primitives", () => {
   });
 
   it("should match fuzzy scoring formats: SCORE X/10 para topic, topic: X/10, Puntúo topic con X/10", () => {
-    const messages: ChannelMessage[] = [
+    const messages: TeamMessage[] = [
       {
         id: "1",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "arch",
         agentName: "ArchitectAgent",
@@ -150,7 +150,7 @@ describe("Divergence Detector Primitives", () => {
       },
       {
         id: "2",
-        channelId: "c1",
+        teamId: "c1",
         role: "agent",
         agentId: "sec",
         agentName: "SecurityAgent",

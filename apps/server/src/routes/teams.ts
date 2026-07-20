@@ -1,14 +1,50 @@
+import { existsSync, readdirSync, unlinkSync, writeFileSync } from "node:fs";
+import { join } from "node:path";
 import { Hono } from "hono";
 import { zValidator } from "@hono/zod-validator";
 import { z } from "zod";
 import { authMiddleware } from "../middleware/auth";
 import { getUsername } from "../lib/auth-helpers";
+import { applyCacheHeaders } from "../core/cache-headers";
 import { teamStore, teamOrchestrator } from "../teams";
 import { agentRegistry } from "../agents";
 import { sessionManager } from "../core/session-manager";
-import { CreateTeamSchema, UpdateTeamSchema, TeamMemberSchema, SessionPrefix, getTeamWorkspaceDir } from "shared";
+import { CreateTeamSchema, UpdateTeamSchema, TeamMemberSchema, SessionPrefix, getTeamDir, getTeamWorkspaceDir } from "shared";
 
 export const teamsRouter = new Hono();
+
+teamsRouter.get("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const team = teamStore.getTeam(username, id);
+  if (!team) return c.json({ error: "Team not found" }, 404);
+
+  const teamDir = getTeamDir(username, id);
+  if (!existsSync(teamDir)) return c.notFound();
+
+  const files = readdirSync(teamDir);
+  const avatarFile = files.find((f) => f.startsWith("avatar."));
+  if (!avatarFile) return c.notFound();
+
+  const avatarPath = join(teamDir, avatarFile);
+  const cacheResponse = applyCacheHeaders(c, avatarPath);
+  if (cacheResponse) {
+    return cacheResponse;
+  }
+
+  const file = Bun.file(avatarPath);
+  const responseHeaders: Record<string, string> = {
+    "Content-Type": file.type || "application/octet-stream",
+  };
+  c.res.headers.forEach((val, key) => {
+    responseHeaders[key] = val;
+  });
+
+  return new Response(file.stream(), {
+    headers: responseHeaders,
+  });
+});
 
 teamsRouter.use("/*", authMiddleware);
 
@@ -365,4 +401,141 @@ teamsRouter.get("/:id/agents", (c) => {
   const username = getUsername(c);
   if (!username) return c.json({ error: "Unauthorized" }, 401);
   return c.json({ agents: agentRegistry.list(username) });
+});
+
+teamsRouter.put("/:id/context", zValidator("json", z.object({ context: z.array(z.object({ key: z.string().min(1), value: z.string() })) })), (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const { context } = c.req.valid("json");
+  const updated = teamStore.updateTeamContext(username, id, context);
+  if (!updated) return c.json({ error: "Team not found" }, 404);
+  return c.json(updated);
+});
+
+teamsRouter.post("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const team = teamStore.getTeam(username, id);
+  if (!team) return c.json({ error: "Team not found" }, 404);
+
+  const body = await c.req.parseBody();
+  const file = body.file as File | undefined;
+  if (!file) return c.json({ error: "No file provided" }, 400);
+
+  const teamDir = getTeamDir(username, id);
+  if (!existsSync(teamDir)) {
+    const { mkdirSync } = await import("node:fs");
+    mkdirSync(teamDir, { recursive: true });
+  }
+
+  try {
+    const files = readdirSync(teamDir);
+    for (const f of files) {
+      if (f.startsWith("avatar.")) {
+        unlinkSync(join(teamDir, f));
+      }
+    }
+  } catch {}
+
+  const ext = file.name.split(".").pop() || "png";
+  const avatarPath = join(teamDir, `avatar.${ext}`);
+  const buffer = await file.arrayBuffer();
+  writeFileSync(avatarPath, Buffer.from(buffer));
+
+  const avatarUrl = `/api/teams/${id}/avatar`;
+  teamStore.updateTeam(username, id, { avatarUrl });
+
+  return c.json({ avatarUrl });
+});
+
+teamsRouter.delete("/:id/avatar", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+  const id = c.req.param("id");
+  const team = teamStore.getTeam(username, id);
+  if (!team) return c.json({ error: "Team not found" }, 404);
+
+  const teamDir = getTeamDir(username, id);
+  if (existsSync(teamDir)) {
+    try {
+      const files = readdirSync(teamDir);
+      for (const f of files) {
+        if (f.startsWith("avatar.")) {
+          unlinkSync(join(teamDir, f));
+        }
+      }
+    } catch {}
+  }
+
+  teamStore.updateTeam(username, id, { avatarUrl: "" });
+  return c.body(null, 204);
+});
+
+teamsRouter.get("/:id/analytics", async (c) => {
+  const username = getUsername(c);
+  if (!username) return c.json({ error: "Unauthorized" }, 401);
+
+  const id = c.req.param("id");
+  const team = teamStore.getTeam(username, id);
+  if (!team) return c.json({ error: "Team not found" }, 404);
+
+  const msgs = teamStore.getMessages(username, id, 1000);
+
+  const turnsMap: Record<string, { agentId: string, agentName: string, count: number }> = {};
+  let vetoCount = 0;
+
+  for (const m of msgs) {
+    if (m.role === "agent" && m.agentId) {
+      if (!turnsMap[m.agentId]) {
+        turnsMap[m.agentId] = { agentId: m.agentId, agentName: m.agentName || m.agentId, count: 0 };
+      }
+      turnsMap[m.agentId].count++;
+    }
+
+    if (m.role === "agent" && m.content?.includes("VETO:")) {
+      vetoCount++;
+    }
+  }
+
+  const turnsPerAgent = Object.values(turnsMap);
+  const totalTurns = msgs.filter(m => m.role === "agent").length;
+  const vetoRate = totalTurns > 0 ? parseFloat((vetoCount / totalTurns).toFixed(2)) : 0;
+
+  const negState = teamStore.getNegotiationState(username, id);
+  const arbitrationRounds = negState._arbitrations || 0;
+  const divergenceCount = negState._divergences || 0;
+
+  let totalResponseTime = 0;
+  let responseCount = 0;
+  for (let i = 0; i < msgs.length; i++) {
+    if (msgs[i].role === "user") {
+      for (let j = i + 1; j < msgs.length; j++) {
+        if (msgs[j].role === "agent") {
+          const timeDiff = new Date(msgs[j].createdAt).getTime() - new Date(msgs[i].createdAt).getTime();
+          if (timeDiff > 0 && timeDiff < 30 * 60 * 1000) {
+            totalResponseTime += timeDiff;
+            responseCount++;
+          }
+          break;
+        }
+      }
+    }
+  }
+  const avgResponseTimeMs = responseCount > 0 ? Math.round(totalResponseTime / responseCount) : 0;
+
+  const sessions = await sessionManager.listSessions(username, { teamId: id });
+  let totalSessions = sessions.length;
+
+  return c.json({
+    turnsPerAgent,
+    vetoRate,
+    vetoCount,
+    arbitrationRounds,
+    divergenceCount,
+    avgResponseTimeMs,
+    totalSessions,
+  });
 });

@@ -53,11 +53,11 @@ export function AnalyticsPage() {
   const [to, setTo] = useState(defaultTo);
   const [selectedProject, setSelectedProject] = useState("");
   const [selectedAgent, setSelectedAgent] = useState("");
-  const [selectedChannel, setSelectedChannel] = useState("");
+  const [selectedTeam, setSelectedTeam] = useState("");
 
   const [projects, setProjects] = useState<FilterOption[]>([]);
   const [agents, setAgents] = useState<FilterOption[]>([]);
-  const [channels, setChannels] = useState<FilterOption[]>([]);
+  const [teams, setTeams] = useState<FilterOption[]>([]);
 
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -67,10 +67,10 @@ export function AnalyticsPage() {
   useEffect(() => {
     async function loadFilters() {
       try {
-        const [projRes, agentRes, chanRes] = await Promise.all([
+        const [projRes, agentRes, teamRes] = await Promise.all([
           apiFetch("/api/workspace-projects"),
           apiFetch("/api/agents"),
-          apiFetch("/api/channels"),
+          apiFetch("/api/teams"),
         ]);
 
         if (projRes.ok) {
@@ -85,9 +85,9 @@ export function AnalyticsPage() {
           const d = await agentRes.json();
           setAgents(d.agents || []);
         }
-        if (chanRes.ok) {
-          const d = await chanRes.json();
-          setChannels(d.channels || []);
+        if (teamRes.ok) {
+          const d = await teamRes.json();
+          setTeams(d.teams || []);
         }
       } catch (err) {
         console.error("Failed to load analytics filters:", err);
@@ -106,7 +106,7 @@ export function AnalyticsPage() {
       if (to) params.append("to", to);
       if (selectedProject) params.append("projectName", selectedProject);
       if (selectedAgent) params.append("agentId", selectedAgent);
-      if (selectedChannel) params.append("channelId", selectedChannel);
+      if (selectedTeam) params.append("teamId", selectedTeam);
 
       const res = await apiFetch(`/api/sessions/analytics?${params.toString()}`);
       if (res.ok) {
@@ -119,7 +119,7 @@ export function AnalyticsPage() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [from, to, selectedProject, selectedAgent, selectedChannel]);
+  }, [from, to, selectedProject, selectedAgent, selectedTeam]);
 
   useEffect(() => {
     loadAnalytics();
@@ -267,11 +267,11 @@ export function AnalyticsPage() {
             {l.filterChannel}
           </label>
           <Dropdown<string>
-            value={selectedChannel}
-            onChange={setSelectedChannel}
+            value={selectedTeam}
+            onChange={setSelectedTeam}
             options={[
               { value: "", label: l.allChannels },
-              ...channels.map((c) => ({ value: c.id, label: `#${c.name}` })),
+              ...teams.map((t) => ({ value: t.id, label: `${t.name}` })),
             ]}
             size="sm"
             className="w-full"

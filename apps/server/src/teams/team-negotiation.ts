@@ -2,7 +2,7 @@ import { TeamNegotiationEvaluator } from "./team-negotiation-evaluator";
 import { ArbitrationProtocol } from "../core/negotiation/arbitration-protocol";
 import { teamStore } from "./team-store";
 import { DivergenceDetector } from "../laboratory/divergence-detector";
-import type { Team, TeamMessage, TeamMember, ChannelMessage } from "shared";
+import type { Team, TeamMessage, TeamMember } from "shared";
 import crypto from "node:crypto";
 
 export interface TeamNegotiationResult {
@@ -87,8 +87,8 @@ export function handleTeamNegotiation(
 
   const messages = teamStore.getMessages(username, teamId, 100, incomingMsg.sessionId);
   const allMessages = [...messages, agentMsg];
-  const channelMessages = allMessages as unknown as ChannelMessage[];
-  const divergence = DivergenceDetector.detect(channelMessages);
+  const teamMessages = allMessages as unknown as TeamMessage[];
+  const divergence = DivergenceDetector.detect(teamMessages);
 
   if (divergence && arbiterId) {
     const arbiterName = agentNameMap.get(arbiterId) || arbiterId;
@@ -172,7 +172,7 @@ export function handleTeamNegotiation(
         receiverId: "user",
         receiverName: "user",
         rounds: currentRound,
-        channelId: teamId,
+        teamId: teamId,
         sessionId: incomingMsg.sessionId,
       });
 
@@ -211,7 +211,7 @@ export function handleTeamNegotiation(
         receiverId: "user",
         receiverName: "user",
         rounds: currentRound,
-        channelId: teamId,
+        teamId: teamId,
         sessionId: incomingMsg.sessionId,
       });
 

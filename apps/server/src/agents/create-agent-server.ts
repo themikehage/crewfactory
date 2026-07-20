@@ -13,7 +13,7 @@ import { streamSSE } from "hono/streaming";
 import { type AgentDefinition, SessionPrefix, getAgentDir } from "shared";
 import type { AgentServer } from "./types";
 import { createUiTools } from "../core/tools/ui-tools";
-import { ensureWorkspaceSubdirs, sessionManager as coreSessionManager } from "../core/session-manager";
+import { sessionManager as coreSessionManager } from "../core/session-manager";
 import { createProgrammaticSessionSync } from "../auth/onboarding";
 import { filterSecretsFromOutput } from "../core/bash-output-filter";
 import { memoryRegistry } from "../core/memory/registry";
@@ -31,8 +31,7 @@ function ensureAgentWorkspace(username: string, id: string): string {
   for (const d of subdirs) {
     if (!existsSync(d)) mkdirSync(d, { recursive: true });
   }
-  // Crear subestructura completa para el workspace del agente
-  ensureWorkspaceSubdirs(join(dir, "workspace"));
+  // Crear workspace del agente
   return dir;
 }
 

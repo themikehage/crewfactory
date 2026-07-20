@@ -1,7 +1,6 @@
 import { buildSessionPath, type ContextPathInput } from "@/router/paths";
 
 export interface SessionContext {
-  activeChannel?: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
   activeAgent?: { id: string; name: string } | null;
   activeProjectName?: string | null;
@@ -12,22 +11,17 @@ export interface CreateSessionBody {
   name: string;
   projectName?: string;
   agentId?: string;
-  channelId?: string;
   teamId?: string;
 }
 
 type ResolvedContext =
-  | { type: "channel"; id: string; name: string }
   | { type: "team"; id: string; name: string }
   | { type: "agent"; id: string; name: string }
   | { type: "project"; id: string; name: string; friendlyName: string }
   | { type: "global" };
 
 function resolveContext(context: SessionContext): ResolvedContext {
-  const { activeChannel, activeTeam, activeAgent, activeProjectName, activeProjectFriendlyName } = context;
-  if (activeChannel) {
-    return { type: "channel", id: activeChannel.id, name: activeChannel.name };
-  }
+  const { activeTeam, activeAgent, activeProjectName, activeProjectFriendlyName } = context;
   if (activeTeam) {
     return { type: "team", id: activeTeam.id, name: activeTeam.name };
   }
@@ -51,8 +45,6 @@ export function buildCreateSessionBody(
 ): CreateSessionBody {
   const resolved = resolveContext(context);
   switch (resolved.type) {
-    case "channel":
-      return { name: sessionName, channelId: resolved.id };
     case "team":
       return { name: sessionName, teamId: resolved.id };
     case "agent":
@@ -66,28 +58,25 @@ export function buildCreateSessionBody(
 
 export function getSessionContextPredicate(
   context: SessionContext
-): (session: { projectName?: string; agentId?: string; channelId?: string; teamId?: string; experimentId?: string }) => boolean {
+): (session: { projectName?: string; agentId?: string; teamId?: string; experimentId?: string }) => boolean {
   const resolved = resolveContext(context);
   return (session) => {
     switch (resolved.type) {
-      case "channel":
-        return session.channelId === resolved.id;
       case "team":
         return session.teamId === resolved.id;
       case "agent":
         if (resolved.id === "lab-architect") {
-          return session.agentId === "lab-architect" && !session.experimentId && !session.channelId && !session.teamId;
+          return session.agentId === "lab-architect" && !session.experimentId && !session.teamId;
         }
-        return session.agentId === resolved.id && !session.channelId && !session.teamId;
+        return session.agentId === resolved.id && !session.teamId;
       case "project":
         return (
           session.projectName === resolved.id &&
           !session.agentId &&
-          !session.channelId &&
           !session.teamId
         );
       case "global":
-        return !session.projectName && !session.agentId && !session.channelId && !session.teamId;
+        return !session.projectName && !session.agentId && !session.teamId;
     }
   };
 }
@@ -100,9 +89,6 @@ export function getSessionPath(sessionId: string, context: SessionContext): stri
 
   let routeContext: ContextPathInput | null = null;
   switch (resolved.type) {
-    case "channel":
-      routeContext = { type: "channel", id: resolved.id };
-      break;
     case "team":
       routeContext = { type: "team", id: resolved.id };
       break;
@@ -124,8 +110,6 @@ export function getSessionName(context: SessionContext, count?: number): string 
   const suffix = count !== undefined ? ` ${count + 1}` : "";
 
   switch (resolved.type) {
-    case "channel":
-      return `#${resolved.name} - Session${suffix}`;
     case "team":
       return `#${resolved.name} - Session${suffix}`;
     case "agent":

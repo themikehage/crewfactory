@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import type { FC } from "react";
 import { getAvatarComponent, isDefaultAvatar } from "@/lib/defaultAvatars";
+import { useAuth } from "@/contexts/AuthContext";
 
 interface EntityAvatarProps {
   name: string;
@@ -41,6 +42,14 @@ export const EntityAvatar: FC<EntityAvatarProps> = ({
 }) => {
   const [imgError, setImgError] = useState(false);
   const px = SIZE_MAP[size];
+  const { token } = useAuth();
+
+  const imgSrc = useMemo(() => {
+    if (!avatarUrl) return "";
+    if (isDefaultAvatar(avatarUrl)) return avatarUrl;
+    if (!token || !avatarUrl.startsWith("/api/")) return avatarUrl;
+    return `${avatarUrl}${avatarUrl.includes("?") ? "&" : "?"}token=${token}`;
+  }, [avatarUrl, token]);
 
   const gradientStyle = useMemo(() => {
     let hash = 0;
@@ -83,7 +92,7 @@ export const EntityAvatar: FC<EntityAvatarProps> = ({
         style={{ width: px, height: px }}
       >
         <img
-          src={avatarUrl}
+          src={imgSrc}
           alt={name}
           className="w-full h-full object-cover"
           onError={() => setImgError(true)}

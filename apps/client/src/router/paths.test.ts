@@ -4,7 +4,7 @@ import { buildContextPath, buildDelegationsPath, buildSessionPath, buildWorkspac
 describe("router paths", () => {
   it("builds contextual routes", () => {
     expect(buildContextPath({ type: "project", id: "crew" })).toBe("/projects/crew/chat");
-    expect(buildContextPath({ type: "channel", id: "team" }, "org")).toBe("/channels/team/org");
+    expect(buildContextPath({ type: "team", id: "team" }, "org")).toBe("/teams/team/org");
     expect(buildWorkspacePath({ type: "agent", id: "writer" })).toBe("/agents/writer/workspace");
   });
 

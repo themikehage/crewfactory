@@ -1,8 +1,7 @@
 import { ExperimentStore } from "./experiment-store";
 import { calculateVariantScores } from "./scoring";
 import { LabJudge } from "./judge";
-import { type LabExperiment, type VariantRunResult, type LabAgent, type ChannelMember } from "shared";
-import { channelStore } from "../channels";
+import { type LabExperiment, type VariantRunResult, type LabAgent, type TeamMember } from "shared";
 import { sessionManager } from "../core/session-manager";
 import { agentRegistry } from "../agents";
 import { resolveModelWithFallback } from "../core/agent-utils";
@@ -297,28 +296,13 @@ export class ExperimentRunner {
     expId: string,
     variantKey: string,
     config: VariantConfig
-  ): ChannelMember[] {
+  ): TeamMember[] {
     return agents.map((ag) => {
       const regId = `lab_${expId}_${variantKey}_${ag.id}`;
-      let targets: string[] | undefined = undefined;
-
-      if (config.replyMode === "targeted") {
-        if (ag.id === "ceo" || ag.leader) {
-          targets = ["__user__", ...agents.filter(a => a.id !== ag.id).map(a => `lab_${expId}_${variantKey}_${a.id}`)];
-        } else if (ag.id === "marketing") {
-          const leaderAg = agents.find(a => a.id === "ceo" || a.leader);
-          targets = leaderAg ? [`lab_${expId}_${variantKey}_${leaderAg.id}`] : [];
-        } else {
-          const leaderAg = agents.find(a => a.id === "tech_lead" || a.id === "ceo" || a.leader);
-          targets = leaderAg ? [`lab_${expId}_${variantKey}_${leaderAg.id}`] : [];
-        }
-      }
-
       return {
         agentId: regId,
-        replyMode: config.replyMode,
-        targetAgentIds: targets,
-        role: ag.leader ? "lead" : (ag.id === "senior_dev" ? "senior" : "member")
+        role: ag.leader ? "lead" : "member",
+        outputMode: "normal"
       };
     });
   }
@@ -333,7 +317,6 @@ export class ExperimentRunner {
     const startTime = Date.now();
     const { variantKey, minAgents, replyMode, maxChainDepth, hasNegotiationProtocol, sessionNameSuffix } = config;
     const run = exp.variants[variantKey];
-    const channelId = `lab_${exp.id}_${variantKey}`;
     const registeredIds: string[] = [];
 
     // Business rule validation

@@ -11,7 +11,6 @@ import { existsSync, readFileSync } from "node:fs";
 import { sessionManager } from "../core/session-manager";
 import { SessionPrefix, getSessionMetadataPath } from "shared";
 import { setBuilding, setReady, setError, ensureWatcher } from "../core/preview-watcher";
-import { channelOrchestrator } from "../channels";
 import { teamOrchestrator } from "../teams";
 import { uiApprovalRegistry } from "../core/ui-approval-registry";
 import { approvalManager } from "../core/approvals/approval-manager";
@@ -44,10 +43,6 @@ async function subscribeWsToSession(
   }
 
   const meta = wsRegistry.getMeta(wsId);
-  if (meta?.channelId) {
-    wsRegistry.removeChannelSocket(meta.channelId, ws);
-    wsRegistry.updateMeta(wsId, { channelId: undefined });
-  }
   if (meta?.teamId) {
     wsRegistry.removeTeamSocket(meta.teamId, ws);
     wsRegistry.updateMeta(wsId, { teamId: undefined });
@@ -251,10 +246,6 @@ export function createWsContext(): WsConnectionContext {
 
     if (meta?.sessionId) {
       wsRegistry.removeSessionSocket(meta.sessionId, meta.ws ?? _ws);
-    }
-
-    if (meta?.channelId) {
-      wsRegistry.removeChannelSocket(meta.channelId, meta.ws ?? _ws);
     }
 
     if (meta?.teamId) {
@@ -546,48 +537,7 @@ export function createWsContext(): WsConnectionContext {
         return;
       }
 
-      if (data.type === "channel_join") {
-        const channelId = data.channelId as string;
-        if (!channelId) return;
 
-        wsRegistry.clearUnsub(id);
-
-        const meta = wsRegistry.getMeta(id);
-        if (meta?.sessionId) {
-          wsRegistry.removeSessionSocket(meta.sessionId, ws);
-          wsRegistry.updateMeta(id, { sessionId: undefined });
-        }
-        if (meta?.channelId && meta.channelId !== channelId) {
-          wsRegistry.removeChannelSocket(meta.channelId, ws);
-        }
-        wsRegistry.updateMeta(id, { channelId });
-        wsRegistry.addChannelSocket(channelId, ws);
-        safeSend(ws, JSON.stringify({ type: "channel_joined", channelId }));
-        return;
-      }
-
-      if (data.type === "channel_send") {
-        const channelId = data.channelId as string;
-        const message = data.message as string;
-        const sessionId = data.sessionId as string | undefined;
-        if (channelId && message) {
-          channelOrchestrator
-            .dispatchUserMessage(user.username, channelId, message, sessionId)
-            .catch((err) => {
-              wsLogger.error("Error dispatching channel message", { error: err });
-            });
-        }
-        return;
-      }
-
-      if (data.type === "channel_abort") {
-        const channelId = data.channelId as string;
-        const sessionId = data.sessionId as string | undefined;
-        if (channelId) {
-          channelOrchestrator.abortDispatch(user.username, channelId, sessionId);
-        }
-        return;
-      }
 
       if (data.type === "team_join") {
         const teamId = data.teamId as string;
@@ -632,14 +582,7 @@ export function createWsContext(): WsConnectionContext {
         return;
       }
 
-      if (data.type === "benchmark_stop") {
-        const channelId = data.channelId as string;
-        if (channelId) {
-          const { ChannelBenchmarkRunner } = await import("../laboratory/channel-benchmark-runner");
-          await ChannelBenchmarkRunner.stopBenchmark(user.username, channelId);
-        }
-        return;
-      }
+
 
       if (data.type === "approvals_get") {
         const pending = approvalManager.getAll(user.username);

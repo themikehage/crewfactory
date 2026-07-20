@@ -32,13 +32,13 @@ async function addFilesRecursively(
         const parts = relPath.split("/");
         const isWorkspaceParent = parts[0] === "workspace";
         const isAgentsParent = parts[0] === "agents";
-        const isChannelsParent = parts[0] === "channels";
+        const isTeamsParent = parts[0] === "teams";
 
-        // Only traverse directories relevant to configs, skills, agents, channels
+        // Only traverse directories relevant to configs, skills, agents, teams
         const shouldTraverse =
           (isWorkspaceParent && (parts.length === 1 || relPath.startsWith("workspace/.agents"))) ||
           (isAgentsParent && parts.length <= 2) ||
-          (isChannelsParent && parts.length <= 2);
+          (isTeamsParent && parts.length <= 2);
 
         if (shouldTraverse) {
           await addFilesRecursively(zip, fullPath, baseDir, type);
@@ -52,9 +52,9 @@ async function addFilesRecursively(
         const isRootConfig = parts.length === 1 && ["credentials.json", "auth.json", "integrations.json", "env.json", "mcp-servers.json", "mcp-config.json"].includes(parts[0]);
         const isCustomSkill = relPath.startsWith("workspace/.agents/skills/");
         const isAgentDef = parts.length === 3 && parts[0] === "agents" && parts[2] === "definition.json";
-        const isChannelDef = parts.length === 3 && parts[0] === "channels" && parts[2] === "channel.json";
+        const isTeamDef = parts.length === 3 && parts[0] === "teams" && parts[2] === "team.json";
 
-        if (isRootConfig || isCustomSkill || isAgentDef || isChannelDef) {
+        if (isRootConfig || isCustomSkill || isAgentDef || isTeamDef) {
           const content = await Bun.file(fullPath).arrayBuffer();
           zip.addFile(relPath, Buffer.from(content));
         }

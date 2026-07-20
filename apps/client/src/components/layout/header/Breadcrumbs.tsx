@@ -5,12 +5,12 @@ interface BreadcrumbsProps {
   activeProjectId: string | null;
   activeProjectName: string | null;
   activeAgent: { id: string; name: string } | null;
-  activeChannel: { id: string; name: string } | null;
   activeTeam?: { id: string; name: string } | null;
   selectedExpId?: string | null;
   experiments?: any[];
   onNavigate: (path: string) => void;
   l: Record<string, string>;
+  factoryName?: string;
 }
 
 export function Breadcrumbs({
@@ -18,19 +18,18 @@ export function Breadcrumbs({
   activeProjectId,
   activeProjectName,
   activeAgent,
-  activeChannel,
   activeTeam = null,
   selectedExpId,
   experiments = [],
   onNavigate,
   l,
+  factoryName = "Factory",
 }: BreadcrumbsProps) {
   let items: { label: string; path?: string }[] = [];
 
   const currentProject = activeProjectId;
   const currentProjectFriendly = activeProjectName || activeProjectId;
   const currentAgent = activeAgent;
-  const currentChannel = activeChannel;
   const currentTeam = activeTeam;
 
   if (currentProject) {
@@ -43,18 +42,13 @@ export function Breadcrumbs({
       { label: l.breadAgentes || "Agents", path: "/agents" },
       { label: currentAgent.name, path: `/agents/${currentAgent.id}/chat` },
     ];
-  } else if (currentChannel) {
-    items = [
-      { label: l.breadCanales || "Channels", path: "/channels" },
-      { label: `#${currentChannel.name}`, path: `/channels/${currentChannel.id}/chat` },
-    ];
   } else if (currentTeam) {
     items = [
       { label: l.breadTeams || "Teams", path: "/teams" },
       { label: currentTeam.name, path: `/teams/${currentTeam.id}/chat` },
     ];
   } else {
-    items = [{ label: l.breadFactory || "Factory", path: "/" }];
+    items = [{ label: factoryName, path: "/" }];
   }
 
   if (page === "workspace") {
@@ -73,13 +67,6 @@ export function Breadcrumbs({
     items = [{ label: l.breadProyectos || "Projects" }];
   } else if (page === "agents") {
     items = [{ label: l.breadAgentes || "Agents" }];
-  } else if (page === "channels") {
-    items = [{ label: l.breadCanales || "Channels" }];
-  } else if (page === "channel") {
-    items = [{ label: l.breadCanales || "Channels", path: "/channels" }];
-    if (activeChannel) {
-      items.push({ label: `#${activeChannel.name}` });
-    }
   } else if (page === "teams") {
     items = [{ label: l.breadTeams || "Teams" }];
   } else if (page === "team") {

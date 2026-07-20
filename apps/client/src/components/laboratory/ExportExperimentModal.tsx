@@ -19,7 +19,7 @@ export function ExportExperimentModal({
 }: ExportExperimentModalProps) {
   const l = useLiterals(u);
   const [selectedVariant, setSelectedVariant] = useState<"single" | "multiNoLeader" | "multiWithLeader">("multiWithLeader");
-  const [channelName, setChannelName] = useState("");
+  const [teamName, setTeamName] = useState("");
   const [existingAgentIds, setExistingAgentIds] = useState<Set<string>>(new Set());
   const [loadingAgents, setLoadingAgents] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
@@ -46,11 +46,11 @@ export function ExportExperimentModal({
 
   useEffect(() => {
     if (selectedVariant === "multiNoLeader") {
-      setChannelName(`${experiment.name} (Horizontal)`);
+      setTeamName(`${experiment.name} (Horizontal)`);
     } else if (selectedVariant === "multiWithLeader") {
-      setChannelName(`${experiment.name} (Jerárquico)`);
+      setTeamName(`${experiment.name} (Jerárquico)`);
     } else {
-      setChannelName("");
+      setTeamName("");
     }
   }, [selectedVariant, experiment.name]);
 
@@ -67,7 +67,7 @@ export function ExportExperimentModal({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           variantKey: selectedVariant,
-          channelName: selectedVariant !== "single" ? channelName : undefined,
+          teamName: selectedVariant !== "single" ? teamName : undefined,
         }),
       });
 
@@ -177,8 +177,8 @@ export function ExportExperimentModal({
                   </label>
                   <input
                     type="text"
-                    value={channelName}
-                    onChange={(e) => setChannelName(e.target.value)}
+                    value={teamName}
+                    onChange={(e) => setTeamName(e.target.value)}
                     placeholder={l.channelNamePlaceholder}
                     className="w-full bg-bg border border-border rounded-xl px-3 py-2 text-xs focus:outline-none focus:border-accent text-text-primary"
                   />
@@ -195,7 +195,7 @@ export function ExportExperimentModal({
                       <div className="flex items-center gap-2">
                         <div className="w-2 h-2 rounded-full bg-blue-500" />
                         <span className="font-bold text-text-primary truncate max-w-[280px]">
-                          {channelName || `${experiment.name} (Canal)`}
+                          {teamName || `${experiment.name} (Equipo)`}
                         </span>
                       </div>
                       <span className="text-[9px] font-bold px-2 py-0.5 rounded bg-blue-500/10 border border-blue-500/20 text-blue-400 uppercase">
@@ -289,20 +289,20 @@ export function ExportExperimentModal({
               </div>
 
               <div className="space-y-2.5">
-                {exportResult.channel && (
+                {exportResult.team && (
                   <div className="p-4 rounded-xl border border-border bg-bg/40 flex items-center justify-between gap-3">
                     <div className="flex flex-col min-w-0">
                       <span className="text-[10px] text-text-secondary uppercase font-semibold">
-                        Canal Creado
+                        Equipo Creado
                       </span>
                       <span className="text-xs font-bold text-text-primary truncate mt-0.5">
-                        {exportResult.channel.name}
+                        {exportResult.team.name}
                       </span>
                     </div>
                     <button
                       onClick={() => {
                         onClose();
-                        onNavigate(`/channels/${exportResult.channel!.id}`);
+                        onNavigate(`/teams/${exportResult.team!.id}`);
                       }}
                       className="flex items-center gap-1 px-3 py-1.5 bg-accent/10 border border-accent/25 hover:bg-accent/20 rounded-lg text-[10px] font-bold text-accent transition-colors cursor-pointer"
                     >

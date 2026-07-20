@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync, writeFileSync, readdirSync } from "node:fs";
+import { existsSync, mkdirSync, writeFileSync, readdirSync, readFileSync } from "node:fs";
 import { join, resolve, dirname } from "node:path";
 import {
   getUserDir,
@@ -8,7 +8,7 @@ import {
   getSessionsDir,
   getSessionDir,
   getProjectWorkspaceDir,
-  getChannelWorkspaceDir,
+  getTeamWorkspaceDir,
   getAgentWorkspaceDir,
   SessionPrefix,
 } from "shared";
@@ -120,12 +120,37 @@ export function resolveSubagentSessionDir(username: string, sessionId: string): 
   return null;
 }
 
+function readProjectJson(projectPath: string): Record<string, unknown> | null {
+  const filePath = join(projectPath, "project.json");
+  if (!existsSync(filePath)) return null;
+  try {
+    return JSON.parse(readFileSync(filePath, "utf-8"));
+  } catch {
+    return null;
+  }
+}
+
+export function resolveProjectDir(username: string, nameOrId: string): string | null {
+  const projectsDir = getProjectsDir(username);
+  if (!existsSync(projectsDir)) return null;
+  const entries = readdirSync(projectsDir, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const projPath = join(projectsDir, entry.name);
+    const proj = readProjectJson(projPath);
+    if (proj && (proj.id === nameOrId || proj.name === nameOrId)) {
+      return projPath;
+    }
+  }
+  return null;
+}
+
 export function resolveSessionWorkspace(
   username: string,
   sessionId: string,
   projectName?: string,
   agentId?: string,
-  channelId?: string
+  teamId?: string
 ): { sessionDir: string; workspaceDir: string } {
   const sessionDir = resolveSubagentSessionDir(username, sessionId) ?? getSessionDir(username, sessionId);
 
@@ -133,20 +158,21 @@ export function resolveSessionWorkspace(
 
   const workspaceBase = getWorkspaceDir(username);
   let workspaceDir = workspaceBase;
-  if (channelId) {
-    workspaceDir = getChannelWorkspaceDir(username, channelId);
+  if (teamId) {
+    workspaceDir = getTeamWorkspaceDir(username, teamId);
   } else if (agentId) {
     workspaceDir = getAgentWorkspaceDir(username, agentId);
   } else if (projectName) {
-    workspaceDir = getProjectWorkspaceDir(username, projectName);
+    const resolved = resolveProjectDir(username, projectName);
+    if (resolved) {
+      workspaceDir = join(resolved, "workspace");
+    } else {
+      workspaceDir = getProjectWorkspaceDir(username, projectName);
+    }
   }
 
   if (!existsSync(workspaceDir)) {
     mkdirSync(workspaceDir, { recursive: true });
-  }
-
-  if (channelId || agentId || projectName) {
-    ensureWorkspaceSubdirs(workspaceDir);
   }
 
   return { sessionDir, workspaceDir };

@@ -68,6 +68,33 @@ export function useTeams() {
     window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "team" } }));
   }, [fetchTeams]);
 
+  const uploadTeamAvatar = useCallback(async (id: string, file: File): Promise<string> => {
+    const formData = new FormData();
+    formData.append("file", file);
+    const res = await apiFetch(`/api/teams/${id}/avatar`, {
+      method: "POST",
+      body: formData,
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    const data = await res.json();
+    await fetchTeams();
+    return data.avatarUrl;
+  }, [fetchTeams]);
+
+  const deleteTeamAvatar = useCallback(async (id: string): Promise<void> => {
+    const res = await apiFetch(`/api/teams/${id}/avatar`, {
+      method: "DELETE",
+    });
+    if (!res.ok) {
+      const err = await res.json().catch(() => ({ error: "Unknown error" }));
+      throw new Error(err.error || `HTTP ${res.status}`);
+    }
+    await fetchTeams();
+  }, [fetchTeams]);
+
   return {
     teams,
     loading,
@@ -75,5 +102,7 @@ export function useTeams() {
     fetchTeams,
     createTeam,
     updateTeam,
-    deleteTeam};
+    deleteTeam,
+    uploadTeamAvatar,
+    deleteTeamAvatar};
 }

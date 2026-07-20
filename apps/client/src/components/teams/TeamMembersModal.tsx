@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { createPortal } from "react-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import type { TeamMember, AgentInfo, TeamRole } from "shared";
 import { useLiterals } from "@/lib";
@@ -174,7 +175,7 @@ export function TeamMembersModal({
       </motion.div>
 
       <AnimatePresence>
-        {showAddModal && (
+        {showAddModal && createPortal(
           <AddTeamMemberModal
             availableAgents={registeredAgents}
             currentMemberAgentIds={members.map((m) => m.agentId)}
@@ -182,7 +183,8 @@ export function TeamMembersModal({
             onAdd={onAddMember}
             hasLeader={members.some((m) => m.role === "lead")}
             literals={l}
-          />
+          />,
+          document.body
         )}
       </AnimatePresence>
     </div>

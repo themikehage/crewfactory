@@ -38,6 +38,7 @@ export const FACTORY_CONTRACTS: Record<string, EntityContract> = {
           maxRounds: { type: "number", required: false, description: "Max debate rounds (default 5)" },
           members: { type: "array", required: false, description: "Array of { agentId, role: lead|member|observer }" },
           negotiationProtocol: { type: "object", required: false, description: "{ arbiterAgentId?, mode?, quorumThreshold? } — Negotiation teams only" },
+          avatarUrl: { type: "string", required: false, description: "URL or default: prefix for team avatar image" },
         },
       },
       delete: {
@@ -111,6 +112,7 @@ export const FACTORY_CONTRACTS: Record<string, EntityContract> = {
           id: { type: "string", required: true, description: "Project name (used as workspace identifier)" },
           name: { type: "string", required: true, description: "Project name" },
           cloneUrl: { type: "string", required: false, description: "Git URL to clone. Omit to create empty project. Only used on creation." },
+          avatarUrl: { type: "string", required: false, description: "URL or default: prefix for project avatar image" },
         },
       },
       delete: {
@@ -122,30 +124,22 @@ export const FACTORY_CONTRACTS: Record<string, EntityContract> = {
     },
   },
 
-  channels: {
-    entity: "channels",
-    description: "Multi-agent collaboration channels",
+
+
+  settings: {
+    entity: "settings",
+    description: "Global user settings including factory identity, avatar, and system prompt",
     actions: {
       get: {
-        description: "List all channels or get one by id",
-        params: {
-          id: { type: "string", required: false, description: "Channel ID. Omit to list all." },
-        },
+        description: "Get current user settings (factory name, avatar URL, system prompt, etc.)",
+        params: {},
       },
       upsert: {
-        description: "Create a new channel or update an existing one",
+        description: "Update factory identity settings (name, avatar URL, system prompt)",
         params: {
-          id: { type: "string", required: true, description: "Unique channel identifier" },
-          name: { type: "string", required: true, description: "Display name for the channel" },
-          description: { type: "string", required: false, description: "Channel purpose description" },
-          members: { type: "array", required: false, description: "Array of { agentId, replyMode: auto|manual|broadcast }" },
-          negotiationProtocol: { type: "boolean", required: false, description: "Enable structured negotiation between members" },
-        },
-      },
-      delete: {
-        description: "Delete a channel permanently",
-        params: {
-          id: { type: "string", required: true, description: "Channel ID to delete" },
+          factoryName: { type: "string", required: false, description: "Display name for the Factory" },
+          factoryAvatarUrl: { type: "string", required: false, description: "URL or default: prefix for the Factory avatar image" },
+          factorySystemPrompt: { type: "string", required: false, description: "Custom system prompt injected into all global sessions" },
         },
       },
     },

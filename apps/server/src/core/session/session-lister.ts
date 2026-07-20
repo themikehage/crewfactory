@@ -7,7 +7,6 @@ import {
   getProjectsDir,
   getProjectDir,
   getAgentDir,
-  getChannelMessagesPath,
   SessionPrefix,
 } from "shared";
 
@@ -39,6 +38,7 @@ export interface SessionListQuery {
   search?: string;
   agentId?: string;
   channelId?: string;
+  teamId?: string;
   projectName?: string;
   status?: string;
   from?: string;
@@ -208,78 +208,6 @@ export class SessionLister {
         console.error("Failed to list virtual project sessions:", e);
       }
 
-      // 3. Channel Executions (CLI)
-      try {
-        const { channelStore } = await import("../../channels");
-        const channelsList = channelStore.listChannels(username);
-        for (const channel of channelsList) {
-          const msgsPath = getChannelMessagesPath(username, channel.id);
-          if (existsSync(msgsPath)) {
-            const fileContent = readFileSync(msgsPath, "utf-8");
-            const lines = fileContent.trim().split("\n");
-            const channelSessions = new Map<string, { firstMsgTime: string, lastMsgTime: string, firstPrompt: string }>();
-            for (const line of lines) {
-              if (!line.trim()) continue;
-              try {
-                const parsed = JSON.parse(line);
-                const sId = parsed.sessionId;
-                if (sId && sId.startsWith("cli-channel-")) {
-                  const time = parsed.timestamp || new Date().toISOString();
-                  let text = parsed.content || "";
-                  if (typeof text !== "string" && parsed.message?.content) {
-                    text = parsed.message.content;
-                  }
-                  if (channelSessions.has(sId)) {
-                    const ent = channelSessions.get(sId)!;
-                    ent.lastMsgTime = time;
-                    if (!ent.firstPrompt && parsed.role === "user" && text) {
-                      ent.firstPrompt = text;
-                    }
-                  } else {
-                    channelSessions.set(sId, {
-                      firstMsgTime: time,
-                      lastMsgTime: time,
-                      firstPrompt: parsed.role === "user" ? text : "",
-                    });
-                  }
-                }
-              } catch { }
-            }
-
-            for (const [sId, info] of channelSessions.entries()) {
-              const dur = new Date(info.lastMsgTime).getTime() - new Date(info.firstMsgTime).getTime();
-              let turnCount = 0;
-              try {
-                for (const line of lines) {
-                  if (!line.trim()) continue;
-                  const parsed = JSON.parse(line);
-                  if (parsed.sessionId === sId && (parsed.role === "user" || parsed.role === "agent")) {
-                    turnCount++;
-                  }
-                }
-              } catch {}
-              virtualSessions.push({
-                id: `exec_channel_${channel.id}_${sId}`,
-                name: `CLI: ${info.firstPrompt ? info.firstPrompt.slice(0, 30) + (info.firstPrompt.length > 30 ? "..." : "") : sId}`,
-                createdAt: info.firstMsgTime,
-                updatedAt: info.lastMsgTime,
-                messageCount: 0,
-                status: "sleeping",
-                channelId: channel.id,
-                isExecution: true,
-                durationMs: dur >= 0 ? dur : undefined,
-                executionId: sId,
-                turnCount,
-                schedulingMode: "debate",
-                archived: false,
-              });
-            }
-          }
-        }
-      } catch (e) {
-        console.error("Failed to list virtual channel sessions:", e);
-      }
-
       let filtered = [...userSessions, ...virtualSessions];
 
       const showArchived = query?.archived === "true" || query?.archived === true;
@@ -298,8 +226,10 @@ export class SessionLister {
           filtered = filtered.filter((s) => s.agentId === query.agentId);
         }
 
-        if (query.channelId) {
-          filtered = filtered.filter((s) => s.channelId === query.channelId);
+
+
+        if (query.teamId) {
+          filtered = filtered.filter((s) => s.teamId === query.teamId);
         }
 
         if (query.projectName) {

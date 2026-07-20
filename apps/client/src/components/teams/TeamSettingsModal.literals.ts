@@ -1,6 +1,6 @@
-import type { SupportedLocale } from "@/lib";
+import type { SupportedLocale } from "@/lib/types";
 
-export const literals: Record<SupportedLocale, Record<string, string>> = {
+export const literals = {
   en: {
     title: "Team Settings",
     tabGeneral: "General",
@@ -26,6 +26,11 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     teamTypeImmutable: "The team type is fixed after creation.",
     negotiationDesc: "Negotiation (Debate): Agents debate in parallel; the leader arbitrates if there is a deadlock.",
     orchestrationDesc: "Orchestration (Leader-Specialist): The leader coordinates work and delegates specific tasks to members.",
+    deleteTeam: "Danger Zone",
+    deleteTeamDescription: "This action is permanent and cannot be undone. All conversation history and team configurations will be deleted.",
+    deleteConfirmLabel: "Type the team name '{name}' to confirm:",
+    deleteButton: "Delete Team",
+    deleting: "Deleting...",
   },
   es: {
     title: "Ajustes del Equipo",
@@ -52,5 +57,10 @@ export const literals: Record<SupportedLocale, Record<string, string>> = {
     teamTypeImmutable: "El tipo de equipo queda fijado al crearlo.",
     negotiationDesc: "Negociación (Debate): Los agentes debaten en paralelo; el líder arbitra si hay un bloqueo.",
     orchestrationDesc: "Orquestación (Líder-Especialista): El líder coordina el trabajo y delega tareas específicas a los miembros.",
+    deleteTeam: "Zona de Peligro",
+    deleteTeamDescription: "Esta acción es permanente y no se puede deshacer. Se eliminarán todas las conversaciones y configuraciones del equipo.",
+    deleteConfirmLabel: "Escribe el nombre del equipo '{name}' para confirmar:",
+    deleteButton: "Eliminar Equipo",
+    deleting: "Eliminando...",
   },
-};
+} satisfies Record<SupportedLocale, Record<string, string>>;

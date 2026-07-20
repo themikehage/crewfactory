@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChannelChatArea } from "@/components/channels/ChannelChatArea";
+import { TeamChatArea } from "@/components/teams/TeamChatArea";
 import { useLiterals } from "@/lib";
 import { literals as u } from "@/pages/LaboratoryPage.literals";
 
@@ -42,7 +42,7 @@ export function VariantViewer({
   const l = useLiterals(u);
   const [activeSubTab, setActiveSubTab] = useState<"chat" | "telemetry">("chat");
 
-  const channelId = `lab_${experimentId}_${variantKey}`;
+  const teamId = `lab_team_${experimentId}_${variantKey}`;
 
   return (
     <div className="flex flex-col h-full bg-card/10 border border-input/60 p-4">
@@ -95,8 +95,8 @@ export function VariantViewer({
       <div className="flex-1 min-h-0 relative">
         {activeSubTab === "chat" ? (
           <div className="absolute inset-0 flex flex-col bg-card/5 rounded-xl border border-input/40 overflow-hidden">
-            <ChannelChatArea
-              activeChannel={{ id: channelId, name: expName || "Visor" }}
+            <TeamChatArea
+              activeTeam={{ id: teamId, name: expName || "Visor" }}
               sessionId={activeSessionId}
               variantMode={true}
             />

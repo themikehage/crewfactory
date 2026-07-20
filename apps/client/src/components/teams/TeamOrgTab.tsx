@@ -1,11 +1,11 @@
 import { useState, useMemo } from "react";
-import type { TeamMember, AgentInfo, ChannelMember, ChannelRole } from "shared";
+import type { TeamMember, AgentInfo } from "shared";
 import { useIsMobile } from "@/hooks/useIsMobile";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./TeamOrgTab.literals";
-import { OrgFlowCanvas } from "@/components/channels/OrgFlowCanvas";
-import { OrgFlowMobile } from "@/components/channels/OrgFlowMobile";
-import { AgentDetailPanel } from "@/components/channels/AgentDetailPanel";
+import { OrgFlowCanvas } from "./OrgFlowCanvas";
+import { OrgFlowMobile } from "./OrgFlowMobile";
+import { AgentDetailPanel } from "./AgentDetailPanel";
 import type { StreamingAgentState } from "@/hooks/useTeam";
 import { useSessions } from "@/contexts/SessionsContext";
 
@@ -40,27 +40,9 @@ export function TeamOrgTab({
     return map;
   }, [members, getChannelMemberKanbanStatus]);
 
-  // Map TeamMember[] to ChannelMember[] to reuse OrgFlowCanvas / OrgFlowMobile
-  const mappedChannelMembers = useMemo<ChannelMember[]>(() => {
-    return members.map((m) => ({
-      agentId: m.agentId,
-      role: m.role as ChannelRole,
-      replyMode: "user-only", // Fallback, not strictly used in OrgFlow
-    }));
-  }, [members]);
-
   const selectedTeamMember = selectedMemberId
     ? members.find((m) => m.agentId === selectedMemberId)
     : null;
-
-  const selectedMappedChannelMember = useMemo<ChannelMember | null>(() => {
-    if (!selectedTeamMember) return null;
-    return {
-      agentId: selectedTeamMember.agentId,
-      role: selectedTeamMember.role as ChannelRole,
-      replyMode: "user-only",
-    };
-  }, [selectedTeamMember]);
 
   const selectedAgentInfo = selectedTeamMember
     ? registeredAgents.find((a) => a.id === selectedTeamMember.agentId)
@@ -70,19 +52,21 @@ export function TeamOrgTab({
     ? streamingAgents[selectedTeamMember.agentId]
     : undefined;
 
-  const handleEditAgent = (channelMember: ChannelMember) => {
-    setSelectedMemberId(channelMember.agentId);
+  const handleEditAgent = (member: TeamMember) => {
+    setSelectedMemberId(member.agentId);
   };
 
   const handleUpdateTeamMember = async (agentId: string, updates: any) => {
-    // updates from AgentDetailPanel matches ChannelMember properties.
+    // updates from AgentDetailPanel matches TeamMember properties.
     // We map them back to TeamMember partial updates.
-    // role is shared. replyMode / targetAgentIds are ignored for teams.
+    // role is shared. outputMode / outputMode are mapped correctly.
     const teamUpdates: Partial<TeamMember> = {};
     if (updates.role) {
       teamUpdates.role = updates.role;
     }
-    // Note: AgentDetailPanel doesn't let us edit outputMode, but we keep role updating intact.
+    if (updates.outputMode) {
+      teamUpdates.outputMode = updates.outputMode;
+    }
     await onUpdateMember(agentId, teamUpdates);
   };
 
@@ -128,7 +112,7 @@ export function TeamOrgTab({
       <div className="flex-1 flex min-h-0 relative">
         {isMobile ? (
           <OrgFlowMobile
-            members={mappedChannelMembers}
+            members={members}
             registeredAgents={registeredAgents}
             streamingAgents={streamingAgents as any}
             sessionStatuses={memberSessionStatuses}
@@ -136,7 +120,7 @@ export function TeamOrgTab({
           />
         ) : (
           <OrgFlowCanvas
-            members={mappedChannelMembers}
+            members={members}
             registeredAgents={registeredAgents}
             streamingAgents={streamingAgents as any}
             sessionStatuses={memberSessionStatuses}
@@ -146,14 +130,13 @@ export function TeamOrgTab({
       </div>
 
       {/* Detail Slide-over / Sheet */}
-      {selectedMappedChannelMember && (
+      {selectedTeamMember && (
         <AgentDetailPanel
           isOpen={true}
           onClose={() => setSelectedMemberId(null)}
-          member={selectedMappedChannelMember}
+          member={selectedTeamMember}
           agentInfo={selectedAgentInfo}
-          allMembers={mappedChannelMembers}
-          registeredAgents={registeredAgents}
+          allMembers={members}
           streamingState={selectedStreamingState as any}
           onUpdateMember={handleUpdateTeamMember}
           onRemoveMember={onRemoveMember}

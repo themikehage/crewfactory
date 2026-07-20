@@ -26,6 +26,11 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 - [fix-permission-autonomous-propagation.md](./fix-permission-autonomous-propagation.md) — Modo autonomo no se propaga a canales, subagentes ni delegaciones. 3 gaps identificados: agent servers sin executionMode, orchestrator sin propagacion, sin config por canal.
 - [assign-agents-teams-to-projects.md](./assign-agents-teams-to-projects.md) — Asignar agentes o equipos (leader+especialistas) a proyectos. Al abrir un proyecto con agente asignado, la sesion se crea con ese agente y CWD en el proyecto. Con equipo asignado, se crea un channel en el workspace del proyecto.
 
+### UI
+
+- [team-create-modal-improvements.md](./team-create-modal-improvements.md) — Mejorar el modal de creacion de equipo: dropdown custom en vez de `<select>` nativo, seleccion de miembros al crear, upload de imagen + avatares default.
+- [replace-confirm-with-modal.md](./replace-confirm-with-modal.md) — Reemplazar los 5 `confirm()` nativos por `ConfirmModal` reutilizable. Sin componentes nuevos.
+
 ### Refactoring
 
 - [app-router-refactor.md](./COMPLETED/app-router-refactor.md) — Completado: migración del router manual a `react-router-dom` con contexto de trabajo, controlador de laboratorio y compatibilidad de URLs.

@@ -96,102 +96,105 @@ export class OrchestrationRunner {
       if (!currentBridge) return;
       const sid = currentBridge.sessionId;
 
-      switch (evt.type) {
-        case "agent_start":
+      // Raw event types emitted by AgentSession
+      if (evt.type === "agent_start") {
+        this.broadcastFn(teamId, {
+          type: "team_agent_start",
+          teamId,
+          sessionId: sid,
+          agentId: leader.agentId,
+          agentName: leaderName,
+        });
+        currentBridge.accumulatedText = "";
+        return;
+      }
+
+      // Tokens are nested inside message_update events
+      if (evt.type === "message_update") {
+        const inner = evt.assistantMessageEvent;
+        if (!inner) return;
+
+        if (inner.type === "text_delta" && inner.delta) {
+          currentBridge.accumulatedText += inner.delta;
           this.broadcastFn(teamId, {
-            type: "team_agent_start",
+            type: "team_agent_token",
             teamId,
             sessionId: sid,
+            agentId: leader.agentId,
+            token: inner.delta,
+            fullText: currentBridge.accumulatedText,
+          });
+        } else if (inner.type === "thinking_delta" && inner.delta) {
+          this.broadcastFn(teamId, {
+            type: "team_agent_thinking",
+            teamId,
+            sessionId: sid,
+            agentId: leader.agentId,
+            token: inner.delta,
+          });
+        }
+        return;
+      }
+
+      if (evt.type === "tool_execution_start") {
+        this.broadcastFn(teamId, {
+          type: "team_agent_tool_start",
+          teamId,
+          sessionId: sid,
+          agentId: leader.agentId,
+          toolName: evt.toolName,
+          toolCallId: evt.toolCallId,
+          args: evt.args,
+        });
+        return;
+      }
+
+      if (evt.type === "tool_execution_end") {
+        this.broadcastFn(teamId, {
+          type: "team_agent_tool_end",
+          teamId,
+          sessionId: sid,
+          agentId: leader.agentId,
+          toolName: evt.toolName,
+          toolCallId: evt.toolCallId,
+          result: evt.result,
+          isError: evt.isError,
+        });
+        return;
+      }
+
+      if (evt.type === "message_end") {
+        if (currentBridge.accumulatedText.trim()) {
+          const agentMsg: TeamMessage = {
+            id: crypto.randomUUID(),
+            teamId,
+            sessionId: sid,
+            role: "agent",
             agentId: leader.agentId,
             agentName: leaderName,
+            content: currentBridge.accumulatedText,
+            createdAt: new Date().toISOString(),
+          };
+          teamStore.appendMessage(username, teamId, agentMsg);
+          this.broadcastFn(teamId, {
+            type: "team_message",
+            teamId,
+            sessionId: sid,
+            message: agentMsg,
+            eventType: "agent_message",
           });
           currentBridge.accumulatedText = "";
-          break;
-
-        case "text_delta":
-          if (evt.delta) {
-            currentBridge.accumulatedText += evt.delta;
-            this.broadcastFn(teamId, {
-              type: "team_agent_token",
-              teamId,
-              sessionId: sid,
-              agentId: leader.agentId,
-              token: evt.delta,
-              fullText: currentBridge.accumulatedText,
-            });
-          }
-          break;
-
-        case "thinking_delta":
-          if (evt.delta) {
-            this.broadcastFn(teamId, {
-              type: "team_agent_thinking",
-              teamId,
-              sessionId: sid,
-              agentId: leader.agentId,
-              token: evt.delta,
-            });
-          }
-          break;
-
-        case "tool_execution_start":
-          this.broadcastFn(teamId, {
-            type: "team_agent_tool_start",
-            teamId,
-            sessionId: sid,
-            agentId: leader.agentId,
-            toolName: evt.toolName,
-            toolCallId: evt.toolCallId,
-            args: evt.args,
-          });
-          break;
-
-        case "tool_execution_end":
-          this.broadcastFn(teamId, {
-            type: "team_agent_tool_end",
-            teamId,
-            sessionId: sid,
-            agentId: leader.agentId,
-            toolName: evt.toolName,
-            toolCallId: evt.toolCallId,
-            result: evt.result,
-            isError: evt.isError,
-          });
-          break;
-
-        case "message_end": {
-          if (currentBridge.accumulatedText.trim()) {
-            const agentMsg: TeamMessage = {
-              id: crypto.randomUUID(),
-              teamId,
-              sessionId: sid,
-              role: "agent",
-              agentId: leader.agentId,
-              agentName: leaderName,
-              content: currentBridge.accumulatedText,
-              createdAt: new Date().toISOString(),
-            };
-            teamStore.appendMessage(username, teamId, agentMsg);
-            this.broadcastFn(teamId, {
-              type: "team_message",
-              teamId,
-              sessionId: sid,
-              message: agentMsg,
-              eventType: "agent_message",
-            });
-            currentBridge.accumulatedText = "";
-          }
-          break;
         }
+        return;
+      }
 
-        case "agent_end":
-          this.broadcastFn(teamId, {
-            type: "team_agent_end",
-            teamId,
-            sessionId: sid,
-            agentId: leader.agentId,
-          });
-          break;
+      if (evt.type === "agent_end") {
+        this.broadcastFn(teamId, {
+          type: "team_agent_end",
+          teamId,
+          sessionId: sid,
+          agentId: leader.agentId,
+        });
       }
     });
 

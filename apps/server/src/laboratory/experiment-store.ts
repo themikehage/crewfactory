@@ -1,6 +1,6 @@
 import { existsSync, mkdirSync, writeFileSync, readFileSync, readdirSync, rmSync, renameSync } from "fs";
 import { join } from "path";
-import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH, type AgentDefinition, type ChannelMember, getExperimentsDir } from "shared";
+import { type LabExperiment, type LabBlueprint, LabBlueprintSchema, CREWFACTORY_DATA_PATH, type AgentDefinition, type TeamMember, getExperimentsDir } from "shared";
 import { sessionManager } from "../core/session-manager";
 
 export class ExperimentStore {
@@ -170,7 +170,7 @@ export class ExperimentStore {
     }
 
     const { agentRegistry } = await import("../agents");
-    const { channelStore } = await import("../channels");
+    const { teamStore } = await import("../teams/team-store");
 
     const exportedAgents: { id: string; name: string; created: boolean }[] = [];
 
@@ -201,7 +201,7 @@ export class ExperimentStore {
       }
     }
 
-    // 2. Export channel if multi
+    // 2. Export team if multi
     if (variantKey === "single") {
       return {
         variantKey,
@@ -209,24 +209,21 @@ export class ExperimentStore {
       };
     }
 
-    const defaultChannelName =
+    const defaultTeamName =
       options?.channelName ||
       (variantKey === "multiNoLeader"
         ? `${experiment.name} (Horizontal)`
         : `${experiment.name} (Jerárquico)`);
 
-    const channel = channelStore.createChannel(username, {
-      name: defaultChannelName,
-      description: `Canal exportado del experimento: ${experiment.name}`,
-      context: [
-        {
-          key: "TASK_CONTEXT",
-          value: experiment.taskPrompt
-        }
-      ]
+    const team = teamStore.createTeam(username, {
+      name: defaultTeamName,
+      description: `Equipo exportado del experimento: ${experiment.name}`,
+      teamType: "Negotiation",
+      mode: "debate",
+      maxRounds: 5,
     });
 
-    const members: ChannelMember[] = [];
+    const members: TeamMember[] = [];
     if (variantKey === "multiWithLeader") {
       const leader = variant.agents.find((a) => a.leader);
       const leaderId = leader?.id;
@@ -234,14 +231,11 @@ export class ExperimentStore {
         if (a.leader) {
           members.push({
             agentId: a.id,
-            replyMode: "user-only",
             role: "lead"
           });
         } else {
           members.push({
             agentId: a.id,
-            replyMode: "targeted",
-            targetAgentIds: leaderId ? [leaderId] : [],
             role: "member"
           });
         }
@@ -250,19 +244,18 @@ export class ExperimentStore {
       for (const a of variant.agents) {
         members.push({
           agentId: a.id,
-          replyMode: "broadcast",
           role: "member"
         });
       }
     }
 
-    channelStore.updateMembers(username, channel.id, members);
+    teamStore.updateMembers(username, team.id, members);
 
     return {
       variantKey,
-      channel: {
-        id: channel.id,
-        name: channel.name
+      team: {
+        id: team.id,
+        name: team.name
       },
       agents: exportedAgents
     };

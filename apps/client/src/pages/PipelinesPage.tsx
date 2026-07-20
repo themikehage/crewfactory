@@ -5,6 +5,7 @@ import { useLiterals } from "@/lib";
 import { literals as u } from "./PipelinesPage.literals";
 import { PipelineCard } from "@/components/pipelines/PipelineCard";
 import { Button } from "@/components/ui/Button";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 import { Layers, Plus, Trash, AlertCircle, X } from "lucide-react";
 import type { PipelineDefinition } from "shared";
 import { useNavigate } from "react-router-dom";
@@ -28,6 +29,7 @@ export function PipelinesPage() {
 
   // Form State
   const [showCreateModal, setShowCreateModal] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
   const [pipelineId, setPipelineId] = useState("");
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
@@ -61,16 +63,21 @@ export function PipelinesPage() {
     fetchPipelines();
   }, [fetchPipelines]);
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure you want to delete this pipeline?")) return;
+  const handleDelete = (id: string) => {
+    setDeleteTarget(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
     try {
-      await apiFetch(`/api/pipelines/${id}`, { method: "DELETE" });
+      await apiFetch(`/api/pipelines/${deleteTarget}`, { method: "DELETE" });
       addToast("info", "Pipeline deleted");
+      setDeleteTarget(null);
       
       // AI Agent UI Refresh call
       await apiFetch("/api/factory", {
         method: "POST",
-        body: JSON.stringify({ entity: "pipelines", action: "delete", id }),
+        body: JSON.stringify({ entity: "pipelines", action: "delete", id: deleteTarget }),
       }).catch(() => {});
 
       fetchPipelines();
@@ -455,6 +462,16 @@ export function PipelinesPage() {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Delete Pipeline"
+        message="Are you sure you want to delete this pipeline?"
+        confirmLabel="Delete"
+        destructive
+      />
     </div>
   );
 }

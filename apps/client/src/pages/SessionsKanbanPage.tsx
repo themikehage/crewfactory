@@ -4,6 +4,7 @@ import { literals as u } from "./SessionsKanbanPage.literals";
 import { useSessions, type KanbanColumn, type SessionItem } from "@/contexts/SessionsContext";
 import { Trash2, Archive, RotateCcw } from "lucide-react";
 import { apiFetch } from "@/lib/api";
+import { ConfirmModal } from "@/components/ui/ConfirmModal";
 
 interface Props {
   onNavigate: (path: string) => void;
@@ -34,8 +35,8 @@ function SessionCard({
 }) {
   const badgeText = session.projectName
     ? `Proyecto ${session.projectName}`
-    : session.channelId
-      ? `Canal`
+    : session.teamId
+      ? `Equipo`
       : session.agentId
         ? `Agente`
         : "Global";
@@ -142,6 +143,8 @@ export function SessionsKanbanPage({ onNavigate }: Props) {
   const [archivedSessions, setArchivedSessions] = useState<SessionItem[]>([]);
   const [loadingArchived, setLoadingArchived] = useState(false);
   const [selectedIds, setSelectedIds] = useState<string[]>([]);
+  const [deleteTarget, setDeleteTarget] = useState<string | null>(null);
+  const [batchDelete, setBatchDelete] = useState(false);
 
   const fetchArchived = useCallback(async () => {
     setLoadingArchived(true);
@@ -195,8 +198,8 @@ export function SessionsKanbanPage({ onNavigate }: Props) {
 
   const handleOpen = (session: SessionItem) => {
     let path: string;
-    if (session.channelId) {
-      path = `/channels/${session.channelId}/session/${session.id}`;
+    if (session.teamId) {
+      path = `/teams/${session.teamId}/session/${session.id}`;
     } else if (session.agentId) {
       if (session.agentId === "lab-architect") {
         path = `/laboratory/session/${session.id}`;
@@ -225,24 +228,35 @@ export function SessionsKanbanPage({ onNavigate }: Props) {
     if (viewArchived) fetchArchived();
   };
 
-  const handleDelete = async (id: string) => {
-    if (!confirm("¿Estás seguro de que querés eliminar esta sesión?")) return;
-    await apiFetch(`/api/sessions/${id}`, { method: "DELETE" });
+  const handleDelete = (id: string) => {
+    setDeleteTarget(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteTarget) return;
+    await apiFetch(`/api/sessions/${deleteTarget}`, { method: "DELETE" });
+    setDeleteTarget(null);
     window.dispatchEvent(new CustomEvent("entity-updated"));
     refetch();
     if (viewArchived) fetchArchived();
   };
 
-  const handleBatchAction = async (action: "archive" | "unarchive" | "delete") => {
-    if (action === "delete" && !confirm(`¿Estás seguro de que querés eliminar las ${selectedIds.length} sesiones seleccionadas?`)) {
+  const handleBatchAction = (action: "archive" | "unarchive" | "delete") => {
+    if (action === "delete") {
+      setBatchDelete(true);
       return;
     }
+    executeBatch(action);
+  };
+
+  const executeBatch = async (action: string) => {
     await apiFetch("/api/sessions/batch", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ action, sessionIds: selectedIds }),
     });
     setSelectedIds([]);
+    setBatchDelete(false);
     window.dispatchEvent(new CustomEvent("entity-updated"));
     refetch();
     if (viewArchived) fetchArchived();
@@ -348,6 +362,26 @@ export function SessionsKanbanPage({ onNavigate }: Props) {
           </div>
         </div>
       )}
+
+      <ConfirmModal
+        open={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={confirmDelete}
+        title="Eliminar sesión"
+        message="¿Estás seguro de que querés eliminar esta sesión?"
+        confirmLabel="Eliminar"
+        destructive
+      />
+
+      <ConfirmModal
+        open={batchDelete}
+        onClose={() => setBatchDelete(false)}
+        onConfirm={() => executeBatch("delete")}
+        title="Eliminar sesiones"
+        message={`¿Estás seguro de que querés eliminar las ${selectedIds.length} sesiones seleccionadas?`}
+        confirmLabel="Eliminar"
+        destructive
+      />
     </div>
   );
 }

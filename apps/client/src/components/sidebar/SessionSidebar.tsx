@@ -117,61 +117,66 @@ export function SessionSidebar({
 
   const itemClass = useCallback((isActive: boolean) => {
     if (isMobile) {
-      return `w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base truncate transition-colors text-left cursor-pointer ${
-        isActive
+      return `w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base truncate transition-colors text-left cursor-pointer ${isActive
           ? "bg-card-hover text-foreground font-semibold border-l-4 border-primary rounded-l-none pl-3"
           : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-      }`;
+        }`;
     }
-    return `w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${
-      isActive
+    return `w-full flex items-center gap-2 px-3 py-1 rounded-lg text-xs truncate transition-colors text-left cursor-pointer ${isActive
         ? "bg-card-hover text-foreground font-medium border-l-2 border-primary rounded-l-none pl-2"
         : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-    }`;
+      }`;
   }, [isMobile]);
 
   const accordionHeaderClass = isMobile
-    ? "group/title flex items-center justify-between px-4 py-3 h-12 text-sm uppercase tracking-wider font-semibold text-muted-foreground"
-    : "group/title flex items-center justify-between px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground";
+    ? "group/title flex items-center px-4 py-3 h-12 text-sm uppercase tracking-wider font-semibold text-muted-foreground"
+    : "group/title flex items-center px-3 py-1 text-xs uppercase tracking-wider font-semibold text-muted-foreground cursor-pointer";
 
   const accordionButtonClass = "flex items-center gap-2 hover:text-foreground transition-colors cursor-pointer text-left";
 
-  const chevronSize = isMobile ? 20 : 12;
+  const chevronSize = isMobile ? 20 : 16;
 
-  const actionButtonClass = isMobile
-    ? "w-11 h-11 flex items-center justify-center hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold"
-    : "p-0.5 hover:bg-card rounded text-muted-foreground hover:text-primary transition-all cursor-pointer font-bold text-xs leading-none";
-
-  const factoryButtonClass = `${
-    isMobile
+  const factoryButtonClass = `${isMobile
       ? "w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base font-semibold transition-all cursor-pointer"
       : "w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-xs font-semibold transition-all cursor-pointer"
-  } ${
-    isGlobal
+    } ${isGlobal
       ? "bg-card text-primary border border-primary/30"
       : "bg-card/40 text-muted-foreground hover:bg-card hover:text-primary border border-transparent hover:border-primary/20"
-  }`;
+    }`;
 
   const adminItemClass = useCallback((isActive: boolean) => {
     if (isMobile) {
-      return `w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base transition-colors cursor-pointer text-left ${
-        isActive
+      return `w-full flex items-center gap-3 px-4 py-3 h-12 rounded-lg text-base transition-colors cursor-pointer text-left ${isActive
           ? "bg-card text-foreground font-semibold border-l-4 border-primary rounded-l-none pl-3"
           : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-      }`;
+        }`;
     }
-    return `w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${
-      isActive
+    return `w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors cursor-pointer text-left ${isActive
         ? "bg-card text-foreground font-medium"
         : "text-muted-foreground hover:bg-card/50 hover:text-foreground"
-    }`;
+      }`;
   }, [isMobile]);
+
+  const [globalSettings, setGlobalSettings] = useState<{ factoryName?: string; factoryAvatarUrl?: string | null } | null>(null);
+
+  const fetchGlobalSettings = useCallback(async () => {
+    try {
+      const res = await apiFetch("/api/settings");
+      if (res.ok) {
+        const data = await res.json();
+        setGlobalSettings(data);
+      }
+    } catch (err) {
+      console.error("Failed to fetch settings in sidebar:", err);
+    }
+  }, []);
 
   useEffect(() => {
     fetchRepos();
     fetchAgents();
     fetchTeams();
-  }, [fetchRepos, fetchAgents, fetchTeams]);
+    fetchGlobalSettings();
+  }, [fetchRepos, fetchAgents, fetchTeams, fetchGlobalSettings]);
 
   useEffect(() => {
     const handleUpdate = (e: Event) => {
@@ -183,15 +188,18 @@ export function SessionSidebar({
         fetchAgents();
       } else if (type === "team") {
         fetchTeams();
+      } else if (type === "settings") {
+        fetchGlobalSettings();
       } else if (type !== "experiment") {
         fetchRepos();
         fetchAgents();
         fetchTeams();
+        fetchGlobalSettings();
       }
     };
     window.addEventListener("entity-updated", handleUpdate);
     return () => window.removeEventListener("entity-updated", handleUpdate);
-  }, [fetchRepos, fetchAgents, fetchTeams]);
+  }, [fetchRepos, fetchAgents, fetchTeams, fetchGlobalSettings]);
 
   const handleSelectExperimentClick = useCallback(
     (expId: string) => {
@@ -299,14 +307,23 @@ export function SessionSidebar({
           className={factoryButtonClass}
           title={l.globalWorkspace}
         >
-          <svg width={isMobile ? 20 : 14} height={isMobile ? 20 : 14} viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
-            <path
-              fillRule="evenodd"
-              d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm7 5a1 1 0 10-2 0v1H8a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V9z"
-              clipRule="evenodd"
+          {globalSettings?.factoryAvatarUrl ? (
+            <AgentAvatar
+              name={globalSettings.factoryName || "Factory"}
+              avatarUrl={globalSettings.factoryAvatarUrl}
+              size={isMobile ? "sm" : "xs"}
+              className="flex-shrink-0 rounded-full"
             />
-          </svg>
-          <span>Factory</span>
+          ) : (
+            <svg width={isMobile ? 20 : 14} height={isMobile ? 20 : 14} viewBox="0 0 20 20" fill="currentColor" className="flex-shrink-0">
+              <path
+                fillRule="evenodd"
+                d="M4 4a2 2 0 00-2 2v8a2 2 0 002 2h12a2 2 0 002-2V8a2 2 0 00-2-2h-5L9 4H4zm7 5a1 1 0 10-2 0v1H8a1 1 0 100 2h1v1a1 1 0 102 0v-1h1a1 1 0 100-2h-1V9z"
+                clipRule="evenodd"
+              />
+            </svg>
+          )}
+          <span>{globalSettings?.factoryName || "Factory"}</span>
         </button>
       </div>
 
@@ -314,34 +331,32 @@ export function SessionSidebar({
       <div className={isMobile ? "flex-1 overflow-y-auto min-h-0 py-3 space-y-4" : "flex-1 overflow-y-auto min-h-0 py-2 space-y-3"}>
         {/* Repos Accordion */}
         <div className="flex flex-col">
-          <div className={accordionHeaderClass}>
-            <button
-              onClick={() => setIsOpenRepos((prev) => !prev)}
-              className={accordionButtonClass}
+          <div className={accordionHeaderClass} onClick={() => setIsOpenRepos((prev) => !prev)}>
+            <svg
+              width={chevronSize}
+              height={chevronSize}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={`transform transition-transform ${isOpenRepos ? "rotate-90" : ""}`}
             >
-              <svg
-                width={chevronSize}
-                height={chevronSize}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className={`transform transition-transform ${isOpenRepos ? "rotate-90" : ""}`}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{l.sectionProjects} ({repos.length})</span>
-            </button>
-            <button
-              onClick={() => { onCloseSidebar?.(); onNavigate?.("/projects"); }}
-              className={actionButtonClass}
-              title={l.manageProjects}
-            >
-            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCloseSidebar?.();
+                onNavigate?.("/projects");
+              }}
+              className={`${accordionButtonClass}`}
+            >
+              <span className="ml-2">{l.sectionProjects} ({repos.length})</span>
+              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground flex-shrink-0">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
 
@@ -378,34 +393,32 @@ export function SessionSidebar({
 
         {/* Agents Accordion */}
         <div className="flex flex-col">
-          <div className={accordionHeaderClass}>
-            <button
-              onClick={() => setIsOpenAgents((prev) => !prev)}
-              className={accordionButtonClass}
+          <div className={accordionHeaderClass} onClick={() => setIsOpenAgents((prev) => !prev)}>
+            <svg
+              width={chevronSize}
+              height={chevronSize}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={`transform transition-transform ${isOpenAgents ? "rotate-90" : ""}`}
             >
-              <svg
-                width={chevronSize}
-                height={chevronSize}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className={`transform transition-transform ${isOpenAgents ? "rotate-90" : ""}`}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{l.sectionAgents} ({agents.length})</span>
-            </button>
-            <button
-              onClick={() => { onCloseSidebar?.(); onNavigate?.("/agents"); }}
-              className={actionButtonClass}
-              title={l.manageAgents}
-            >
-            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCloseSidebar?.();
+                onNavigate?.("/agents");
+              }}
+              className={`${accordionButtonClass}`}
+            >
+              <span className="ml-2">{l.sectionAgents} ({agents.length})</span>
+              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground flex-shrink-0">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
 
@@ -446,34 +459,32 @@ export function SessionSidebar({
 
         {/* Teams Accordion */}
         <div className="flex flex-col">
-          <div className={accordionHeaderClass}>
-            <button
-              onClick={() => setIsOpenTeams((prev) => !prev)}
-              className={accordionButtonClass}
+          <div className={accordionHeaderClass} onClick={() => setIsOpenTeams((prev) => !prev)}>
+            <svg
+              width={chevronSize}
+              height={chevronSize}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={`transform transition-transform ${isOpenTeams ? "rotate-90" : ""}`}
             >
-              <svg
-                width={chevronSize}
-                height={chevronSize}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className={`transform transition-transform ${isOpenTeams ? "rotate-90" : ""}`}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{l.sectionTeams} ({teams.length})</span>
-            </button>
-            <button
-              onClick={() => { onCloseSidebar?.(); onNavigate?.("/teams"); }}
-              className={actionButtonClass}
-              title={l.manageTeams}
-            >
-            <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
-              <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
             </svg>
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onCloseSidebar?.();
+                onNavigate?.("/teams");
+              }}
+              className={`${accordionButtonClass}`}
+            >
+              <span className="ml-2">{l.sectionTeams} ({teams.length})</span>
+              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground flex-shrink-0">
+                <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
+              </svg>
             </button>
           </div>
 
@@ -510,32 +521,30 @@ export function SessionSidebar({
 
         {/* Experiments Accordion */}
         <div className="flex flex-col">
-          <div className={accordionHeaderClass}>
-            <button
-              onClick={() => setIsOpenExperiments((prev) => !prev)}
-              className={accordionButtonClass}
+          <div className={accordionHeaderClass} onClick={() => setIsOpenExperiments((prev) => !prev)}>
+            <svg
+              width={chevronSize}
+              height={chevronSize}
+              viewBox="0 0 20 20"
+              fill="currentColor"
+              className={`transform transition-transform ${isOpenExperiments ? "rotate-90" : ""}`}
             >
-              <svg
-                width={chevronSize}
-                height={chevronSize}
-                viewBox="0 0 20 20"
-                fill="currentColor"
-                className={`transform transition-transform ${isOpenExperiments ? "rotate-90" : ""}`}
-              >
-                <path
-                  fillRule="evenodd"
-                  d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
-                  clipRule="evenodd"
-                />
-              </svg>
-              <span>{l.sectionExperiments || "Experimentos"} ({experiments.length})</span>
-            </button>
+              <path
+                fillRule="evenodd"
+                d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z"
+                clipRule="evenodd"
+              />
+            </svg>
             <button
-              onClick={() => { onCloseSidebar?.(); onNavigate?.("/laboratory"); }}
-              className={actionButtonClass}
-              title={l.manageExperiments || "Gestionar Experimentos"}
+              onClick={(e) => {
+                e.stopPropagation();
+                onCloseSidebar?.();
+                onNavigate?.("/laboratory");
+              }}
+              className={`${accordionButtonClass}`}
             >
-              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor">
+              <span className="ml-2">{l.sectionExperiments || "Experimentos"} ({experiments.length})</span>
+              <svg width={isMobile ? 20 : 12} height={isMobile ? 20 : 12} viewBox="0 0 20 20" fill="currentColor" className="text-muted-foreground flex-shrink-0">
                 <path fillRule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clipRule="evenodd" />
               </svg>
             </button>

@@ -191,9 +191,10 @@ async function handleProjects(action: string, id: string | undefined, params: an
     if (existingPath) {
       const proj = readProjectJson(existingPath);
       if (proj) {
-        proj.name = params.name;
+        if (params.name !== undefined) proj.name = params.name;
+        if (params.avatarUrl !== undefined) proj.avatarUrl = params.avatarUrl;
         writeFileSync(join(existingPath, "project.json"), JSON.stringify(proj, null, 2), "utf-8");
-        return ok(`Project "${id}" renamed to "${params.name}"`, { entity: "projects", id, status: "updated", data: proj });
+        return ok(`Project "${id}" updated`, { entity: "projects", id, status: "updated", data: proj });
       }
     }
 
@@ -204,10 +205,11 @@ async function handleProjects(action: string, id: string | undefined, params: an
     const workspaceDir = join(baseDir, "workspace");
     mkdirSync(workspaceDir, { recursive: true });
 
-    const projData = {
+    const projData: Record<string, unknown> = {
       id: projectId,
       name: params.name,
       cloneUrl: params.cloneUrl ?? null,
+      avatarUrl: params.avatarUrl ?? null,
       createdAt: new Date().toISOString(),
     };
     writeFileSync(join(baseDir, "project.json"), JSON.stringify(projData, null, 2), "utf-8");
@@ -482,6 +484,7 @@ async function handleTeams(action: string, id: string | undefined, params: any, 
         showThinking: params.showThinking,
         showTools: params.showTools,
         negotiationProtocol: params.negotiationProtocol,
+        avatarUrl: params.avatarUrl,
       });
       return ok(`Team "${id}" created`, { entity: "teams", id, status: "created", data: team });
     }
@@ -562,14 +565,32 @@ async function handleTeams(action: string, id: string | undefined, params: any, 
   return err(`Unknown action: ${action}`);
 }
 
+async function handleSettings(action: string, _id: string | undefined, params: any, username: string) {
+  if (action === "get") {
+    const settings = sessionManager.userConfig.getUserSettings(username);
+    return ok(JSON.stringify(settings, null, 2), { entity: "settings", data: settings });
+  }
+
+  if (action === "upsert") {
+    const updates: Record<string, any> = {};
+    if (params.factoryName !== undefined) updates.factoryName = String(params.factoryName);
+    if (params.factoryAvatarUrl !== undefined) updates.factoryAvatarUrl = params.factoryAvatarUrl ? String(params.factoryAvatarUrl) : null;
+    if (params.factorySystemPrompt !== undefined) updates.factorySystemPrompt = String(params.factorySystemPrompt);
+    sessionManager.userConfig.saveUserSettings(username, updates);
+    return ok("Settings updated", { entity: "settings", status: "updated" });
+  }
+
+  return err(`Unknown action: ${action}`);
+}
+
 export function createFactoryTool(opts: FactoryToolOptions) {
   const { username } = opts;
 
   return {
     name: "manage_factory",
-    description: `Manage CrewFactory entities directly. Operations on agents, projects, sessions, environment variables, LLM providers, custom skills, teams, and laboratory experiments.
+    description: `Manage CrewFactory entities directly. Operations on agents, projects, sessions, environment variables, LLM providers, custom skills, teams, laboratory experiments, and settings.
 
-Available entities: agents, projects, sessions, env, providers, skills, teams, experiments.
+Available entities: agents, projects, sessions, env, providers, skills, teams, experiments, settings.
 Actions: get (list or read), upsert (create or update), delete (permanently remove), send (message dispatch to a team), member (add/update member of a team).
 
 Entity-specific notes:
@@ -588,7 +609,7 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
       properties: {
         entity: {
           type: "string",
-          enum: ["agents", "projects", "sessions", "env", "providers", "skills", "teams", "experiments"],
+          enum: ["agents", "projects", "sessions", "env", "providers", "skills", "teams", "experiments", "settings"],
           description: "The factory entity type to operate on.",
         },
         action: {
@@ -641,6 +662,9 @@ After mutating any entity, call refresh_ui to update the frontend sidebar.`,
           break;
         case "experiments":
           result = await handleExperiments(action, id, params, username);
+          break;
+        case "settings":
+          result = await handleSettings(action, id, params, username);
           break;
 
         default:
