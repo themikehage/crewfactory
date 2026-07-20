@@ -116,6 +116,10 @@ Los planes completados se mueven a [`COMPLETED/`](./COMPLETED/).
 
 - [image-pipeline-optimization.md](./image-pipeline-optimization.md) — Optimizacion del pipeline de imagenes (uploads + generadas): caching HTTP con ETag, thumbnails on-the-fly con sharp, auth nativa para `<img>` sin blob indirection, compresion WebP en upload, Range requests, y `ImageManager` centralizado. 8 fases.
 
+### TypeScript Type Errors
+
+- [fix-type-errors.md](./fix-type-errors.md) — Resolver 52 errores de tipo (21 client + 31 server). Incluye: missing react-router-dom types, test mocks incompletos, discriminated union narrowing, property not in union type, excess property, wrong AgentEntry type, implicit any, y unintentional comparisons. P0-P1.
+
 
 ## Completados (76)
 

@@ -508,7 +508,6 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                           className="rounded-none w-full h-full object-cover"
                         />
 
-
                         {/* Quick Settings Icon on image */}
                         <button
                           onClick={() => handleStartInfo(repo)}
@@ -641,8 +640,6 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                 )}
               </div>
             </div>
-
-
 
           </>
         )}
