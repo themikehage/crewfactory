@@ -338,6 +338,7 @@ class SessionManager {
             agentDef,
             cachedMcpToolNames,
             experimentId: updatedMeta.experimentId || (existingMeta ? (existingMeta as any).experimentId : undefined),
+            projectName: resolvedProjectName,
           });
 
           resourceLoader = new DefaultResourceLoader({

@@ -3,6 +3,9 @@ import { SessionPrefix } from "shared";
 import { promptComposer } from "../prompts/composer";
 import { assemblePromptAppends } from "../prompts/prompt-assembly";
 import { CUSTOM_TOOL_INSTRUCTIONS } from "../custom-tools";
+import { resolveProjectDir } from "./workspace-resolver";
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
 
 export interface BuildPromptsParams {
   username: string;
@@ -13,6 +16,7 @@ export interface BuildPromptsParams {
   agentDef?: { name: string; role: string; systemPrompt: string };
   cachedMcpToolNames: string[];
   experimentId?: string;
+  projectName?: string;
 }
 
 export class SessionPromptBuilder {
@@ -52,6 +56,29 @@ export class SessionPromptBuilder {
         `risks: <any risks found, or "None">\n` +
         `---`
       );
+    }
+
+    if (params.projectName) {
+      try {
+        const projectDir = resolveProjectDir(username, params.projectName);
+        if (projectDir) {
+          const projectJsonPath = join(projectDir, "project.json");
+          if (existsSync(projectJsonPath)) {
+            const projectMeta = JSON.parse(readFileSync(projectJsonPath, "utf-8"));
+            appendPrompts.push(
+              `\n\n## Project Context\n` +
+              `You are working inside a project workspace. Here is the project metadata:\n` +
+              `- **Project ID**: ${projectMeta.id}\n` +
+              `- **Project Name**: ${projectMeta.name}\n` +
+              `- **Workspace Path**: ${join(projectDir, "workspace")}\n` +
+              (projectMeta.cloneUrl ? `- **Clone URL**: ${projectMeta.cloneUrl}\n` : "") +
+              `\nAll your file operations are sandboxed to the workspace path above. Do NOT attempt to navigate outside it with relative paths like \`..\`.`
+            );
+          }
+        }
+      } catch (e) {
+        console.error("[PromptBuilder] Failed to inject project context:", e);
+      }
     }
 
     if (cachedMcpToolNames.length > 0) {

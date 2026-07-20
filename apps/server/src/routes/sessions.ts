@@ -13,6 +13,9 @@ import { agentRegistry } from "../agents";
 import { delegationRegistry } from "../core/delegation-registry";
 import { teamStore } from "../teams/team-store";
 import { getTeamWorkspaceDir } from "shared";
+import { resolveProjectDir } from "../core/session/workspace-resolver";
+import { readFileSync as _readFileSync, existsSync as _existsSync } from "node:fs";
+import { join as _join } from "node:path";
 
 const STORAGE_KEY = "crewfactory-sessions";
 
@@ -265,13 +268,32 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
   const ownerAgentId = leader?.agentId || agentId;
 
   const now = new Date().toISOString();
+
+  let resolvedProjectName = projectName;
+  if (projectName) {
+    try {
+      const projectDir = resolveProjectDir(username, projectName);
+      if (projectDir) {
+        const metaPath = _join(projectDir, "project.json");
+        if (_existsSync(metaPath)) {
+          const meta = JSON.parse(_readFileSync(metaPath, "utf-8"));
+          if (meta.id && meta.id !== projectName) {
+            resolvedProjectName = meta.id;
+          }
+        }
+      }
+    } catch (e) {
+      console.error("[Sessions] Failed to resolve canonical projectName:", e);
+    }
+  }
+
   const session = {
     id: sessionId,
     name,
     createdAt: now,
     updatedAt: now,
     messageCount: 0,
-    projectName,
+    projectName: resolvedProjectName,
     agentId: ownerAgentId,
     channelId,
     teamId,
@@ -284,7 +306,7 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
     name,
     createdAt: now,
     updatedAt: now,
-    projectName: projectName || null,
+    projectName: resolvedProjectName || null,
     agentId: ownerAgentId || null,
     channelId: channelId || null,
     teamId: teamId || null,
@@ -296,7 +318,7 @@ sessionsRouter.post("/", zValidator("json", CreateSessionSchema), async (c) => {
   });
 
   if (!teamId || isOrchestration) {
-    sessionManager.getOrCreateSession(username, sessionId, projectName, ownerAgentId, channelId, teamId ? {
+    sessionManager.getOrCreateSession(username, sessionId, resolvedProjectName, ownerAgentId, channelId, teamId ? {
       workspaceDir: getTeamWorkspaceDir(username, teamId),
     } : undefined).catch(err => {
       console.error(`[Session Start Async] Failed for ${sessionId}:`, err);
