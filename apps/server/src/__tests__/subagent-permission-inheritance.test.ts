@@ -157,7 +157,8 @@ describe("Subagent Permission Inheritance", () => {
       const parentExecutionMode = parentMeta.executionMode;
       
       // If no explicit subagent type is provided
-      const resolvedSubagentType = undefined || (parentExecutionMode === "autonomous" ? "autonomous" : "builder");
+      const subagentTypeInput: string | undefined = undefined;
+      const resolvedSubagentType = subagentTypeInput || (parentExecutionMode === "autonomous" ? "autonomous" : "builder");
       expect(resolvedSubagentType).toBe("autonomous");
 
       const rules = buildSubagentRules(testUser, subagentSessionId, parentAutoSessionId, resolvedSubagentType);

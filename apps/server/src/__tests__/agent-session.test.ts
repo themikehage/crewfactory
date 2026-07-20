@@ -1,6 +1,7 @@
 import { expect, test, describe, beforeEach, afterEach, mock } from "bun:test";
 import { AgentSession } from "../ai/agent-session";
 import { SessionManager } from "../ai/session-persistence";
+import { AuthStorage } from "../ai/auth-storage";
 import { existsSync, unlinkSync, mkdirSync } from "node:fs";
 import { join } from "node:path";
 
@@ -11,6 +12,7 @@ describe("AgentSession & Agent Class Integration Tests", () => {
   let sessionManager: SessionManager;
   let mockResourceLoader: any;
   let mockModelRegistry: any;
+  let mockAuthStorage: AuthStorage;
 
   const mockModel = {
     id: "test-model",
@@ -46,6 +48,15 @@ describe("AgentSession & Agent Class Integration Tests", () => {
       getAvailable: () => [mockModel],
       getApiKeyAndHeaders: async () => ({ ok: true, apiKey: "test-key" }),
     };
+
+    mockAuthStorage = {
+      getApiKey: () => undefined,
+      hasAuth: () => false,
+      getAuthStatus: () => ({ configured: false }),
+      set: () => {},
+      remove: () => {},
+      reload: () => {}
+    } as unknown as AuthStorage;
   });
 
   afterEach(() => {
@@ -58,7 +69,7 @@ describe("AgentSession & Agent Class Integration Tests", () => {
     const session = new AgentSession({
       cwd: TMP_TEST_DIR,
       sessionManager,
-      authStorage: {},
+      authStorage: mockAuthStorage,
       modelRegistry: mockModelRegistry,
       resourceLoader: mockResourceLoader,
     });
@@ -73,7 +84,7 @@ describe("AgentSession & Agent Class Integration Tests", () => {
     const session = new AgentSession({
       cwd: TMP_TEST_DIR,
       sessionManager,
-      authStorage: {},
+      authStorage: mockAuthStorage,
       modelRegistry: mockModelRegistry,
       resourceLoader: mockResourceLoader,
     });
@@ -117,7 +128,7 @@ describe("AgentSession & Agent Class Integration Tests", () => {
     const sessionWithMock = new AgentSession({
       cwd: TMP_TEST_DIR,
       sessionManager,
-      authStorage: {},
+      authStorage: mockAuthStorage,
       modelRegistry: mockModelRegistry,
       resourceLoader: mockResourceLoader,
     });
@@ -132,7 +143,7 @@ describe("AgentSession & Agent Class Integration Tests", () => {
     const session = new AgentSession({
       cwd: TMP_TEST_DIR,
       sessionManager,
-      authStorage: {},
+      authStorage: mockAuthStorage,
       modelRegistry: mockModelRegistry,
       resourceLoader: mockResourceLoader,
     });

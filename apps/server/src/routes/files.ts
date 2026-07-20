@@ -197,7 +197,7 @@ const handleGetWorkspace = async (c: any) => {
         const responseHeaders: Record<string, string> = {
           "Content-Type": file.type || "application/octet-stream",
         };
-        c.res.headers.forEach((val, key) => {
+        c.res.headers.forEach((val: string, key: string) => {
           responseHeaders[key] = val;
         });
 

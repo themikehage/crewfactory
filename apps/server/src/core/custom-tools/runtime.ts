@@ -19,7 +19,8 @@ export function createCustomToolRuntime(
       signal?: AbortSignal,
       onUpdate?: (partialResult: any) => void
     ) => {
-      switch (definition.execute.type) {
+      const executeDef = definition.execute;
+      switch (executeDef.type) {
         case "pipeline": {
           const currentStack = pipelineExecutionStack.getStore() || [];
           if (currentStack.includes(definition.name)) {
@@ -50,10 +51,10 @@ export function createCustomToolRuntime(
               session: activeSession,
             };
             const result = await executePipeline(
-              definition.execute.steps,
+              executeDef.steps,
               params,
               runContext,
-              definition.execute.onError,
+              executeDef.onError,
               signal,
               (step, total, desc) => {
                 onUpdate?.({

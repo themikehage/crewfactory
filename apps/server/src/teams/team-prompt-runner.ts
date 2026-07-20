@@ -219,7 +219,7 @@ export class TeamPromptRunner {
     ].filter(Boolean).join("\n\n");
 
     const promptText =
-      memoryPrefix + buildAgentPrompt(incomingMsg as any, recentHistory as any, (team.context || []) as any);
+      memoryPrefix + buildAgentPrompt(incomingMsg as any, recentHistory as any, ((team as any).context || []) as any);
 
     const context = {
       systemPrompt: fullSystemPrompt,

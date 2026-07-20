@@ -813,6 +813,7 @@ export const TeamSchema = z.object({
 export type Team = z.infer<typeof TeamSchema>;
 
 export const CreateTeamSchema = z.object({
+  id: z.string().optional(),
   name: z.string().min(1).max(100),
   description: z.string().optional(),
   mode: TeamModeSchema.default("debate").optional(),
@@ -827,7 +828,7 @@ export const CreateTeamSchema = z.object({
 });
 export type CreateTeam = z.infer<typeof CreateTeamSchema>;
 
-export const UpdateTeamSchema = CreateTeamSchema.omit({ teamType: true }).partial().strict();
+export const UpdateTeamSchema = CreateTeamSchema.omit({ teamType: true, id: true }).partial().strict();
 export type UpdateTeam = z.infer<typeof UpdateTeamSchema>;
 
 export const TeamMessageRoleSchema = z.enum(["user", "agent", "system"]);

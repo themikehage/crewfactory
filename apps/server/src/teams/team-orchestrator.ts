@@ -169,9 +169,7 @@ export class TeamOrchestrator {
     this.activeChains.set(key, { count: 0, resolve: resolveChain });
 
     this.incrementChain(key);
-    const runLoopPromise = team.teamType === "Orchestration"
-      ? this.runOrchestrationLoop(username, teamId, userMsg, controller, controller.signal)
-      : this.runStatelessDebateLoop(username, teamId, userMsg, controller, controller.signal);
+    const runLoopPromise = this.runStatelessDebateLoop(username, teamId, userMsg, controller, controller.signal);
 
     runLoopPromise
       .catch((err) => {
@@ -257,7 +255,12 @@ export class TeamOrchestrator {
 
       if (activeMembers.length === 0) return;
 
-      const agentNameMap = buildAgentNameMap(team.members as unknown as TeamMember[]);
+      const agentNameMap = buildAgentNameMap(
+        team.members.map((m) => ({
+          agentId: m.agentId,
+          replyMode: "broadcast",
+        }))
+      );
 
       const activeResults: { agentMsg: TeamMessage }[] = [];
       for (const member of activeMembers) {

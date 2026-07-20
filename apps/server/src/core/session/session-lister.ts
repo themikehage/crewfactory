@@ -64,7 +64,7 @@ export class SessionLister {
       const entries = await readdir(sessionsDir, { withFileTypes: true });
       const sessionPromises = entries
         .filter((entry) => entry.isDirectory() && !entry.name.startsWith("plan_") && !entry.name.startsWith(SessionPrefix.SUBAGENT) && !entry.name.startsWith(SessionPrefix.LAB))
-        .map(async (entry) => {
+        .map(async (entry): Promise<SessionListItem> => {
           const sessionId = entry.name;
           const sessionSubdir = join(sessionsDir, sessionId);
           const metadataPath = join(sessionSubdir, "metadata.json");

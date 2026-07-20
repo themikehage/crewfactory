@@ -61,6 +61,7 @@ describe("Negotiation Protocol Primitives", () => {
     counterPattern: "CONTRAPROPUESTA",
     rejectPattern: "RECHAZO",
     maxRounds: 3,
+    quorumThreshold: 0.5,
   };
 
   it("should ingest text and detect agreement", () => {

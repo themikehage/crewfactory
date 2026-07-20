@@ -91,15 +91,16 @@ export class ChannelBenchmarkRunner {
     // Snapshot channel + agents definition
     const agentsSnapshot: any[] = [];
     for (const m of originalChannel.members) {
-      const definition = agentRegistry.get(m.agentId);
-      if (definition) {
+      const entry = agentRegistry.get(m.agentId);
+      if (entry) {
+        const def = entry.server.definition;
         agentsSnapshot.push({
-          id: definition.id,
-          name: definition.name,
-          role: definition.role,
-          systemPrompt: definition.systemPrompt,
-          model: definition.model,
-          skills: definition.skills,
+          id: def.id,
+          name: def.name,
+          role: def.role,
+          systemPrompt: def.systemPrompt,
+          model: def.model,
+          skills: def.skills,
         });
       }
     }
@@ -199,9 +200,9 @@ export class ChannelBenchmarkRunner {
         channelName: `[Benchmark Clone]`,
         description: `Ephemeral clone for running benchmark`,
         members: originalChannel.members,
-        maxChainDepth: originalChannel.maxChainDepth,
-        showThinking: originalChannel.showThinking,
-        showTools: originalChannel.showTools,
+        maxChainDepth: originalChannel.maxChainDepth ?? 10,
+        showThinking: originalChannel.showThinking ?? true,
+        showTools: originalChannel.showTools ?? true,
         negotiationProtocol: originalChannel.negotiationProtocol,
         contextItems: [
           { key: "TASK_CONTEXT", value: run.taskPrompt },
