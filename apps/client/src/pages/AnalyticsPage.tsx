@@ -46,7 +46,7 @@ export function AnalyticsPage() {
   const l = useLiterals(u);
 
   // Set default dates to last 30 days
-  const defaultTo = new Date().toISOString().substring(0, 10);
+  const defaultTo = new Date(Date.now() + 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
   const defaultFrom = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().substring(0, 10);
 
   const [from, setFrom] = useState(defaultFrom);

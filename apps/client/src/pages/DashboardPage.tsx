@@ -376,6 +376,62 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
           </div>
         ) : (
           <>
+            {/* Seccion 1: Agentes — scroll horizontal */}
+            <div id="agents-sec" className="space-y-3">
+              <div className="flex justify-between items-center">
+                <h2 className="text-foreground font-extrabold text-base sm:text-lg tracking-tight font-display">
+                  {l.agentsSection}
+                </h2>
+                {onNavigate && (
+                  <button
+                    onClick={() => onNavigate("/agents")}
+                    className="text-[11px] text-accent hover:underline font-bold"
+                  >
+                    {l.viewAll || "View All"}
+                  </button>
+                )}
+              </div>
+              <div className="flex overflow-x-auto gap-4 pb-1 scrollbar-none">
+                {agents.map((agent) => (
+                  <div
+                    key={agent.id}
+                    onClick={() => onNavigate?.(`/agents/${agent.id}/chat`)}
+                    className="flex flex-col items-center text-center w-[80px] shrink-0 group relative cursor-pointer"
+                  >
+                    <div className="relative mb-1.5">
+                      <EntityAvatar
+                        name={agent.name}
+                        avatarUrl={agent.avatarUrl}
+                        size="3xl"
+                        type="agent"
+                        className="group-hover:scale-105 transition-transform duration-300 border border-input/20 shadow-md"
+                      />
+                      <span className={`absolute bottom-0.5 right-1 w-3 h-3 rounded-full border-2 border-surface ${
+                        agent.status === "streaming" || agent.status === "task-running"
+                          ? "bg-warning animate-pulse"
+                          : agent.status === "idle"
+                            ? "bg-accent"
+                            : "bg-text-secondary/30"
+                      }`} />
+                    </div>
+                    <h3 className="font-extrabold text-[11px] text-foreground truncate w-full group-hover:text-accent transition-colors leading-tight">
+                      {agent.name}
+                    </h3>
+                    <p className="text-[9px] text-text-secondary truncate w-full mt-0.5 font-medium leading-none">
+                      {agent.role}
+                    </p>
+                  </div>
+                ))}
+
+                {agents.length === 0 && (
+                  <div className="w-full bg-surface/30 rounded-2xl p-6 text-center border border-input/10 border-dashed">
+                    <p className="text-xs text-text-secondary">No agents</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Seccion 2: Sesiones Recientes */}
             <div id="sessions-sec" className="space-y-3">
               <h2 className="text-foreground font-extrabold text-base sm:text-lg tracking-tight font-display">
                 {l.sessionsSection}
@@ -451,6 +507,9 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                           type="project"
                           className="rounded-none w-full h-full object-cover"
                         />
+
+
+                        {/* Quick Settings Icon on image */}
                         <button
                           onClick={() => handleStartInfo(repo)}
                           className="absolute top-2 right-2 p-1.5 bg-black/60 hover:bg-black text-text-primary rounded-full hover:scale-105 transition-all opacity-0 group-hover:opacity-100 cursor-pointer"
@@ -583,59 +642,8 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
               </div>
             </div>
 
-            <div id="agents-sec" className="space-y-3">
-              <div className="flex justify-between items-center">
-                <h2 className="text-foreground font-extrabold text-base sm:text-lg tracking-tight font-display">
-                  {l.agentsSection}
-                </h2>
-                {onNavigate && (
-                  <button
-                    onClick={() => onNavigate("/agents")}
-                    className="text-[11px] text-accent hover:underline font-bold"
-                  >
-                    {l.viewAll || "View All"}
-                  </button>
-                )}
-              </div>
-              <div className="flex overflow-x-auto gap-4 pb-3 -mx-5 px-5 scrollbar-none sm:mx-0 sm:px-0">
-                {agents.map((agent) => (
-                  <div
-                    key={agent.id}
-                    onClick={() => onNavigate?.(`/agents/${agent.id}/chat`)}
-                    className="flex flex-col items-center text-center w-[72px] shrink-0 group relative cursor-pointer"
-                  >
-                    <div className="relative mb-1.5">
-                      <EntityAvatar
-                        name={agent.name}
-                        avatarUrl={agent.avatarUrl}
-                        size="xl"
-                        type="agent"
-                        className="group-hover:scale-105 transition-transform duration-300 border border-input/20 shadow-md"
-                      />
-                      <span className={`absolute bottom-0.5 right-1 w-3 h-3 rounded-full border-2 border-surface ${
-                        agent.status === "streaming" || agent.status === "task-running"
-                          ? "bg-warning animate-pulse"
-                          : agent.status === "idle"
-                            ? "bg-accent"
-                            : "bg-text-secondary/30"
-                      }`} />
-                    </div>
-                    <h3 className="font-extrabold text-[11px] text-foreground truncate w-full group-hover:text-accent transition-colors leading-tight">
-                      {agent.name}
-                    </h3>
-                    <p className="text-[9px] text-text-secondary truncate w-full mt-0.5 font-medium leading-none">
-                      {agent.role}
-                    </p>
-                  </div>
-                ))}
 
-                {agents.length === 0 && (
-                  <div className="w-full bg-surface/30 rounded-2xl p-6 text-center border border-input/10 border-dashed">
-                    <p className="text-xs text-text-secondary">No agents</p>
-                  </div>
-                )}
-              </div>
-            </div>
+
           </>
         )}
       </div>
