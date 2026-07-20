@@ -47,7 +47,7 @@
 - Message rendering: user, assistant, tool calls, thinking blocks (with compact single-line preview when collapsed and `animate-pulse` border during streaming)
 - Abort active generation
 - Steer/follow-up during streaming (Enter=steer, Alt+Enter=follow_up)
-- **Experiencia de Scroll Robusta:** Implementación de scroll pinning inteligente mediante un hook customizado, `ResizeObserver` reactivo para mantener anclaje ante cargas tardías de imágenes o tarjetas, y un botón flotante dinámico con indicador de "Nuevos mensajes" cuando el usuario está arriba del viewport.
+- **Experiencia de Scroll Robusta:** Implementación de scroll pinning inteligente mediante el hook customizado `useChatScroll`, con `ResizeObserver` reactivo para mantener anclaje ante cargas tardías de imágenes o tarjetas, y un botón flotante dinámico con indicador de "Nuevos mensajes" cuando el usuario está arriba del viewport en todos los layouts de chat (estándar, orquestación y el panel de negociación en `TeamMessageList`).
 - **Foco de Input Inteligente:** Implementación de un hook customizado (`useChatInputFocus`) que gestiona el cursor de forma inteligente y robusta, posicionándolo en la caja de entrada (`ChatInput` o `WelcomeChatInput`) al ingresar a una sesión, tras finalizar la carga de mensajes históricos, o inmediatamente después de que el agente finalice la emisión de su mensaje a través del WebSocket.
 - **Premium Floating Chat Input & Popovers:** Replaces the legacy 2-row chat input and fullscreen modals with a premium, unified floating card (`ChatInput`). It integrates:
   - **Inline Popovers:** Checkbox-based tool selectors (`ToolsPopover`) and searchable skills lists (`SkillsPopover`) directly above the action bar.

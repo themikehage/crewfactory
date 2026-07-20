@@ -1,7 +1,8 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { TeamMessage } from "shared";
 import type { StreamingAgentState } from "@/hooks/useTeam";
 import { MessageList } from "@/components/chat/MessageList";
+import { useChatScroll } from "@/hooks/useChatScroll";
 
 interface Props {
   messages: TeamMessage[];
@@ -88,8 +89,6 @@ function mapTeamMessagesToStandard(
     }
   }
 
-  // Track the latest content per agent to detect when a team_message
-  // arrives before its team_agent_end (race condition)
   const latestAgentContent = new Map<string, string>();
   for (const msg of messages) {
     if (msg.role === "agent" && msg.agentId) {
@@ -97,7 +96,6 @@ function mapTeamMessagesToStandard(
     }
   }
 
-  // Handle active streaming agents
   for (const [agentId, stream] of Object.entries(streamingAgents)) {
     const finalContent = latestAgentContent.get(agentId);
     if (finalContent !== undefined && stream.text === finalContent) {
@@ -169,40 +167,59 @@ export function TeamMessageList({
   onOpenSubagentConsole,
   agentAvatarMap = {},
 }: Props) {
-  const bottomRef = useRef<HTMLDivElement>(null);
-
+  const scrollContainerRef = useRef<HTMLDivElement>(null);
   const mappedMessages = mapTeamMessagesToStandard(messages, streamingAgents, agentAvatarMap);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, streamingAgents]);
-
   const activeStreamList = Object.values(streamingAgents);
   const isStreaming = activeStreamList.length > 0;
 
+  const {
+    showScrollButton,
+    scrollToBottom,
+    handleScroll
+  } = useChatScroll(scrollContainerRef, {
+    messages,
+    isStreaming
+  });
+
   return (
-    <div className="flex-1 overflow-y-auto p-4 sm:p-6 min-h-0">
-      <div className="max-w-3xl mx-auto space-y-5 w-full">
-      {messages.length === 0 && !isStreaming ? (
-        <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-3 pt-20">
-          <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
-            <span className="text-primary font-bold text-lg">#</span>
-          </div>
-          <div className="text-center">
-            <p className="font-medium text-foreground text-sm">No messages in this team session yet</p>
-            <p className="text-xs text-muted-foreground mt-1">Send a message below to trigger multi-agent debate</p>
-          </div>
+    <div className="flex-1 min-h-0 relative">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="h-full overflow-y-auto p-4 sm:p-6"
+      >
+        <div className="max-w-3xl mx-auto space-y-5 w-full">
+          {messages.length === 0 && !isStreaming ? (
+            <div className="flex flex-col items-center justify-center h-full text-muted-foreground text-sm gap-3 pt-20">
+              <div className="w-12 h-12 rounded-2xl bg-card border border-input flex items-center justify-center">
+                <span className="text-primary font-bold text-lg">#</span>
+              </div>
+              <div className="text-center">
+                <p className="font-medium text-foreground text-sm">No messages in this team session yet</p>
+                <p className="text-xs text-muted-foreground mt-1">Send a message below to trigger multi-agent debate</p>
+              </div>
+            </div>
+          ) : (
+            <MessageList
+              messages={mappedMessages}
+              sessionId={sessionId}
+              activeChannelId={activeTeamId}
+              onOpenSubagentConsole={onOpenSubagentConsole}
+            />
+          )}
         </div>
-      ) : (
-        <MessageList
-          messages={mappedMessages}
-          sessionId={sessionId}
-          activeChannelId={activeTeamId} // We can reuse activeChannelId prop on MessageList for team session scopes
-          onOpenSubagentConsole={onOpenSubagentConsole}
-        />
-      )}
-      <div ref={bottomRef} />
       </div>
+
+      {showScrollButton && messages.length > 0 && (
+        <button
+          onClick={() => scrollToBottom("smooth")}
+          className="absolute bottom-6 left-1/2 -translate-x-1/2 z-20 flex items-center justify-center w-9 h-9 rounded-full bg-surface border border-border text-accent shadow-xl hover:bg-surface-hover active:scale-95 transition-all duration-200"
+        >
+          <svg className="w-4 h-4 animate-bounce" fill="none" stroke="currentColor" strokeWidth="2.5" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" d="M19.5 8.25l-7.5 7.5-7.5-7.5" />
+          </svg>
+        </button>
+      )}
     </div>
   );
 }
