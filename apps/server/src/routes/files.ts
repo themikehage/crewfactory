@@ -11,6 +11,7 @@ import {
 } from "shared";
 import { scopeConfigManager } from "../core/scope";
 import { applyCacheHeaders } from "../core/cache-headers";
+import { resolveProjectDir } from "../core/session/workspace-resolver";
 
 export const filesRouter = new Hono();
 
@@ -55,7 +56,12 @@ function validateWorkspacePath(username: string, relativePath: string, projectNa
   } else if (agentId) {
     workspaceDir = getAgentWorkspaceDir(username, agentId);
   } else if (projectName) {
-    workspaceDir = getProjectWorkspaceDir(username, projectName);
+    const resolved = resolveProjectDir(username, projectName);
+    if (resolved) {
+      workspaceDir = join(resolved, "workspace");
+    } else {
+      workspaceDir = getProjectWorkspaceDir(username, projectName);
+    }
   }
 
   // Resolve the workspace directory to avoid drive letter/case mismatch on Windows
@@ -662,7 +668,12 @@ const handlePostWorkspace = async (c: any) => {
     } else if (agentId) {
       workspaceDir = getAgentWorkspaceDir(username, agentId);
     } else if (projectName) {
-      workspaceDir = getProjectWorkspaceDir(username, projectName);
+      const resolved = resolveProjectDir(username, projectName);
+      if (resolved) {
+        workspaceDir = join(resolved, "workspace");
+      } else {
+        workspaceDir = getProjectWorkspaceDir(username, projectName);
+      }
     }
     const resolvedWorkspaceDir = resolve(workspaceDir);
     if (!resolvedSavePath.startsWith(resolvedWorkspaceDir + sep) && resolvedSavePath !== resolvedWorkspaceDir) {

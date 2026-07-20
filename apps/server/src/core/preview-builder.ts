@@ -2,6 +2,8 @@ import { spawn } from "node:child_process";
 import { broadcastToUser } from "../ws/handler";
 import { getBuildCommand } from "./preview-config";
 import { type PreviewConfig, getProjectWorkspaceDir } from "shared";
+import { resolveProjectDir } from "./session/workspace-resolver";
+import { join } from "node:path";
 
 const activeBuilds = new Map<string, AbortController>();
 
@@ -30,7 +32,8 @@ export async function runBuild(
     return { success: false, exitCode: null };
   }
 
-  const projectDir = getProjectWorkspaceDir(username, projectName);
+  const resolved = resolveProjectDir(username, projectName);
+  const projectDir = resolved ? join(resolved, "workspace") : getProjectWorkspaceDir(username, projectName);
   const command = getBuildCommand(config, username, projectName);
 
   if (!command) {

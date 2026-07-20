@@ -1,6 +1,7 @@
-import { resolve, normalize, sep, extname } from "node:path";
+import { resolve, normalize, sep, extname, join } from "node:path";
 import { existsSync } from "node:fs";
 import { getProjectWorkspaceDir } from "shared";
+import { resolveProjectDir } from "./core/session/workspace-resolver";
 
 const MIME_MAP: Record<string, string> = {
   ".html": "text/html; charset=utf-8",
@@ -42,7 +43,8 @@ function isAsset(filePath: string): boolean {
 const BUILD_DIRS = ["dist", "build", ".output"] as const;
 
 function resolveBuildDir(username: string, project: string): string {
-  const projectDir = getProjectWorkspaceDir(username, project);
+  const resolved = resolveProjectDir(username, project);
+  const projectDir = resolved ? join(resolved, "workspace") : getProjectWorkspaceDir(username, project);
   for (const dir of BUILD_DIRS) {
     const candidate = resolve(projectDir, dir);
     if (existsSync(candidate)) return candidate;

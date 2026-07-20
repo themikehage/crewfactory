@@ -1,6 +1,13 @@
 import { existsSync, readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { resolve, dirname } from "node:path";
 import { type PreviewConfig, type FrameworkPreset, getProjectWorkspaceDir } from "shared";
+import { resolveProjectDir } from "./session/workspace-resolver";
+import { join } from "node:path";
+
+function getResolvedProjectWorkspaceDir(username: string, projectName: string): string {
+  const resolved = resolveProjectDir(username, projectName);
+  return resolved ? join(resolved, "workspace") : getProjectWorkspaceDir(username, projectName);
+}
 
 interface FrameworkPresetDef {
   framework: FrameworkPreset;
@@ -36,7 +43,7 @@ const FRAMEWORK_PRESETS: Record<string, FrameworkPresetDef[]> = {
 };
 
 function configPath(username: string, projectName: string): string {
-  const base = getProjectWorkspaceDir(username, projectName);
+  const base = getResolvedProjectWorkspaceDir(username, projectName);
   return resolve(base, ".preview.json");
 }
 
@@ -102,7 +109,7 @@ function detectFromConfigFiles(projectDir: string): FrameworkPresetDef | null {
 }
 
 function autoDetectFramework(username: string, projectName: string): PreviewConfig {
-  const projectDir = getProjectWorkspaceDir(username, projectName);
+  const projectDir = getResolvedProjectWorkspaceDir(username, projectName);
 
   if (!existsSync(projectDir)) {
     return { framework: "html", buildCommand: undefined, outputDir: undefined, autoDetected: true };
@@ -180,7 +187,7 @@ export function savePreviewConfig(
 }
 
 export function getBuildOutputDir(config: PreviewConfig, username: string, projectName: string): string | null {
-  const projectDir = getProjectWorkspaceDir(username, projectName);
+  const projectDir = getResolvedProjectWorkspaceDir(username, projectName);
   const dir = config.outputDir || "dist";
   const candidate = resolve(projectDir, dir);
   if (existsSync(candidate)) return candidate;
@@ -189,7 +196,7 @@ export function getBuildOutputDir(config: PreviewConfig, username: string, proje
 }
 
 export function getBuildCommand(config: PreviewConfig, username: string, projectName: string): string | null {
-  const projectDir = getProjectWorkspaceDir(username, projectName);
+  const projectDir = getResolvedProjectWorkspaceDir(username, projectName);
   const pkg = readPackageJson(projectDir);
 
   if (config.buildCommand) return config.buildCommand;
