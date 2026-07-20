@@ -167,7 +167,7 @@ export function SessionTimeline({ messages, sessionCreatedAt }: SessionTimelineP
   };
 
   return (
-    <div className="relative pl-6 space-y-6 before:absolute before:left-3 before:top-2 before:bottom-2 before:w-0.5 before:bg-border/60 max-w-3xl mx-auto py-4">
+    <div className="relative pl-6 space-y-6 before:absolute before:left-0 before:top-8 before:bottom-2 before:w-0.5 before:bg-border/30 max-w-3xl mx-auto py-4">
       {milestones.map((m) => {
         const style = getMilestoneStyle(m.type);
         const isExpanded = !!expandedIds[m.id];

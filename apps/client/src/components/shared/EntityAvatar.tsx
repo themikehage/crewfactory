@@ -7,7 +7,7 @@ interface EntityAvatarProps {
   avatarUrl?: string | null;
   size?: "xs" | "sm" | "md" | "lg" | "xl" | "2xl" | "3xl" | "full";
   className?: string;
-  type?: "project" | "agent" | "channel";
+  type?: "project" | "agent" | "channel" | "team";
 }
 
 const SIZE_MAP = {
@@ -52,7 +52,7 @@ export const EntityAvatar: FC<EntityAvatarProps> = ({
 
     let s = 65;
     let l = 45;
-    if (type === "channel") {
+    if (type === "channel" || type === "team") {
       s = 70;
       l = 50;
     } else if (type === "agent") {

@@ -806,6 +806,7 @@ export const TeamSchema = z.object({
   showTools: z.boolean().optional(),
   streamingEnabled: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
+  avatarUrl: z.string().optional(),
   createdAt: z.string(),
   updatedAt: z.string(),
   blueprintId: z.string().optional(),
@@ -824,6 +825,7 @@ export const CreateTeamSchema = z.object({
   showTools: z.boolean().optional(),
   streamingEnabled: z.boolean().optional(),
   negotiationProtocol: NegotiationProtocolSchema.optional(),
+  avatarUrl: z.string().optional(),
   blueprintId: z.string().optional(),
 });
 export type CreateTeam = z.infer<typeof CreateTeamSchema>;

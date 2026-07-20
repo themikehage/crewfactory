@@ -7,6 +7,7 @@ import { TeamMembersPanel } from "@/components/teams/TeamMembersPanel";
 import { AddTeamMemberModal } from "@/components/teams/TeamMembersModal";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./TeamDetailPage.literals";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
 
 interface Props {
   teamId: string;
@@ -77,7 +78,12 @@ export function TeamDetailPage({ teamId, onNavigate }: Props) {
             </svg>
           </button>
           <div className="flex items-center gap-1.5 min-w-0">
-            <span className="text-primary font-bold text-base select-none">#</span>
+            <EntityAvatar
+              name={team.name}
+              avatarUrl={team.avatarUrl}
+              size="xs"
+              type="team"
+            />
             <h2 className="text-sm font-semibold text-foreground truncate">{team.name}</h2>
           </div>
           {team.description && (

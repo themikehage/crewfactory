@@ -402,7 +402,7 @@ export function DashboardPage({ onNavigate, onSelectProject }: Props) {
                       <EntityAvatar
                         name={agent.name}
                         avatarUrl={agent.avatarUrl}
-                        size="3xl"
+                        size="2xl"
                         type="agent"
                         className="group-hover:scale-105 transition-transform duration-300 border border-input/20 shadow-md"
                       />

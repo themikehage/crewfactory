@@ -86,3 +86,12 @@
 - [x] 169.1 Resolved all 31 compiler type errors on apps/server and packages/shared
 - [x] 169.2 Confirmed strict typecheck compilation and verified all 110 tests pass cleanly
 
+## Phase 170: Project and Team Avatar Support
+- [x] 170.1 Add avatarUrl fields to TeamSchema, CreateTeamSchema, and update team-store persistence on server
+- [x] 170.2 Update project route handlers (GET, POST, PATCH) in files.ts to read/save avatarUrl to project.json
+- [x] 170.3 Add team support to EntityAvatar.tsx and useWorkspaceContext active context typings
+- [x] 170.4 Render EntityAvatar for projects and teams in SessionSidebar, TeamDetailPage, TeamChatArea, and TeamCard
+- [x] 170.5 Add avatarUrl configuration inputs in TeamsPage create dialog and TeamSettingsModal settings dialog
+- [x] 170.6 Update main layout breadcrumbs structure and verify client and server compilation build checks
+
+

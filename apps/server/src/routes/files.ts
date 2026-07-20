@@ -261,17 +261,19 @@ filesRouter.get("/workspace-projects", async (c) => {
         let projName = entry.name;
         let cloneUrl = null;
         let createdAt = null;
+        let avatarUrl = null;
         if (existsSync(jsonPath)) {
           try {
             const proj = JSON.parse(readFileSync(jsonPath, "utf-8"));
             projName = proj.name || entry.name;
             cloneUrl = proj.cloneUrl || null;
             createdAt = proj.createdAt || null;
+            avatarUrl = proj.avatarUrl || null;
           } catch {}
         } else {
           try {
             createdAt = new Date().toISOString();
-            writeFileSync(jsonPath, JSON.stringify({ id: entry.name, name: entry.name, cloneUrl: null, createdAt }, null, 2), "utf-8");
+            writeFileSync(jsonPath, JSON.stringify({ id: entry.name, name: entry.name, cloneUrl: null, avatarUrl: null, createdAt }, null, 2), "utf-8");
           } catch {}
         }
         const stat = statSync(entryPath);
@@ -280,6 +282,7 @@ filesRouter.get("/workspace-projects", async (c) => {
           name: projName,
           path: entry.name,
           cloneUrl,
+          avatarUrl,
           createdAt,
           diskPath: getProjectWorkspaceDir(username, entry.name),
           lastModified: stat.mtime.toISOString(),
@@ -300,7 +303,7 @@ filesRouter.post("/workspace-projects", async (c) => {
 
   try {
     const body = await c.req.json().catch(() => ({}));
-    const { name, cloneUrl } = body;
+    const { name, cloneUrl, avatarUrl } = body;
 
     if (!name || typeof name !== "string" || !/^[a-zA-Z0-9_-]+$/.test(name)) {
       return c.json({ error: "Invalid project name" }, 400);
@@ -341,6 +344,7 @@ filesRouter.post("/workspace-projects", async (c) => {
       id: projectId,
       name: name,
       cloneUrl: cloneUrl || null,
+      avatarUrl: avatarUrl || null,
       createdAt: new Date().toISOString(),
     };
     writeFileSync(join(baseDir, "project.json"), JSON.stringify(projectJson, null, 2), "utf-8");
@@ -350,6 +354,8 @@ filesRouter.post("/workspace-projects", async (c) => {
       id: projectId,
       name,
       path: projectId,
+      cloneUrl: projectJson.cloneUrl,
+      avatarUrl: projectJson.avatarUrl,
       lastModified: stat.mtime.toISOString(),
     }, 201);
   } catch (err: any) {
@@ -400,13 +406,16 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
 
   try {
     const body = await c.req.json().catch(() => ({}));
-    const { name, cloneUrl } = body;
+    const { name, cloneUrl, avatarUrl } = body;
 
     if (name !== undefined && (typeof name !== "string" || !name.trim())) {
       return c.json({ error: "Invalid project name" }, 400);
     }
     if (cloneUrl !== undefined && cloneUrl !== null && (typeof cloneUrl !== "string" || (cloneUrl !== "" && !cloneUrl.startsWith("http")))) {
       return c.json({ error: "Invalid clone URL" }, 400);
+    }
+    if (avatarUrl !== undefined && avatarUrl !== null && typeof avatarUrl !== "string") {
+      return c.json({ error: "Invalid avatar URL" }, 400);
     }
 
     const projectsDir = getProjectsDir(username);
@@ -424,6 +433,9 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
     if (cloneUrl !== undefined) {
       projectJson.cloneUrl = cloneUrl ? cloneUrl.trim() : null;
     }
+    if (avatarUrl !== undefined) {
+      projectJson.avatarUrl = avatarUrl ? avatarUrl.trim() : null;
+    }
 
     writeFileSync(jsonPath, JSON.stringify(projectJson, null, 2), "utf-8");
 
@@ -432,6 +444,7 @@ filesRouter.patch("/workspace-projects/:id", async (c) => {
       name: projectJson.name,
       path: id,
       cloneUrl: projectJson.cloneUrl,
+      avatarUrl: projectJson.avatarUrl,
       createdAt: projectJson.createdAt || null,
       diskPath: getProjectWorkspaceDir(username, id),
       lastModified: statSync(projectPath).mtime.toISOString(),

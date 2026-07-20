@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import type { Team, AgentInfo } from "shared";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./TeamCard.literals";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
 
 interface Props {
   team: Team;
@@ -29,9 +30,13 @@ export function TeamCard({ team, registeredAgents, onOpen, onDelete, onManageMem
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-2.5 min-w-0">
-          <div className="w-8 h-8 rounded-lg bg-primary/10 border border-primary/20 flex items-center justify-center flex-shrink-0 text-primary font-bold text-sm">
-            #
-          </div>
+          <EntityAvatar
+            name={team.name}
+            avatarUrl={team.avatarUrl}
+            size="sm"
+            type="team"
+            className="flex-shrink-0"
+          />
           <div className="min-w-0 flex flex-col gap-0.5">
             <div className="flex items-center gap-1.5 min-w-0">
               <h3 className="font-medium text-foreground text-sm truncate">{team.name}</h3>

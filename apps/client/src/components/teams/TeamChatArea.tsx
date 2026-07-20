@@ -10,9 +10,10 @@ import { useNavigate } from "react-router-dom";
 import { getSessionPath } from "@/lib/session-utils";
 import { ChatArea } from "@/components/chat/ChatArea";
 import type { TeamMember, AgentInfo } from "shared";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
 
 interface Props {
-  activeTeam: { id: string; name: string };
+  activeTeam: { id: string; name: string; avatarUrl?: string };
   sessionId: string | null;
 }
 
@@ -115,7 +116,13 @@ export function TeamChatArea({ activeTeam, sessionId }: Props) {
         <div className="h-10 px-4 border-b border-border/60 flex items-center justify-between flex-shrink-0 bg-card/20 text-xs text-muted-foreground">
           <div className="flex items-center gap-2 truncate">
             <span className="font-semibold text-foreground flex items-center gap-1">
-              <span className="text-primary font-bold">#</span>
+              <EntityAvatar
+                name={team?.name || activeTeam.name}
+                avatarUrl={team?.avatarUrl || activeTeam.avatarUrl}
+                size="xs"
+                type="team"
+                className="mr-1"
+              />
               {team?.name || activeTeam.name}
             </span>
             {team?.description && (
@@ -207,7 +214,13 @@ export function TeamChatArea({ activeTeam, sessionId }: Props) {
       <div className="h-10 px-4 border-b border-border/60 flex items-center justify-between flex-shrink-0 bg-card/20 text-xs text-muted-foreground">
         <div className="flex items-center gap-2 truncate">
           <span className="font-semibold text-foreground flex items-center gap-1">
-            <span className="text-primary font-bold">#</span>
+            <EntityAvatar
+              name={team?.name || activeTeam.name}
+              avatarUrl={team?.avatarUrl || activeTeam.avatarUrl}
+              size="xs"
+              type="team"
+              className="mr-1"
+            />
             {team?.name || activeTeam.name}
           </span>
           {team?.description && (

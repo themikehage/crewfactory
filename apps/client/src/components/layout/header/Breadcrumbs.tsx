@@ -6,6 +6,7 @@ interface BreadcrumbsProps {
   activeProjectName: string | null;
   activeAgent: { id: string; name: string } | null;
   activeChannel: { id: string; name: string } | null;
+  activeTeam?: { id: string; name: string } | null;
   selectedExpId?: string | null;
   experiments?: any[];
   onNavigate: (path: string) => void;
@@ -18,6 +19,7 @@ export function Breadcrumbs({
   activeProjectName,
   activeAgent,
   activeChannel,
+  activeTeam = null,
   selectedExpId,
   experiments = [],
   onNavigate,
@@ -29,6 +31,7 @@ export function Breadcrumbs({
   const currentProjectFriendly = activeProjectName || activeProjectId;
   const currentAgent = activeAgent;
   const currentChannel = activeChannel;
+  const currentTeam = activeTeam;
 
   if (currentProject) {
     items = [
@@ -44,6 +47,11 @@ export function Breadcrumbs({
     items = [
       { label: l.breadCanales || "Channels", path: "/channels" },
       { label: `#${currentChannel.name}`, path: `/channels/${currentChannel.id}/chat` },
+    ];
+  } else if (currentTeam) {
+    items = [
+      { label: l.breadTeams || "Teams", path: "/teams" },
+      { label: currentTeam.name, path: `/teams/${currentTeam.id}/chat` },
     ];
   } else {
     items = [{ label: l.breadFactory || "Factory", path: "/" }];
@@ -71,6 +79,13 @@ export function Breadcrumbs({
     items = [{ label: l.breadCanales || "Channels", path: "/channels" }];
     if (activeChannel) {
       items.push({ label: `#${activeChannel.name}` });
+    }
+  } else if (page === "teams") {
+    items = [{ label: l.breadTeams || "Teams" }];
+  } else if (page === "team") {
+    items = [{ label: l.breadTeams || "Teams", path: "/teams" }];
+    if (activeTeam) {
+      items.push({ label: activeTeam.name });
     }
   } else if (page === "org") {
     items.push({ label: l.tabOrgChart || "Org Chart" });

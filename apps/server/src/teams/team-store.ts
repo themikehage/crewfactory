@@ -50,6 +50,7 @@ class TeamStore {
       showThinking: data.showThinking ?? false,
       showTools: data.showTools ?? false,
       negotiationProtocol: data.negotiationProtocol,
+      avatarUrl: data.avatarUrl,
       createdAt: now,
       updatedAt: now,
       blueprintId: data.blueprintId,
@@ -124,6 +125,7 @@ class TeamStore {
     if (updates.showThinking !== undefined) team.showThinking = updates.showThinking;
     if (updates.showTools !== undefined) team.showTools = updates.showTools;
     if (updates.negotiationProtocol !== undefined) team.negotiationProtocol = updates.negotiationProtocol;
+    if (updates.avatarUrl !== undefined) team.avatarUrl = updates.avatarUrl;
     if (updates.blueprintId !== undefined) team.blueprintId = updates.blueprintId;
     team.updatedAt = new Date().toISOString();
 

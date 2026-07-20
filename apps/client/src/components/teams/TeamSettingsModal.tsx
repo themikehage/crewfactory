@@ -4,6 +4,7 @@ import type { Team } from "shared";
 import { useLiterals } from "@/lib";
 import { apiFetch } from "@/lib/api";
 import { literals as u } from "./TeamSettingsModal.literals";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
 
 interface Props {
   team: Team;
@@ -11,6 +12,7 @@ interface Props {
   onSave: (updates: {
     name?: string;
     description?: string;
+    avatarUrl?: string;
     maxRounds?: number;
     showThinking?: boolean;
     showTools?: boolean;
@@ -25,6 +27,7 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
 
   const [name, setName] = useState(team.name);
   const [description, setDescription] = useState(team.description || "");
+  const [avatarUrl, setAvatarUrl] = useState(team.avatarUrl || "");
   const [maxRounds, setMaxRounds] = useState(team.maxRounds ?? 5);
   const [showThinking, setShowThinking] = useState(team.showThinking ?? false);
   const [showTools, setShowTools] = useState(team.showTools ?? false);
@@ -109,6 +112,7 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
       await onSave({
         name: name.trim(),
         description: description.trim() || undefined,
+        avatarUrl: avatarUrl.trim() || undefined,
         maxRounds: Number(maxRounds),
         showThinking,
         showTools,
@@ -192,13 +196,32 @@ export function TeamSettingsModal({ team, onClose, onSave }: Props) {
 
             {activeTab === "general" && (
               <div className="space-y-4">
+                <div className="flex items-center gap-4 mb-2">
+                  <EntityAvatar
+                    name={name}
+                    avatarUrl={avatarUrl}
+                    size="xl"
+                    type="team"
+                  />
+                  <div className="flex-1">
+                    <label className="block text-muted-foreground font-medium mb-1">{l.name}</label>
+                    <input
+                      type="text"
+                      value={name}
+                      onChange={(e) => setName(e.target.value)}
+                      required
+                      className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary"
+                    />
+                  </div>
+                </div>
+
                 <div>
-                  <label className="block text-muted-foreground font-medium mb-1">{l.name}</label>
+                  <label className="block text-muted-foreground font-medium mb-1">{l.avatarUrlLabel}</label>
                   <input
                     type="text"
-                    value={name}
-                    onChange={(e) => setName(e.target.value)}
-                    required
+                    value={avatarUrl}
+                    onChange={(e) => setAvatarUrl(e.target.value)}
+                    placeholder={l.avatarUrlPlaceholder}
                     className="w-full px-3 py-2 bg-background border border-input rounded-lg text-foreground outline-none focus:border-primary"
                   />
                 </div>

@@ -5,6 +5,7 @@ import { useExperiments } from "@/hooks/useExperiments";
 import { useLiterals } from "@/lib";
 import { literals as u } from "./SessionSidebar.literals";
 import { AgentAvatar } from "@/components/shared/AgentAvatar";
+import { EntityAvatar } from "@/components/shared/EntityAvatar";
 import { useSessions } from "@/contexts/SessionsContext";
 
 // --- Component ---
@@ -14,6 +15,7 @@ interface RepoItem {
   name: string;
   path: string;
   lastModified: string;
+  avatarUrl?: string;
 }
 
 interface AgentItem {
@@ -224,7 +226,7 @@ export function SessionSidebar({
   );
 
   const handleSelectTeamClick = useCallback(
-    (team: { id: string; name: string }) => {
+    (team: { id: string; name: string; avatarUrl?: string }) => {
       if (onSelectTeam) onSelectTeam(team);
       onCloseSidebar?.();
     },
@@ -358,15 +360,13 @@ export function SessionSidebar({
                       onClick={() => handleSelectRepoClick(repo.id || repo.name, repo.name)}
                       className={itemClass(isActive)}
                     >
-                      <svg
-                        width={isMobile ? 20 : 12}
-                        height={isMobile ? 20 : 12}
-                        viewBox="0 0 20 20"
-                        fill="currentColor"
-                        className="flex-shrink-0 text-muted-foreground"
-                      >
-                        <path d="M2 6a2 2 0 012-2h5l2 2h5a2 2 0 012 2v6a2 2 0 01-2 2H4a2 2 0 01-2-2V6z" />
-                      </svg>
+                      <EntityAvatar
+                        name={repo.name}
+                        avatarUrl={repo.avatarUrl}
+                        size={isMobile ? "sm" : "xs"}
+                        type="project"
+                        className="flex-shrink-0"
+                      />
                       <span className="truncate">{repo.name}</span>
                     </button>
                   );
@@ -489,10 +489,16 @@ export function SessionSidebar({
                   return (
                     <button
                       key={team.id}
-                      onClick={() => handleSelectTeamClick({ id: team.id, name: team.name })}
+                      onClick={() => handleSelectTeamClick({ id: team.id, name: team.name, avatarUrl: team.avatarUrl })}
                       className={itemClass(isActive)}
                     >
-                      <span className={isMobile ? "font-bold text-base text-muted-foreground flex-shrink-0 w-5 text-center" : "font-bold text-xs text-muted-foreground flex-shrink-0 w-3 text-center"}>#</span>
+                      <EntityAvatar
+                        name={team.name}
+                        avatarUrl={team.avatarUrl}
+                        size={isMobile ? "sm" : "xs"}
+                        type="team"
+                        className="flex-shrink-0"
+                      />
                       <span className="truncate">{team.name}</span>
                     </button>
                   );

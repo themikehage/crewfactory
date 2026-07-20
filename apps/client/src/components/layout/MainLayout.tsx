@@ -270,6 +270,7 @@ export function MainLayout({
       activeProjectName={activeProjectName}
       activeAgent={activeAgent}
       activeChannel={null}
+      activeTeam={activeTeam}
       selectedExpId={lab?.selectedExpId}
       experiments={lab?.experiments}
       onNavigate={onNavigate}

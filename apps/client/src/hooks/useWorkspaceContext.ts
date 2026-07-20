@@ -11,6 +11,7 @@ export interface ActiveAgent {
 export interface ActiveNamedContext {
   id: string;
   name: string;
+  avatarUrl?: string;
 }
 
 interface WorkspaceContextValue {

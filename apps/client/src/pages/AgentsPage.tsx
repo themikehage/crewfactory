@@ -96,7 +96,7 @@ function AgentCard({
       </div>
 
       <div className="flex items-center gap-2 flex-wrap">
-        <span className={`text-xs font-medium px-2 py-0.5 rounded-full border ${roleColor(agent.role)}`}>
+        <span className={`text-xs font-medium p-2 rounded-lg border ${roleColor(agent.role)}`}>
           {agent.role}
         </span>
         {agent.port && (

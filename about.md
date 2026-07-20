@@ -589,7 +589,8 @@ packages/shared/  Shared Zod schemas and types
 - `components/layout/AppRouter.tsx` — Router y composición actual de la aplicación; concentra autenticación, historial de navegación y renderizado de rutas. El laboratorio y el contexto de workspace están desacoplados en controladores propios; continúa el plan de extraer rutas declarativas en `plans/app-router-refactor.md`.
 - `components/layout/MainLayout.tsx` — App shell with persistent left Sidebar (Slack-like), breadcrumb navigation in the header, and popover actions.
 - `components/chat/ChatArea.tsx` — Single-agent/project message list, streaming state, layout structure with side-by-side right drawer.
-- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos, Agentes, and Canales, and administration links. Active highlight is suppressed when the current page is not a session view (Laboratory, Settings, Agents, Channels, etc.).
+- `components/sidebar/SessionSidebar.tsx` — Left sidebar displaying active context, navigation links (Chat, Workspace, Preview), collapsible accordions for Proyectos, Agentes, and Canales, and administration links. Renders customizable avatars using `EntityAvatar` for all categories.
+- `components/shared/EntityAvatar.tsx` — Custom visual component rendering initials with unique color gradients, or loaded profile image avatars for agents, channels, projects, and teams.
 - `components/sidebar/SessionPopover.tsx` — Floating contextual popover menu for session switching, metadata management, and creation.
 - `components/chat/tools/DecomposeResult.tsx` — Premium inline card displaying structured planned objectives and DAG task dependencies inside the chat stream.
 - `components/chat/FloatingTasks.tsx` — Floating interactive accordion card rendered as a chat overlay, featuring play/pause controls and list indicators.

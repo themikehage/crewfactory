@@ -23,6 +23,7 @@ function CreateTeamModal({
   const l = useLiterals(u);
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState("");
   const [teamType, setTeamType] = useState<"Negotiation" | "Orchestration">("Negotiation");
   const [leaderAgentId, setLeaderAgentId] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -41,6 +42,7 @@ function CreateTeamModal({
       await onCreate({
         name: name.trim(),
         description: description.trim() || undefined,
+        avatarUrl: avatarUrl.trim() || undefined,
         teamType,
         members: [{ agentId: leaderAgentId, role: "lead" }],
       });
@@ -92,6 +94,16 @@ function CreateTeamModal({
               value={description}
               onChange={(e) => setDescription(e.target.value)}
               placeholder={l.descriptionPlaceholder}
+              className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
+            />
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-muted-foreground block mb-1">{l.avatarUrlLabel}</label>
+            <input
+              value={avatarUrl}
+              onChange={(e) => setAvatarUrl(e.target.value)}
+              placeholder={l.avatarUrlPlaceholder}
               className="w-full bg-background border border-input rounded-lg px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-primary/50"
             />
           </div>

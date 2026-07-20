@@ -19,11 +19,12 @@ function sessionFromSplat(splat: string | undefined, suffix = ""): string | null
 
 export function ChatRoute() {
   const { "*": splat } = useParams();
-  const { activeProjectId, activeAgent, activeChannel, activeTeam } = useWorkspaceContext();
+  const { activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam } = useWorkspaceContext();
   const sessionId = sessionFromSplat(splat);
+  const projectDisplayName = activeProjectFriendlyName || activeProjectId;
   if (activeChannel) return <ChannelChatArea key={`${sessionId}-${activeChannel.id}`} activeChannel={activeChannel} sessionId={sessionId} />;
   if (activeTeam) return <TeamChatArea key={`${sessionId}-${activeTeam.id}`} activeTeam={activeTeam} sessionId={sessionId} />;
-  return <ChatArea key={`${sessionId}-${activeProjectId}-${activeAgent?.id}`} sessionId={sessionId} activeProjectName={activeProjectId} activeAgent={activeAgent} />;
+  return <ChatArea key={`${sessionId}-${activeProjectId}-${activeAgent?.id}`} sessionId={sessionId} activeProjectName={projectDisplayName} activeAgent={activeAgent} />;
 }
 
 export function SessionRoute() {
@@ -33,19 +34,21 @@ export function SessionRoute() {
 
 export function DelegationsRoute() {
   const { "*": splat } = useParams();
-  const { activeProjectId, activeAgent, activeChannel, activeTeam } = useWorkspaceContext();
+  const { activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam } = useWorkspaceContext();
   const sessionId = sessionFromSplat(splat, "/delegations");
-  return <DelegationsPanel key={`${sessionId}-${activeProjectId}-${activeAgent?.id}-${activeChannel?.id}-${activeTeam?.id}`} sessionId={sessionId} activeProjectName={activeProjectId} activeAgent={activeAgent} activeChannel={activeChannel} activeTeam={activeTeam} />;
+  const projectDisplayName = activeProjectFriendlyName || activeProjectId;
+  return <DelegationsPanel key={`${sessionId}-${activeProjectId}-${activeAgent?.id}-${activeChannel?.id}-${activeTeam?.id}`} sessionId={sessionId} activeProjectName={projectDisplayName} activeAgent={activeAgent} activeChannel={activeChannel} activeTeam={activeTeam} />;
 }
 
 export function WorkspaceRoute() {
-  const { activeProjectId, activeAgent, activeChannel, activeTeam } = useWorkspaceContext();
-  return <WorkspacePanel key={activeProjectId || activeAgent?.id || activeChannel?.id || activeTeam?.id || "global"} activeProjectName={activeProjectId} activeAgentId={activeAgent?.id} activeChannelId={activeChannel?.id} activeTeamId={activeTeam?.id} />;
+  const { activeProjectId, activeProjectFriendlyName, activeAgent, activeChannel, activeTeam } = useWorkspaceContext();
+  const projectDisplayName = activeProjectFriendlyName || activeProjectId;
+  return <WorkspacePanel key={activeProjectId || activeAgent?.id || activeChannel?.id || activeTeam?.id || "global"} activeProjectName={projectDisplayName} activeAgentId={activeAgent?.id} activeChannelId={activeChannel?.id} activeTeamId={activeTeam?.id} />;
 }
 
 export function PreviewRoute() {
-  const { activeProjectId } = useWorkspaceContext();
-  return <PreviewPanel activeProjectName={activeProjectId} />;
+  const { activeProjectId, activeProjectFriendlyName } = useWorkspaceContext();
+  return <PreviewPanel activeProjectName={activeProjectFriendlyName || activeProjectId} />;
 }
 
 export function ChannelDetailRoute() {

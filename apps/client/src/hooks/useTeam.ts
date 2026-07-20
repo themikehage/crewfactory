@@ -262,6 +262,7 @@ export function useTeam(teamId: string | null, sessionId?: string | null) {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const updated = await res.json();
       setTeam(updated);
+      window.dispatchEvent(new CustomEvent("entity-updated", { detail: { type: "team" } }));
     },
     [teamId]
   );
