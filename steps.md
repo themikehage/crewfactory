@@ -111,9 +111,9 @@
 - [x] 172.7 Wire settings gears, custom Factory names and custom Factory avatars to MainLayout, Sidebar and Breadcrumbs
 - [x] 172.8 Verify client builds successfully and all flows align to the new unified design system
 
-## Phase 173: Orchestration Team Domain Separation and Bug Fixes
-- [x] 173.1 Create OrchestrationRunner (teams/orchestration/orchestration-runner.ts) with session event bridge to teamSockets — fixes no streaming bug
-- [x] 173.2 Create NegotiationRunner (teams/negotiation/negotiation-runner.ts) encapsulating stateless debate loop
-- [x] 173.3 Refactor TeamOrchestrator to pure router delegating to OrchestrationRunner or NegotiationRunner by teamType
-- [x] 173.4 Fix sessionId isolation: user messages and agent responses tagged with conversationSessionId in teamStore — fixes cross-session message mixing bug
-- [x] 173.5 Verify bun build compiles cleanly with 0 errors in teams modules
+## Phase 173: Orchestration Team Multi-Session & Streaming Alignment
+- [x] 173.1 Remove custom orchestration-session hardcoding from useSessionResolver.ts so Orchestration teams resolve to standard UUID sessions.
+- [x] 173.2 Update ChatArea.tsx send function to route Orchestration team messages via native WS prompts directly.
+- [x] 173.3 Add params.sessionId support to the team send action in factory-tool.ts to avoid defaulting to a single global session.
+- [x] 173.4 Confirm client build runs clean with 0 compilation errors.
+
