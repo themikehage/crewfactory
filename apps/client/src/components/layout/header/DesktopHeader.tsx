@@ -25,7 +25,7 @@ export function DesktopHeader({
           className="p-1 text-muted-foreground hover:text-foreground rounded cursor-pointer flex-shrink-0"
           title="Inicio"
         >
-          <Logo size={20} className="sm:w-[22px] sm:h-[22px] w-[18px] h-[18px]" />
+          <Logo size={26} className="sm:w-[22px] sm:h-[22px] w-[32px] h-[32px]" />
         </button>
         <button
           onClick={onToggleSidebar}

@@ -3,7 +3,7 @@ interface LogoProps {
   size?: number;
 }
 
-export function Logo({ className = "", size = 20 }: LogoProps) {
+export function Logo({ className = "", size = 26 }: LogoProps) {
   return (
     <img
       src="/favicon.png"

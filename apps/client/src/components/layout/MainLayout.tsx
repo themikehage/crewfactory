@@ -708,6 +708,7 @@ export function MainLayout({
               sidebarOpen={sidebarOpen}
               isHome={isHome}
               onClose={() => setSidebarOpen(false)}
+              onNavigate={onNavigate}
             >
               {sessionSidebarElement}
             </MobileSidebarOverlay>
